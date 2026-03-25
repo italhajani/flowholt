@@ -9,7 +9,8 @@ FlowHolt is an advanced AI workflow platform that turns a user's messy task desc
 - Avoid technical language like `orchestrator` in the visible UI.
 - The visual style should stay clean, modern, and a little classical rather than noisy or overly futuristic.
 - Studio design quality is a top-tier priority, not a later polish step.
-- Chat-first planning should be able to turn recurring business tasks into a proposed team of steps, inputs, and outputs.`r`n- The chat planner should feel similar to top competitors: it should think through the task, suggest a clean specialist-step workflow, and then open that plan in a clear visual studio.
+- Chat-first planning should be able to turn recurring business tasks into a proposed team of steps, inputs, and outputs.
+- The chat planner should feel similar to top competitors: it should think through the task, suggest a clean specialist-step workflow, and then open that plan in a clear visual studio.
 - A key benchmark use case is a WooCommerce SEO content writer flow for daily product uploads, descriptions, meta tags, and alt text.
 ## Current build status
 
@@ -62,5 +63,3 @@ Use one GitHub monorepo for the whole MVP:
 - `docs` for setup and product planning
 
 This keeps the free setup simpler because Vercel and Render can both deploy from different folders inside the same repository.
-
-

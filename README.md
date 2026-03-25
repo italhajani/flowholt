@@ -9,6 +9,13 @@ FlowHolt is an advanced AI workflow platform that turns a user's messy task desc
 - Avoid technical language like `orchestrator` in the visible UI.
 - The visual style should stay clean, modern, and a little classical rather than noisy or overly futuristic.
 
+## Current build status
+
+- Auth works with Supabase.
+- Workspaces and workflows persist in Supabase.
+- Users can create workflow drafts from chat.
+- Draft generation uses Groq first, then Hugging Face, then a local fallback if no provider key is present.
+
 ## Repositories in this workspace
 
 - `flowholt-web`: Next.js app for landing, dashboard, create flow, and studio.

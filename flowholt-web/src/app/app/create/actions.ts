@@ -3,29 +3,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { starterGraph } from "@/lib/flowholt/data";
+import { generateWorkflowDraft } from "@/lib/ai/workflow-generator";
 import { createClient } from "@/lib/supabase/server";
 
 function getValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-function makeWorkflowName(prompt: string) {
-  const cleaned = prompt.replace(/\s+/g, " ").trim();
-
-  if (!cleaned) {
-    return "New workflow";
-  }
-
-  const words = cleaned.split(" ").slice(0, 6);
-  const shortName = words.join(" ");
-  return shortName.length > 60 ? `${shortName.slice(0, 57)}...` : shortName;
-}
-
-function makeStarterDescription(prompt: string) {
-  const cleaned = prompt.replace(/\s+/g, " ").trim();
-  return cleaned.length > 220 ? `${cleaned.slice(0, 217)}...` : cleaned;
 }
 
 export async function createWorkflowFromChat(formData: FormData) {
@@ -49,20 +32,21 @@ export async function createWorkflowFromChat(formData: FormData) {
     redirect("/app/create?error=Please describe the task first");
   }
 
+  const draft = await generateWorkflowDraft(prompt);
+
   const { data, error } = await supabase
     .from("workflows")
     .insert({
       workspace_id: workspaceId,
       created_by_user_id: user.id,
-      name: makeWorkflowName(prompt),
-      description: makeStarterDescription(prompt),
+      name: draft.name,
+      description: draft.description,
       status: "draft",
-      graph: starterGraph,
+      graph: draft.graph,
       settings: {
         source: "chat",
         originalPrompt: prompt,
-        model: "groq/llama",
-        retries: 2,
+        generation: draft.generation,
       },
     })
     .select("id")

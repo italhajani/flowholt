@@ -12,7 +12,7 @@ export const appNavigation: AppNavItem[] = [
   },
   {
     label: "Create",
-    href: "/app/orchestrator",
+    href: "/app/create",
     description: "Describe your task in chat",
   },
   {

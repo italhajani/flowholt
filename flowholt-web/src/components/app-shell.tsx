@@ -60,7 +60,7 @@ export function AppShell({
               </div>
               <div className="flex gap-3">
                 <Link
-                  href="/app/orchestrator"
+                  href="/app/create"
                   className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                 >
                   Create with chat

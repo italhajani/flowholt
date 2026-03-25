@@ -30,7 +30,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     <AppShell
       eyebrow="Dashboard"
       title="Control center"
-      description="The dashboard gives users a fast read on workflow health, recent runs, draft activity, and the quickest path into chat-based workflow creation."
+      description="The dashboard gives users a fast read on workflow health, recent runs, saved work, and the quickest path into chat-based creation."
     >
       <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-5">
@@ -97,7 +97,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
           <SurfaceCard
             title="Recent workflows"
-            description="A combined list of drafts, active flows, and recently executed automation chains."
+            description="A combined list of drafts, active flows, and recently edited workflow records."
           >
             <div className="grid gap-3">
               {snapshot.recentWorkflows.length ? (
@@ -129,10 +129,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           >
             <div className="grid gap-3 text-sm text-stone-800">
               <Link
-                href="/app/orchestrator"
+                href="/app/create"
                 className="rounded-2xl border border-stone-900/10 bg-white/80 px-4 py-3 transition hover:bg-white"
               >
-                Create workflow from chat
+                Create with chat
               </Link>
               {snapshot.activeWorkspace ? (
                 <form action={createStarterWorkflow}>

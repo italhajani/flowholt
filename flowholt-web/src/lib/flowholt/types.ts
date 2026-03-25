@@ -40,6 +40,22 @@ export type WorkspaceRecord = {
   updated_at: string;
 };
 
+export type IntegrationProvider = "groq" | "http" | "webhook";
+
+export type IntegrationConnectionRecord = {
+  id: string;
+  workspace_id: string;
+  created_by_user_id: string;
+  provider: IntegrationProvider;
+  label: string;
+  description: string;
+  status: "draft" | "active" | "disabled";
+  config: Record<string, unknown>;
+  secrets: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
 export type WorkflowRecord = {
   id: string;
   workspace_id: string;
@@ -106,4 +122,11 @@ export type RunsSnapshot = {
   workspaces: WorkspaceRecord[];
   activeWorkspace: WorkspaceRecord | null;
   runs: WorkflowRunListItem[];
+};
+
+export type IntegrationsSnapshot = {
+  schemaReady: boolean;
+  workspaces: WorkspaceRecord[];
+  activeWorkspace: WorkspaceRecord | null;
+  integrations: IntegrationConnectionRecord[];
 };

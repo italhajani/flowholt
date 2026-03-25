@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   DashboardSnapshot,
+  IntegrationConnectionRecord,
+  IntegrationsSnapshot,
   RunLogRecord,
   RunsSnapshot,
   WorkflowGraph,
@@ -23,7 +25,8 @@ export const starterGraph: WorkflowGraph = {
   edges: [
     { source: "trigger", target: "research" },
     { source: "research", target: "qualify" },
-    { source: "qualify", target: "email" },
+    { source: "qualify", target: "email", branch: "true", label: "True" },
+    { source: "qualify", target: "output", branch: "false", label: "False" },
     { source: "email", target: "crm" },
     { source: "crm", target: "output" },
   ],
@@ -61,6 +64,15 @@ function emptyRunsSnapshot(): RunsSnapshot {
     workspaces: [],
     activeWorkspace: null,
     runs: [],
+  };
+}
+
+function emptyIntegrationsSnapshot(): IntegrationsSnapshot {
+  return {
+    schemaReady: false,
+    workspaces: [],
+    activeWorkspace: null,
+    integrations: [],
   };
 }
 
@@ -237,10 +249,7 @@ export async function getRunsSnapshot(): Promise<RunsSnapshot> {
 
   const [{ data: workflows, error: workflowsError }, { data: logs, error: logsError }] =
     await Promise.all([
-      workspaceState.supabase
-        .from("workflows")
-        .select("id, name")
-        .in("id", workflowIds),
+      workspaceState.supabase.from("workflows").select("id, name").in("id", workflowIds),
       workspaceState.supabase
         .from("run_logs")
         .select("id, run_id, workflow_id, workspace_id, node_id, level, message, payload, created_at")
@@ -275,6 +284,37 @@ export async function getRunsSnapshot(): Promise<RunsSnapshot> {
     workspaces: workspaceState.workspaces,
     activeWorkspace: workspaceState.activeWorkspace,
     runs: runsWithDetails,
+  };
+}
+
+export async function getIntegrationsSnapshot(): Promise<IntegrationsSnapshot> {
+  const workspaceState = await getWorkspaceState();
+
+  if (!workspaceState.schemaReady) {
+    return emptyIntegrationsSnapshot();
+  }
+
+  if (!workspaceState.activeWorkspace) {
+    return {
+      ...emptyIntegrationsSnapshot(),
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+    };
+  }
+
+  const { data, error } = await workspaceState.supabase
+    .from("integration_connections")
+    .select(
+      "id, workspace_id, created_by_user_id, provider, label, description, status, config, secrets, created_at, updated_at",
+    )
+    .eq("workspace_id", workspaceState.activeWorkspace.id)
+    .order("updated_at", { ascending: false });
+
+  return {
+    schemaReady: true,
+    workspaces: workspaceState.workspaces,
+    activeWorkspace: workspaceState.activeWorkspace,
+    integrations: error ? [] : ((data ?? []) as IntegrationConnectionRecord[]),
   };
 }
 

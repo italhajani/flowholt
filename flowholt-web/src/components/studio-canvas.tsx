@@ -115,7 +115,7 @@ function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>)
 
   return (
     <div
-      className={`min-w-[220px] rounded-[28px] border bg-white/96 p-4 text-stone-900 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur ${style.border} ${style.glow} ${selected ? "ring-2 ring-violet-400/60" : ""}`}
+      className={`min-w-[228px] rounded-[28px] border bg-white/97 p-4 text-stone-900 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur ${style.border} ${style.glow} ${selected ? "ring-2 ring-violet-400/60" : ""}`}
     >
       <Handle
         type="target"
@@ -343,165 +343,165 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[0.22fr_1fr]">
-        <div className="rounded-[30px] border border-stone-900/10 bg-[#fbf7ef] p-4 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-          <div className="rounded-[22px] bg-white/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-              Add Steps
-            </p>
-            <div className="mt-4 grid gap-2">
-              {(
-                [
-                  "trigger",
-                  "agent",
-                  "tool",
-                  "condition",
-                  "memory",
-                  "output",
-                ] as WorkflowNodeType[]
-              ).map((nodeType) => (
-                <button
-                  key={nodeType}
-                  type="button"
-                  onClick={() => addNode(nodeType)}
-                  className="flex items-center justify-between rounded-2xl border border-stone-900/8 bg-white px-3 py-3 text-left text-sm text-stone-700 transition hover:border-stone-900/15 hover:bg-stone-50"
-                >
-                  <span>{nodeTypeLabels[nodeType]}</span>
-                  <span className="text-xs uppercase tracking-[0.18em] text-stone-400">
-                    {nodeTypeIcons[nodeType]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="rounded-[34px] border border-stone-900/10 bg-[#202226] p-4 shadow-[0_24px_80px_rgba(15,23,42,0.20)]">
-          <div className="h-[620px] overflow-hidden rounded-[28px] border border-white/10 bg-[#24272c]">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-              fitView
-              minZoom={0.35}
-              className="studio-flow bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),rgba(36,39,44,0.96))]"
-              proOptions={{ hideAttribution: true }}
-            >
-              <Panel position="top-left" className="!m-4">
-                <div className="rounded-full border border-white/10 bg-black/25 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-300 backdrop-blur">
-                  Canvas
-                </div>
-              </Panel>
-              <Panel position="top-right" className="!m-4">
-                <div className="flex gap-2 rounded-full border border-white/10 bg-black/25 px-2 py-2 backdrop-blur">
-                  <button
-                    type="button"
-                    className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-stone-700"
-                  >
-                    Present
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-stone-200"
-                  >
-                    Share
-                  </button>
-                </div>
-              </Panel>
-              <MiniMap
-                pannable
-                zoomable
-                className="!m-4 !rounded-2xl !border !border-white/10 !bg-black/25"
-                maskColor="rgba(14,15,18,0.45)"
-                nodeColor="#e7ebf2"
-              />
-              <Controls className="studio-controls" showInteractive={false} />
-              <Background gap={22} size={1.2} color="rgba(255,255,255,0.12)" />
-            </ReactFlow>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-        <div className="rounded-[30px] border border-stone-900/10 bg-white/85 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-stone-900">Selected step</p>
-              <p className="mt-1 text-sm text-stone-500">
-                Adjust the current card without digging into raw JSON.
-              </p>
-            </div>
-            {selectedNode ? (
-              <button
-                type="button"
-                onClick={removeSelectedNode}
-                className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-              >
-                Remove
-              </button>
-            ) : null}
-          </div>
-
-          {selectedNode ? (
-            <div className="mt-5 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-stone-700">
-                  Label
-                </label>
-                <input
-                  value={String(selectedNode.data?.label ?? "")}
-                  onChange={(event) => updateSelectedNodeLabel(event.target.value)}
-                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-stone-700">
-                  Type
-                </label>
-                <select
-                  value={String(selectedNode.data?.nodeType ?? "agent")}
-                  onChange={(event) =>
-                    updateSelectedNodeType(event.target.value as WorkflowNodeType)
-                  }
-                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-                >
-                  {Object.entries(nodeTypeLabels).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
+          <div className="grid h-[720px] grid-cols-[84px_minmax(0,1fr)] gap-4">
+            <div className="rounded-[28px] border border-white/8 bg-[#1a1c20] p-3">
+              <div className="flex h-full flex-col items-center justify-between">
+                <div className="grid gap-2">
+                  {(
+                    [
+                      "trigger",
+                      "agent",
+                      "tool",
+                      "condition",
+                      "memory",
+                      "output",
+                    ] as WorkflowNodeType[]
+                  ).map((nodeType) => (
+                    <button
+                      key={nodeType}
+                      type="button"
+                      onClick={() => addNode(nodeType)}
+                      className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-200 transition hover:bg-white/10"
+                      title={`Add ${nodeTypeLabels[nodeType]}`}
+                    >
+                      {nodeTypeIcons[nodeType]}
+                    </button>
                   ))}
-                </select>
+                </div>
+                <div className="rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                  Studio
+                </div>
               </div>
             </div>
-          ) : (
-            <p className="mt-5 text-sm leading-6 text-stone-500">
-              Click a step in the canvas to edit its label or type.
-            </p>
-          )}
-        </div>
 
-        <div className="rounded-[30px] border border-stone-900/10 bg-[#111317] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-stone-100">Graph JSON</p>
-              <p className="mt-1 text-sm text-stone-400">
-                Still available for transparency, but no longer the main editing surface.
-              </p>
-            </div>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-300">
-              Live sync
+            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#24272c]">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                fitView
+                minZoom={0.35}
+                className="studio-flow bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),rgba(36,39,44,0.96))]"
+                proOptions={{ hideAttribution: true }}
+              >
+                <Panel position="top-left" className="!m-4">
+                  <div className="rounded-full border border-white/10 bg-black/25 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-300 backdrop-blur">
+                    Canvas
+                  </div>
+                </Panel>
+                <Panel position="top-right" className="!m-4">
+                  <div className="flex gap-2 rounded-full border border-white/10 bg-black/25 px-2 py-2 backdrop-blur">
+                    <button
+                      type="button"
+                      className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-stone-700"
+                    >
+                      Present
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-stone-200"
+                    >
+                      Share
+                    </button>
+                  </div>
+                </Panel>
+                <MiniMap
+                  pannable
+                  zoomable
+                  className="!m-4 !rounded-2xl !border !border-white/10 !bg-black/25"
+                  maskColor="rgba(14,15,18,0.45)"
+                  nodeColor="#e7ebf2"
+                />
+                <Controls className="studio-controls" showInteractive={false} />
+                <Background gap={22} size={1.2} color="rgba(255,255,255,0.12)" />
+              </ReactFlow>
             </div>
           </div>
-          <textarea
-            value={graphJson}
-            readOnly
-            rows={12}
-            className="mt-4 w-full rounded-[22px] border border-white/8 bg-black/20 p-4 font-mono text-xs leading-6 text-stone-300 outline-none"
-          />
+        </div>
+
+        <div className="grid gap-5">
+          <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-stone-900">Selected step</p>
+                <p className="mt-1 text-sm text-stone-500">
+                  A cleaner properties panel for the current card.
+                </p>
+              </div>
+              {selectedNode ? (
+                <button
+                  type="button"
+                  onClick={removeSelectedNode}
+                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+
+            {selectedNode ? (
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">
+                    Label
+                  </label>
+                  <input
+                    value={String(selectedNode.data?.label ?? "")}
+                    onChange={(event) => updateSelectedNodeLabel(event.target.value)}
+                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">
+                    Type
+                  </label>
+                  <select
+                    value={String(selectedNode.data?.nodeType ?? "agent")}
+                    onChange={(event) =>
+                      updateSelectedNodeType(event.target.value as WorkflowNodeType)
+                    }
+                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                  >
+                    {Object.entries(nodeTypeLabels).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-5 text-sm leading-6 text-stone-500">
+                Click a step in the canvas to edit its label or type.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-[30px] border border-stone-900/10 bg-[#111317] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.12)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-stone-100">Graph JSON</p>
+                <p className="mt-1 text-sm text-stone-400">
+                  Still available for transparency, but no longer the main editing surface.
+                </p>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-300">
+                Live sync
+              </div>
+            </div>
+            <textarea
+              value={graphJson}
+              readOnly
+              rows={12}
+              className="mt-4 w-full rounded-[22px] border border-white/8 bg-black/20 p-4 font-mono text-xs leading-6 text-stone-300 outline-none"
+            />
+          </div>
         </div>
       </div>
     </div>

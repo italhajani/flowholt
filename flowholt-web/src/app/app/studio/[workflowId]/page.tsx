@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { SurfaceCard } from "@/components/surface-card";
+import { getDemoWorkflow, getWorkflowForStudio } from "@/lib/flowholt/data";
 
 type StudioPageProps = {
   params: Promise<{
@@ -9,11 +10,13 @@ type StudioPageProps = {
 
 export default async function StudioPage({ params }: StudioPageProps) {
   const { workflowId } = await params;
+  const workflow = (await getWorkflowForStudio(workflowId)) ?? getDemoWorkflow();
+  const graph = workflow.graph;
 
   return (
     <AppShell
       eyebrow="Studio"
-      title={`Workflow studio: ${workflowId}`}
+      title={`Workflow studio: ${workflow.name}`}
       description="The Studio is the advanced workspace where users edit graph structure, tune agents, connect tools, inspect execution details, and publish the final workflow."
     >
       <div className="grid gap-5 xl:grid-cols-[280px_1fr_320px]">
@@ -48,19 +51,12 @@ export default async function StudioPage({ params }: StudioPageProps) {
         >
           <div className="rounded-[1.5rem] border border-dashed border-stone-900/15 bg-[linear-gradient(rgba(29,26,23,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(29,26,23,0.06)_1px,transparent_1px)] bg-[size:24px_24px] p-6">
             <div className="grid gap-4 md:grid-cols-3">
-              {[
-                "Webhook trigger",
-                "Research agent",
-                "Qualification branch",
-                "Email agent",
-                "CRM writeback",
-                "Report output",
-              ].map((item) => (
+              {graph.nodes.map((node) => (
                 <div
-                  key={item}
+                  key={node.id}
                   className="rounded-2xl border border-stone-900/10 bg-white px-4 py-5 text-sm font-medium text-stone-700 shadow-sm"
                 >
-                  {item}
+                  {node.label}
                 </div>
               ))}
             </div>
@@ -76,11 +72,11 @@ export default async function StudioPage({ params }: StudioPageProps) {
           tone="sand"
         >
           <div className="space-y-3 text-sm leading-6 text-stone-700">
-            <p>Selected node: Research agent</p>
-            <p>Model: Groq Llama</p>
-            <p>Memory: Prospect context + workspace knowledge</p>
-            <p>Retries: 2</p>
-            <p>Timeout: 30s</p>
+            <p>Workflow id: {workflow.id}</p>
+            <p>Status: {workflow.status}</p>
+            <p>Nodes: {graph.nodes.length}</p>
+            <p>Edges: {graph.edges.length}</p>
+            <p>Updated: {new Date(workflow.updated_at).toLocaleString()}</p>
           </div>
         </SurfaceCard>
       </div>

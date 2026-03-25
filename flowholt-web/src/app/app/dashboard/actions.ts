@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 import { starterGraph } from "@/lib/flowholt/data";
 import { createClient } from "@/lib/supabase/server";
@@ -40,6 +41,8 @@ export async function createWorkspace(formData: FormData) {
     redirect(`/app/dashboard?error=${encodeURIComponent(error.message)}`);
   }
 
+  revalidatePath("/app/dashboard");
+  revalidatePath("/app/workflows");
   redirect("/app/dashboard?message=Workspace created");
 }
 
@@ -80,5 +83,7 @@ export async function createStarterWorkflow(formData: FormData) {
     redirect(`/app/dashboard?error=${encodeURIComponent(error?.message ?? "Unable to create workflow")}`);
   }
 
-  redirect(`/app/studio/${data.id}`);
+  revalidatePath("/app/dashboard");
+  revalidatePath("/app/workflows");
+  redirect(`/app/studio/${data.id}?message=Starter workflow created`);
 }

@@ -74,3 +74,10 @@ export type DashboardSnapshot = {
   runCount: number;
   successRate: number;
 };
+
+export type WorkflowLibrarySnapshot = {
+  schemaReady: boolean;
+  workspaces: WorkspaceRecord[];
+  activeWorkspace: WorkspaceRecord | null;
+  workflows: WorkflowRecord[];
+};

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   DashboardSnapshot,
   WorkflowGraph,
+  WorkflowLibrarySnapshot,
   WorkflowRecord,
   WorkflowRunRecord,
   WorkspaceRecord,
@@ -51,44 +52,62 @@ function emptySnapshot(): DashboardSnapshot {
   };
 }
 
-export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+async function getWorkspaceState() {
   const supabase = await createClient();
-
-  const { data: workspaces, error: workspaceError } = await supabase
+  const { data: workspaces, error } = await supabase
     .from("workspaces")
     .select("id, name, slug, description, created_at, updated_at")
     .order("created_at", { ascending: true });
 
-  if (workspaceError) {
-    return emptySnapshot();
-  }
-
-  const workspaceList = (workspaces ?? []) as WorkspaceRecord[];
-  const activeWorkspace = workspaceList[0] ?? null;
-
-  if (!activeWorkspace) {
+  if (error) {
     return {
-      ...emptySnapshot(),
-      schemaReady: true,
-      workspaces: workspaceList,
+      schemaReady: false,
+      workspaces: [] as WorkspaceRecord[],
+      activeWorkspace: null as WorkspaceRecord | null,
+      supabase,
     };
   }
 
-  const { data: workflows, error: workflowsError } = await supabase
+  const workspaceList = (workspaces ?? []) as WorkspaceRecord[];
+
+  return {
+    schemaReady: true,
+    workspaces: workspaceList,
+    activeWorkspace: workspaceList[0] ?? null,
+    supabase,
+  };
+}
+
+export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const workspaceState = await getWorkspaceState();
+
+  if (!workspaceState.schemaReady) {
+    return emptySnapshot();
+  }
+
+  if (!workspaceState.activeWorkspace) {
+    return {
+      ...emptySnapshot(),
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+    };
+  }
+
+  const { data: workflows, error: workflowsError } = await workspaceState.supabase
     .from("workflows")
     .select(
       "id, workspace_id, created_by_user_id, name, description, status, graph, settings, created_at, updated_at",
     )
-    .eq("workspace_id", activeWorkspace.id)
+    .eq("workspace_id", workspaceState.activeWorkspace.id)
     .order("updated_at", { ascending: false })
     .limit(5);
 
-  const { data: runs, error: runsError } = await supabase
+  const { data: runs, error: runsError } = await workspaceState.supabase
     .from("workflow_runs")
     .select(
       "id, workflow_id, workspace_id, status, trigger_source, output, error_message, started_at, finished_at, created_at",
     )
-    .eq("workspace_id", activeWorkspace.id)
+    .eq("workspace_id", workspaceState.activeWorkspace.id)
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -96,8 +115,8 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     return {
       ...emptySnapshot(),
       schemaReady: true,
-      workspaces: workspaceList,
-      activeWorkspace,
+      workspaces: workspaceState.workspaces,
+      activeWorkspace: workspaceState.activeWorkspace,
     };
   }
 
@@ -110,13 +129,50 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 
   return {
     schemaReady: true,
-    workspaces: workspaceList,
-    activeWorkspace,
+    workspaces: workspaceState.workspaces,
+    activeWorkspace: workspaceState.activeWorkspace,
     recentWorkflows,
     recentRuns,
     workflowCount: recentWorkflows.length,
     runCount: recentRuns.length,
     successRate,
+  };
+}
+
+export async function getWorkflowLibrarySnapshot(): Promise<WorkflowLibrarySnapshot> {
+  const workspaceState = await getWorkspaceState();
+
+  if (!workspaceState.schemaReady) {
+    return {
+      schemaReady: false,
+      workspaces: [],
+      activeWorkspace: null,
+      workflows: [],
+    };
+  }
+
+  if (!workspaceState.activeWorkspace) {
+    return {
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+      activeWorkspace: null,
+      workflows: [],
+    };
+  }
+
+  const { data, error } = await workspaceState.supabase
+    .from("workflows")
+    .select(
+      "id, workspace_id, created_by_user_id, name, description, status, graph, settings, created_at, updated_at",
+    )
+    .eq("workspace_id", workspaceState.activeWorkspace.id)
+    .order("updated_at", { ascending: false });
+
+  return {
+    schemaReady: true,
+    workspaces: workspaceState.workspaces,
+    activeWorkspace: workspaceState.activeWorkspace,
+    workflows: error ? [] : ((data ?? []) as WorkflowRecord[]),
   };
 }
 

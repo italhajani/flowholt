@@ -24,9 +24,9 @@ export function AppShell({
             <p className="text-xs uppercase tracking-[0.3em] text-stone-400">
               FlowHolt
             </p>
-            <h1 className="mt-3 text-2xl font-semibold">AI Workflow Platform</h1>
+            <h1 className="mt-3 text-2xl font-semibold">Build work that runs itself</h1>
             <p className="mt-2 text-sm leading-6 text-stone-400">
-              Chat-first orchestration with a studio for advanced agent flows.
+              Describe the task, shape the workflow, then run it from one clean workspace.
             </p>
           </div>
 
@@ -63,7 +63,7 @@ export function AppShell({
                   href="/app/orchestrator"
                   className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                 >
-                  New from chat
+                  Create with chat
                 </Link>
                 <Link
                   href="/app/studio/demo-workflow"

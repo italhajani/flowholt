@@ -1,65 +1,103 @@
+import Link from "next/link";
+
 import { AppShell } from "@/components/app-shell";
 import { SurfaceCard } from "@/components/surface-card";
+import { getWorkflowLibrarySnapshot } from "@/lib/flowholt/data";
 
-export default function OrchestratorPage() {
+const starterIdeas = [
+  "Summarize customer support tickets every morning",
+  "Score new inbound leads and update the CRM",
+  "Turn form submissions into personalized outreach drafts",
+];
+
+export default async function CreatePage() {
+  const snapshot = await getWorkflowLibrarySnapshot();
+
   return (
     <AppShell
-      eyebrow="Orchestrator"
-      title="Chat-first workflow generation"
-      description="Users explain the annoying work in plain language, the orchestrator reasons through the task, proposes a graph, and prepares it for Studio review or execution."
+      eyebrow="Create"
+      title="Describe the task you want to automate"
+      description="This page will become the main AI chat entry point for FlowHolt. For now it gives users the right starting feel, simple language, and a clean path into saved workflows and the Studio."
     >
-      <div className="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
-        <SurfaceCard
-          title="Main chat panel"
-          description="This is the primary conversation space where the user describes the task and the orchestrator clarifies only when needed."
-        >
-          <div className="rounded-[1.5rem] bg-stone-950 p-5 text-sm leading-7 text-stone-100">
-            <p className="text-stone-400">User prompt</p>
-            <p className="mt-2">
-              Build a flow that collects lead form data, enriches the company,
-              drafts a personalized outbound email, and updates the CRM.
-            </p>
-            <div className="mt-5 border-t border-white/10 pt-4">
-              <p className="text-stone-400">AI reasoning view</p>
-              <p className="mt-2 text-stone-200">
-                Detect trigger, choose research agent, add CRM tool call, route
-                through qualification check, then hand off to email agent.
-              </p>
-            </div>
-          </div>
-        </SurfaceCard>
-
+      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="grid gap-5">
           <SurfaceCard
-            title="Suggested workflow preview"
-            description="A structured preview of nodes, edges, assumptions, and missing credentials before the user commits to Studio."
-            tone="mint"
+            title="Start with a task"
+            description="Keep the language simple and user-level. The system should feel like a helpful chat, not a technical console."
           >
-            <ul className="space-y-3 text-sm leading-6 text-stone-800">
-              <li>Trigger: Web form intake</li>
-              <li>Agent: Company researcher</li>
-              <li>Tool: CRM enrichment API</li>
-              <li>Condition: Qualified lead score</li>
-              <li>Agent: Email drafter</li>
-              <li>Output: CRM update + run report</li>
-            </ul>
+            <div className="rounded-[2rem] border border-[#d9cfc1] bg-[#fbf7f1] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+              <textarea
+                disabled
+                placeholder="Describe the task you want FlowHolt to build for you..."
+                rows={7}
+                className="w-full resize-none bg-transparent text-base leading-8 text-stone-700 outline-none placeholder:text-stone-400"
+              />
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <div className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm text-stone-500">
+                  AI chat builder is the next build step
+                </div>
+                <Link
+                  href="/app/workflows"
+                  className="rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-stone-50 transition hover:bg-stone-800"
+                >
+                  Open workflows
+                </Link>
+              </div>
+            </div>
           </SurfaceCard>
 
           <SurfaceCard
-            title="Decision controls"
-            description="The orchestrator page should always surface clear next actions."
+            title="Popular ideas"
+            description="These prompt chips will later feed the chat builder and help new users start faster."
+            tone="mint"
+          >
+            <div className="flex flex-wrap gap-3">
+              {starterIdeas.map((idea) => (
+                <div
+                  key={idea}
+                  className="rounded-full border border-stone-900/10 bg-white px-4 py-3 text-sm text-stone-700"
+                >
+                  {idea}
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+        </div>
+
+        <div className="grid gap-5">
+          <SurfaceCard
+            title="How it should feel"
+            description="The product language should stay plain, short, and user-friendly."
             tone="sand"
           >
-            <div className="grid gap-3 text-sm text-stone-700">
-              <div className="rounded-2xl border border-stone-900/10 bg-white/75 px-4 py-3">
-                Approve and open in Studio
-              </div>
-              <div className="rounded-2xl border border-stone-900/10 bg-white/75 px-4 py-3">
-                Ask the AI to improve the flow
-              </div>
-              <div className="rounded-2xl border border-stone-900/10 bg-white/75 px-4 py-3">
-                Run immediately with current assumptions
-              </div>
+            <div className="space-y-3 text-sm leading-6 text-stone-700">
+              <p>Use words like Chat, Create, Run, and Save.</p>
+              <p>Avoid technical labels like orchestrator in user-facing UI.</p>
+              <p>Keep the visual style clean, modern, and calm.</p>
+            </div>
+          </SurfaceCard>
+
+          <SurfaceCard
+            title="Recent workflows"
+            description="Existing work should stay close to the create surface, just like the best workflow tools do."
+          >
+            <div className="grid gap-3">
+              {snapshot.workflows.length ? (
+                snapshot.workflows.slice(0, 4).map((workflow) => (
+                  <Link
+                    key={workflow.id}
+                    href={`/app/studio/${workflow.id}`}
+                    className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-4 transition hover:bg-stone-100"
+                  >
+                    <p className="text-sm font-medium text-stone-900">{workflow.name}</p>
+                    <p className="mt-1 text-sm text-stone-600">{workflow.description || "No description yet"}</p>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-stone-900/15 bg-stone-50 px-4 py-6 text-sm text-stone-500">
+                  No workflows yet. Create one from the library or dashboard.
+                </div>
+              )}
             </div>
           </SurfaceCard>
         </div>

@@ -8,32 +8,32 @@ export const appNavigation: AppNavItem[] = [
   {
     label: "Dashboard",
     href: "/app/dashboard",
-    description: "Overview, usage, and recent activity",
+    description: "Overview, activity, and quick starts",
   },
   {
-    label: "Orchestrator",
+    label: "Create",
     href: "/app/orchestrator",
-    description: "Chat-first workflow generation",
+    description: "Describe your task in chat",
   },
   {
     label: "Studio",
     href: "/app/studio/demo-workflow",
-    description: "Graph editor and execution workspace",
+    description: "Edit and run your workflow",
   },
   {
     label: "Workflows",
     href: "/app/workflows",
-    description: "Drafts, templates, schedules",
+    description: "Saved drafts and active flows",
   },
   {
     label: "Agents",
     href: "/app/agents",
-    description: "Roles, prompts, and memory profiles",
+    description: "Roles, prompts, and memory",
   },
   {
     label: "Integrations",
     href: "/app/integrations",
-    description: "Apps, keys, webhooks",
+    description: "Apps, keys, and webhooks",
   },
   {
     label: "Runs",
@@ -43,11 +43,11 @@ export const appNavigation: AppNavItem[] = [
   {
     label: "Data",
     href: "/app/data",
-    description: "Knowledge assets and files",
+    description: "Files and knowledge sources",
   },
   {
     label: "Settings",
     href: "/app/settings",
-    description: "Workspace, billing, API config",
+    description: "Workspace and account settings",
   },
 ];

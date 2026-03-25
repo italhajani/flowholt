@@ -2,9 +2,16 @@
 
 FlowHolt is an advanced AI workflow platform that turns a user's messy task description into an editable, runnable workflow.
 
+## Product direction
+
+- The product should feel chat-first and simple.
+- User-facing labels should stay plain: use words like `Create`, `Chat`, `Run`, and `Save`.
+- Avoid technical language like `orchestrator` in the visible UI.
+- The visual style should stay clean, modern, and a little classical rather than noisy or overly futuristic.
+
 ## Repositories in this workspace
 
-- `flowholt-web`: Next.js app for landing, dashboard, orchestrator, and studio.
+- `flowholt-web`: Next.js app for landing, dashboard, create flow, and studio.
 - `flowholt-engine`: FastAPI execution engine for running workflows and streaming logs.
 - `docs`: product and system blueprint assets.
 
@@ -35,13 +42,6 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
-
-## Immediate next milestones
-
-1. Connect Supabase auth and database.
-2. Add orchestrator chat to generate workflow JSON.
-3. Render workflow graphs in the studio.
-4. Send approved workflows to the execution engine.
 
 ## Recommended repo strategy
 

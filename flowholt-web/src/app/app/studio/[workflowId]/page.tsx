@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
+import { StudioCanvas } from "@/components/studio-canvas";
 import { SurfaceCard } from "@/components/surface-card";
 import { saveWorkflow } from "@/app/app/studio/actions";
 import { getDemoWorkflow, getWorkflowForStudio } from "@/lib/flowholt/data";
@@ -28,23 +29,22 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     <AppShell
       eyebrow="Studio"
       title={`Workflow studio: ${workflow.name}`}
-      description="The Studio is the advanced workspace where users edit graph structure, tune agents, connect tools, inspect execution details, and publish the final workflow."
+      description="The Studio is the visual workspace where users shape graph structure, connect steps, inspect details, and save the workflow draft."
     >
       <div className="grid gap-5 xl:grid-cols-[280px_1fr_320px]">
         <SurfaceCard
-          title="Node rail"
-          description="Drag sources for triggers, agents, tools, memory, conditions, loops, and outputs."
+          title="Step rail"
+          description="Add workflow steps from the buttons in the canvas, then drag and connect them visually."
           tone="mint"
         >
           <div className="grid gap-3 text-sm text-stone-800">
             {[
-              "Trigger nodes",
-              "AI agents",
-              "Retriever / RAG",
-              "API actions",
-              "Conditions",
-              "Loops",
-              "Output nodes",
+              "Trigger",
+              "Agent",
+              "Tool",
+              "Condition",
+              "Memory",
+              "Output",
             ].map((item) => (
               <div
                 key={item}
@@ -69,8 +69,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           ) : null}
 
           <SurfaceCard
-            title="Canvas"
-            description="This is a temporary structured editor. The next upgrade will replace the JSON textarea with a proper graph canvas."
+            title="Visual editor"
+            description="Drag steps, connect them, edit labels, and save the result back to Supabase."
           >
             <form action={saveWorkflow} className="space-y-5">
               <input type="hidden" name="workflowId" value={workflow.id} />
@@ -116,18 +116,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="graph">
-                  Graph JSON
-                </label>
-                <textarea
-                  id="graph"
-                  name="graph"
-                  defaultValue={JSON.stringify(graph, null, 2)}
-                  rows={18}
-                  className="w-full rounded-[1.5rem] border border-stone-900/10 bg-stone-950 px-4 py-4 font-mono text-sm leading-6 text-stone-100 outline-none"
-                />
-              </div>
+              <StudioCanvas initialGraph={graph} />
 
               <div className="flex flex-wrap gap-3">
                 <button
@@ -145,33 +134,11 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               </div>
             </form>
           </SurfaceCard>
-
-          <SurfaceCard
-            title="Node preview"
-            description="A quick read on the current graph contents from the saved workflow record."
-          >
-            <div className="grid gap-4 md:grid-cols-3">
-              {graph.nodes.length ? (
-                graph.nodes.map((node) => (
-                  <div
-                    key={node.id}
-                    className="rounded-2xl border border-stone-900/10 bg-white px-4 py-5 text-sm font-medium text-stone-700 shadow-sm"
-                  >
-                    {node.label}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-dashed border-stone-900/15 bg-stone-50 px-4 py-6 text-sm text-stone-500">
-                  This workflow has no nodes yet. Add them through the JSON for now.
-                </div>
-              )}
-            </div>
-          </SurfaceCard>
         </div>
 
         <SurfaceCard
           title="Properties"
-          description="Context, prompts, model config, credentials, retries, and output schema for the selected node."
+          description="High-level details for the current workflow record."
           tone="sand"
         >
           <div className="space-y-3 text-sm leading-6 text-stone-700">

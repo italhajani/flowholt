@@ -35,3 +35,40 @@ a {
 ::selection {
   background: rgba(31, 77, 69, 0.18);
 }
+
+.studio-flow .react-flow__pane {
+  cursor: grab;
+}
+
+.studio-flow .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.studio-flow .react-flow__edge-path {
+  filter: drop-shadow(0 3px 8px rgba(15, 23, 42, 0.16));
+}
+
+.studio-flow .react-flow__controls {
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.studio-flow .react-flow__controls-button {
+  height: 40px;
+  width: 40px;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #e7ebf2;
+}
+
+.studio-flow .react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.studio-flow .react-flow__minimap-mask {
+  fill: rgba(18, 20, 24, 0.45);
+}

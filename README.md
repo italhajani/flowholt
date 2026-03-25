@@ -8,6 +8,7 @@ FlowHolt is an advanced AI workflow platform that turns a user's messy task desc
 - User-facing labels should stay plain: use words like `Create`, `Chat`, `Run`, and `Save`.
 - Avoid technical language like `orchestrator` in the visible UI.
 - The visual style should stay clean, modern, and a little classical rather than noisy or overly futuristic.
+- Studio design quality is a top-tier priority, not a later polish step.
 
 ## Current build status
 
@@ -15,6 +16,7 @@ FlowHolt is an advanced AI workflow platform that turns a user's messy task desc
 - Workspaces and workflows persist in Supabase.
 - Users can create workflow drafts from chat.
 - Draft generation uses Groq first, then Hugging Face, then a local fallback if no provider key is present.
+- Studio has a functional visual canvas, but it still needs a major polish pass to reach the target UI standard.
 
 ## Repositories in this workspace
 

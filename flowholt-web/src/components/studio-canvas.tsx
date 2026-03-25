@@ -26,6 +26,8 @@ import type { WorkflowEdge, WorkflowGraph, WorkflowNodeType } from "@/lib/flowho
 
 type StudioCanvasProps = {
   initialGraph: WorkflowGraph;
+  originalPrompt?: string;
+  latestRunOutput?: Record<string, unknown> | null;
 };
 
 type WorkflowNodeData = {
@@ -179,6 +181,21 @@ function nextConditionBranch(edges: Edge<WorkflowEdgeData>[], sourceId: string) 
   return `branch-${outgoing.length + 1}`;
 }
 
+function formatPreviewValue(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "(empty)";
+  }
+  if (typeof value === "string") {
+    return value.length > 180 ? `${value.slice(0, 180)}...` : value;
+  }
+  try {
+    const text = JSON.stringify(value);
+    return text.length > 180 ? `${text.slice(0, 180)}...` : text;
+  } catch {
+    return String(value);
+  }
+}
+
 function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>) {
   const nodeType = data.nodeType ?? "agent";
   const style = nodeTypeStyles[nodeType];
@@ -298,7 +315,7 @@ function toWorkflowGraph(nodes: Node<WorkflowNodeData>[], edges: Edge<WorkflowEd
   };
 }
 
-function CanvasInner({ initialGraph }: StudioCanvasProps) {
+function CanvasInner({ initialGraph, originalPrompt = "", latestRunOutput = null }: StudioCanvasProps) {
   const [nodes, setNodes] = useState<Node<WorkflowNodeData>[]>(() => toFlowNodes(initialGraph));
   const [edges, setEdges] = useState<Edge<WorkflowEdgeData>[]>(() => toFlowEdges(initialGraph));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialGraph.nodes[0]?.id ?? null);
@@ -320,6 +337,41 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
     () => JSON.stringify(toWorkflowGraph(nodes, edges), null, 2),
     [nodes, edges],
   );
+
+  const latestNodeOutputs = useMemo(() => {
+    if (
+      latestRunOutput &&
+      typeof latestRunOutput === "object" &&
+      latestRunOutput.node_outputs &&
+      typeof latestRunOutput.node_outputs === "object"
+    ) {
+      return latestRunOutput.node_outputs as Record<string, unknown>;
+    }
+    return {} as Record<string, unknown>;
+  }, [latestRunOutput]);
+
+  const previewEntries = useMemo(() => {
+    const baseEntries = [
+      {
+        key: "{{workflow.original_prompt}}",
+        value: originalPrompt || "(no chat prompt recorded)",
+      },
+      {
+        key: "{{previous}}",
+        value: latestRunOutput ?? { note: "Run the workflow to see live output here." },
+      },
+    ];
+
+    const nodeEntries = nodes.slice(0, 8).map((node) => ({
+      key: `{{nodes.${node.id}}}`,
+      value:
+        latestNodeOutputs[node.id] ?? {
+          note: `No run data yet for ${node.id}`,
+        },
+    }));
+
+    return [...baseEntries, ...nodeEntries];
+  }, [latestNodeOutputs, latestRunOutput, nodes, originalPrompt]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -751,6 +803,23 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                 Click a connection in the canvas to edit its branch name and label.
               </p>
             )}
+          </div>
+
+          <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+            <div>
+              <p className="text-sm font-semibold text-stone-900">Runtime data preview</p>
+              <p className="mt-1 text-sm text-stone-500">
+                These are the template keys the engine can resolve while running your workflow.
+              </p>
+            </div>
+            <div className="mt-5 space-y-3">
+              {previewEntries.map((entry) => (
+                <div key={entry.key} className="rounded-2xl bg-stone-50 px-4 py-3">
+                  <p className="font-mono text-xs text-stone-900">{entry.key}</p>
+                  <p className="mt-2 text-xs leading-6 text-stone-600">{formatPreviewValue(entry.value)}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-[30px] border border-stone-900/10 bg-[#111317] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.12)]">

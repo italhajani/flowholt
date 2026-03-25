@@ -31,6 +31,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const originalPrompt = typeof settings?.originalPrompt === "string" ? settings.originalPrompt : "";
   const runsSnapshot = await getRunsSnapshot();
   const recentRuns = runsSnapshot.runs.filter((run) => run.workflow_id === workflow.id).slice(0, 3);
+  const latestRunOutput = recentRuns[0]?.output ?? null;
 
   return (
     <AppShell
@@ -97,7 +98,11 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-5">
-              <StudioCanvas initialGraph={graph} />
+              <StudioCanvas
+                initialGraph={graph}
+                originalPrompt={originalPrompt}
+                latestRunOutput={latestRunOutput}
+              />
             </div>
 
             <div className="grid gap-5 self-start">

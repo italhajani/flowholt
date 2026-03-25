@@ -6,6 +6,7 @@ import httpx
 
 from app.core.config import settings
 from app.schemas.workflow import WorkflowNode, WorkflowPayload, WorkflowRunLog
+from app.services.value_mapping import resolve_templates
 
 
 @dataclass
@@ -38,9 +39,29 @@ def _safe_json(value: Any) -> Any:
     return value
 
 
+def _runtime_context(payload: WorkflowPayload, context: ExecutionContext) -> dict[str, Any]:
+    original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
+    return {
+        "workflow": {
+            "id": payload.workflow_id,
+            "name": payload.workflow_name,
+            "original_prompt": original_prompt,
+            "trigger_source": payload.trigger_source,
+        },
+        "previous": context.previous_output,
+        "nodes": context.node_outputs,
+    }
+
+
+def _resolved_config(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionContext) -> dict[str, Any]:
+    raw_config = node.config if isinstance(node.config, dict) else {}
+    return resolve_templates(raw_config, _runtime_context(payload, context))
+
+
 def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionContext) -> tuple[str, str]:
-    prompt = node.config.get("instruction") or f"Complete the step named '{node.label}'."
-    model = str(node.config.get("model") or settings.groq_model)
+    config = _resolved_config(node, payload, context)
+    prompt = config.get("instruction") or f"Complete the step named '{node.label}'."
+    model = str(config.get("model") or settings.groq_model)
     original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
     previous_output = json.dumps(context.previous_output, ensure_ascii=False)
 
@@ -151,14 +172,15 @@ def handle_agent(
 
 def handle_tool(
     node: WorkflowNode,
-    _: WorkflowPayload,
+    payload: WorkflowPayload,
     sequence: int,
     context: ExecutionContext,
 ) -> NodeExecutionResult:
-    method = str(node.config.get("method") or "POST").upper()
-    url = str(node.config.get("url") or "").strip()
-    headers = node.config.get("headers") if isinstance(node.config.get("headers"), dict) else {}
-    body = _safe_json(node.config.get("body", context.previous_output))
+    config = _resolved_config(node, payload, context)
+    method = str(config.get("method") or "POST").upper()
+    url = str(config.get("url") or "").strip()
+    headers = config.get("headers") if isinstance(config.get("headers"), dict) else {}
+    body = _safe_json(config.get("body", context.previous_output))
 
     if not url:
         return NodeExecutionResult(
@@ -235,8 +257,20 @@ def handle_tool(
     )
 
 
-def handle_condition(node: WorkflowNode, _: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
-    branch = str(node.config.get("branch") or "default-continue")
+def handle_condition(node: WorkflowNode, payload: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
+    config = _resolved_config(node, payload, context)
+    value = config.get("value", context.previous_output)
+    equals = config.get("equals")
+    contains = config.get("contains")
+
+    branch = "default-continue"
+    if equals is not None:
+        branch = "true" if value == equals else "false"
+    elif contains is not None and isinstance(value, str):
+        branch = "true" if str(contains) in value else "false"
+    elif isinstance(value, bool):
+        branch = "true" if value else "false"
+
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -248,15 +282,15 @@ def handle_condition(node: WorkflowNode, _: WorkflowPayload, sequence: int, cont
             WorkflowRunLog(
                 node_id=node.id,
                 level="debug",
-                message=f"Condition defaulted to {branch} from {node.label.lower()}.",
+                message=f"Condition evaluated branch {branch} for {node.label.lower()}.",
                 payload={
                     **_base_payload(node, sequence),
                     "branch": branch,
-                    "previous_output_keys": sorted(context.previous_output.keys()),
+                    "value": value,
                 },
             ),
         ],
-        output={"branch": branch},
+        output={"branch": branch, "value": value},
     )
 
 
@@ -320,7 +354,9 @@ def handle_retriever(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: 
     )
 
 
-def handle_output(node: WorkflowNode, _: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
+def handle_output(node: WorkflowNode, payload: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
+    config = _resolved_config(node, payload, context)
+    result = config.get("result", context.previous_output)
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -339,7 +375,7 @@ def handle_output(node: WorkflowNode, _: WorkflowPayload, sequence: int, context
                 },
             ),
         ],
-        output={"finalized": True, "output_label": node.label, "result": context.previous_output},
+        output={"finalized": True, "output_label": node.label, "result": result},
     )
 
 

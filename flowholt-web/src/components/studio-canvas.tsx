@@ -136,9 +136,9 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
 function configHint(nodeType: WorkflowNodeType) {
   switch (nodeType) {
     case "agent":
-      return 'Example: {"instruction":"Write an SEO product description","model":"llama-3.3-70b-versatile"}';
+      return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile"}';
     case "tool":
-      return 'Example: {"method":"POST","url":"https://httpbin.org/post","body":{"message":"hello"}}';
+      return 'Example: {"method":"POST","url":"https://httpbin.org/post","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
     case "trigger":
       return 'Example: {"mode":"manual"}';
     default:
@@ -610,5 +610,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+
 
 

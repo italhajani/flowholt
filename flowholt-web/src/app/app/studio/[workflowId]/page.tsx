@@ -1,10 +1,10 @@
 import Link from "next/link";
 
+import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import { AppShell } from "@/components/app-shell";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { SurfaceCard } from "@/components/surface-card";
-import { saveWorkflow } from "@/app/app/studio/actions";
-import { getDemoWorkflow, getWorkflowForStudio } from "@/lib/flowholt/data";
+import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio } from "@/lib/flowholt/data";
 
 type StudioPageProps = {
   params: Promise<{
@@ -29,6 +29,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     | { provider?: string; model?: string; notes?: string }
     | undefined;
   const originalPrompt = typeof settings?.originalPrompt === "string" ? settings.originalPrompt : "";
+  const runsSnapshot = await getRunsSnapshot();
+  const recentRuns = runsSnapshot.runs.filter((run) => run.workflow_id === workflow.id).slice(0, 3);
 
   return (
     <AppShell
@@ -48,38 +50,50 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           </div>
         ) : null}
 
-        <form action={saveWorkflow} className="space-y-5">
-          <input type="hidden" name="workflowId" value={workflow.id} />
-
-          <div className="rounded-[34px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(248,244,236,0.92))] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-                  Studio
-                </p>
-                <h3 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">
-                  Visual workflow editor
-                </h3>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-                  Cleaner canvas, better hierarchy, quieter controls, and a more professional editing flow inspired by premium workflow tools.
-                </p>
+        <div className="rounded-[34px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(248,244,236,0.92))] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
+                Studio
+              </p>
+              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">
+                Visual workflow editor
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+                Build the flow here, then run it through the FlowHolt engine and inspect the logs.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                {workflow.status}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <div className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                  {workflow.status}
-                </div>
-                <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                  {graph.nodes.length} steps
-                </div>
-                <button
-                  type="submit"
-                  className="rounded-full bg-[#ff7f5f] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#f26f4d]"
-                >
-                  Save changes
-                </button>
+              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                {graph.nodes.length} steps
               </div>
+              {workflow.id !== "demo-workflow" ? (
+                <form action={runWorkflow}>
+                  <input type="hidden" name="workflowId" value={workflow.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-stone-900/10 bg-white px-5 py-2.5 text-sm font-medium text-stone-800 transition hover:bg-stone-50"
+                  >
+                    Run workflow
+                  </button>
+                </form>
+              ) : null}
+              <button
+                type="submit"
+                form="workflow-save-form"
+                className="rounded-full bg-[#ff7f5f] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#f26f4d]"
+              >
+                Save changes
+              </button>
             </div>
           </div>
+        </div>
+
+        <form id="workflow-save-form" action={saveWorkflow} className="space-y-5">
+          <input type="hidden" name="workflowId" value={workflow.id} />
 
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-5">
@@ -131,6 +145,32 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                       className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
                     />
                   </div>
+                </div>
+              </SurfaceCard>
+
+              <SurfaceCard
+                title="Recent runs"
+                description="The last few engine runs for this workflow."
+                tone="mint"
+              >
+                <div className="space-y-3 text-sm leading-6 text-stone-700">
+                  {recentRuns.length ? (
+                    recentRuns.map((run) => (
+                      <div key={run.id} className="rounded-2xl bg-white/80 px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-medium text-stone-900">{run.status}</p>
+                          <p className="text-xs uppercase tracking-[0.16em] text-stone-400">
+                            {new Date(run.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <p className="mt-2 text-stone-600">
+                          {run.logs[run.logs.length - 1]?.message ?? "No logs recorded yet."}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No runs yet. Use the Run workflow button to test the engine path.</p>
+                  )}
                 </div>
               </SurfaceCard>
 
@@ -187,6 +227,12 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                   className="rounded-full border border-stone-900/10 bg-white px-6 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
                 >
                   Back to library
+                </Link>
+                <Link
+                  href="/app/runs"
+                  className="rounded-full border border-stone-900/10 bg-white px-6 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                >
+                  View runs
                 </Link>
               </div>
             </div>

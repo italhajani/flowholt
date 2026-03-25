@@ -64,6 +64,23 @@ export type WorkflowRunRecord = {
   created_at: string;
 };
 
+export type RunLogRecord = {
+  id: number;
+  run_id: string;
+  workflow_id: string;
+  workspace_id: string;
+  node_id: string | null;
+  level: "debug" | "info" | "warn" | "error";
+  message: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+export type WorkflowRunListItem = WorkflowRunRecord & {
+  workflowName: string;
+  logs: RunLogRecord[];
+};
+
 export type DashboardSnapshot = {
   schemaReady: boolean;
   workspaces: WorkspaceRecord[];
@@ -80,4 +97,11 @@ export type WorkflowLibrarySnapshot = {
   workspaces: WorkspaceRecord[];
   activeWorkspace: WorkspaceRecord | null;
   workflows: WorkflowRecord[];
+};
+
+export type RunsSnapshot = {
+  schemaReady: boolean;
+  workspaces: WorkspaceRecord[];
+  activeWorkspace: WorkspaceRecord | null;
+  runs: WorkflowRunListItem[];
 };

@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   DashboardSnapshot,
+  RunLogRecord,
+  RunsSnapshot,
   WorkflowGraph,
   WorkflowLibrarySnapshot,
   WorkflowRecord,
+  WorkflowRunListItem,
   WorkflowRunRecord,
   WorkspaceRecord,
 } from "@/lib/flowholt/types";
@@ -49,6 +52,15 @@ function emptySnapshot(): DashboardSnapshot {
     workflowCount: 0,
     runCount: 0,
     successRate: 0,
+  };
+}
+
+function emptyRunsSnapshot(): RunsSnapshot {
+  return {
+    schemaReady: false,
+    workspaces: [],
+    activeWorkspace: null,
+    runs: [],
   };
 }
 
@@ -173,6 +185,96 @@ export async function getWorkflowLibrarySnapshot(): Promise<WorkflowLibrarySnaps
     workspaces: workspaceState.workspaces,
     activeWorkspace: workspaceState.activeWorkspace,
     workflows: error ? [] : ((data ?? []) as WorkflowRecord[]),
+  };
+}
+
+export async function getRunsSnapshot(): Promise<RunsSnapshot> {
+  const workspaceState = await getWorkspaceState();
+
+  if (!workspaceState.schemaReady) {
+    return emptyRunsSnapshot();
+  }
+
+  if (!workspaceState.activeWorkspace) {
+    return {
+      ...emptyRunsSnapshot(),
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+    };
+  }
+
+  const { data: runs, error: runsError } = await workspaceState.supabase
+    .from("workflow_runs")
+    .select(
+      "id, workflow_id, workspace_id, status, trigger_source, output, error_message, started_at, finished_at, created_at",
+    )
+    .eq("workspace_id", workspaceState.activeWorkspace.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (runsError) {
+    return {
+      ...emptyRunsSnapshot(),
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+      activeWorkspace: workspaceState.activeWorkspace,
+    };
+  }
+
+  const runList = (runs ?? []) as WorkflowRunRecord[];
+
+  if (!runList.length) {
+    return {
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+      activeWorkspace: workspaceState.activeWorkspace,
+      runs: [],
+    };
+  }
+
+  const workflowIds = [...new Set(runList.map((run) => run.workflow_id))];
+  const runIds = runList.map((run) => run.id);
+
+  const [{ data: workflows, error: workflowsError }, { data: logs, error: logsError }] =
+    await Promise.all([
+      workspaceState.supabase
+        .from("workflows")
+        .select("id, name")
+        .in("id", workflowIds),
+      workspaceState.supabase
+        .from("run_logs")
+        .select("id, run_id, workflow_id, workspace_id, node_id, level, message, payload, created_at")
+        .in("run_id", runIds)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  const workflowNameById = new Map<string, string>(
+    ((workflowsError ? [] : workflows ?? []) as Array<{ id: string; name: string }>).map((workflow) => [
+      workflow.id,
+      workflow.name,
+    ]),
+  );
+
+  const logsByRunId = new Map<string, RunLogRecord[]>();
+  if (!logsError) {
+    for (const log of (logs ?? []) as RunLogRecord[]) {
+      const current = logsByRunId.get(log.run_id) ?? [];
+      current.push(log);
+      logsByRunId.set(log.run_id, current);
+    }
+  }
+
+  const runsWithDetails: WorkflowRunListItem[] = runList.map((run) => ({
+    ...run,
+    workflowName: workflowNameById.get(run.workflow_id) ?? "Untitled workflow",
+    logs: logsByRunId.get(run.id) ?? [],
+  }));
+
+  return {
+    schemaReady: true,
+    workspaces: workspaceState.workspaces,
+    activeWorkspace: workspaceState.activeWorkspace,
+    runs: runsWithDetails,
   };
 }
 

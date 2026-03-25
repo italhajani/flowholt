@@ -1,14 +1,11 @@
 from fastapi import APIRouter
 
-from app.schemas.workflow import WorkflowPayload
-from app.services.executor import summarize_workflow
+from app.schemas.workflow import WorkflowPayload, WorkflowRunResult
+from app.services.executor import run_workflow
 
-router = APIRouter(tags=["orchestrator"])
+router = APIRouter(tags=["runs"])
 
 
-@router.post("/run")
-def run_workflow(payload: WorkflowPayload) -> dict[str, object]:
-    return {
-        "message": "Workflow accepted by FlowHolt engine.",
-        "summary": summarize_workflow(payload),
-    }
+@router.post("/run", response_model=WorkflowRunResult)
+def run_workflow_route(payload: WorkflowPayload) -> WorkflowRunResult:
+    return run_workflow(payload)

@@ -2,7 +2,7 @@ from collections import deque
 from datetime import datetime, timezone
 
 from app.schemas.workflow import WorkflowPayload, WorkflowRunLog, WorkflowRunResult, WorkflowRunSummary
-from app.services.node_handlers import execute_node
+from app.services.node_handlers import ExecutionContext, execute_node
 
 
 def _ordered_node_ids(payload: WorkflowPayload) -> list[str]:
@@ -53,13 +53,16 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
 
     executed_nodes: list[str] = []
     node_outputs: dict[str, object] = {}
+    context = ExecutionContext(node_outputs={}, previous_output={})
 
     for index, node_id in enumerate(ordered_node_ids, start=1):
         node = node_map[node_id]
-        result = execute_node(node, payload, index)
+        result = execute_node(node, payload, index, context)
         executed_nodes.append(node.id)
         logs.extend(result.logs)
         node_outputs[node.id] = result.output
+        context.node_outputs = node_outputs
+        context.previous_output = result.output
 
     finished_at = datetime.now(timezone.utc)
     summary = WorkflowRunSummary(

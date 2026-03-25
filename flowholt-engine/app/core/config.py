@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     supabase_secret_key: str = ""
     supabase_service_role_key: str = ""
     groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
     huggingface_api_key: str = ""
 
     model_config = SettingsConfigDict(

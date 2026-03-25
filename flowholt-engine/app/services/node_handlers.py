@@ -1,12 +1,23 @@
 from dataclasses import dataclass
+import json
+from typing import Any
 
+import httpx
+
+from app.core.config import settings
 from app.schemas.workflow import WorkflowNode, WorkflowPayload, WorkflowRunLog
+
+
+@dataclass
+class ExecutionContext:
+    node_outputs: dict[str, Any]
+    previous_output: dict[str, Any]
 
 
 @dataclass
 class NodeExecutionResult:
     logs: list[WorkflowRunLog]
-    output: dict[str, object]
+    output: dict[str, Any]
 
 
 def _base_payload(node: WorkflowNode, sequence: int) -> dict[str, object]:
@@ -18,7 +29,69 @@ def _base_payload(node: WorkflowNode, sequence: int) -> dict[str, object]:
     }
 
 
-def handle_trigger(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def _safe_json(value: Any) -> Any:
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value
+    return value
+
+
+def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionContext) -> tuple[str, str]:
+    prompt = node.config.get("instruction") or f"Complete the step named '{node.label}'."
+    model = str(node.config.get("model") or settings.groq_model)
+    original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
+    previous_output = json.dumps(context.previous_output, ensure_ascii=False)
+
+    if not settings.groq_api_key:
+        fallback = (
+            f"Groq key is not configured in the engine, so {node.label} used a local placeholder response. "
+            f"Original task: {str(original_prompt)[:160]}"
+        )
+        return fallback, "local-fallback"
+
+    with httpx.Client(timeout=60) as client:
+        response = client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.groq_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "temperature": 0.2,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an execution agent inside FlowHolt. Complete the assigned workflow step clearly and concisely.",
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Workflow: {payload.workflow_name}\n"
+                            f"Original task: {original_prompt}\n"
+                            f"Current step: {node.label}\n"
+                            f"Step instruction: {prompt}\n"
+                            f"Previous step output: {previous_output}"
+                        ),
+                    },
+                ],
+            },
+        )
+
+    if response.status_code >= 400:
+        raise RuntimeError(f"Groq request failed with {response.status_code}: {response.text[:200]}")
+
+    data = response.json()
+    content = data.get("choices", [{}])[0].get("message", {}).get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise RuntimeError("Groq returned an empty response for the agent step.")
+
+    return content.strip(), model
+
+
+def handle_trigger(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -41,8 +114,14 @@ def handle_trigger(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> Nod
     )
 
 
-def handle_agent(node: WorkflowNode, payload: WorkflowPayload, sequence: int) -> NodeExecutionResult:
-    prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else None
+def handle_agent(
+    node: WorkflowNode,
+    payload: WorkflowPayload,
+    sequence: int,
+    context: ExecutionContext,
+) -> NodeExecutionResult:
+    content, model = _call_groq(node, payload, context)
+    provider = "groq" if model != "local-fallback" else "local-fallback"
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -54,19 +133,79 @@ def handle_agent(node: WorkflowNode, payload: WorkflowPayload, sequence: int) ->
             WorkflowRunLog(
                 node_id=node.id,
                 level="debug",
-                message=f"Agent planned work for {node.label.lower()}.",
+                message=f"Agent completed {node.label.lower()} using {provider}.",
                 payload={
                     **_base_payload(node, sequence),
-                    "prompt_excerpt": str(prompt)[:140] if prompt else "",
+                    "provider": provider,
+                    "model": model,
                 },
             ),
         ],
-        output={"agent_label": node.label, "status": "prepared"},
+        output={
+            "text": content,
+            "provider": provider,
+            "model": model,
+        },
     )
 
 
-def handle_tool(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
-    tool_target = node.config.get("target", "integration-placeholder")
+def handle_tool(
+    node: WorkflowNode,
+    _: WorkflowPayload,
+    sequence: int,
+    context: ExecutionContext,
+) -> NodeExecutionResult:
+    method = str(node.config.get("method") or "POST").upper()
+    url = str(node.config.get("url") or "").strip()
+    headers = node.config.get("headers") if isinstance(node.config.get("headers"), dict) else {}
+    body = _safe_json(node.config.get("body", context.previous_output))
+
+    if not url:
+        return NodeExecutionResult(
+            logs=[
+                WorkflowRunLog(
+                    node_id=node.id,
+                    level="info",
+                    message=f"Running step {sequence}: {node.label}",
+                    payload=_base_payload(node, sequence),
+                ),
+                WorkflowRunLog(
+                    node_id=node.id,
+                    level="warn",
+                    message=f"Tool step {node.label} has no URL configured yet.",
+                    payload={
+                        **_base_payload(node, sequence),
+                        "method": method,
+                    },
+                ),
+            ],
+            output={"status": "not-configured", "method": method},
+        )
+
+    request_kwargs: dict[str, Any] = {
+        "headers": headers,
+        "timeout": 30,
+        "follow_redirects": True,
+    }
+
+    if method != "GET":
+        if isinstance(body, str):
+            request_kwargs["content"] = body
+        else:
+            request_kwargs["json"] = body
+
+    with httpx.Client() as client:
+        response = client.request(method, url, **request_kwargs)
+
+    if response.status_code >= 400:
+        raise RuntimeError(f"Tool request failed with {response.status_code} for {url}")
+
+    response_payload: Any
+    try:
+        response_payload = response.json()
+    except ValueError:
+        response_payload = response.text[:1200]
+
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -78,18 +217,26 @@ def handle_tool(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeEx
             WorkflowRunLog(
                 node_id=node.id,
                 level="debug",
-                message=f"Tool step mapped to {tool_target}.",
+                message=f"Tool request completed for {node.label.lower()}.",
                 payload={
                     **_base_payload(node, sequence),
-                    "target": tool_target,
+                    "method": method,
+                    "url": url,
+                    "status_code": response.status_code,
                 },
             ),
         ],
-        output={"tool_label": node.label, "target": tool_target},
+        output={
+            "status_code": response.status_code,
+            "url": url,
+            "method": method,
+            "response": response_payload,
+        },
     )
 
 
-def handle_condition(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def handle_condition(node: WorkflowNode, _: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
+    branch = str(node.config.get("branch") or "default-continue")
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -101,18 +248,19 @@ def handle_condition(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> N
             WorkflowRunLog(
                 node_id=node.id,
                 level="debug",
-                message=f"Condition defaulted to continue from {node.label.lower()}.",
+                message=f"Condition defaulted to {branch} from {node.label.lower()}.",
                 payload={
                     **_base_payload(node, sequence),
-                    "branch": "default-continue",
+                    "branch": branch,
+                    "previous_output_keys": sorted(context.previous_output.keys()),
                 },
             ),
         ],
-        output={"branch": "default-continue"},
+        output={"branch": branch},
     )
 
 
-def handle_loop(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def handle_loop(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -128,11 +276,11 @@ def handle_loop(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeEx
                 payload=_base_payload(node, sequence),
             ),
         ],
-        output={"iterations": 1},
+        output={"iterations": int(node.config.get("iterations", 1) or 1)},
     )
 
 
-def handle_memory(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def handle_memory(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -152,7 +300,7 @@ def handle_memory(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> Node
     )
 
 
-def handle_retriever(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def handle_retriever(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -172,7 +320,7 @@ def handle_retriever(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> N
     )
 
 
-def handle_output(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def handle_output(node: WorkflowNode, _: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -185,14 +333,17 @@ def handle_output(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> Node
                 node_id=node.id,
                 level="debug",
                 message=f"Finalized the result in {node.label.lower()}.",
-                payload=_base_payload(node, sequence),
+                payload={
+                    **_base_payload(node, sequence),
+                    "previous_output_keys": sorted(context.previous_output.keys()),
+                },
             ),
         ],
-        output={"finalized": True, "output_label": node.label},
+        output={"finalized": True, "output_label": node.label, "result": context.previous_output},
     )
 
 
-def handle_unknown(node: WorkflowNode, _: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def handle_unknown(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -218,6 +369,11 @@ NODE_HANDLERS = {
 }
 
 
-def execute_node(node: WorkflowNode, payload: WorkflowPayload, sequence: int) -> NodeExecutionResult:
+def execute_node(
+    node: WorkflowNode,
+    payload: WorkflowPayload,
+    sequence: int,
+    context: ExecutionContext,
+) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
-    return handler(node, payload, sequence)
+    return handler(node, payload, sequence, context)

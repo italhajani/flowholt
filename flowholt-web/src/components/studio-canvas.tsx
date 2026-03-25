@@ -31,6 +31,7 @@ type StudioCanvasProps = {
 type WorkflowNodeData = {
   label: string;
   nodeType: WorkflowNodeType;
+  config: Record<string, unknown>;
 };
 
 const nodeTypeLabels: Record<WorkflowNodeType, string> = {
@@ -109,6 +110,42 @@ const nodeTypeStyles: Record<
   },
 };
 
+function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> {
+  switch (nodeType) {
+    case "trigger":
+      return { mode: "manual" };
+    case "agent":
+      return { instruction: "", model: "default" };
+    case "tool":
+      return { method: "POST", url: "", body: {} };
+    case "condition":
+      return { rule: "" };
+    case "loop":
+      return { iterations: 1 };
+    case "memory":
+      return { source: "workflow" };
+    case "retriever":
+      return { query: "" };
+    case "output":
+      return { format: "text" };
+    default:
+      return {};
+  }
+}
+
+function configHint(nodeType: WorkflowNodeType) {
+  switch (nodeType) {
+    case "agent":
+      return 'Example: {"instruction":"Write an SEO product description","model":"llama-3.3-70b-versatile"}';
+    case "tool":
+      return 'Example: {"method":"POST","url":"https://httpbin.org/post","body":{"message":"hello"}}';
+    case "trigger":
+      return 'Example: {"mode":"manual"}';
+    default:
+      return 'Use JSON settings for advanced behavior. Empty object is fine.';
+  }
+}
+
 function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>) {
   const nodeType = data.nodeType ?? "agent";
   const style = nodeTypeStyles[nodeType];
@@ -179,6 +216,7 @@ function toFlowNodes(graph: WorkflowGraph): Node<WorkflowNodeData>[] {
     data: {
       label: node.label,
       nodeType: node.type,
+      config: node.config ?? defaultNodeConfig(node.type),
     },
   }));
 }
@@ -202,7 +240,7 @@ function toWorkflowGraph(nodes: Node<WorkflowNodeData>[], edges: Edge[]): Workfl
       type: node.data?.nodeType ?? "agent",
       label: String(node.data?.label ?? node.id),
       position: node.position,
-      config: {},
+      config: node.data?.config ?? {},
     })),
     edges: edges.map((edge) => ({
       source: edge.source,
@@ -219,12 +257,15 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     initialGraph.nodes[0]?.id ?? null,
   );
+  const [configDraft, setConfigDraft] = useState("{}");
+  const [configError, setConfigError] = useState("");
   const nodeCounter = useRef(initialGraph.nodes.length + 1);
 
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId],
   );
+
 
   const graphJson = useMemo(
     () => JSON.stringify(toWorkflowGraph(nodes, edges), null, 2),
@@ -274,6 +315,7 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
       data: {
         label: `${nodeTypeLabels[nodeType]} ${nextIndex}`,
         nodeType,
+        config: defaultNodeConfig(nodeType),
       },
     };
 
@@ -293,12 +335,48 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
 
   function updateSelectedNodeType(nodeType: WorkflowNodeType) {
     setNodes((current) =>
+      current.map((node) => {
+        if (node.id !== selectedNodeId) {
+          return node;
+        }
+
+        const currentConfig = node.data?.config ?? {};
+        const nextConfig = Object.keys(currentConfig).length
+          ? currentConfig
+          : defaultNodeConfig(nodeType);
+
+        return {
+          ...node,
+          data: { ...node.data, nodeType, config: nextConfig },
+        };
+      }),
+    );
+  }
+
+  function updateSelectedNodeConfig(config: Record<string, unknown>) {
+    setNodes((current) =>
       current.map((node) =>
         node.id === selectedNodeId
-          ? { ...node, data: { ...node.data, nodeType } }
+          ? { ...node, data: { ...node.data, config } }
           : node,
       ),
     );
+  }
+
+  function handleConfigDraftChange(value: string) {
+    setConfigDraft(value);
+
+    try {
+      const parsed = JSON.parse(value) as Record<string, unknown>;
+      if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+        setConfigError("Settings must be a JSON object.");
+        return;
+      }
+      setConfigError("");
+      updateSelectedNodeConfig(parsed);
+    } catch {
+      setConfigError("Settings JSON is not valid yet.");
+    }
   }
 
   function removeSelectedNode() {
@@ -384,7 +462,7 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                onNodeClick={(_, node) => { setConfigError(""); setSelectedNodeId(node.id); }}
                 fitView
                 minZoom={0.35}
                 className="studio-flow bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),rgba(36,39,44,0.96))]"
@@ -475,10 +553,27 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">
+                    Settings JSON
+                  </label>
+                  <textarea
+                    value={configDraft}
+                    onChange={(event) => handleConfigDraftChange(event.target.value)}
+                    rows={9}
+                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 font-mono text-xs leading-6 outline-none"
+                  />
+                  <p className="mt-2 text-xs leading-5 text-stone-500">
+                    {configHint(selectedNode.data?.nodeType ?? "agent")}
+                  </p>
+                  {configError ? (
+                    <p className="mt-2 text-xs font-medium text-amber-700">{configError}</p>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <p className="mt-5 text-sm leading-6 text-stone-500">
-                Click a step in the canvas to edit its label or type.
+                Click a step in the canvas to edit its label, type, or settings.
               </p>
             )}
           </div>
@@ -515,3 +610,5 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+

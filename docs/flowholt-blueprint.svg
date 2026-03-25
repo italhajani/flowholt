@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" fill="none">
+  <rect width="1600" height="1180" fill="#F4F1E8"/>
+  <rect x="60" y="50" width="1480" height="1080" rx="30" fill="#FFFDF8" stroke="#2E2A26" stroke-width="3"/>
+  <text x="90" y="105" fill="#1E1B18" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">FlowHolt Platform Blueprint</text>
+  <text x="90" y="142" fill="#5B534E" font-family="Arial, Helvetica, sans-serif" font-size="20">Free-tier architecture and product structure for the AI workflow platform</text>
+  <rect x="90" y="190" width="1420" height="145" rx="24" fill="#1F4D45"/>
+  <text x="120" y="235" fill="#F7F4EE" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">User Journey</text>
+  <text x="120" y="285" fill="#E7DDD0" font-family="Arial, Helvetica, sans-serif" font-size="22">Describe annoying task</text>
+  <text x="430" y="285" fill="#E7DDD0" font-family="Arial, Helvetica, sans-serif" font-size="22">AI orchestrator suggests flow</text>
+  <text x="825" y="285" fill="#E7DDD0" font-family="Arial, Helvetica, sans-serif" font-size="22">Studio edits graph</text>
+  <text x="1110" y="285" fill="#E7DDD0" font-family="Arial, Helvetica, sans-serif" font-size="22">Run and inspect logs</text>
+  <path d="M330 278H395" stroke="#E7DDD0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M730 278H790" stroke="#E7DDD0" stroke-width="4" stroke-linecap="round"/>
+  <path d="M1000 278H1075" stroke="#E7DDD0" stroke-width="4" stroke-linecap="round"/>
+  <rect x="90" y="370" width="430" height="315" rx="24" fill="#FAF4E7" stroke="#2E2A26" stroke-width="2"/>
+  <text x="120" y="420" fill="#1E1B18" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Public + App Pages</text>
+  <text x="120" y="465" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Landing</text>
+  <text x="120" y="500" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Pricing</text>
+  <text x="120" y="535" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Docs</text>
+  <text x="120" y="585" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Dashboard</text>
+  <text x="120" y="620" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Orchestrator</text>
+  <text x="120" y="655" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Studio</text>
+  <text x="300" y="585" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Workflows</text>
+  <text x="300" y="620" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Agents</text>
+  <text x="300" y="655" fill="#433D38" font-family="Arial, Helvetica, sans-serif" font-size="22">Runs</text>
+  <rect x="585" y="370" width="430" height="315" rx="24" fill="#EEF6F4" stroke="#2E2A26" stroke-width="2"/>
+  <text x="615" y="420" fill="#1E1B18" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Studio Workspace</text>
+  <text x="615" y="470" fill="#2B514A" font-family="Arial, Helvetica, sans-serif" font-size="22">Left rail: nodes, templates, tools</text>
+  <text x="615" y="505" fill="#2B514A" font-family="Arial, Helvetica, sans-serif" font-size="22">Center: graph canvas + minimap</text>
+  <text x="615" y="540" fill="#2B514A" font-family="Arial, Helvetica, sans-serif" font-size="22">Right rail: node properties + prompt config</text>
+  <text x="615" y="590" fill="#2B514A" font-family="Arial, Helvetica, sans-serif" font-size="22">Bottom tray: run controls, logs, debug</text>
+  <text x="615" y="625" fill="#2B514A" font-family="Arial, Helvetica, sans-serif" font-size="22">Top bar: save, version, publish, share</text>
+  <rect x="1080" y="370" width="430" height="315" rx="24" fill="#F8EDE7" stroke="#2E2A26" stroke-width="2"/>
+  <text x="1110" y="420" fill="#1E1B18" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Workflow Node Types</text>
+  <text x="1110" y="470" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">Trigger</text>
+  <text x="1110" y="505" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">AI Agent</text>
+  <text x="1110" y="540" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">Retriever / RAG</text>
+  <text x="1110" y="575" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">Condition / Router</text>
+  <text x="1320" y="470" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">Loop</text>
+  <text x="1320" y="505" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">API Call</text>
+  <text x="1320" y="540" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">Memory</text>
+  <text x="1320" y="575" fill="#594339" font-family="Arial, Helvetica, sans-serif" font-size="22">Output</text>
+  <rect x="90" y="730" width="680" height="335" rx="24" fill="#EFF2FB" stroke="#2E2A26" stroke-width="2"/>
+  <text x="120" y="780" fill="#1E1B18" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">System Architecture</text>
+  <text x="120" y="830" fill="#33415C" font-family="Arial, Helvetica, sans-serif" font-size="22">Next.js on Vercel</text>
+  <text x="120" y="865" fill="#33415C" font-family="Arial, Helvetica, sans-serif" font-size="22">Supabase Auth + Postgres + Storage + Realtime</text>
+  <text x="120" y="900" fill="#33415C" font-family="Arial, Helvetica, sans-serif" font-size="22">FastAPI execution engine on Render</text>
+  <text x="120" y="935" fill="#33415C" font-family="Arial, Helvetica, sans-serif" font-size="22">Groq / Hugging Face / Open-source models</text>
+  <text x="120" y="985" fill="#33415C" font-family="Arial, Helvetica, sans-serif" font-size="22">LangGraph + LangChain + CrewAI for orchestration layers</text>
+  <text x="120" y="1020" fill="#33415C" font-family="Arial, Helvetica, sans-serif" font-size="22">GitHub for source control and deployment hooks</text>
+  <rect x="820" y="730" width="690" height="335" rx="24" fill="#F4EFEA" stroke="#2E2A26" stroke-width="2"/>
+  <text x="850" y="780" fill="#1E1B18" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Core Data Model</text>
+  <text x="850" y="830" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">users</text>
+  <text x="850" y="865" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">workspaces</text>
+  <text x="850" y="900" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">workflows</text>
+  <text x="850" y="935" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">workflow_runs</text>
+  <text x="1080" y="830" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">agents</text>
+  <text x="1080" y="865" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">run_logs</text>
+  <text x="1080" y="900" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">integrations</text>
+  <text x="1080" y="935" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">knowledge_assets</text>
+  <text x="850" y="995" fill="#453A33" font-family="Arial, Helvetica, sans-serif" font-size="22">All workflow graphs stored as JSON with nodes, edges, metadata, and execution settings</text>
+</svg>

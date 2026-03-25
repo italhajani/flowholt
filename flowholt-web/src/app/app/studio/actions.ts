@@ -1,7 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { runWorkflowWithEngine } from "@/lib/flowholt/engine";
 import type { WorkflowGraph, WorkflowRecord } from "@/lib/flowholt/types";
@@ -120,6 +120,8 @@ export async function runWorkflow(formData: FormData) {
     redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(insertError?.message ?? "Unable to create run")}`);
   }
 
+  let successMessage = "Run completed successfully";
+
   try {
     const result = await runWorkflowWithEngine({
       run_id: insertedRun.id,
@@ -165,8 +167,9 @@ export async function runWorkflow(formData: FormData) {
       throw new Error(updateError.message);
     }
 
-    revalidateWorkflowPaths(workflow.id);
-    redirect(`/app/studio/${workflow.id}?message=${encodeURIComponent("Run completed successfully")}`);
+    if (result.summary.executed_nodes.length) {
+      successMessage = `Run completed: ${result.summary.executed_nodes.length} steps executed`;
+    }
   } catch (error) {
     const errorMessage =
       error instanceof Error
@@ -197,4 +200,7 @@ export async function runWorkflow(formData: FormData) {
     revalidateWorkflowPaths(workflow.id);
     redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(errorMessage)}`);
   }
+
+  revalidateWorkflowPaths(workflow.id);
+  redirect(`/app/studio/${workflow.id}?message=${encodeURIComponent(successMessage)}`);
 }

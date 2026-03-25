@@ -1,12 +1,8 @@
 from collections import deque
 from datetime import datetime, timezone
 
-from app.schemas.workflow import (
-    WorkflowPayload,
-    WorkflowRunLog,
-    WorkflowRunResult,
-    WorkflowRunSummary,
-)
+from app.schemas.workflow import WorkflowPayload, WorkflowRunLog, WorkflowRunResult, WorkflowRunSummary
+from app.services.node_handlers import execute_node
 
 
 def _ordered_node_ids(payload: WorkflowPayload) -> list[str]:
@@ -37,20 +33,6 @@ def _ordered_node_ids(payload: WorkflowPayload) -> list[str]:
     return ordered
 
 
-def _message_for_node(node_type: str, label: str) -> str:
-    messages = {
-        "trigger": f"Started from {label.lower()}.",
-        "agent": f"Reasoned through {label.lower()} and prepared structured output.",
-        "tool": f"Prepared external action for {label.lower()}.",
-        "condition": f"Evaluated decision point for {label.lower()}.",
-        "loop": f"Processed repeated work inside {label.lower()}.",
-        "memory": f"Loaded saved context for {label.lower()}.",
-        "retriever": f"Fetched supporting knowledge for {label.lower()}.",
-        "output": f"Finalized the result in {label.lower()}.",
-    }
-    return messages.get(node_type, f"Completed {label.lower()}.")
-
-
 def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
     started_at = datetime.now(timezone.utc)
     node_map = {node.id: node for node in payload.nodes}
@@ -70,32 +52,14 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
     ]
 
     executed_nodes: list[str] = []
+    node_outputs: dict[str, object] = {}
 
     for index, node_id in enumerate(ordered_node_ids, start=1):
         node = node_map[node_id]
+        result = execute_node(node, payload, index)
         executed_nodes.append(node.id)
-        logs.append(
-            WorkflowRunLog(
-                node_id=node.id,
-                level="info",
-                message=f"Running step {index}: {node.label}",
-                payload={
-                    "node_type": node.type,
-                    "sequence": index,
-                },
-            )
-        )
-        logs.append(
-            WorkflowRunLog(
-                node_id=node.id,
-                level="debug",
-                message=_message_for_node(node.type, node.label),
-                payload={
-                    "config_keys": sorted(node.config.keys()),
-                    "position": node.position or {},
-                },
-            )
-        )
+        logs.extend(result.logs)
+        node_outputs[node.id] = result.output
 
     finished_at = datetime.now(timezone.utc)
     summary = WorkflowRunSummary(
@@ -113,6 +77,7 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         "executed_nodes": executed_nodes,
         "last_node_id": executed_nodes[-1] if executed_nodes else None,
         "trigger_source": payload.trigger_source,
+        "node_outputs": node_outputs,
     }
 
     return WorkflowRunResult(

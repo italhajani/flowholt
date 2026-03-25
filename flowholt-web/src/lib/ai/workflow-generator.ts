@@ -1,4 +1,5 @@
 import type { WorkflowGraph } from "@/lib/flowholt/types";
+import { getCatalogPromptLines } from "@/lib/flowholt/node-catalog";
 
 type GeneratedWorkflowDraft = {
   name: string;
@@ -33,6 +34,8 @@ const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const HF_MODEL = process.env.HUGGINGFACE_MODEL ?? "meta-llama/Llama-3.1-8B-Instruct";
 
 function buildSystemPrompt() {
+  const catalogLines = getCatalogPromptLines();
+
   return [
     "You are an AI workflow planner for a product named FlowHolt.",
     "Convert the user request into a practical workflow draft.",
@@ -40,6 +43,8 @@ function buildSystemPrompt() {
     "The JSON must include name, description, nodes, edges, and optional notes.",
     "Use short user-friendly names.",
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
+    "Prefer these built-in FlowHolt blocks when planning:",
+    ...catalogLines,
     "Create 4 to 8 nodes.",
     "Make node ids short and lowercase with hyphens.",
     "Edges must reference valid node ids.",

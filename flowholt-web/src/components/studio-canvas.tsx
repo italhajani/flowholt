@@ -22,7 +22,7 @@ import {
 } from "@xyflow/react";
 import { useMemo, useRef, useState } from "react";
 
-import type { WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
+import type { WorkflowEdge, WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
 
 type StudioCanvasProps = {
   initialGraph: WorkflowGraph;
@@ -32,6 +32,10 @@ type WorkflowNodeData = {
   label: string;
   nodeType: WorkflowNodeType;
   config: Record<string, unknown>;
+};
+
+type WorkflowEdgeData = {
+  branch: string;
 };
 
 const nodeTypeLabels: Record<WorkflowNodeType, string> = {
@@ -117,17 +121,22 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
     case "agent":
       return { instruction: "", model: "default" };
     case "tool":
-      return { method: "POST", url: "", body: {} };
+      return { method: "POST", url: "", body: { input: "{{previous.text}}" } };
     case "condition":
-      return { rule: "" };
+      return {
+        value: "{{previous.status_code}}",
+        equals: 200,
+        branch_on_match: "true",
+        branch_on_miss: "false",
+      };
     case "loop":
       return { iterations: 1 };
     case "memory":
       return { source: "workflow" };
     case "retriever":
-      return { query: "" };
+      return { query: "{{workflow.original_prompt}}" };
     case "output":
-      return { format: "text" };
+      return { result: "{{previous}}" };
     default:
       return {};
   }
@@ -139,11 +148,35 @@ function configHint(nodeType: WorkflowNodeType) {
       return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile"}';
     case "tool":
       return 'Example: {"method":"POST","url":"https://httpbin.org/post","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
+    case "condition":
+      return 'Example: {"value":"{{previous.status_code}}","equals":200,"branch_on_match":"true","branch_on_miss":"false"}';
+    case "output":
+      return 'Example: {"result":"{{nodes.writer.text}}"}';
     case "trigger":
       return 'Example: {"mode":"manual"}';
     default:
       return 'Use JSON settings for advanced behavior. Empty object is fine.';
   }
+}
+
+function edgeDisplayLabel(edge: Pick<WorkflowEdge, "label" | "branch">) {
+  return edge.label || edge.branch || "";
+}
+
+function buildEdgeId(edge: Pick<WorkflowEdge, "source" | "target">, index: number) {
+  return `${edge.source}-${edge.target}-${index}`;
+}
+
+function nextConditionBranch(edges: Edge<WorkflowEdgeData>[], sourceId: string) {
+  const outgoing = edges.filter((edge) => edge.source === sourceId);
+  const branches = outgoing.map((edge) => (edge.data?.branch || "").toLowerCase());
+  if (!branches.includes("true")) {
+    return "true";
+  }
+  if (!branches.includes("false")) {
+    return "false";
+  }
+  return `branch-${outgoing.length + 1}`;
 }
 
 function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>) {
@@ -221,19 +254,33 @@ function toFlowNodes(graph: WorkflowGraph): Node<WorkflowNodeData>[] {
   }));
 }
 
-function toFlowEdges(graph: WorkflowGraph): Edge[] {
+function toFlowEdges(graph: WorkflowGraph): Edge<WorkflowEdgeData>[] {
   return graph.edges.map((edge, index) => ({
-    id: `${edge.source}-${edge.target}-${index}`,
+    id: buildEdgeId(edge, index),
     source: edge.source,
     target: edge.target,
     type: "smoothstep",
     animated: false,
+    label: edgeDisplayLabel(edge),
+    labelStyle: {
+      fill: "#cbd5e1",
+      fontSize: 12,
+      fontWeight: 600,
+    },
+    labelBgPadding: [8, 4],
+    labelBgBorderRadius: 999,
+    labelBgStyle: {
+      fill: "rgba(15, 23, 42, 0.82)",
+    },
     markerEnd: { type: MarkerType.ArrowClosed, color: "#95a3b8" },
     style: { stroke: "#95a3b8", strokeWidth: 2.2 },
+    data: {
+      branch: edge.branch ?? "",
+    },
   }));
 }
 
-function toWorkflowGraph(nodes: Node<WorkflowNodeData>[], edges: Edge[]): WorkflowGraph {
+function toWorkflowGraph(nodes: Node<WorkflowNodeData>[], edges: Edge<WorkflowEdgeData>[]): WorkflowGraph {
   return {
     nodes: nodes.map((node) => ({
       id: node.id,
@@ -245,19 +292,17 @@ function toWorkflowGraph(nodes: Node<WorkflowNodeData>[], edges: Edge[]): Workfl
     edges: edges.map((edge) => ({
       source: edge.source,
       target: edge.target,
+      label: typeof edge.label === "string" && edge.label ? edge.label : undefined,
+      branch: edge.data?.branch ? edge.data.branch : undefined,
     })),
   };
 }
 
 function CanvasInner({ initialGraph }: StudioCanvasProps) {
-  const [nodes, setNodes] = useState<Node<WorkflowNodeData>[]>(() =>
-    toFlowNodes(initialGraph),
-  );
-  const [edges, setEdges] = useState<Edge[]>(() => toFlowEdges(initialGraph));
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
-    initialGraph.nodes[0]?.id ?? null,
-  );
-  const [configDraft, setConfigDraft] = useState("{}");
+  const [nodes, setNodes] = useState<Node<WorkflowNodeData>[]>(() => toFlowNodes(initialGraph));
+  const [edges, setEdges] = useState<Edge<WorkflowEdgeData>[]>(() => toFlowEdges(initialGraph));
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialGraph.nodes[0]?.id ?? null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [configError, setConfigError] = useState("");
   const nodeCounter = useRef(initialGraph.nodes.length + 1);
 
@@ -266,6 +311,10 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
     [nodes, selectedNodeId],
   );
 
+  const selectedEdge = useMemo(
+    () => edges.find((edge) => edge.id === selectedEdgeId) ?? null,
+    [edges, selectedEdgeId],
+  );
 
   const graphJson = useMemo(
     () => JSON.stringify(toWorkflowGraph(nodes, edges), null, 2),
@@ -288,17 +337,46 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
   }
 
   function onConnect(connection: Connection) {
+    const sourceNode = nodes.find((node) => node.id === connection.source);
+    const branch =
+      sourceNode?.data?.nodeType === "condition" && connection.source
+        ? nextConditionBranch(edges, connection.source)
+        : "";
+
     setEdges((current) =>
       addEdge(
         {
           ...connection,
+          id: buildEdgeId(
+            {
+              source: connection.source ?? "unknown-source",
+              target: connection.target ?? "unknown-target",
+            },
+            current.length,
+          ),
           type: "smoothstep",
+          label: branch ? branch.toUpperCase() : "",
+          labelStyle: {
+            fill: "#cbd5e1",
+            fontSize: 12,
+            fontWeight: 600,
+          },
+          labelBgPadding: [8, 4],
+          labelBgBorderRadius: 999,
+          labelBgStyle: {
+            fill: "rgba(15, 23, 42, 0.82)",
+          },
           markerEnd: { type: MarkerType.ArrowClosed, color: "#95a3b8" },
           style: { stroke: "#95a3b8", strokeWidth: 2.2 },
+          data: {
+            branch,
+          },
         },
         current,
-      ),
+      ) as Edge<WorkflowEdgeData>[],
     );
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
   }
 
   function addNode(nodeType: WorkflowNodeType) {
@@ -320,15 +398,15 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
     };
 
     setNodes((current) => [...current, newNode]);
+    setConfigError("");
+    setSelectedEdgeId(null);
     setSelectedNodeId(newNode.id);
   }
 
   function updateSelectedNodeLabel(label: string) {
     setNodes((current) =>
       current.map((node) =>
-        node.id === selectedNodeId
-          ? { ...node, data: { ...node.data, label } }
-          : node,
+        node.id === selectedNodeId ? { ...node, data: { ...node.data, label } } : node,
       ),
     );
   }
@@ -356,16 +434,12 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
   function updateSelectedNodeConfig(config: Record<string, unknown>) {
     setNodes((current) =>
       current.map((node) =>
-        node.id === selectedNodeId
-          ? { ...node, data: { ...node.data, config } }
-          : node,
+        node.id === selectedNodeId ? { ...node, data: { ...node.data, config } } : node,
       ),
     );
   }
 
   function handleConfigDraftChange(value: string) {
-    setConfigDraft(value);
-
     try {
       const parsed = JSON.parse(value) as Record<string, unknown>;
       if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
@@ -377,6 +451,33 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
     } catch {
       setConfigError("Settings JSON is not valid yet.");
     }
+  }
+
+  function updateSelectedEdgeBranch(branch: string) {
+    setEdges((current) =>
+      current.map((edge) =>
+        edge.id === selectedEdgeId
+          ? {
+              ...edge,
+              data: { branch },
+              label: edge.label || branch.toUpperCase(),
+            }
+          : edge,
+      ),
+    );
+  }
+
+  function updateSelectedEdgeLabel(label: string) {
+    setEdges((current) =>
+      current.map((edge) =>
+        edge.id === selectedEdgeId
+          ? {
+              ...edge,
+              label,
+            }
+          : edge,
+      ),
+    );
   }
 
   function removeSelectedNode() {
@@ -391,6 +492,16 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
       ),
     );
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+  }
+
+  function removeSelectedEdge() {
+    if (!selectedEdgeId) {
+      return;
+    }
+
+    setEdges((current) => current.filter((edge) => edge.id !== selectedEdgeId));
+    setSelectedEdgeId(null);
   }
 
   return (
@@ -427,16 +538,14 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
             <div className="rounded-[28px] border border-white/8 bg-[#1a1c20] p-3">
               <div className="flex h-full flex-col items-center justify-between">
                 <div className="grid gap-2">
-                  {(
-                    [
-                      "trigger",
-                      "agent",
-                      "tool",
-                      "condition",
-                      "memory",
-                      "output",
-                    ] as WorkflowNodeType[]
-                  ).map((nodeType) => (
+                  {([
+                    "trigger",
+                    "agent",
+                    "tool",
+                    "condition",
+                    "memory",
+                    "output",
+                  ] as WorkflowNodeType[]).map((nodeType) => (
                     <button
                       key={nodeType}
                       type="button"
@@ -462,7 +571,20 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                onNodeClick={(_, node) => { setConfigError(""); setSelectedNodeId(node.id); }}
+                onNodeClick={(_, node) => {
+                  setConfigError("");
+                  setSelectedEdgeId(null);
+                  setSelectedNodeId(node.id);
+                }}
+                onEdgeClick={(_, edge) => {
+                  setConfigError("");
+                  setSelectedNodeId(null);
+                  setSelectedEdgeId(edge.id);
+                }}
+                onPaneClick={() => {
+                  setSelectedNodeId(null);
+                  setSelectedEdgeId(null);
+                }}
                 fitView
                 minZoom={0.35}
                 className="studio-flow bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),rgba(36,39,44,0.96))]"
@@ -509,7 +631,7 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
               <div>
                 <p className="text-sm font-semibold text-stone-900">Selected step</p>
                 <p className="mt-1 text-sm text-stone-500">
-                  A cleaner properties panel for the current card.
+                  Edit the current step and its runtime settings.
                 </p>
               </div>
               {selectedNode ? (
@@ -541,9 +663,7 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                   </label>
                   <select
                     value={String(selectedNode.data?.nodeType ?? "agent")}
-                    onChange={(event) =>
-                      updateSelectedNodeType(event.target.value as WorkflowNodeType)
-                    }
+                    onChange={(event) => updateSelectedNodeType(event.target.value as WorkflowNodeType)}
                     className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
                   >
                     {Object.entries(nodeTypeLabels).map(([key, label]) => (
@@ -558,7 +678,8 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                     Settings JSON
                   </label>
                   <textarea
-                    value={configDraft}
+                    key={selectedNode.id}
+                    defaultValue={JSON.stringify(selectedNode.data?.config ?? {}, null, 2)}
                     onChange={(event) => handleConfigDraftChange(event.target.value)}
                     rows={9}
                     className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 font-mono text-xs leading-6 outline-none"
@@ -574,6 +695,60 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
             ) : (
               <p className="mt-5 text-sm leading-6 text-stone-500">
                 Click a step in the canvas to edit its label, type, or settings.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-stone-900">Selected connection</p>
+                <p className="mt-1 text-sm text-stone-500">
+                  Name branches like true and false so conditions route explicitly.
+                </p>
+              </div>
+              {selectedEdge ? (
+                <button
+                  type="button"
+                  onClick={removeSelectedEdge}
+                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+
+            {selectedEdge ? (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                  {selectedEdge.source} to {selectedEdge.target}
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">
+                    Branch key
+                  </label>
+                  <input
+                    value={selectedEdge.data?.branch ?? ""}
+                    onChange={(event) => updateSelectedEdgeBranch(event.target.value)}
+                    placeholder="true, false, retry, approved"
+                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">
+                    Visual label
+                  </label>
+                  <input
+                    value={typeof selectedEdge.label === "string" ? selectedEdge.label : ""}
+                    onChange={(event) => updateSelectedEdgeLabel(event.target.value)}
+                    placeholder="Shown on the canvas"
+                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="mt-5 text-sm leading-6 text-stone-500">
+                Click a connection in the canvas to edit its branch name and label.
               </p>
             )}
           </div>
@@ -610,7 +785,3 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
-
-
-
-

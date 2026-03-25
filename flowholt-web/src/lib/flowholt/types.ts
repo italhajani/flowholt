@@ -22,6 +22,8 @@ export type WorkflowNode = {
 export type WorkflowEdge = {
   source: string;
   target: string;
+  label?: string;
+  branch?: string;
 };
 
 export type WorkflowGraph = {

@@ -24,6 +24,8 @@ type DraftShape = {
   edges: Array<{
     source: string;
     target: string;
+    label?: string;
+    branch?: string;
   }>;
   notes?: string;
 };
@@ -43,6 +45,7 @@ function buildSystemPrompt() {
     "The JSON must include name, description, nodes, edges, and optional notes.",
     "Use short user-friendly names.",
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
+    "If a condition node is used, add explicit edge branch values like true and false.",
     "Prefer these built-in FlowHolt blocks when planning:",
     ...catalogLines,
     "Create 4 to 8 nodes.",
@@ -86,6 +89,8 @@ function sanitizeGraph(shape: DraftShape): WorkflowGraph {
         .map((edge) => ({
           source: String(edge.source),
           target: String(edge.target),
+          label: typeof edge.label === "string" ? edge.label : undefined,
+          branch: typeof edge.branch === "string" ? edge.branch : undefined,
         }))
     : [];
 
@@ -128,8 +133,21 @@ function makeFallbackDraft(prompt: string): GeneratedWorkflowDraft {
 
   nodes.push({ id: "finish", type: "output", label: "Final result" });
 
-  for (let index = 0; index < nodes.length - 1; index += 1) {
-    edges.push({ source: nodes[index].id, target: nodes[index + 1].id });
+  if (hasCondition) {
+    const beforeCondition = nodes.findLast((node) => node.id !== "check" && node.id !== "message" && node.id !== "action" && node.id !== "finish") ?? nodes[1];
+    const actionNode = nodes.find((node) => node.id === "message" || node.id === "action");
+    if (beforeCondition) {
+      edges.push({ source: beforeCondition.id, target: "check" });
+    }
+    if (actionNode) {
+      edges.push({ source: "check", target: actionNode.id, branch: "true", label: "True" });
+      edges.push({ source: "check", target: "finish", branch: "false", label: "False" });
+      edges.push({ source: actionNode.id, target: "finish" });
+    }
+  } else {
+    for (let index = 0; index < nodes.length - 1; index += 1) {
+      edges.push({ source: nodes[index].id, target: nodes[index + 1].id });
+    }
   }
 
   return {

@@ -112,6 +112,60 @@ def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionC
     return content.strip(), model
 
 
+def _coerce_number(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _evaluate_condition(config: dict[str, Any], value: Any) -> tuple[bool, str]:
+    if config.get("exists") is True:
+        matched = value not in (None, "")
+        return matched, "exists"
+
+    if config.get("is_empty") is True:
+        matched = value in (None, "", [], {})
+        return matched, "is_empty"
+
+    if "equals" in config:
+        matched = value == config.get("equals")
+        return matched, "equals"
+
+    if "not_equals" in config:
+        matched = value != config.get("not_equals")
+        return matched, "not_equals"
+
+    if "contains" in config:
+        matched = str(config.get("contains")) in str(value)
+        return matched, "contains"
+
+    if "starts_with" in config:
+        matched = str(value).startswith(str(config.get("starts_with")))
+        return matched, "starts_with"
+
+    if "ends_with" in config:
+        matched = str(value).endswith(str(config.get("ends_with")))
+        return matched, "ends_with"
+
+    if "greater_than" in config:
+        left = _coerce_number(value)
+        right = _coerce_number(config.get("greater_than"))
+        matched = left is not None and right is not None and left > right
+        return matched, "greater_than"
+
+    if "less_than" in config:
+        left = _coerce_number(value)
+        right = _coerce_number(config.get("less_than"))
+        matched = left is not None and right is not None and left < right
+        return matched, "less_than"
+
+    if isinstance(value, bool):
+        return value, "boolean"
+
+    return bool(value), "truthy"
+
+
 def handle_trigger(node: WorkflowNode, _: WorkflowPayload, sequence: int, __: ExecutionContext) -> NodeExecutionResult:
     return NodeExecutionResult(
         logs=[
@@ -260,16 +314,10 @@ def handle_tool(
 def handle_condition(node: WorkflowNode, payload: WorkflowPayload, sequence: int, context: ExecutionContext) -> NodeExecutionResult:
     config = _resolved_config(node, payload, context)
     value = config.get("value", context.previous_output)
-    equals = config.get("equals")
-    contains = config.get("contains")
-
-    branch = "default-continue"
-    if equals is not None:
-        branch = "true" if value == equals else "false"
-    elif contains is not None and isinstance(value, str):
-        branch = "true" if str(contains) in value else "false"
-    elif isinstance(value, bool):
-        branch = "true" if value else "false"
+    matched, operator = _evaluate_condition(config, value)
+    branch_on_match = str(config.get("branch_on_match") or "true")
+    branch_on_miss = str(config.get("branch_on_miss") or "false")
+    branch = branch_on_match if matched else branch_on_miss
 
     return NodeExecutionResult(
         logs=[
@@ -287,10 +335,12 @@ def handle_condition(node: WorkflowNode, payload: WorkflowPayload, sequence: int
                     **_base_payload(node, sequence),
                     "branch": branch,
                     "value": value,
+                    "matched": matched,
+                    "operator": operator,
                 },
             ),
         ],
-        output={"branch": branch, "value": value},
+        output={"branch": branch, "value": value, "matched": matched, "operator": operator},
     )
 
 

@@ -24,6 +24,8 @@ class WorkflowNode(BaseModel):
 class WorkflowEdge(BaseModel):
     source: str
     target: str
+    label: str | None = None
+    branch: str | None = None
 
 
 class WorkflowPayload(BaseModel):

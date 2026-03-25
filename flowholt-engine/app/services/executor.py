@@ -1,18 +1,18 @@
 from collections import deque
 from datetime import datetime, timezone
 
-from app.schemas.workflow import WorkflowPayload, WorkflowRunLog, WorkflowRunResult, WorkflowRunSummary
+from app.schemas.workflow import WorkflowEdge, WorkflowPayload, WorkflowRunLog, WorkflowRunResult, WorkflowRunSummary
 from app.services.node_handlers import ExecutionContext, execute_node
 
 
-def _build_graph(payload: WorkflowPayload) -> tuple[dict[str, list[str]], dict[str, int]]:
+def _build_graph(payload: WorkflowPayload) -> tuple[dict[str, list[WorkflowEdge]], dict[str, int]]:
     node_ids = [node.id for node in payload.nodes]
-    adjacency: dict[str, list[str]] = {node_id: [] for node_id in node_ids}
+    adjacency: dict[str, list[WorkflowEdge]] = {node_id: [] for node_id in node_ids}
     indegree = {node_id: 0 for node_id in node_ids}
 
     for edge in payload.edges:
         if edge.source in adjacency and edge.target in indegree:
-            adjacency[edge.source].append(edge.target)
+            adjacency[edge.source].append(edge)
             indegree[edge.target] += 1
 
     return adjacency, indegree
@@ -25,22 +25,25 @@ def _root_node_ids(payload: WorkflowPayload, indegree: dict[str, int]) -> list[s
     return [payload.nodes[0].id] if payload.nodes else []
 
 
-def _choose_next_targets(node_type: str, node_id: str, result_output: dict[str, object], adjacency: dict[str, list[str]]) -> list[str]:
+def _normalize_branch(value: object | None) -> str:
+    return str(value or "").strip().lower()
+
+
+def _choose_next_edges(node_type: str, node_id: str, result_output: dict[str, object], adjacency: dict[str, list[WorkflowEdge]]) -> list[WorkflowEdge]:
     outgoing = adjacency.get(node_id, [])
     if node_type != "condition" or len(outgoing) <= 1:
         return outgoing
 
-    branch = str(result_output.get("branch") or "default-continue").strip().lower()
+    branch = _normalize_branch(result_output.get("branch") or "default-continue")
 
-    for target in outgoing:
-        if target.lower() == branch:
-            return [target]
+    for edge in outgoing:
+        edge_branch = _normalize_branch(edge.branch or edge.label)
+        if edge_branch and edge_branch == branch:
+            return [edge]
 
-    if branch in {"true", "yes", "continue", "default-continue", "pass"}:
-        return outgoing[:1]
-
-    if branch in {"false", "no", "fail", "stop"}:
-        return outgoing[1:2] or outgoing[:1]
+    unlabeled = [edge for edge in outgoing if not _normalize_branch(edge.branch or edge.label)]
+    if unlabeled:
+        return unlabeled[:1]
 
     return outgoing[:1]
 
@@ -91,23 +94,31 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         context.previous_output = result.output
         sequence += 1
 
-        next_targets = _choose_next_targets(node.type, node.id, result.output, adjacency)
-        if node.type == "condition" and next_targets:
+        next_edges = _choose_next_edges(node.type, node.id, result.output, adjacency)
+        if node.type == "condition" and next_edges:
             logs.append(
                 WorkflowRunLog(
                     node_id=node.id,
                     level="info",
-                    message=f"Condition routed the flow to {', '.join(next_targets)}.",
+                    message=f"Condition routed the flow to {', '.join(edge.target for edge in next_edges)}.",
                     payload={
                         "branch": result.output.get("branch", "default-continue"),
-                        "targets": next_targets,
+                        "targets": [edge.target for edge in next_edges],
+                        "edges": [
+                            {
+                                "target": edge.target,
+                                "label": edge.label,
+                                "branch": edge.branch,
+                            }
+                            for edge in next_edges
+                        ],
                     },
                 )
             )
 
-        for target in next_targets:
-            if target not in visited:
-                queue.append(target)
+        for edge in next_edges:
+            if edge.target not in visited:
+                queue.append(edge.target)
 
     finished_at = datetime.now(timezone.utc)
     summary = WorkflowRunSummary(

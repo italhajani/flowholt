@@ -4,8 +4,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 94%**
-- Frontend/UI progress: **about 82%**
+- Backend core progress: **about 95%**
+- Frontend/UI progress: **about 83%**
 - Production hardening progress: **about 35%**
 
 ## Backend foundations
@@ -24,6 +24,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Run streaming endpoint for live monitoring
 - [x] Durable run job queue table + worker endpoint
 - [x] Node-level execution metrics storage
+- [x] Usage snapshot aggregation (runs, tokens, schedules, queued jobs)
 
 ## Remaining backend (high priority)
 
@@ -87,6 +88,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, and RBAC
+
 
 
 

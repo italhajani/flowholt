@@ -56,6 +56,13 @@ function emptySnapshot(): DashboardSnapshot {
     workflowCount: 0,
     runCount: 0,
     successRate: 0,
+    usage: {
+      activeSchedules: 0,
+      queuedJobs: 0,
+      runsLast7Days: 0,
+      failedRunsLast7Days: 0,
+      tokenEstimateLast7Days: 0,
+    },
   };
 }
 
@@ -118,23 +125,64 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     };
   }
 
-  const { data: workflows, error: workflowsError } = await workspaceState.supabase
-    .from("workflows")
-    .select(
-      "id, workspace_id, created_by_user_id, name, description, status, graph, settings, created_at, updated_at",
-    )
-    .eq("workspace_id", workspaceState.activeWorkspace.id)
-    .order("updated_at", { ascending: false })
-    .limit(5);
+  const workspaceId = workspaceState.activeWorkspace.id;
+  const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: runs, error: runsError } = await workspaceState.supabase
-    .from("workflow_runs")
-    .select(
-      "id, workflow_id, workspace_id, status, trigger_source, output, error_message, started_at, finished_at, created_at",
-    )
-    .eq("workspace_id", workspaceState.activeWorkspace.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
+  const [
+    { data: workflows, error: workflowsError },
+    { data: runs, error: runsError },
+    { count: workflowTotalCount },
+    { count: runTotalCount },
+    { data: usageRuns },
+    { data: nodeExecutions },
+    { data: activeSchedules },
+    { data: queuedJobs },
+  ] = await Promise.all([
+    workspaceState.supabase
+      .from("workflows")
+      .select(
+        "id, workspace_id, created_by_user_id, name, description, status, graph, settings, created_at, updated_at",
+      )
+      .eq("workspace_id", workspaceId)
+      .order("updated_at", { ascending: false })
+      .limit(5),
+    workspaceState.supabase
+      .from("workflow_runs")
+      .select(
+        "id, workflow_id, workspace_id, status, trigger_source, output, error_message, started_at, finished_at, created_at",
+      )
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    workspaceState.supabase
+      .from("workflows")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    workspaceState.supabase
+      .from("workflow_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId),
+    workspaceState.supabase
+      .from("workflow_runs")
+      .select("id, status, created_at")
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", sevenDaysAgoIso),
+    workspaceState.supabase
+      .from("workflow_node_executions")
+      .select("token_estimate, created_at")
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", sevenDaysAgoIso),
+    workspaceState.supabase
+      .from("workflow_schedules")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "active"),
+    workspaceState.supabase
+      .from("workflow_run_jobs")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .in("status", ["queued", "processing"]),
+  ]);
 
   if (workflowsError || runsError) {
     return {
@@ -151,6 +199,8 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const successRate = recentRuns.length
     ? Math.round((succeededRuns / recentRuns.length) * 100)
     : 0;
+  const usageRunRows = ((usageRuns ?? []) as Array<{ status: string }>);
+  const usageNodeRows = ((nodeExecutions ?? []) as Array<{ token_estimate: number | null }>);
 
   return {
     schemaReady: true,
@@ -158,9 +208,19 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     activeWorkspace: workspaceState.activeWorkspace,
     recentWorkflows,
     recentRuns,
-    workflowCount: recentWorkflows.length,
-    runCount: recentRuns.length,
+    workflowCount: workflowTotalCount ?? recentWorkflows.length,
+    runCount: runTotalCount ?? recentRuns.length,
     successRate,
+    usage: {
+      activeSchedules: (activeSchedules ?? []).length,
+      queuedJobs: (queuedJobs ?? []).length,
+      runsLast7Days: usageRunRows.length,
+      failedRunsLast7Days: usageRunRows.filter((run) => ["failed", "cancelled"].includes(run.status)).length,
+      tokenEstimateLast7Days: usageNodeRows.reduce(
+        (total, row) => total + (Number(row.token_estimate) || 0),
+        0,
+      ),
+    },
   };
 }
 
@@ -360,4 +420,6 @@ export async function getWorkflowSchedules(workflowId: string) {
 export function getDemoWorkflow() {
   return demoWorkflow;
 }
+
+
 

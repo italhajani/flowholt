@@ -142,6 +142,14 @@ export type WorkflowRunListItem = WorkflowRunRecord & {
   logs: RunLogRecord[];
 };
 
+export type DashboardUsageSnapshot = {
+  activeSchedules: number;
+  queuedJobs: number;
+  runsLast7Days: number;
+  failedRunsLast7Days: number;
+  tokenEstimateLast7Days: number;
+};
+
 export type DashboardSnapshot = {
   schemaReady: boolean;
   workspaces: WorkspaceRecord[];
@@ -151,6 +159,7 @@ export type DashboardSnapshot = {
   workflowCount: number;
   runCount: number;
   successRate: number;
+  usage: DashboardUsageSnapshot;
 };
 
 export type WorkflowLibrarySnapshot = {
@@ -191,3 +200,4 @@ export type IntegrationsSnapshot = {
   activeWorkspace: WorkspaceRecord | null;
   integrations: IntegrationConnectionRecord[];
 };
+

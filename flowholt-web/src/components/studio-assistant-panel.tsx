@@ -570,7 +570,7 @@ export function StudioAssistantPanel({
                     : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
                 }`}
               >
-                {thread.title} · {formatDateTime(thread.last_message_at || thread.updated_at)}
+                {thread.title} | {formatDateTime(thread.last_message_at || thread.updated_at)}
               </button>
             ))}
           </div>
@@ -631,7 +631,7 @@ export function StudioAssistantPanel({
                   <p className="mt-2">{proposal.description}</p>
                 </div>
                 <div className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  {proposal.generation.provider} · {proposal.generation.model}
+                  {proposal.generation.provider} | {proposal.generation.model}
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
@@ -690,7 +690,7 @@ export function StudioAssistantPanel({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-medium text-stone-900">{change.label}</p>
                         <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                          {change.kind} · {change.node_type}
+                          {change.kind} | {change.node_type}
                         </span>
                       </div>
                       <p className="mt-2 leading-6 text-stone-600">{change.reason}</p>

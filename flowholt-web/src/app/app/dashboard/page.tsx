@@ -23,7 +23,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     { label: "Workflow runs", value: String(snapshot.runCount) },
     { label: "Success rate", value: `${snapshot.successRate}%` },
     { label: "Saved workflows", value: String(snapshot.workflowCount) },
-    { label: "Workspaces", value: String(snapshot.workspaces.length) },
+    { label: "Active schedules", value: String(snapshot.usage.activeSchedules) },
+    { label: "Runs last 7d", value: String(snapshot.usage.runsLast7Days) },
+    { label: "Tokens last 7d", value: String(snapshot.usage.tokenEstimateLast7Days) },
   ];
 
   return (
@@ -45,7 +47,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
           ) : null}
 
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {stats.map((stat) => (
               <SurfaceCard
                 key={stat.label}
@@ -95,6 +97,26 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </SurfaceCard>
           ) : null}
 
+          <SurfaceCard
+            title="Usage pulse"
+            description="A simple operations view so you can see whether the platform is actively working."
+            tone="sand"
+          >
+            <div className="grid gap-3 text-sm leading-6 text-stone-700">
+              <div className="rounded-2xl bg-white/80 px-4 py-3">
+                Queued jobs right now: {snapshot.usage.queuedJobs}
+              </div>
+              <div className="rounded-2xl bg-white/80 px-4 py-3">
+                Failed runs in the last 7 days: {snapshot.usage.failedRunsLast7Days}
+              </div>
+              <div className="rounded-2xl bg-white/80 px-4 py-3">
+                Active schedules: {snapshot.usage.activeSchedules}
+              </div>
+              <div className="rounded-2xl bg-white/80 px-4 py-3">
+                This is the first usage layer for future billing, limits, and workspace insights.
+              </div>
+            </div>
+          </SurfaceCard>
           <SurfaceCard
             title="Recent workflows"
             description="A combined list of drafts, active flows, and recently edited workflow records."
@@ -184,3 +206,4 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     </AppShell>
   );
 }
+

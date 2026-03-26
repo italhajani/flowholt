@@ -1,4 +1,4 @@
-export type WorkflowNodeType =
+﻿export type WorkflowNodeType =
   | "trigger"
   | "agent"
   | "tool"
@@ -124,9 +124,28 @@ export type RunsSnapshot = {
   runs: WorkflowRunListItem[];
 };
 
+
+export type WorkflowScheduleRecord = {
+  id: string;
+  workflow_id: string;
+  workspace_id: string;
+  created_by_user_id: string;
+  label: string;
+  status: "active" | "paused" | "disabled";
+  interval_minutes: number;
+  next_run_at: string;
+  last_run_at: string | null;
+  last_run_status: "succeeded" | "failed" | null;
+  run_count: number;
+  last_error: string;
+  lock_until: string | null;
+  created_at: string;
+  updated_at: string;
+};
 export type IntegrationsSnapshot = {
   schemaReady: boolean;
   workspaces: WorkspaceRecord[];
   activeWorkspace: WorkspaceRecord | null;
   integrations: IntegrationConnectionRecord[];
 };
+

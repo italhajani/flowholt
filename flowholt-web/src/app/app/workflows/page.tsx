@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { SurfaceCard } from "@/components/surface-card";
-import { createBlankWorkflow } from "@/app/app/workflows/actions";
+import { createBlankWorkflow, importWorkflowPackage } from "@/app/app/workflows/actions";
 import { getWorkflowLibrarySnapshot } from "@/lib/flowholt/data";
 
 type WorkflowsPageProps = {
@@ -45,17 +45,36 @@ export default async function WorkflowsPage({ searchParams }: WorkflowsPageProps
             <div className="grid gap-3">
               {snapshot.workflows.length ? (
                 snapshot.workflows.map((workflow) => (
-                  <Link
+                  <div
                     key={workflow.id}
-                    href={`/app/studio/${workflow.id}`}
-                    className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-4 transition hover:bg-stone-100"
+                    className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-4"
                   >
-                    <p className="text-sm font-medium text-stone-900">{workflow.name}</p>
-                    <p className="mt-1 text-sm text-stone-600">{workflow.description || "No description yet"}</p>
-                    <p className="mt-2 text-xs uppercase tracking-[0.2em] text-stone-500">
-                      {workflow.status}
-                    </p>
-                  </Link>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-stone-900">{workflow.name}</p>
+                        <p className="mt-1 text-sm text-stone-600">
+                          {workflow.description || "No description yet"}
+                        </p>
+                        <p className="mt-2 text-xs uppercase tracking-[0.2em] text-stone-500">
+                          {workflow.status}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/app/studio/${workflow.id}`}
+                          className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100"
+                        >
+                          Open studio
+                        </Link>
+                        <a
+                          href={`/api/workflows/${workflow.id}/package`}
+                          className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100"
+                        >
+                          Export package
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 ))
               ) : (
                 <div className="rounded-2xl border border-dashed border-stone-900/15 bg-stone-50 px-4 py-6 text-sm text-stone-500">
@@ -87,6 +106,34 @@ export default async function WorkflowsPage({ searchParams }: WorkflowsPageProps
             ) : (
               <p className="text-sm leading-6 text-stone-600">
                 Create a workspace first from the dashboard before adding workflows.
+              </p>
+            )}
+          </SurfaceCard>
+
+          <SurfaceCard
+            title="Import package"
+            description="Paste a FlowHolt package JSON here and create a new imported workflow."
+            tone="sand"
+          >
+            {snapshot.activeWorkspace ? (
+              <form action={importWorkflowPackage} className="space-y-3">
+                <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace.id} />
+                <textarea
+                  name="packageJson"
+                  rows={12}
+                  placeholder='Paste exported package JSON here'
+                  className="w-full rounded-2xl border border-stone-900/10 bg-white px-4 py-3 font-mono text-xs leading-6 outline-none"
+                />
+                <button
+                  type="submit"
+                  className="w-full rounded-full border border-stone-900/10 bg-white px-5 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                >
+                  Import workflow package
+                </button>
+              </form>
+            ) : (
+              <p className="text-sm leading-6 text-stone-600">
+                Create a workspace first before importing packages.
               </p>
             )}
           </SurfaceCard>

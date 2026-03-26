@@ -4,8 +4,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 95%**
-- Frontend/UI progress: **about 83%**
+- Backend core progress: **about 96%**
+- Frontend/UI progress: **about 84%**
 - Production hardening progress: **about 35%**
 
 ## Backend foundations
@@ -37,7 +37,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Secret rotation flow (replace integration secrets safely)
 - [ ] Rate limiting and abuse guardrails on public endpoints
 - [ ] Usage and billing counters (runs, tokens, tool calls, workspace limits)
-- [ ] Export/import workflow package endpoint (JSON schema with versioning)
+- [x] Export/import workflow package endpoint (JSON schema with versioning)
 
 ## Remaining backend (medium priority)
 
@@ -88,6 +88,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, and RBAC
+
 
 
 

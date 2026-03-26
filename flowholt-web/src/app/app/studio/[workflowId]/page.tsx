@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import { AppShell } from "@/components/app-shell";
+import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { SurfaceCard } from "@/components/surface-card";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio } from "@/lib/flowholt/data";
@@ -116,7 +117,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
         <form id="workflow-save-form" action={saveWorkflow} className="space-y-5">
           <input type="hidden" name="workflowId" value={workflow.id} />
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
             <div className="space-y-5">
               <StudioCanvas
                 initialGraph={graph}
@@ -127,6 +128,12 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
             </div>
 
             <div className="grid gap-5 self-start">
+              <StudioAssistantPanel
+                workflowId={workflow.id}
+                workflowName={workflow.name}
+                initialPrompt={originalPrompt}
+              />
+
               <SurfaceCard
                 title="Workflow setup"
                 description="Core details stay in a neat right-side panel, not floating around the canvas."

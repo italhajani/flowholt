@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   addEdge,
@@ -28,6 +28,11 @@ type StudioCanvasProps = {
   initialGraph: WorkflowGraph;
   originalPrompt?: string;
   latestRunOutput?: Record<string, unknown> | null;
+  integrationOptions?: Array<{
+    id: string;
+    provider: string;
+    label: string;
+  }>;
 };
 
 type WorkflowNodeData = {
@@ -161,6 +166,18 @@ function configHint(nodeType: WorkflowNodeType) {
   }
 }
 
+function providerForNodeType(nodeType: WorkflowNodeType): string | null {
+  switch (nodeType) {
+    case "agent":
+      return "groq";
+    case "tool":
+      return "http";
+    case "trigger":
+      return "webhook";
+    default:
+      return null;
+  }
+}
 function edgeDisplayLabel(edge: Pick<WorkflowEdge, "label" | "branch">) {
   return edge.label || edge.branch || "";
 }
@@ -315,7 +332,12 @@ function toWorkflowGraph(nodes: Node<WorkflowNodeData>[], edges: Edge<WorkflowEd
   };
 }
 
-function CanvasInner({ initialGraph, originalPrompt = "", latestRunOutput = null }: StudioCanvasProps) {
+function CanvasInner({
+  initialGraph,
+  originalPrompt = "",
+  latestRunOutput = null,
+  integrationOptions = [],
+}: StudioCanvasProps) {
   const [nodes, setNodes] = useState<Node<WorkflowNodeData>[]>(() => toFlowNodes(initialGraph));
   const [edges, setEdges] = useState<Edge<WorkflowEdgeData>[]>(() => toFlowEdges(initialGraph));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialGraph.nodes[0]?.id ?? null);
@@ -332,6 +354,20 @@ function CanvasInner({ initialGraph, originalPrompt = "", latestRunOutput = null
     () => edges.find((edge) => edge.id === selectedEdgeId) ?? null,
     [edges, selectedEdgeId],
   );
+  const selectedNodeProvider = selectedNode
+    ? providerForNodeType(selectedNode.data?.nodeType ?? "agent")
+    : null;
+  const selectedNodeConnectionId =
+    selectedNode && typeof selectedNode.data?.config?.connection_id === "string"
+      ? selectedNode.data.config.connection_id
+      : "";
+  const providerConnectionOptions = useMemo(() => {
+    if (!selectedNodeProvider) {
+      return [];
+    }
+
+    return integrationOptions.filter((option) => option.provider === selectedNodeProvider);
+  }, [integrationOptions, selectedNodeProvider]);
 
   const graphJson = useMemo(
     () => JSON.stringify(toWorkflowGraph(nodes, edges), null, 2),
@@ -488,6 +524,28 @@ function CanvasInner({ initialGraph, originalPrompt = "", latestRunOutput = null
       current.map((node) =>
         node.id === selectedNodeId ? { ...node, data: { ...node.data, config } } : node,
       ),
+    );
+  }
+
+  function updateSelectedNodeConnection(connectionId: string) {
+    setNodes((current) =>
+      current.map((node) => {
+        if (node.id !== selectedNodeId) {
+          return node;
+        }
+
+        const config = { ...(node.data?.config ?? {}) };
+        if (connectionId) {
+          config.connection_id = connectionId;
+        } else {
+          delete config.connection_id;
+        }
+
+        return {
+          ...node,
+          data: { ...node.data, config },
+        };
+      }),
     );
   }
 
@@ -725,12 +783,36 @@ function CanvasInner({ initialGraph, originalPrompt = "", latestRunOutput = null
                     ))}
                   </select>
                 </div>
+                {selectedNodeProvider ? (
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-stone-700">
+                      Connection
+                    </label>
+                    <select
+                      value={selectedNodeConnectionId}
+                      onChange={(event) => updateSelectedNodeConnection(event.target.value)}
+                      className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                    >
+                      <option value="">No connection</option>
+                      {providerConnectionOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-2 text-xs leading-5 text-stone-500">
+                      {providerConnectionOptions.length
+                        ? `Using active ${selectedNodeProvider} connections from Integrations.`
+                        : `No active ${selectedNodeProvider} connections found. Add one in Integrations.`}
+                    </p>
+                  </div>
+                ) : null}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-stone-700">
                     Settings JSON
                   </label>
                   <textarea
-                    key={selectedNode.id}
+                    key={`${selectedNode.id}:${selectedNodeConnectionId}`}
                     defaultValue={JSON.stringify(selectedNode.data?.config ?? {}, null, 2)}
                     onChange={(event) => handleConfigDraftChange(event.target.value)}
                     rows={9}
@@ -854,3 +936,4 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+

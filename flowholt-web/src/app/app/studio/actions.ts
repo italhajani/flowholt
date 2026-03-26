@@ -1,10 +1,10 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { runWorkflowWithEngine } from "@/lib/flowholt/engine";
 import type { WorkflowGraph, WorkflowRecord } from "@/lib/flowholt/types";
+import { executeWorkflowRun } from "@/lib/flowholt/workflow-runner";
 import { createClient } from "@/lib/supabase/server";
 
 function getValue(formData: FormData, key: string) {
@@ -104,98 +104,32 @@ export async function runWorkflow(formData: FormData) {
     redirect(`/app/workflows?error=${encodeURIComponent("Workflow not found")}`);
   }
 
-  const { data: insertedRun, error: insertError } = await supabase
-    .from("workflow_runs")
-    .insert({
-      workflow_id: workflow.id,
-      workspace_id: workflow.workspace_id,
-      status: "running",
-      trigger_source: "manual",
-      started_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !insertedRun) {
-    redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(insertError?.message ?? "Unable to create run")}`);
-  }
-
   let successMessage = "Run completed successfully";
 
   try {
-    const result = await runWorkflowWithEngine({
-      run_id: insertedRun.id,
-      workflow_id: workflow.id,
-      workspace_id: workflow.workspace_id,
-      workflow_name: workflow.name,
-      trigger_source: "manual",
-      nodes: workflow.graph.nodes,
-      edges: workflow.graph.edges,
-      settings: workflow.settings,
+    const execution = await executeWorkflowRun({
+      supabase,
+      workflow,
+      triggerSource: "manual",
+      triggerMeta: {
+        initiated_by: "studio",
+      },
     });
 
-    if (result.logs.length) {
-      const { error: logError } = await supabase.from("run_logs").insert(
-        result.logs.map((log) => ({
-          run_id: insertedRun.id,
-          workflow_id: workflow.id,
-          workspace_id: workflow.workspace_id,
-          node_id: log.node_id,
-          level: log.level,
-          message: log.message,
-          payload: log.payload,
-        })),
-      );
-
-      if (logError) {
-        throw new Error(logError.message);
-      }
+    if (execution.result.status !== "succeeded") {
+      const errorMessage = execution.runErrorMessage || "Run failed in engine.";
+      revalidateWorkflowPaths(workflow.id);
+      redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(errorMessage)}`);
     }
 
-    const { error: updateError } = await supabase
-      .from("workflow_runs")
-      .update({
-        status: result.status,
-        output: result.output,
-        error_message: "",
-        started_at: result.started_at,
-        finished_at: result.finished_at,
-      })
-      .eq("id", insertedRun.id);
-
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
-
-    if (result.summary.executed_nodes.length) {
-      successMessage = `Run completed: ${result.summary.executed_nodes.length} steps executed`;
+    if (execution.result.summary.executed_nodes.length) {
+      successMessage = `Run completed: ${execution.result.summary.executed_nodes.length} steps executed`;
     }
   } catch (error) {
     const errorMessage =
       error instanceof Error
         ? error.message
         : "The engine could not complete the run.";
-
-    await supabase.from("run_logs").insert({
-      run_id: insertedRun.id,
-      workflow_id: workflow.id,
-      workspace_id: workflow.workspace_id,
-      node_id: null,
-      level: "error",
-      message: "Run failed before completion.",
-      payload: {
-        error: errorMessage,
-      },
-    });
-
-    await supabase
-      .from("workflow_runs")
-      .update({
-        status: "failed",
-        error_message: errorMessage,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", insertedRun.id);
 
     revalidateWorkflowPaths(workflow.id);
     redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(errorMessage)}`);

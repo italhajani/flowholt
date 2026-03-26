@@ -1,5 +1,7 @@
-from collections import deque
+﻿from collections import deque
 from datetime import datetime, timezone
+from time import monotonic, sleep
+from typing import Any
 
 from app.schemas.workflow import WorkflowEdge, WorkflowPayload, WorkflowRunLog, WorkflowRunResult, WorkflowRunSummary
 from app.services.node_handlers import ExecutionContext, execute_node
@@ -29,7 +31,54 @@ def _normalize_branch(value: object | None) -> str:
     return str(value or "").strip().lower()
 
 
-def _choose_next_edges(node_type: str, node_id: str, result_output: dict[str, object], adjacency: dict[str, list[WorkflowEdge]]) -> list[WorkflowEdge]:
+def _as_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _to_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _execution_settings(payload: WorkflowPayload) -> dict[str, float | int]:
+    settings = _as_dict(payload.settings)
+    execution = _as_dict(settings.get("execution"))
+
+    max_node_retries = max(
+        0,
+        _to_int(execution.get("max_node_retries", settings.get("retries", 0)), 0),
+    )
+    retry_backoff_seconds = max(
+        0.0,
+        _to_float(execution.get("retry_backoff_seconds", 0.75), 0.75),
+    )
+    max_run_seconds = max(
+        0.0,
+        _to_float(execution.get("max_run_seconds", 0.0), 0.0),
+    )
+
+    return {
+        "max_node_retries": max_node_retries,
+        "retry_backoff_seconds": retry_backoff_seconds,
+        "max_run_seconds": max_run_seconds,
+    }
+
+
+def _choose_next_edges(
+    node_type: str,
+    node_id: str,
+    result_output: dict[str, object],
+    adjacency: dict[str, list[WorkflowEdge]],
+) -> list[WorkflowEdge]:
     outgoing = adjacency.get(node_id, [])
     if node_type != "condition" or len(outgoing) <= 1:
         return outgoing
@@ -48,11 +97,56 @@ def _choose_next_edges(node_type: str, node_id: str, result_output: dict[str, ob
     return outgoing[:1]
 
 
+def _failure_result(
+    payload: WorkflowPayload,
+    started_at: datetime,
+    logs: list[WorkflowRunLog],
+    executed_nodes: list[str],
+    node_outputs: dict[str, object],
+    error_message: str,
+    failed_node_id: str | None = None,
+) -> WorkflowRunResult:
+    finished_at = datetime.now(timezone.utc)
+    summary = WorkflowRunSummary(
+        workflow_id=payload.workflow_id,
+        run_id=payload.run_id,
+        workflow_name=payload.workflow_name,
+        node_count=len(payload.nodes),
+        edge_count=len(payload.edges),
+        executed_nodes=executed_nodes,
+        trigger_source=payload.trigger_source,
+    )
+
+    output = {
+        "summary_text": f"{payload.workflow_name} failed after {len(executed_nodes)} completed steps.",
+        "executed_nodes": executed_nodes,
+        "failed_node_id": failed_node_id,
+        "error": error_message,
+        "trigger_source": payload.trigger_source,
+        "node_outputs": node_outputs,
+    }
+
+    return WorkflowRunResult(
+        status="failed",
+        started_at=started_at,
+        finished_at=finished_at,
+        summary=summary,
+        output=output,
+        logs=logs,
+    )
+
+
 def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
     started_at = datetime.now(timezone.utc)
     node_map = {node.id: node for node in payload.nodes}
     adjacency, indegree = _build_graph(payload)
     queue = deque(_root_node_ids(payload, indegree))
+    settings = _execution_settings(payload)
+
+    max_node_retries = int(settings["max_node_retries"])
+    retry_backoff_seconds = float(settings["retry_backoff_seconds"])
+    max_run_seconds = float(settings["max_run_seconds"])
+    deadline = monotonic() + max_run_seconds if max_run_seconds > 0 else None
 
     logs: list[WorkflowRunLog] = [
         WorkflowRunLog(
@@ -63,6 +157,8 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                 "workflow_name": payload.workflow_name,
                 "node_count": len(payload.nodes),
                 "edge_count": len(payload.edges),
+                "max_node_retries": max_node_retries,
+                "max_run_seconds": max_run_seconds,
             },
         )
     ]
@@ -73,19 +169,114 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
     visited: set[str] = set()
     sequence = 1
 
-    while queue or len(visited) < len(payload.nodes):
-        if not queue:
-            for node in payload.nodes:
-                if node.id not in visited:
-                    queue.append(node.id)
-                    break
+    while queue:
+        if deadline and monotonic() > deadline:
+            timeout_message = "Run timed out before all reachable nodes could execute."
+            logs.append(
+                WorkflowRunLog(
+                    level="error",
+                    message=timeout_message,
+                    payload={
+                        "executed_nodes": executed_nodes,
+                        "max_run_seconds": max_run_seconds,
+                    },
+                )
+            )
+            return _failure_result(
+                payload,
+                started_at,
+                logs,
+                executed_nodes,
+                node_outputs,
+                timeout_message,
+            )
 
         node_id = queue.popleft()
-        if node_id in visited:
+        if node_id in visited or node_id not in node_map:
             continue
 
         node = node_map[node_id]
-        result = execute_node(node, payload, sequence, context)
+        max_attempts = max_node_retries + 1
+        attempt = 1
+        result = None
+
+        while attempt <= max_attempts:
+            try:
+                result = execute_node(node, payload, sequence, context)
+                break
+            except Exception as error:
+                error_text = str(error)
+                is_last_attempt = attempt >= max_attempts
+                logs.append(
+                    WorkflowRunLog(
+                        node_id=node.id,
+                        level="error" if is_last_attempt else "warn",
+                        message=(
+                            f"Node {node.label} failed on attempt {attempt}/{max_attempts}."
+                            if not is_last_attempt
+                            else f"Node {node.label} failed after {max_attempts} attempts."
+                        ),
+                        payload={
+                            "node_id": node.id,
+                            "attempt": attempt,
+                            "max_attempts": max_attempts,
+                            "error": error_text,
+                        },
+                    )
+                )
+
+                if is_last_attempt:
+                    return _failure_result(
+                        payload,
+                        started_at,
+                        logs,
+                        executed_nodes,
+                        node_outputs,
+                        error_text,
+                        failed_node_id=node.id,
+                    )
+
+                backoff_seconds = retry_backoff_seconds * attempt
+                if backoff_seconds > 0:
+                    sleep(backoff_seconds)
+
+                if deadline and monotonic() > deadline:
+                    timeout_message = f"Run timed out while retrying node {node.label}."
+                    logs.append(
+                        WorkflowRunLog(
+                            node_id=node.id,
+                            level="error",
+                            message=timeout_message,
+                            payload={
+                                "node_id": node.id,
+                                "attempt": attempt,
+                                "max_run_seconds": max_run_seconds,
+                            },
+                        )
+                    )
+                    return _failure_result(
+                        payload,
+                        started_at,
+                        logs,
+                        executed_nodes,
+                        node_outputs,
+                        timeout_message,
+                        failed_node_id=node.id,
+                    )
+
+                attempt += 1
+
+        if result is None:
+            return _failure_result(
+                payload,
+                started_at,
+                logs,
+                executed_nodes,
+                node_outputs,
+                f"Node {node.label} did not produce a result.",
+                failed_node_id=node.id,
+            )
+
         visited.add(node.id)
         executed_nodes.append(node.id)
         logs.extend(result.logs)
@@ -120,6 +311,18 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
             if edge.target not in visited:
                 queue.append(edge.target)
 
+    skipped_nodes = [node.id for node in payload.nodes if node.id not in visited]
+    if skipped_nodes:
+        logs.append(
+            WorkflowRunLog(
+                level="warn",
+                message="Some nodes were not executed because they were unreachable from the active route.",
+                payload={
+                    "skipped_nodes": skipped_nodes,
+                },
+            )
+        )
+
     finished_at = datetime.now(timezone.utc)
     summary = WorkflowRunSummary(
         workflow_id=payload.workflow_id,
@@ -134,6 +337,7 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
     output = {
         "summary_text": f"{payload.workflow_name} completed {len(executed_nodes)} steps.",
         "executed_nodes": executed_nodes,
+        "skipped_nodes": skipped_nodes,
         "last_node_id": executed_nodes[-1] if executed_nodes else None,
         "trigger_source": payload.trigger_source,
         "node_outputs": node_outputs,

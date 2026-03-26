@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 import json
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
@@ -40,13 +41,23 @@ def _safe_json(value: Any) -> Any:
 
 
 def _runtime_context(payload: WorkflowPayload, context: ExecutionContext) -> dict[str, Any]:
-    original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
+    settings = payload.settings if isinstance(payload.settings, dict) else {}
+    original_prompt = settings.get("originalPrompt")
+    trigger_payload = settings.get("runtime_trigger_payload")
+    trigger_meta = settings.get("runtime_trigger_meta") if isinstance(settings.get("runtime_trigger_meta"), dict) else {}
+
     return {
         "workflow": {
             "id": payload.workflow_id,
             "name": payload.workflow_name,
             "original_prompt": original_prompt,
             "trigger_source": payload.trigger_source,
+            "trigger_payload": trigger_payload,
+            "trigger_meta": trigger_meta,
+        },
+        "trigger": {
+            "payload": trigger_payload,
+            "meta": trigger_meta,
         },
         "previous": context.previous_output,
         "nodes": context.node_outputs,
@@ -62,10 +73,12 @@ def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionC
     config = _resolved_config(node, payload, context)
     prompt = config.get("instruction") or f"Complete the step named '{node.label}'."
     model = str(config.get("model") or settings.groq_model)
+    base_url = str(config.get("base_url") or "https://api.groq.com/openai/v1").rstrip("/")
+    api_key = str(config.get("api_key") or settings.groq_api_key).strip()
     original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
     previous_output = json.dumps(context.previous_output, ensure_ascii=False)
 
-    if not settings.groq_api_key:
+    if not api_key:
         fallback = (
             f"Groq key is not configured in the engine, so {node.label} used a local placeholder response. "
             f"Original task: {str(original_prompt)[:160]}"
@@ -74,9 +87,9 @@ def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionC
 
     with httpx.Client(timeout=60) as client:
         response = client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
+            f"{base_url}/chat/completions",
             headers={
-                "Authorization": f"Bearer {settings.groq_api_key}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
             json={
@@ -110,6 +123,22 @@ def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionC
         raise RuntimeError("Groq returned an empty response for the agent step.")
 
     return content.strip(), model
+
+
+def _resolve_tool_url(base_url: str, url: str) -> str:
+    clean_base = base_url.strip()
+    clean_url = url.strip()
+
+    if clean_url and urlparse(clean_url).scheme:
+        return clean_url
+
+    if clean_base and clean_url:
+        return urljoin(f"{clean_base.rstrip('/')}/", clean_url.lstrip("/"))
+
+    if clean_base:
+        return clean_base
+
+    return clean_url
 
 
 def _coerce_number(value: Any) -> float | None:
@@ -231,10 +260,16 @@ def handle_tool(
     context: ExecutionContext,
 ) -> NodeExecutionResult:
     config = _resolved_config(node, payload, context)
-    method = str(config.get("method") or "POST").upper()
-    url = str(config.get("url") or "").strip()
-    headers = config.get("headers") if isinstance(config.get("headers"), dict) else {}
+    method = str(config.get("method") or config.get("default_method") or "POST").upper()
+    raw_url = str(config.get("url") or "").strip()
+    base_url = str(config.get("base_url") or "").strip()
+    url = _resolve_tool_url(base_url, raw_url)
+    headers = dict(config.get("headers")) if isinstance(config.get("headers"), dict) else {}
+    bearer_token = str(config.get("bearer_token") or "").strip()
     body = _safe_json(config.get("body", context.previous_output))
+
+    if bearer_token and "authorization" not in {key.lower() for key in headers}:
+        headers["Authorization"] = f"Bearer {bearer_token}"
 
     if not url:
         return NodeExecutionResult(
@@ -463,3 +498,5 @@ def execute_node(
 ) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
     return handler(node, payload, sequence, context)
+
+

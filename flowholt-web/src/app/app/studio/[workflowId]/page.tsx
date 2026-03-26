@@ -1,10 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 
 import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import { AppShell } from "@/components/app-shell";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { SurfaceCard } from "@/components/surface-card";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio } from "@/lib/flowholt/data";
+import { createClient } from "@/lib/supabase/server";
 
 type StudioPageProps = {
   params: Promise<{
@@ -32,6 +33,18 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const runsSnapshot = await getRunsSnapshot();
   const recentRuns = runsSnapshot.runs.filter((run) => run.workflow_id === workflow.id).slice(0, 3);
   const latestRunOutput = recentRuns[0]?.output ?? null;
+  const supabase = await createClient();
+  const { data: integrationRows } = await supabase
+    .from("integration_connections")
+    .select("id, provider, label, status")
+    .eq("workspace_id", workflow.workspace_id)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false });
+  const integrationOptions = (integrationRows ?? []).map((row) => ({
+    id: String(row.id),
+    provider: String(row.provider),
+    label: String(row.label),
+  }));
 
   return (
     <AppShell
@@ -102,6 +115,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 initialGraph={graph}
                 originalPrompt={originalPrompt}
                 latestRunOutput={latestRunOutput}
+                integrationOptions={integrationOptions}
               />
             </div>
 
@@ -247,3 +261,5 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
+
+

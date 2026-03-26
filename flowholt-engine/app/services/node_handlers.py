@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 import json
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -69,10 +69,17 @@ def _resolved_config(node: WorkflowNode, payload: WorkflowPayload, context: Exec
     return resolve_templates(raw_config, _runtime_context(payload, context))
 
 
+def _resolve_groq_model(config: dict[str, Any]) -> str:
+    requested_model = str(config.get("model") or "").strip()
+    if not requested_model or requested_model.lower() == "default":
+        return settings.groq_model
+    return requested_model
+
+
 def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionContext) -> tuple[str, str]:
     config = _resolved_config(node, payload, context)
     prompt = config.get("instruction") or f"Complete the step named '{node.label}'."
-    model = str(config.get("model") or settings.groq_model)
+    model = _resolve_groq_model(config)
     base_url = str(config.get("base_url") or "https://api.groq.com/openai/v1").rstrip("/")
     api_key = str(config.get("api_key") or settings.groq_api_key).strip()
     original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
@@ -498,5 +505,6 @@ def execute_node(
 ) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
     return handler(node, payload, sequence, context)
+
 
 

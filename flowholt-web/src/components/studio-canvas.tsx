@@ -127,7 +127,7 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
     case "trigger":
       return { mode: "manual" };
     case "agent":
-      return { instruction: "", model: "default" };
+      return { instruction: "", model: "llama-3.3-70b-versatile" };
     case "tool":
       return { method: "POST", url: "", body: { input: "{{previous.text}}" } };
     case "condition":
@@ -909,6 +909,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
 
 
 

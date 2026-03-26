@@ -5,7 +5,8 @@ import { AppShell } from "@/components/app-shell";
 import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { SurfaceCard } from "@/components/surface-card";
-import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio } from "@/lib/flowholt/data";
+import { WorkflowSchedulePanel } from "@/components/workflow-schedule-panel";
+import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio, getWorkflowSchedules } from "@/lib/flowholt/data";
 import { simulateWorkflowGraph } from "@/lib/flowholt/simulator";
 import { validateWorkflowGraph } from "@/lib/flowholt/graph-validator";
 import { createClient } from "@/lib/supabase/server";
@@ -38,6 +39,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const runsSnapshot = await getRunsSnapshot();
   const recentRuns = runsSnapshot.runs.filter((run) => run.workflow_id === workflow.id).slice(0, 3);
   const latestRunOutput = recentRuns[0]?.output ?? null;
+  const workflowSchedules = await getWorkflowSchedules(workflow.id);
   const supabase = await createClient();
   const { data: integrationRows } = await supabase
     .from("integration_connections")
@@ -179,6 +181,18 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                     />
                   </div>
                 </div>
+              </SurfaceCard>
+
+              <SurfaceCard
+                title="Schedule builder"
+                description="Set this workflow to run automatically on a simple recurring cadence."
+                tone="mint"
+              >
+                <WorkflowSchedulePanel
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialSchedules={workflowSchedules}
+                />
               </SurfaceCard>
 
               <SurfaceCard
@@ -328,3 +342,4 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
+

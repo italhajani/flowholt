@@ -10,6 +10,7 @@ import type {
   WorkflowRecord,
   WorkflowRunListItem,
   WorkflowRunRecord,
+  WorkflowScheduleRecord,
   WorkspaceRecord,
 } from "@/lib/flowholt/types";
 
@@ -339,6 +340,24 @@ export async function getWorkflowForStudio(workflowId: string) {
   return data as WorkflowRecord;
 }
 
+export async function getWorkflowSchedules(workflowId: string) {
+  if (workflowId === demoWorkflow.id) {
+    return [] as WorkflowScheduleRecord[];
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("workflow_schedules")
+    .select(
+      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, next_run_at, last_run_at, last_run_status, run_count, last_error, lock_until, created_at, updated_at",
+    )
+    .eq("workflow_id", workflowId)
+    .order("next_run_at", { ascending: true });
+
+  return error ? [] : ((data ?? []) as WorkflowScheduleRecord[]);
+}
+
 export function getDemoWorkflow() {
   return demoWorkflow;
 }
+

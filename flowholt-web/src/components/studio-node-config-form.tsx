@@ -107,11 +107,19 @@ export function StudioNodeConfigForm({
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-700">Model</label>
-            <input
+            <select
               value={asString(config.model, "llama-3.3-70b-versatile")}
               onChange={(event) => onConfigChange(withField(config, "model", event.target.value))}
               className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-            />
+            >
+              <option value="default">Use workspace default</option>
+              <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+              <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+              <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+            </select>
+            <p className="mt-2 text-xs leading-5 text-stone-500">
+              Use workspace default unless you specifically want another Groq model.
+            </p>
           </div>
         </>
       ) : null}
@@ -273,3 +281,4 @@ export function StudioNodeConfigForm({
     </div>
   );
 }
+

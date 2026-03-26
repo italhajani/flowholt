@@ -1,10 +1,12 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import { AppShell } from "@/components/app-shell";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { SurfaceCard } from "@/components/surface-card";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio } from "@/lib/flowholt/data";
+import { simulateWorkflowGraph } from "@/lib/flowholt/simulator";
+import { validateWorkflowGraph } from "@/lib/flowholt/graph-validator";
 import { createClient } from "@/lib/supabase/server";
 
 type StudioPageProps = {
@@ -22,6 +24,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const { workflowId } = await params;
   const workflow = (await getWorkflowForStudio(workflowId)) ?? getDemoWorkflow();
   const graph = workflow.graph;
+  const validation = validateWorkflowGraph(graph);
+  const simulation = simulateWorkflowGraph(graph);
   const paramsState = searchParams ? await searchParams : {};
   const message = readMessage(paramsState.message);
   const error = readMessage(paramsState.error);
@@ -74,7 +78,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 Visual workflow editor
               </h3>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
-                Build the flow here, then run it through the FlowHolt engine and inspect the logs.
+                Build the flow here, simulate the path, then run it through the FlowHolt engine and inspect the logs.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -83,6 +87,9 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               </div>
               <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 {graph.nodes.length} steps
+              </div>
+              <div className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                {simulation.possible_path_count} path{simulation.possible_path_count === 1 ? "" : "s"}
               </div>
               {workflow.id !== "demo-workflow" ? (
                 <form action={runWorkflow}>
@@ -168,6 +175,51 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               </SurfaceCard>
 
               <SurfaceCard
+                title="Flow preview"
+                description="A human-readable simulation summary so you can understand the graph before running it."
+                tone={validation.valid ? "mint" : "sand"}
+              >
+                <div className="space-y-3 text-sm leading-6 text-stone-700">
+                  <div className="rounded-2xl bg-white/80 px-4 py-3">
+                    <p className="font-medium text-stone-900">
+                      {validation.valid ? "This workflow looks runnable." : "This workflow needs fixes before it is reliable."}
+                    </p>
+                    <p className="mt-2">Validation score: {validation.score}/100</p>
+                    <p>Estimated executed steps: {simulation.estimated_step_count}</p>
+                    <p>Possible paths: {simulation.possible_path_count}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/80 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Flow shape</p>
+                    <p className="mt-2">Start nodes: {simulation.root_nodes.join(", ") || "none"}</p>
+                    <p>End nodes: {simulation.terminal_nodes.join(", ") || "none"}</p>
+                    <p>Execution order: {simulation.execution_order.join(" -> ") || "No executable order yet"}</p>
+                  </div>
+                  {validation.issues.length ? (
+                    <div className="rounded-2xl bg-white/80 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Issues</p>
+                      <div className="mt-2 space-y-2">
+                        {validation.issues.slice(0, 4).map((issue, index) => (
+                          <p key={`${issue.code}-${index}`}>
+                            <span className="font-medium uppercase text-stone-900">{issue.severity}</span>: {issue.message}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {simulation.notes.length ? (
+                    <div className="rounded-2xl bg-white/80 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Simulation notes</p>
+                      <div className="mt-2 space-y-2">
+                        {simulation.notes.slice(0, 4).map((note, index) => (
+                          <p key={`${note}-${index}`}>{note}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </SurfaceCard>
+
+              <SurfaceCard
                 title="Recent runs"
                 description="The last few engine runs for this workflow."
                 tone="mint"
@@ -185,6 +237,14 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                         <p className="mt-2 text-stone-600">
                           {run.logs[run.logs.length - 1]?.message ?? "No logs recorded yet."}
                         </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Link
+                            href={`/app/runs/${run.id}`}
+                            className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50"
+                          >
+                            Open live monitor
+                          </Link>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -261,5 +321,3 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
-
-

@@ -1,6 +1,7 @@
-import { AppShell } from "@/components/app-shell";
-import { SurfaceCard } from "@/components/surface-card";
 import { createIntegrationConnection, deleteIntegrationConnection } from "@/app/app/integrations/actions";
+import { AppShell } from "@/components/app-shell";
+import { IntegrationTestButton } from "@/components/integration-test-button";
+import { SurfaceCard } from "@/components/surface-card";
 import { getIntegrationsSnapshot } from "@/lib/flowholt/data";
 
 const providerTemplates = [
@@ -103,7 +104,9 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
               tone="sand"
             >
               <div className="space-y-3 text-sm leading-6 text-stone-700">
-                <p>Run: <span className="font-medium">supabase/migrations/20260326_0002_integration_connections.sql</span></p>
+                <p>
+                  Run: <span className="font-medium">supabase/migrations/20260326_0002_integration_connections.sql</span>
+                </p>
                 <p>Then refresh this page.</p>
               </div>
             </SurfaceCard>
@@ -119,7 +122,7 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
 
           <SurfaceCard
             title="Saved connections"
-            description="These will become the source of truth for tool and agent credentials."
+            description="These are now testable directly from the UI, so you can confirm credentials before using them in workflows."
           >
             <div className="grid gap-3">
               {snapshot.integrations.length ? (
@@ -138,15 +141,18 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
                           </p>
                           <p className="mt-2 text-sm text-stone-600">{integration.description || "No description"}</p>
                         </div>
-                        <form action={deleteIntegrationConnection}>
-                          <input type="hidden" name="connectionId" value={integration.id} />
-                          <button
-                            type="submit"
-                            className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-                          >
-                            Remove
-                          </button>
-                        </form>
+                        <div className="flex flex-wrap gap-2">
+                          <IntegrationTestButton connectionId={integration.id} />
+                          <form action={deleteIntegrationConnection}>
+                            <input type="hidden" name="connectionId" value={integration.id} />
+                            <button
+                              type="submit"
+                              className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+                            >
+                              Remove
+                            </button>
+                          </form>
+                        </div>
                       </div>
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <div className="rounded-2xl bg-white px-4 py-3">

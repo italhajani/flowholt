@@ -126,6 +126,12 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
                       >
                         Open workflow
                       </Link>
+                      <Link
+                        href={`/app/runs/${run.id}`}
+                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100"
+                      >
+                        Live monitor
+                      </Link>
                       {run.status === "queued" || run.status === "running" ? (
                         <form action={cancelRun}>
                           <input type="hidden" name="runId" value={run.id} />

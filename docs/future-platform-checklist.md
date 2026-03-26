@@ -4,8 +4,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 82%**
-- Frontend/UI progress: **about 45%**
+- Backend core progress: **about 88%**
+- Frontend/UI progress: **about 52%**
 - Production hardening progress: **about 30%**
 
 ## Backend foundations
@@ -19,12 +19,15 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Workflow revisions history + restore API
 - [x] Platform readiness checks (env + backend health)
 - [x] Graph validation module + validation endpoint
+- [x] Draft/saved workflow simulation endpoint
+- [x] Connection test endpoint per provider
+- [x] Run streaming endpoint for live monitoring
 
 ## Remaining backend (high priority)
 
 - [ ] Durable async run queue (worker process + retry queue + dead-letter handling)
 - [x] Run cancellation endpoint and cooperative stop support in engine
-- [ ] Real-time run streaming (SSE/WebSocket for node-by-node updates)
+- [x] Real-time run streaming (SSE/WebSocket for node-by-node updates)
 - [x] Chat session storage for composer sidebar (threads/messages tables)
 - [ ] Node-level execution metrics (duration, token estimate, error class)
 - [ ] Multi-workspace membership and role-based access (owner/admin/member)
@@ -38,8 +41,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Revision compare endpoint (before vs after graph diff summary)
 - [ ] Batch scheduler claiming with stronger lease renewal
 - [ ] Webhook idempotency key support
-- [ ] Draft run simulation endpoint (no external calls, dry-run validation)
-- [ ] Connection test endpoint per provider
+- [x] Draft run simulation endpoint (no external calls, dry-run validation)
+- [x] Connection test endpoint per provider
 - [ ] Audit log table for sensitive actions (restore, delete, secret update)
 - [ ] Advanced trigger types (email, cron presets, external event bus)
 
@@ -48,15 +51,16 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Clean chat sidebar with reasoning timeline
 - [ ] Composer controls in Studio: Preview, Apply, Undo
 - [ ] Revisions panel with one-click restore and compare view
-- [ ] Live run timeline UI (node statuses, durations, logs)
+- [x] Live run monitor page with streamed logs/status
 - [ ] Schedule builder UI (no API manual calls)
 - [ ] Human-readable node config forms (hide raw JSON by default)
-- [ ] Integrations setup wizard with inline connection tests
+- [x] Integrations setup UI with inline connection tests
+- [x] Studio flow preview summary (human-readable simulation)
 - [ ] Mobile-friendly responsive editor shell
 
 ## Production and reliability
 
-- [ ] Add backend tests for scheduler, composer, validation, revisions
+- [ ] Add backend tests for scheduler, composer, validation, revisions, streaming
 - [ ] Add migration runner process for deploy environments
 - [ ] Add structured logging and correlation IDs across web + engine
 - [ ] Add monitoring dashboards (error rate, run latency, queue depth)
@@ -65,10 +69,10 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Suggested execution order (practical)
 
-- [ ] Phase 1: queue worker + run cancellation + streaming events
-- [ ] Phase 2: chat session storage + composer UI actions + revisions panel
-- [ ] Phase 3: schedule UI + integration test endpoints + idempotency
-- [ ] Phase 4: RBAC + usage/billing + monitoring + security hardening
+- [x] Phase 1: queue-adjacent controls, run cancellation, streaming monitor
+- [x] Phase 2: chat session storage, revisions, validation, simulation foundation
+- [ ] Phase 3: schedule UI, composer UI actions, human-friendly node editors
+- [ ] Phase 4: durable queue worker, metrics, RBAC, monitoring, security hardening
 
 ## Definition of "finalized platform" (what done means)
 
@@ -77,5 +81,3 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, and RBAC
-
-

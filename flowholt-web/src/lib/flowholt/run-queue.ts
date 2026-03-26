@@ -113,19 +113,24 @@ export async function enqueueWorkflowRunJob({
   maxAttempts = 3,
   availableAt,
 }: EnqueueWorkflowRunJobInput): Promise<WorkflowRunJobRecord> {
+  const insertPayload: Record<string, unknown> = {
+    workflow_id: workflow.id,
+    workspace_id: workflow.workspace_id,
+    created_by_user_id: createdByUserId ?? null,
+    status: "queued",
+    trigger_source: triggerSource,
+    trigger_meta: triggerMeta ?? {},
+    max_attempts: Math.max(1, maxAttempts),
+    available_at: availableAt ?? new Date().toISOString(),
+  };
+
+  if (triggerPayload !== undefined && triggerPayload !== null) {
+    insertPayload.trigger_payload = triggerPayload;
+  }
+
   const { data, error } = await supabase
     .from("workflow_run_jobs")
-    .insert({
-      workflow_id: workflow.id,
-      workspace_id: workflow.workspace_id,
-      created_by_user_id: createdByUserId ?? null,
-      status: "queued",
-      trigger_source: triggerSource,
-      trigger_payload: triggerPayload ?? null,
-      trigger_meta: triggerMeta ?? {},
-      max_attempts: Math.max(1, maxAttempts),
-      available_at: availableAt ?? new Date().toISOString(),
-    })
+    .insert(insertPayload)
     .select(JOB_FIELDS)
     .single();
 

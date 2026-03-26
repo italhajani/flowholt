@@ -20,7 +20,8 @@ This is the first real team-access layer in FlowHolt.
 1. Open Supabase SQL editor
 2. Make a **new query**
 3. Run `supabase/migrations/20260326_0007_workspace_memberships.sql`
-4. Do not replace old SQL queries; this is one new migration on top of the previous ones
+4. Then run `supabase/migrations/20260326_0008_workspace_policy_fix.sql`
+5. Do not replace old SQL queries; these are new migrations on top of the previous ones
 
 ## How to see it in the app
 

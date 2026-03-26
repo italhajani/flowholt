@@ -46,13 +46,6 @@ as $$
       and user_id = auth.uid()
       and status = 'active'
       and public.workspace_role_rank(role) >= public.workspace_role_rank(minimum_role)
-  )
-  or exists (
-    select 1
-    from public.workspaces
-    where id = target_workspace_id
-      and owner_user_id = auth.uid()
-      and public.workspace_role_rank('owner') >= public.workspace_role_rank(minimum_role)
   );
 $$;
 

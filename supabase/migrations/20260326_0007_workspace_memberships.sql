@@ -38,6 +38,8 @@ create or replace function public.user_has_workspace_role(
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1
@@ -53,6 +55,8 @@ create or replace function public.user_is_workspace_member(target_workspace_id u
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select public.user_has_workspace_role(target_workspace_id, 'member');
 $$;
@@ -61,6 +65,8 @@ create or replace function public.user_owns_workspace(target_workspace_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select public.user_has_workspace_role(target_workspace_id, 'owner');
 $$;
@@ -133,7 +139,10 @@ drop policy if exists "Workspace members can view memberships" on public.workspa
 create policy "Workspace members can view memberships"
   on public.workspace_memberships
   for select
-  using (public.user_is_workspace_member(workspace_id));
+  using (
+    user_id = auth.uid()
+    or public.user_has_workspace_role(workspace_id, 'admin')
+  );
 
 drop policy if exists "Workspace admins can create memberships" on public.workspace_memberships;
 create policy "Workspace admins can create memberships"

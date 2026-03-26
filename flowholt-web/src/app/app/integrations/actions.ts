@@ -57,8 +57,8 @@ export async function createIntegrationConnection(formData: FormData) {
     bounce("Connection label is required");
   }
 
-  let config: Record<string, unknown>;
-  let secrets: Record<string, unknown>;
+  let config: Record<string, unknown> = {};
+  let secrets: Record<string, unknown> = {};
 
   try {
     config = parseJsonObject(configRaw, "Config");

@@ -1,6 +1,6 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-import { executeWorkflowRun } from "@/lib/flowholt/workflow-runner";
+import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import type { WorkflowNode, WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -236,7 +236,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
   const query = Object.fromEntries(request.nextUrl.searchParams.entries());
 
   try {
-    const execution = await executeWorkflowRun({
+    const job = await enqueueWorkflowRunJob({
       supabase,
       workflow,
       triggerSource: "webhook",
@@ -250,22 +250,59 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         webhook_connection_label: matchedConnection.label,
         received_at: new Date().toISOString(),
       },
+      createdByUserId: null,
     });
 
-    const statusCode = execution.result.status === "succeeded" ? 200 : 500;
-    const message =
-      execution.result.status === "succeeded"
-        ? `Webhook run completed with ${execution.result.summary.executed_nodes.length} executed steps.`
-        : execution.runErrorMessage || "Webhook run failed.";
+    const [result] = await drainWorkflowRunJobs({
+      supabase,
+      limit: 1,
+      jobIds: [job.id],
+    });
+
+    if (!result) {
+      return NextResponse.json(
+        {
+          ok: true,
+          accepted: true,
+          job_id: job.id,
+          message: "Webhook accepted and queued.",
+        },
+        { status: 202 },
+      );
+    }
+
+    if (result.status === "queued") {
+      return NextResponse.json(
+        {
+          ok: true,
+          accepted: true,
+          job_id: job.id,
+          run_id: result.runId,
+          message: "Webhook accepted and queued for retry.",
+        },
+        { status: 202 },
+      );
+    }
+
+    if (result.status === "succeeded") {
+      return NextResponse.json({
+        ok: true,
+        status: result.status,
+        job_id: job.id,
+        run_id: result.runId,
+        message: "Webhook run completed successfully.",
+      });
+    }
 
     return NextResponse.json(
       {
-        ok: execution.result.status === "succeeded",
-        status: execution.result.status,
-        run_id: execution.runId,
-        message,
+        ok: false,
+        status: result.status,
+        job_id: job.id,
+        run_id: result.runId,
+        error: result.error || "Webhook run failed.",
       },
-      { status: statusCode },
+      { status: 500 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Webhook run failed.";

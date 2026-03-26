@@ -1,9 +1,17 @@
-﻿from collections import deque
+import json
+from collections import deque
 from datetime import datetime, timezone
 from time import monotonic, sleep
 from typing import Any
 
-from app.schemas.workflow import WorkflowEdge, WorkflowPayload, WorkflowRunLog, WorkflowRunResult, WorkflowRunSummary
+from app.schemas.workflow import (
+    WorkflowEdge,
+    WorkflowNodeExecution,
+    WorkflowPayload,
+    WorkflowRunLog,
+    WorkflowRunResult,
+    WorkflowRunSummary,
+)
 from app.services.node_handlers import ExecutionContext, execute_node
 
 
@@ -97,12 +105,80 @@ def _choose_next_edges(
     return outgoing[:1]
 
 
+def _duration_ms(started_at: datetime, finished_at: datetime) -> int:
+    return max(0, int((finished_at - started_at).total_seconds() * 1000))
+
+
+def _estimate_tokens(value: Any) -> int:
+    try:
+        text = json.dumps(value, ensure_ascii=False)
+    except TypeError:
+        text = str(value)
+
+    return max(0, int(len(text) / 4))
+
+
+def _summarize_output(output: dict[str, Any]) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "keys": sorted(output.keys()),
+    }
+
+    text = output.get("text")
+    if isinstance(text, str) and text.strip():
+        summary["text_preview"] = text.strip()[:180]
+
+    result_value = output.get("result")
+    if isinstance(result_value, dict):
+        summary["result_keys"] = sorted(result_value.keys())
+    elif isinstance(result_value, str) and result_value.strip():
+        summary["result_preview"] = result_value.strip()[:180]
+
+    for key in ["branch", "matched", "status_code", "provider", "model", "url", "method"]:
+        if key in output:
+            summary[key] = output.get(key)
+
+    return summary
+
+
+def _node_execution(
+    *,
+    node_id: str,
+    node_label: str,
+    node_type: str,
+    sequence: int,
+    status: str,
+    attempt_count: int,
+    started_at: datetime,
+    finished_at: datetime,
+    output: dict[str, Any] | None = None,
+    error_class: str | None = None,
+    error_message: str | None = None,
+) -> WorkflowNodeExecution:
+    resolved_output = output or {}
+    return WorkflowNodeExecution(
+        node_id=node_id,
+        node_label=node_label,
+        node_type=node_type,
+        sequence=sequence,
+        status=status,
+        attempt_count=attempt_count,
+        duration_ms=_duration_ms(started_at, finished_at),
+        started_at=started_at,
+        finished_at=finished_at,
+        error_class=error_class,
+        error_message=error_message,
+        token_estimate=_estimate_tokens(resolved_output),
+        output_summary=_summarize_output(resolved_output),
+    )
+
+
 def _failure_result(
     payload: WorkflowPayload,
     started_at: datetime,
     logs: list[WorkflowRunLog],
     executed_nodes: list[str],
     node_outputs: dict[str, object],
+    node_executions: list[WorkflowNodeExecution],
     error_message: str,
     failed_node_id: str | None = None,
 ) -> WorkflowRunResult:
@@ -133,6 +209,7 @@ def _failure_result(
         summary=summary,
         output=output,
         logs=logs,
+        node_executions=node_executions,
     )
 
 
@@ -165,6 +242,7 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
 
     executed_nodes: list[str] = []
     node_outputs: dict[str, object] = {}
+    node_executions: list[WorkflowNodeExecution] = []
     context = ExecutionContext(node_outputs={}, previous_output={})
     visited: set[str] = set()
     sequence = 1
@@ -188,6 +266,7 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                 logs,
                 executed_nodes,
                 node_outputs,
+                node_executions,
                 timeout_message,
             )
 
@@ -199,6 +278,7 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         max_attempts = max_node_retries + 1
         attempt = 1
         result = None
+        node_started_at = datetime.now(timezone.utc)
 
         while attempt <= max_attempts:
             try:
@@ -226,12 +306,29 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                 )
 
                 if is_last_attempt:
+                    node_finished_at = datetime.now(timezone.utc)
+                    node_executions.append(
+                        _node_execution(
+                            node_id=node.id,
+                            node_label=node.label,
+                            node_type=node.type,
+                            sequence=sequence,
+                            status="failed",
+                            attempt_count=attempt,
+                            started_at=node_started_at,
+                            finished_at=node_finished_at,
+                            output={},
+                            error_class=error.__class__.__name__,
+                            error_message=error_text,
+                        )
+                    )
                     return _failure_result(
                         payload,
                         started_at,
                         logs,
                         executed_nodes,
                         node_outputs,
+                        node_executions,
                         error_text,
                         failed_node_id=node.id,
                     )
@@ -254,12 +351,29 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                             },
                         )
                     )
+                    node_finished_at = datetime.now(timezone.utc)
+                    node_executions.append(
+                        _node_execution(
+                            node_id=node.id,
+                            node_label=node.label,
+                            node_type=node.type,
+                            sequence=sequence,
+                            status="failed",
+                            attempt_count=attempt,
+                            started_at=node_started_at,
+                            finished_at=node_finished_at,
+                            output={},
+                            error_class="TimeoutError",
+                            error_message=timeout_message,
+                        )
+                    )
                     return _failure_result(
                         payload,
                         started_at,
                         logs,
                         executed_nodes,
                         node_outputs,
+                        node_executions,
                         timeout_message,
                         failed_node_id=node.id,
                     )
@@ -267,15 +381,47 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                 attempt += 1
 
         if result is None:
+            node_finished_at = datetime.now(timezone.utc)
+            node_executions.append(
+                _node_execution(
+                    node_id=node.id,
+                    node_label=node.label,
+                    node_type=node.type,
+                    sequence=sequence,
+                    status="failed",
+                    attempt_count=attempt,
+                    started_at=node_started_at,
+                    finished_at=node_finished_at,
+                    output={},
+                    error_class="RuntimeError",
+                    error_message=f"Node {node.label} did not produce a result.",
+                )
+            )
             return _failure_result(
                 payload,
                 started_at,
                 logs,
                 executed_nodes,
                 node_outputs,
+                node_executions,
                 f"Node {node.label} did not produce a result.",
                 failed_node_id=node.id,
             )
+
+        node_finished_at = datetime.now(timezone.utc)
+        node_executions.append(
+            _node_execution(
+                node_id=node.id,
+                node_label=node.label,
+                node_type=node.type,
+                sequence=sequence,
+                status="succeeded",
+                attempt_count=attempt,
+                started_at=node_started_at,
+                finished_at=node_finished_at,
+                output=result.output,
+            )
+        )
 
         visited.add(node.id)
         executed_nodes.append(node.id)
@@ -350,4 +496,5 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         summary=summary,
         output=output,
         logs=logs,
+        node_executions=node_executions,
     )

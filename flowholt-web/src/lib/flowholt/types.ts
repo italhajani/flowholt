@@ -1,4 +1,4 @@
-﻿export type WorkflowNodeType =
+export type WorkflowNodeType =
   | "trigger"
   | "agent"
   | "tool"
@@ -94,6 +94,49 @@ export type RunLogRecord = {
   created_at: string;
 };
 
+export type WorkflowNodeExecutionRecord = {
+  id: number;
+  run_id: string;
+  workflow_id: string;
+  workspace_id: string;
+  node_id: string;
+  node_label: string;
+  node_type: WorkflowNodeType;
+  sequence: number;
+  status: "succeeded" | "failed" | "cancelled" | "skipped";
+  attempt_count: number;
+  duration_ms: number;
+  started_at: string | null;
+  finished_at: string | null;
+  error_class: string;
+  error_message: string;
+  token_estimate: number;
+  output_summary: Record<string, unknown>;
+  created_at: string;
+};
+
+export type WorkflowRunJobRecord = {
+  id: string;
+  workflow_id: string;
+  workspace_id: string;
+  created_by_user_id: string | null;
+  status: "queued" | "processing" | "succeeded" | "failed" | "cancelled";
+  trigger_source: string;
+  trigger_payload: unknown;
+  trigger_meta: Record<string, unknown>;
+  attempt_count: number;
+  max_attempts: number;
+  available_at: string;
+  claimed_at: string | null;
+  finished_at: string | null;
+  lock_until: string | null;
+  run_id: string | null;
+  error_message: string;
+  last_error_class: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type WorkflowRunListItem = WorkflowRunRecord & {
   workflowName: string;
   logs: RunLogRecord[];
@@ -124,7 +167,6 @@ export type RunsSnapshot = {
   runs: WorkflowRunListItem[];
 };
 
-
 export type WorkflowScheduleRecord = {
   id: string;
   workflow_id: string;
@@ -142,10 +184,10 @@ export type WorkflowScheduleRecord = {
   created_at: string;
   updated_at: string;
 };
+
 export type IntegrationsSnapshot = {
   schemaReady: boolean;
   workspaces: WorkspaceRecord[];
   activeWorkspace: WorkspaceRecord | null;
   integrations: IntegrationConnectionRecord[];
 };
-

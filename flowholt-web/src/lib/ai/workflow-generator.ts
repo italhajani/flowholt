@@ -255,33 +255,32 @@ function ensureRequiredNodes(graph: WorkflowGraph): WorkflowGraph {
 
 function sanitizeGraph(shape: DraftShape): WorkflowGraph {
   const usedIds = new Set<string>();
+  const nodes: WorkflowGraph["nodes"] = [];
 
-  const nodes = Array.isArray(shape.nodes)
-    ? shape.nodes
-        .map((node, index) => {
-          const nodeType = normalizeNodeType(node?.type);
-          if (!nodeType) {
-            return null;
-          }
+  if (Array.isArray(shape.nodes)) {
+    shape.nodes.forEach((node, index) => {
+      const nodeType = normalizeNodeType(node?.type);
+      if (!nodeType) {
+        return;
+      }
 
-          const nodeId = makeUniqueNodeId(
-            slugify(asString(node?.id, `${nodeType}-${index + 1}`), `${nodeType}-${index + 1}`),
-            usedIds,
-          );
+      const nodeId = makeUniqueNodeId(
+        slugify(asString(node?.id, `${nodeType}-${index + 1}`), `${nodeType}-${index + 1}`),
+        usedIds,
+      );
 
-          return {
-            id: nodeId,
-            type: nodeType,
-            label: asString(node?.label, `${nodeType} step`),
-            position: {
-              x: 80 + (index % 3) * 220,
-              y: 80 + Math.floor(index / 3) * 160,
-            },
-            config: defaultNodeConfig(nodeType),
-          };
-        })
-        .filter((node): node is WorkflowGraph["nodes"][number] => node !== null)
-    : [];
+      nodes.push({
+        id: nodeId,
+        type: nodeType,
+        label: asString(node?.label, `${nodeType} step`),
+        position: {
+          x: 80 + (index % 3) * 220,
+          y: 80 + Math.floor(index / 3) * 160,
+        },
+        config: defaultNodeConfig(nodeType),
+      });
+    });
+  }
 
   const validIds = new Set(nodes.map((node) => node.id));
   const edges = Array.isArray(shape.edges)
@@ -782,3 +781,4 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
+

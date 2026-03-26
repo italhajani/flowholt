@@ -4,9 +4,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 88%**
-- Frontend/UI progress: **about 52%**
-- Production hardening progress: **about 30%**
+- Backend core progress: **about 92%**
+- Frontend/UI progress: **about 56%**
+- Production hardening progress: **about 35%**
 
 ## Backend foundations
 
@@ -22,14 +22,16 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Draft/saved workflow simulation endpoint
 - [x] Connection test endpoint per provider
 - [x] Run streaming endpoint for live monitoring
+- [x] Durable run job queue table + worker endpoint
+- [x] Node-level execution metrics storage
 
 ## Remaining backend (high priority)
 
-- [ ] Durable async run queue (worker process + retry queue + dead-letter handling)
+- [ ] Durable async run worker as a separate always-on process
 - [x] Run cancellation endpoint and cooperative stop support in engine
 - [x] Real-time run streaming (SSE/WebSocket for node-by-node updates)
 - [x] Chat session storage for composer sidebar (threads/messages tables)
-- [ ] Node-level execution metrics (duration, token estimate, error class)
+- [x] Node-level execution metrics (duration, token estimate, error class)
 - [ ] Multi-workspace membership and role-based access (owner/admin/member)
 - [ ] Secret rotation flow (replace integration secrets safely)
 - [ ] Rate limiting and abuse guardrails on public endpoints
@@ -52,6 +54,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Composer controls in Studio: Preview, Apply, Undo
 - [ ] Revisions panel with one-click restore and compare view
 - [x] Live run monitor page with streamed logs/status
+- [x] Live node timeline with duration and token estimates
 - [ ] Schedule builder UI (no API manual calls)
 - [ ] Human-readable node config forms (hide raw JSON by default)
 - [x] Integrations setup UI with inline connection tests
@@ -60,7 +63,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Production and reliability
 
-- [ ] Add backend tests for scheduler, composer, validation, revisions, streaming
+- [ ] Add backend tests for scheduler, queueing, composer, validation, revisions, streaming
 - [ ] Add migration runner process for deploy environments
 - [ ] Add structured logging and correlation IDs across web + engine
 - [ ] Add monitoring dashboards (error rate, run latency, queue depth)
@@ -71,8 +74,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - [x] Phase 1: queue-adjacent controls, run cancellation, streaming monitor
 - [x] Phase 2: chat session storage, revisions, validation, simulation foundation
-- [ ] Phase 3: schedule UI, composer UI actions, human-friendly node editors
-- [ ] Phase 4: durable queue worker, metrics, RBAC, monitoring, security hardening
+- [x] Phase 3: durable queue table, node metrics, worker endpoint, timeline groundwork
+- [ ] Phase 4: schedule UI, composer UI actions, human-friendly node editors
+- [ ] Phase 5: RBAC, billing, monitoring, security hardening
 
 ## Definition of "finalized platform" (what done means)
 

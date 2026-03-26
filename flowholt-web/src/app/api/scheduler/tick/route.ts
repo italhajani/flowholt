@@ -1,6 +1,6 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-import { executeWorkflowRun } from "@/lib/flowholt/workflow-runner";
+import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -139,8 +139,9 @@ export async function POST(request: NextRequest) {
   const results: Array<{
     schedule_id: string;
     workflow_id: string;
+    job_id?: string;
     run_id?: string;
-    status: "succeeded" | "failed" | "skipped";
+    status: "succeeded" | "failed" | "skipped" | "queued";
     error?: string;
   }> = [];
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const execution = await executeWorkflowRun({
+      const job = await enqueueWorkflowRunJob({
         supabase,
         workflow,
         triggerSource: "schedule",
@@ -177,21 +178,28 @@ export async function POST(request: NextRequest) {
           interval_minutes: schedule.interval_minutes,
           triggered_at: nowIso,
         },
+        createdByUserId: workflow.created_by_user_id,
       });
 
-      const runStatus = execution.result.status;
-      const runError =
-        runStatus === "succeeded"
-          ? ""
-          : execution.runErrorMessage || "Scheduled run failed in engine.";
+      const [jobResult] = await drainWorkflowRunJobs({
+        supabase,
+        limit: 1,
+        jobIds: [job.id],
+      });
+
+      const finalStatus = jobResult?.status ?? "queued";
+      const finalError =
+        jobResult?.status === "queued"
+          ? jobResult.error || "Scheduled run queued for retry."
+          : jobResult?.error || "";
 
       await supabase
         .from("workflow_schedules")
         .update({
           lock_until: null,
           last_run_at: new Date().toISOString(),
-          last_run_status: runStatus,
-          last_error: runError,
+          last_run_status: finalStatus === "succeeded" ? "succeeded" : finalStatus === "failed" ? "failed" : null,
+          last_error: finalError,
           run_count: (schedule.run_count ?? 0) + 1,
         })
         .eq("id", schedule.id);
@@ -199,9 +207,10 @@ export async function POST(request: NextRequest) {
       results.push({
         schedule_id: schedule.id,
         workflow_id: workflow.id,
-        run_id: execution.runId,
-        status: runStatus,
-        error: runError || undefined,
+        job_id: job.id,
+        run_id: jobResult?.runId,
+        status: finalStatus === "cancelled" ? "failed" : finalStatus,
+        error: finalError || undefined,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Scheduled run failed.";

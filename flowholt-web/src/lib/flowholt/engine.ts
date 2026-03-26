@@ -1,5 +1,21 @@
 import type { WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
 
+export type EngineNodeExecution = {
+  node_id: string;
+  node_label: string;
+  node_type: WorkflowNodeType;
+  sequence: number;
+  status: "succeeded" | "failed";
+  attempt_count: number;
+  duration_ms: number;
+  started_at: string;
+  finished_at: string;
+  error_class?: string | null;
+  error_message?: string | null;
+  token_estimate: number;
+  output_summary: Record<string, unknown>;
+};
+
 export type EngineRunRequest = {
   run_id: string;
   workflow_id: string;
@@ -37,6 +53,7 @@ export type EngineRunResponse = {
     node_id: string | null;
     payload: Record<string, unknown>;
   }>;
+  node_executions: EngineNodeExecution[];
 };
 
 export function getEngineUrl() {

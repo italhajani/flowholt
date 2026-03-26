@@ -46,6 +46,22 @@ class WorkflowRunLog(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+class WorkflowNodeExecution(BaseModel):
+    node_id: str
+    node_label: str
+    node_type: str
+    sequence: int
+    status: Literal["succeeded", "failed"]
+    attempt_count: int = 1
+    duration_ms: int = 0
+    started_at: datetime
+    finished_at: datetime
+    error_class: str | None = None
+    error_message: str | None = None
+    token_estimate: int = 0
+    output_summary: dict[str, Any] = Field(default_factory=dict)
+
+
 class WorkflowRunSummary(BaseModel):
     workflow_id: str
     run_id: str | None = None
@@ -63,3 +79,4 @@ class WorkflowRunResult(BaseModel):
     summary: WorkflowRunSummary
     output: dict[str, Any] = Field(default_factory=dict)
     logs: list[WorkflowRunLog] = Field(default_factory=list)
+    node_executions: list[WorkflowNodeExecution] = Field(default_factory=list)

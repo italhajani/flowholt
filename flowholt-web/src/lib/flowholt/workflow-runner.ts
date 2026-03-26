@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { runWorkflowWithEngine, type EngineRunResponse } from "@/lib/flowholt/engine";
+import {
+  runWorkflowWithEngine,
+  type EngineNodeExecution,
+  type EngineRunResponse,
+} from "@/lib/flowholt/engine";
 import {
   validateWorkflowGraph,
   validationFailureMessage,
@@ -13,6 +17,16 @@ type IntegrationConnectionRuntime = {
   config: Record<string, unknown>;
   secrets: Record<string, unknown>;
 };
+
+export class WorkflowExecutionError extends Error {
+  runId: string;
+
+  constructor(message: string, runId = "") {
+    super(message);
+    this.name = "WorkflowExecutionError";
+    this.runId = runId;
+  }
+}
 
 export type ExecuteWorkflowRunInput = {
   supabase: SupabaseClient;
@@ -200,6 +214,77 @@ async function getRunStatus(supabase: SupabaseClient, runId: string) {
   };
 }
 
+async function insertRunLogs(
+  supabase: SupabaseClient,
+  workflow: WorkflowRecord,
+  runId: string,
+  result: EngineRunResponse,
+) {
+  if (!result.logs.length) {
+    return;
+  }
+
+  const { error } = await supabase.from("run_logs").insert(
+    result.logs.map((log) => ({
+      run_id: runId,
+      workflow_id: workflow.id,
+      workspace_id: workflow.workspace_id,
+      node_id: log.node_id,
+      level: log.level,
+      message: log.message,
+      payload: log.payload,
+    })),
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+function mapNodeExecutionRow(
+  workflow: WorkflowRecord,
+  runId: string,
+  execution: EngineNodeExecution,
+) {
+  return {
+    run_id: runId,
+    workflow_id: workflow.id,
+    workspace_id: workflow.workspace_id,
+    node_id: execution.node_id,
+    node_label: execution.node_label,
+    node_type: execution.node_type,
+    sequence: execution.sequence,
+    status: execution.status,
+    attempt_count: execution.attempt_count,
+    duration_ms: execution.duration_ms,
+    started_at: execution.started_at,
+    finished_at: execution.finished_at,
+    error_class: execution.error_class ?? "",
+    error_message: execution.error_message ?? "",
+    token_estimate: execution.token_estimate ?? 0,
+    output_summary: execution.output_summary ?? {},
+  };
+}
+
+async function insertNodeExecutions(
+  supabase: SupabaseClient,
+  workflow: WorkflowRecord,
+  runId: string,
+  result: EngineRunResponse,
+) {
+  if (!Array.isArray(result.node_executions) || !result.node_executions.length) {
+    return;
+  }
+
+  const { error } = await supabase.from("workflow_node_executions").insert(
+    result.node_executions.map((execution) => mapNodeExecutionRow(workflow, runId, execution)),
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function executeWorkflowRun({
   supabase,
   workflow,
@@ -264,23 +349,8 @@ export async function executeWorkflowRun({
       settings: buildRuntimeSettings(workflow.settings, triggerPayload, triggerMeta),
     });
 
-    if (result.logs.length) {
-      const { error: logError } = await supabase.from("run_logs").insert(
-        result.logs.map((log) => ({
-          run_id: runId,
-          workflow_id: workflow.id,
-          workspace_id: workflow.workspace_id,
-          node_id: log.node_id,
-          level: log.level,
-          message: log.message,
-          payload: log.payload,
-        })),
-      );
-
-      if (logError) {
-        throw new Error(logError.message);
-      }
-    }
+    await insertRunLogs(supabase, workflow, runId, result);
+    await insertNodeExecutions(supabase, workflow, runId, result);
 
     const runErrorMessage =
       result.status === "succeeded" ? "" : readOutputErrorMessage(result.output) || "Run failed in engine.";
@@ -360,6 +430,8 @@ export async function executeWorkflowRun({
           .eq("id", runId)
           .in("status", ["queued", "running"]);
       }
+
+      throw new WorkflowExecutionError(errorMessage, runId);
     }
 
     throw new Error(errorMessage);

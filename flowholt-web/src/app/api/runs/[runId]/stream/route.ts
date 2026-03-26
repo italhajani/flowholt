@@ -61,6 +61,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const encoder = new TextEncoder();
       let closed = false;
       let lastLogId = 0;
+      let lastNodeExecutionId = 0;
       let lastStatus = "";
       let lastFinishedAt = "";
       let lastError = "";
@@ -112,21 +113,33 @@ export async function GET(request: NextRequest, context: RouteContext) {
               break;
             }
 
-            const [{ data: currentRun, error: currentRunError }, { data: logRows, error: logError }] =
-              await Promise.all([
-                supabase
-                  .from("workflow_runs")
-                  .select("id, status, error_message, started_at, finished_at, created_at")
-                  .eq("id", runId)
-                  .maybeSingle(),
-                supabase
-                  .from("run_logs")
-                  .select("id, node_id, level, message, payload, created_at")
-                  .eq("run_id", runId)
-                  .gt("id", lastLogId)
-                  .order("id", { ascending: true })
-                  .limit(200),
-              ]);
+            const [runResult, logResult, nodeExecutionResult] = await Promise.all([
+              supabase
+                .from("workflow_runs")
+                .select("id, status, error_message, started_at, finished_at, created_at")
+                .eq("id", runId)
+                .maybeSingle(),
+              supabase
+                .from("run_logs")
+                .select("id, node_id, level, message, payload, created_at")
+                .eq("run_id", runId)
+                .gt("id", lastLogId)
+                .order("id", { ascending: true })
+                .limit(200),
+              supabase
+                .from("workflow_node_executions")
+                .select(
+                  "id, node_id, node_label, node_type, sequence, status, attempt_count, duration_ms, started_at, finished_at, error_class, error_message, token_estimate, output_summary, created_at",
+                )
+                .eq("run_id", runId)
+                .gt("id", lastNodeExecutionId)
+                .order("id", { ascending: true })
+                .limit(200),
+            ]);
+
+            const { data: currentRun, error: currentRunError } = runResult;
+            const { data: logRows, error: logError } = logResult;
+            const { data: nodeExecutionRows, error: nodeExecutionError } = nodeExecutionResult;
 
             if (currentRunError || !currentRun) {
               write(
@@ -167,6 +180,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
             if (!logError && Array.isArray(logRows) && logRows.length) {
               lastLogId = Math.max(lastLogId, ...logRows.map((log) => Number(log.id) || 0));
               write(sseEvent("logs", { run_id: runId, logs: logRows }));
+            }
+
+            if (!nodeExecutionError && Array.isArray(nodeExecutionRows) && nodeExecutionRows.length) {
+              lastNodeExecutionId = Math.max(
+                lastNodeExecutionId,
+                ...nodeExecutionRows.map((item) => Number(item.id) || 0),
+              );
+              write(sseEvent("node_executions", { run_id: runId, node_executions: nodeExecutionRows }));
             }
 
             write(": heartbeat\n\n");

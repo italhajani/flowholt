@@ -1,10 +1,10 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import type { WorkflowGraph, WorkflowRecord } from "@/lib/flowholt/types";
-import { executeWorkflowRun } from "@/lib/flowholt/workflow-runner";
 import { createClient } from "@/lib/supabase/server";
 
 function getValue(formData: FormData, key: string) {
@@ -104,26 +104,42 @@ export async function runWorkflow(formData: FormData) {
     redirect(`/app/workflows?error=${encodeURIComponent("Workflow not found")}`);
   }
 
-  let successMessage = "Run completed successfully";
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   try {
-    const execution = await executeWorkflowRun({
+    const job = await enqueueWorkflowRunJob({
       supabase,
       workflow,
       triggerSource: "manual",
       triggerMeta: {
         initiated_by: "studio",
+        queued_from: "studio",
       },
+      createdByUserId: user?.id ?? null,
     });
 
-    if (execution.result.status !== "succeeded") {
-      const errorMessage = execution.runErrorMessage || "Run failed in engine.";
-      revalidateWorkflowPaths(workflow.id);
-      redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(errorMessage)}`);
+    const [result] = await drainWorkflowRunJobs({
+      supabase,
+      limit: 1,
+      jobIds: [job.id],
+    });
+
+    revalidateWorkflowPaths(workflow.id);
+
+    if (result?.runId) {
+      redirect(`/app/runs/${result.runId}`);
     }
 
-    if (execution.result.summary.executed_nodes.length) {
-      successMessage = `Run completed: ${execution.result.summary.executed_nodes.length} steps executed`;
+    if (result?.status === "queued") {
+      redirect(
+        `/app/studio/${workflow.id}?message=${encodeURIComponent("Run queued for retry. Open Runs again shortly.")}`,
+      );
+    }
+
+    if (result?.error) {
+      redirect(`/app/studio/${workflow.id}?error=${encodeURIComponent(result.error)}`);
     }
   } catch (error) {
     const errorMessage =
@@ -136,5 +152,5 @@ export async function runWorkflow(formData: FormData) {
   }
 
   revalidateWorkflowPaths(workflow.id);
-  redirect(`/app/studio/${workflow.id}?message=${encodeURIComponent(successMessage)}`);
+  redirect(`/app/studio/${workflow.id}?message=${encodeURIComponent("Run queued successfully")}`);
 }

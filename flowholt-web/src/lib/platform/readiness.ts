@@ -61,6 +61,8 @@ export async function assessPlatformReadiness(
     envHasValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   const hasServiceRole = envHasValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const hasSchedulerKey = envHasValue(process.env.FLOWHOLT_SCHEDULER_KEY);
+  const hasWorkerKey =
+    envHasValue(process.env.FLOWHOLT_WORKER_KEY) || envHasValue(process.env.FLOWHOLT_SCHEDULER_KEY);
   const hasEngineUrl =
     envHasValue(process.env.FLOWHOLT_ENGINE_URL) ||
     envHasValue(process.env.NEXT_PUBLIC_ENGINE_URL);
@@ -101,6 +103,15 @@ export async function assessPlatformReadiness(
     detail: hasSchedulerKey
       ? "Configured"
       : "Missing FLOWHOLT_SCHEDULER_KEY (required for /api/scheduler/tick)",
+  });
+
+  checks.push({
+    id: "worker-key",
+    label: "Queue worker secret",
+    status: hasWorkerKey ? "ok" : "warn",
+    detail: hasWorkerKey
+      ? "Configured"
+      : "Missing FLOWHOLT_WORKER_KEY (recommended for /api/queue/worker)",
   });
 
   checks.push({

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   addEdge,
@@ -417,11 +417,11 @@ function CanvasInner({
   );
 
   function onNodesChange(changes: NodeChange[]) {
-    setNodes((current) => applyNodeChanges(changes, current));
+    setNodes((current) => applyNodeChanges(changes, current) as Node<WorkflowNodeData>[]);
   }
 
   function onEdgesChange(changes: EdgeChange[]) {
-    setEdges((current) => applyEdgeChanges(changes, current));
+    setEdges((current) => applyEdgeChanges(changes, current) as Edge<WorkflowEdgeData>[]);
   }
 
   function onConnect(connection: Connection) {
@@ -936,4 +936,5 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
 

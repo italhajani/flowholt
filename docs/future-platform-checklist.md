@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 92%**
-- Frontend/UI progress: **about 76%**
+- Frontend/UI progress: **about 82%**
 - Production hardening progress: **about 35%**
 
 ## Backend foundations
@@ -50,7 +50,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Frontend to unlock premium experience
 
-- [ ] Clean chat sidebar with reasoning timeline
+- [x] Clean chat sidebar with reasoning timeline
 - [x] Composer controls in Studio: Preview, Apply, Undo
 - [x] Revisions panel with one-click restore and compare view
 - [x] Live run monitor page with streamed logs/status
@@ -77,7 +77,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 3: durable queue table, node metrics, worker endpoint, timeline groundwork
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
-- [ ] Phase 6: responsive polish and reasoning-first chat sidebar
+- [ ] Phase 6: responsive polish and Studio refinement
 - [ ] Phase 7: RBAC, billing, monitoring, security hardening
 
 ## Definition of "finalized platform" (what done means)
@@ -87,4 +87,5 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, and RBAC
+
 

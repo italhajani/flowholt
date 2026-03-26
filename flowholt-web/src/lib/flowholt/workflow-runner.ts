@@ -187,6 +187,19 @@ function buildRuntimeSettings(
   };
 }
 
+async function getRunStatus(supabase: SupabaseClient, runId: string) {
+  const { data } = await supabase
+    .from("workflow_runs")
+    .select("status, error_message")
+    .eq("id", runId)
+    .maybeSingle();
+
+  return {
+    status: data?.status ? String(data.status) : "",
+    errorMessage: data?.error_message ? String(data.error_message) : "",
+  };
+}
+
 export async function executeWorkflowRun({
   supabase,
   workflow,
@@ -220,7 +233,8 @@ export async function executeWorkflowRun({
         status: "running",
         started_at: new Date().toISOString(),
       })
-      .eq("id", runId);
+      .eq("id", runId)
+      .eq("status", "queued");
 
     if (runningError) {
       throw new Error(runningError.message);
@@ -271,7 +285,7 @@ export async function executeWorkflowRun({
     const runErrorMessage =
       result.status === "succeeded" ? "" : readOutputErrorMessage(result.output) || "Run failed in engine.";
 
-    const { error: updateError } = await supabase
+    const { data: finalUpdate, error: updateError } = await supabase
       .from("workflow_runs")
       .update({
         status: result.status,
@@ -280,10 +294,33 @@ export async function executeWorkflowRun({
         started_at: result.started_at,
         finished_at: result.finished_at,
       })
-      .eq("id", runId);
+      .eq("id", runId)
+      .eq("status", "running")
+      .select("id")
+      .maybeSingle();
 
     if (updateError) {
       throw new Error(updateError.message);
+    }
+
+    if (!finalUpdate) {
+      const current = await getRunStatus(supabase, runId);
+      if (current.status === "cancelled") {
+        return {
+          runId,
+          result: {
+            ...result,
+            status: "failed",
+            output: {
+              ...result.output,
+              cancelled: true,
+            },
+          },
+          runErrorMessage: current.errorMessage || "Run was cancelled by user.",
+        };
+      }
+
+      throw new Error("Unable to finalize run status.");
     }
 
     return {
@@ -298,26 +335,31 @@ export async function executeWorkflowRun({
         : "The engine could not complete the run.";
 
     if (runId) {
-      await supabase.from("run_logs").insert({
-        run_id: runId,
-        workflow_id: workflow.id,
-        workspace_id: workflow.workspace_id,
-        node_id: null,
-        level: "error",
-        message: "Run failed before completion.",
-        payload: {
-          error: errorMessage,
-        },
-      });
+      const current = await getRunStatus(supabase, runId);
 
-      await supabase
-        .from("workflow_runs")
-        .update({
-          status: "failed",
-          error_message: errorMessage,
-          finished_at: new Date().toISOString(),
-        })
-        .eq("id", runId);
+      if (current.status !== "cancelled") {
+        await supabase.from("run_logs").insert({
+          run_id: runId,
+          workflow_id: workflow.id,
+          workspace_id: workflow.workspace_id,
+          node_id: null,
+          level: "error",
+          message: "Run failed before completion.",
+          payload: {
+            error: errorMessage,
+          },
+        });
+
+        await supabase
+          .from("workflow_runs")
+          .update({
+            status: "failed",
+            error_message: errorMessage,
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", runId)
+          .in("status", ["queued", "running"]);
+      }
     }
 
     throw new Error(errorMessage);

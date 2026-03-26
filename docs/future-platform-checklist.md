@@ -4,7 +4,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 79%**
+- Backend core progress: **about 82%**
 - Frontend/UI progress: **about 45%**
 - Production hardening progress: **about 30%**
 
@@ -23,7 +23,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Remaining backend (high priority)
 
 - [ ] Durable async run queue (worker process + retry queue + dead-letter handling)
-- [ ] Run cancellation endpoint and cooperative stop support in engine
+- [x] Run cancellation endpoint and cooperative stop support in engine
 - [ ] Real-time run streaming (SSE/WebSocket for node-by-node updates)
 - [x] Chat session storage for composer sidebar (threads/messages tables)
 - [ ] Node-level execution metrics (duration, token estimate, error class)
@@ -77,4 +77,5 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, and RBAC
+
 

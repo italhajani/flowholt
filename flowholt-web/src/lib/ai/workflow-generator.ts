@@ -1,16 +1,38 @@
-import type { WorkflowGraph } from "@/lib/flowholt/types";
+import type {
+  WorkflowGraph,
+  WorkflowNodeType,
+  WorkflowRecord,
+} from "@/lib/flowholt/types";
 import { getCatalogPromptLines } from "@/lib/flowholt/node-catalog";
 
-type GeneratedWorkflowDraft = {
+type WorkflowGenerationProvider = "groq" | "huggingface" | "fallback";
+type WorkflowChangeKind = "add" | "remove" | "update";
+
+type GenerationMeta = {
+  provider: WorkflowGenerationProvider;
+  model: string;
+  notes: string;
+  originalPrompt: string;
+};
+
+export type GeneratedWorkflowDraft = {
   name: string;
   description: string;
   graph: WorkflowGraph;
-  generation: {
-    provider: "groq" | "huggingface" | "fallback";
-    model: string;
-    notes: string;
-    originalPrompt: string;
-  };
+  generation: GenerationMeta;
+};
+
+export type WorkflowRevisionChange = {
+  kind: WorkflowChangeKind;
+  node_id: string;
+  label: string;
+  node_type: WorkflowNodeType;
+  reason: string;
+};
+
+export type GeneratedWorkflowRevision = GeneratedWorkflowDraft & {
+  reasoning: string[];
+  changes: WorkflowRevisionChange[];
 };
 
 type DraftShape = {
@@ -30,12 +52,32 @@ type DraftShape = {
   notes?: string;
 };
 
+type RevisionShape = DraftShape & {
+  reasoning?: unknown;
+  changes?: unknown;
+};
+
+type GenerateRevisionInput = {
+  prompt: string;
+  workflow: Pick<WorkflowRecord, "name" | "description" | "graph">;
+};
+
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const HF_URL = "https://router.huggingface.co/v1/chat/completions";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const HF_MODEL = process.env.HUGGINGFACE_MODEL ?? "meta-llama/Llama-3.1-8B-Instruct";
+const SUPPORTED_NODE_TYPES: WorkflowNodeType[] = [
+  "trigger",
+  "agent",
+  "tool",
+  "condition",
+  "loop",
+  "memory",
+  "retriever",
+  "output",
+];
 
-function buildSystemPrompt() {
+function buildCreateSystemPrompt() {
   const catalogLines = getCatalogPromptLines();
 
   return [
@@ -55,6 +97,27 @@ function buildSystemPrompt() {
   ].join(" ");
 }
 
+function buildRevisionSystemPrompt() {
+  const catalogLines = getCatalogPromptLines();
+
+  return [
+    "You are an AI workflow orchestrator for FlowHolt.",
+    "You receive a current workflow graph and a user revision request.",
+    "Produce an improved, production-ready workflow graph in JSON only.",
+    "Return JSON with: name, description, nodes, edges, reasoning, changes, and optional notes.",
+    "reasoning must be an array with 2 to 5 concise sentences.",
+    "changes must be an array of objects with kind (add|remove|update), node_id, label, node_type, reason.",
+    "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
+    "If a condition node exists, edges from it must include branch true and false.",
+    "Use short, clear node labels and stable ids.",
+    "Keep node count between 4 and 10.",
+    "Edges must only reference valid ids.",
+    "Do not include markdown fences.",
+    "Node catalog context:",
+    ...catalogLines,
+  ].join(" ");
+}
+
 function extractJsonObject(text: string) {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -66,20 +129,158 @@ function extractJsonObject(text: string) {
   return text.slice(start, end + 1);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asString(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function normalizeNodeType(value: unknown): WorkflowNodeType | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const type = value.trim().toLowerCase();
+  return SUPPORTED_NODE_TYPES.includes(type as WorkflowNodeType)
+    ? (type as WorkflowNodeType)
+    : null;
+}
+
+function slugify(value: string, fallback: string) {
+  const base = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return base || fallback;
+}
+
+function makeUniqueNodeId(value: string, used: Set<string>) {
+  if (!used.has(value)) {
+    used.add(value);
+    return value;
+  }
+
+  let suffix = 2;
+  let candidate = `${value}-${suffix}`;
+  while (used.has(candidate)) {
+    suffix += 1;
+    candidate = `${value}-${suffix}`;
+  }
+
+  used.add(candidate);
+  return candidate;
+}
+
+function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> {
+  switch (nodeType) {
+    case "trigger":
+      return { mode: "manual" };
+    case "agent":
+      return {
+        instruction: "Complete this step based on the workflow goal and prior outputs.",
+        model: "default",
+      };
+    case "tool":
+      return {
+        method: "POST",
+        url: "",
+        body: { input: "{{previous.text}}" },
+      };
+    case "condition":
+      return {
+        value: "{{previous.status_code}}",
+        equals: 200,
+        branch_on_match: "true",
+        branch_on_miss: "false",
+      };
+    case "loop":
+      return { iterations: 1 };
+    case "memory":
+      return { source: "workflow" };
+    case "retriever":
+      return { query: "{{workflow.original_prompt}}" };
+    case "output":
+      return { result: "{{previous}}" };
+    default:
+      return {};
+  }
+}
+
+function ensureRequiredNodes(graph: WorkflowGraph): WorkflowGraph {
+  const nodes = [...graph.nodes];
+  const edges = [...graph.edges];
+  const usedIds = new Set(nodes.map((node) => node.id));
+
+  const hasTrigger = nodes.some((node) => node.type === "trigger");
+  if (!hasTrigger) {
+    const triggerId = makeUniqueNodeId("trigger", usedIds);
+    nodes.unshift({
+      id: triggerId,
+      type: "trigger",
+      label: "Start trigger",
+      config: defaultNodeConfig("trigger"),
+      position: { x: 80, y: 80 },
+    });
+    if (nodes[1]) {
+      edges.unshift({ source: triggerId, target: nodes[1].id });
+    }
+  }
+
+  const hasOutput = nodes.some((node) => node.type === "output");
+  if (!hasOutput) {
+    const outputId = makeUniqueNodeId("final-output", usedIds);
+    const lastNode = nodes[nodes.length - 1];
+    nodes.push({
+      id: outputId,
+      type: "output",
+      label: "Final output",
+      config: defaultNodeConfig("output"),
+      position: {
+        x: 80 + ((nodes.length - 1) % 3) * 220,
+        y: 80 + Math.floor((nodes.length - 1) / 3) * 160,
+      },
+    });
+    if (lastNode && lastNode.id !== outputId) {
+      edges.push({ source: lastNode.id, target: outputId });
+    }
+  }
+
+  return { nodes, edges };
+}
+
 function sanitizeGraph(shape: DraftShape): WorkflowGraph {
+  const usedIds = new Set<string>();
+
   const nodes = Array.isArray(shape.nodes)
     ? shape.nodes
-        .filter((node) => node?.id && node?.type && node?.label)
-        .map((node, index) => ({
-          id: String(node.id),
-          type: node.type,
-          label: String(node.label),
-          position: {
-            x: 80 + (index % 3) * 220,
-            y: 80 + Math.floor(index / 3) * 160,
-          },
-          config: {},
-        }))
+        .map((node, index) => {
+          const nodeType = normalizeNodeType(node?.type);
+          if (!nodeType) {
+            return null;
+          }
+
+          const nodeId = makeUniqueNodeId(
+            slugify(asString(node?.id, `${nodeType}-${index + 1}`), `${nodeType}-${index + 1}`),
+            usedIds,
+          );
+
+          return {
+            id: nodeId,
+            type: nodeType,
+            label: asString(node?.label, `${nodeType} step`),
+            position: {
+              x: 80 + (index % 3) * 220,
+              y: 80 + Math.floor(index / 3) * 160,
+            },
+            config: defaultNodeConfig(nodeType),
+          };
+        })
+        .filter((node): node is WorkflowGraph["nodes"][number] => node !== null)
     : [];
 
   const validIds = new Set(nodes.map((node) => node.id));
@@ -98,7 +299,208 @@ function sanitizeGraph(shape: DraftShape): WorkflowGraph {
     throw new Error("Generated workflow did not include valid nodes.");
   }
 
-  return { nodes, edges };
+  const graph = ensureRequiredNodes({ nodes, edges });
+
+  if (!graph.edges.length && graph.nodes.length > 1) {
+    for (let index = 0; index < graph.nodes.length - 1; index += 1) {
+      graph.edges.push({
+        source: graph.nodes[index].id,
+        target: graph.nodes[index + 1].id,
+      });
+    }
+  }
+
+  return graph;
+}
+
+function summarizeGraphForPrompt(graph: WorkflowGraph) {
+  return JSON.stringify({
+    nodes: graph.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      label: node.label,
+      config: asRecord(node.config),
+    })),
+    edges: graph.edges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      label: edge.label ?? "",
+      branch: edge.branch ?? "",
+    })),
+  });
+}
+
+function toReasoning(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => asString(item))
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function normalizeChangeKind(value: unknown): WorkflowChangeKind | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "add" || normalized === "remove" || normalized === "update") {
+    return normalized;
+  }
+
+  return null;
+}
+
+function computeGraphChanges(before: WorkflowGraph, after: WorkflowGraph): WorkflowRevisionChange[] {
+  const beforeById = new Map(before.nodes.map((node) => [node.id, node]));
+  const afterById = new Map(after.nodes.map((node) => [node.id, node]));
+  const changes: WorkflowRevisionChange[] = [];
+
+  for (const node of after.nodes) {
+    const previous = beforeById.get(node.id);
+    if (!previous) {
+      changes.push({
+        kind: "add",
+        node_id: node.id,
+        label: node.label,
+        node_type: node.type,
+        reason: "Added to support the new request.",
+      });
+      continue;
+    }
+
+    if (previous.type !== node.type || previous.label !== node.label) {
+      changes.push({
+        kind: "update",
+        node_id: node.id,
+        label: node.label,
+        node_type: node.type,
+        reason: "Updated to better match the latest request.",
+      });
+    }
+  }
+
+  for (const node of before.nodes) {
+    if (!afterById.has(node.id)) {
+      changes.push({
+        kind: "remove",
+        node_id: node.id,
+        label: node.label,
+        node_type: node.type,
+        reason: "Removed because it no longer matches the requested flow.",
+      });
+    }
+  }
+
+  return changes.slice(0, 20);
+}
+
+function sanitizeRevisionChanges(
+  value: unknown,
+  nextGraph: WorkflowGraph,
+  previousGraph: WorkflowGraph,
+): WorkflowRevisionChange[] {
+  if (!Array.isArray(value)) {
+    return computeGraphChanges(previousGraph, nextGraph);
+  }
+
+  const nodeTypeById = new Map(nextGraph.nodes.map((node) => [node.id, node.type]));
+  const fallbackChanges = computeGraphChanges(previousGraph, nextGraph);
+
+  const changes = value
+    .map((item) => {
+      const record = asRecord(item);
+      const kind = normalizeChangeKind(record.kind);
+      const nodeId = asString(record.node_id);
+      const label = asString(record.label);
+      const nodeType = normalizeNodeType(record.node_type);
+      const reason = asString(record.reason);
+
+      if (!kind || !nodeId) {
+        return null;
+      }
+
+      return {
+        kind,
+        node_id: nodeId,
+        label: label || nodeId,
+        node_type: nodeType ?? nodeTypeById.get(nodeId) ?? "agent",
+        reason: reason || "Updated by AI planner.",
+      } satisfies WorkflowRevisionChange;
+    })
+    .filter((change): change is WorkflowRevisionChange => change !== null);
+
+  return changes.length ? changes.slice(0, 20) : fallbackChanges;
+}
+
+function sanitizeRevision(
+  shape: RevisionShape,
+  previousGraph: WorkflowGraph,
+  generation: GenerationMeta,
+  originalPrompt: string,
+): GeneratedWorkflowRevision {
+  const graph = sanitizeGraph(shape);
+  const reasoning = toReasoning(shape.reasoning);
+  const changes = sanitizeRevisionChanges(shape.changes, graph, previousGraph);
+
+  return {
+    name: asString(shape.name, "Updated workflow"),
+    description: asString(shape.description, "Workflow updated from chat request."),
+    graph,
+    reasoning: reasoning.length
+      ? reasoning
+      : [
+          "Converted the latest message into a runnable graph update.",
+          "Kept the flow grounded in trigger, action, and final output structure.",
+          "Generated a clear change list so the UI can explain what was modified.",
+        ],
+    changes,
+    generation: {
+      ...generation,
+      originalPrompt,
+    },
+  };
+}
+
+async function callProvider(
+  url: string,
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Provider request failed with ${response.status}`);
+  }
+
+  const json = await response.json();
+  const content = json.choices?.[0]?.message?.content;
+
+  if (typeof content !== "string") {
+    throw new Error("Provider returned no message content.");
+  }
+
+  return JSON.parse(extractJsonObject(content)) as RevisionShape;
 }
 
 function makeFallbackDraft(prompt: string): GeneratedWorkflowDraft {
@@ -114,7 +516,11 @@ function makeFallbackDraft(prompt: string): GeneratedWorkflowDraft {
   const nodes: DraftShape["nodes"] = [];
   const edges: DraftShape["edges"] = [];
 
-  nodes.push({ id: "start", type: hasTrigger ? "trigger" : "memory", label: hasTrigger ? "Start trigger" : "Input" });
+  nodes.push({
+    id: "start",
+    type: hasTrigger ? "trigger" : "memory",
+    label: hasTrigger ? "Start trigger" : "Input",
+  });
   nodes.push({ id: "plan", type: "agent", label: "Task planner" });
 
   if (hasResearch) {
@@ -134,8 +540,11 @@ function makeFallbackDraft(prompt: string): GeneratedWorkflowDraft {
   nodes.push({ id: "finish", type: "output", label: "Final result" });
 
   if (hasCondition) {
-    const beforeCondition = nodes.findLast((node) => node.id !== "check" && node.id !== "message" && node.id !== "action" && node.id !== "finish") ?? nodes[1];
+    const beforeCondition =
+      nodes.filter((node) => node.id !== "check" && node.id !== "message" && node.id !== "action" && node.id !== "finish").slice(-1)[0] ??
+      nodes[1];
     const actionNode = nodes.find((node) => node.id === "message" || node.id === "action");
+
     if (beforeCondition) {
       edges.push({ source: beforeCondition.id, target: "check" });
     }
@@ -169,6 +578,35 @@ function makeFallbackDraft(prompt: string): GeneratedWorkflowDraft {
   };
 }
 
+function makeFallbackRevision(input: GenerateRevisionInput): GeneratedWorkflowRevision {
+  const contextualPrompt = [
+    `Current workflow: ${input.workflow.name}`,
+    input.workflow.description ? `Description: ${input.workflow.description}` : "",
+    `Update request: ${input.prompt}`,
+  ]
+    .filter(Boolean)
+    .join(". ");
+
+  const draft = makeFallbackDraft(contextualPrompt);
+  const changes = computeGraphChanges(input.workflow.graph, draft.graph);
+
+  return {
+    ...draft,
+    reasoning: [
+      "Built a revised graph from the latest user request.",
+      "Kept the result runnable with trigger, action steps, and a final output.",
+      "Used local fallback planning because an external planner was unavailable.",
+    ],
+    changes,
+    generation: {
+      ...draft.generation,
+      model: "local-revision-heuristic",
+      notes: "Revision generated with local fallback planning.",
+      originalPrompt: input.prompt,
+    },
+  };
+}
+
 async function callGroq(prompt: string) {
   const apiKey = process.env.GROQ_API_KEY;
 
@@ -176,35 +614,13 @@ async function callGroq(prompt: string) {
     return null;
   }
 
-  const response = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Groq request failed with ${response.status}`);
-  }
-
-  const json = await response.json();
-  const content = json.choices?.[0]?.message?.content;
-
-  if (typeof content !== "string") {
-    throw new Error("Groq returned no message content.");
-  }
-
-  const parsed = JSON.parse(extractJsonObject(content)) as DraftShape;
+  const parsed = await callProvider(
+    GROQ_URL,
+    apiKey,
+    GROQ_MODEL,
+    buildCreateSystemPrompt(),
+    prompt,
+  );
 
   return {
     name: parsed.name,
@@ -219,6 +635,43 @@ async function callGroq(prompt: string) {
   } satisfies GeneratedWorkflowDraft;
 }
 
+async function callGroqRevision(input: GenerateRevisionInput) {
+  const apiKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const userPrompt = [
+    `Current workflow name: ${input.workflow.name}`,
+    input.workflow.description ? `Current description: ${input.workflow.description}` : "",
+    `Current graph JSON: ${summarizeGraphForPrompt(input.workflow.graph)}`,
+    `Revision request: ${input.prompt}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const parsed = await callProvider(
+    GROQ_URL,
+    apiKey,
+    GROQ_MODEL,
+    buildRevisionSystemPrompt(),
+    userPrompt,
+  );
+
+  return sanitizeRevision(
+    parsed,
+    input.workflow.graph,
+    {
+      provider: "groq",
+      model: GROQ_MODEL,
+      notes: asString(parsed.notes, "Revision created by Groq."),
+      originalPrompt: input.prompt,
+    },
+    input.prompt,
+  );
+}
+
 async function callHuggingFace(prompt: string) {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
 
@@ -226,35 +679,13 @@ async function callHuggingFace(prompt: string) {
     return null;
   }
 
-  const response = await fetch(HF_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: HF_MODEL,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Hugging Face request failed with ${response.status}`);
-  }
-
-  const json = await response.json();
-  const content = json.choices?.[0]?.message?.content;
-
-  if (typeof content !== "string") {
-    throw new Error("Hugging Face returned no message content.");
-  }
-
-  const parsed = JSON.parse(extractJsonObject(content)) as DraftShape;
+  const parsed = await callProvider(
+    HF_URL,
+    apiKey,
+    HF_MODEL,
+    buildCreateSystemPrompt(),
+    prompt,
+  );
 
   return {
     name: parsed.name,
@@ -267,6 +698,43 @@ async function callHuggingFace(prompt: string) {
       originalPrompt: prompt,
     },
   } satisfies GeneratedWorkflowDraft;
+}
+
+async function callHuggingFaceRevision(input: GenerateRevisionInput) {
+  const apiKey = process.env.HUGGINGFACE_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const userPrompt = [
+    `Current workflow name: ${input.workflow.name}`,
+    input.workflow.description ? `Current description: ${input.workflow.description}` : "",
+    `Current graph JSON: ${summarizeGraphForPrompt(input.workflow.graph)}`,
+    `Revision request: ${input.prompt}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const parsed = await callProvider(
+    HF_URL,
+    apiKey,
+    HF_MODEL,
+    buildRevisionSystemPrompt(),
+    userPrompt,
+  );
+
+  return sanitizeRevision(
+    parsed,
+    input.workflow.graph,
+    {
+      provider: "huggingface",
+      model: HF_MODEL,
+      notes: asString(parsed.notes, "Revision created by Hugging Face."),
+      originalPrompt: input.prompt,
+    },
+    input.prompt,
+  );
 }
 
 export async function generateWorkflowDraft(prompt: string): Promise<GeneratedWorkflowDraft> {
@@ -289,4 +757,28 @@ export async function generateWorkflowDraft(prompt: string): Promise<GeneratedWo
   }
 
   return makeFallbackDraft(prompt);
+}
+
+export async function generateWorkflowRevision(
+  input: GenerateRevisionInput,
+): Promise<GeneratedWorkflowRevision> {
+  try {
+    const groqRevision = await callGroqRevision(input);
+    if (groqRevision) {
+      return groqRevision;
+    }
+  } catch {
+    // Fall through to the next provider.
+  }
+
+  try {
+    const hfRevision = await callHuggingFaceRevision(input);
+    if (hfRevision) {
+      return hfRevision;
+    }
+  } catch {
+    // Fall through to local revision planning.
+  }
+
+  return makeFallbackRevision(input);
 }

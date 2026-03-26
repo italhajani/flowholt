@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { WorkflowScheduleRecord } from "@/lib/flowholt/types";
 
@@ -129,8 +129,7 @@ export function WorkflowSchedulePanel({
     }
   }
 
-  async function createSchedule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function createSchedule() {
     setBusyAction("create");
     setErrorMessage("");
     setSuccessMessage("");
@@ -257,7 +256,7 @@ export function WorkflowSchedulePanel({
         </p>
       </div>
 
-      <form onSubmit={createSchedule} className="space-y-4 rounded-2xl bg-white/80 px-4 py-4">
+      <div className="space-y-4 rounded-2xl bg-white/80 px-4 py-4">
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-700">Schedule name</label>
           <input
@@ -312,13 +311,14 @@ export function WorkflowSchedulePanel({
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={() => void createSchedule()}
           disabled={Boolean(busyAction)}
           className="rounded-full bg-[#ff7f5f] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#f26f4d] disabled:cursor-wait disabled:opacity-60"
         >
           {busyAction === "create" ? "Creating..." : "Create automatic schedule"}
         </button>
-      </form>
+      </div>
 
       {errorMessage ? (
         <div className="rounded-2xl bg-[#f7ede2] px-4 py-3 text-sm text-amber-950">{errorMessage}</div>
@@ -418,6 +418,7 @@ export function WorkflowSchedulePanel({
     </div>
   );
 }
+
 
 
 

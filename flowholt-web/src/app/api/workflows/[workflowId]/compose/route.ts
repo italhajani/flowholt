@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  appendWorkflowChatMessage,
+  getWorkflowChatThread,
+} from "@/lib/flowholt/chat-store";
+import {
   generateWorkflowRevision,
   type GeneratedWorkflowRevision,
 } from "@/lib/ai/workflow-generator";
@@ -103,6 +107,25 @@ function buildProposalSummary(proposal: GeneratedWorkflowRevision) {
       tool_count: proposal.graph.nodes.filter((node) => node.type === "tool").length,
     },
   };
+}
+
+function buildAssistantMessage(
+  mode: "preview" | "apply",
+  proposal: GeneratedWorkflowRevision,
+  isValid: boolean,
+  revisionId = "",
+) {
+  const actionText = mode === "apply" ? "Applied" : "Prepared";
+  const validityText = isValid ? "valid" : "invalid";
+
+  const headline = `${actionText} ${validityText} proposal: ${proposal.name}`;
+  const reasons = proposal.reasoning.slice(0, 3).join(" ");
+
+  if (mode === "apply" && revisionId) {
+    return `${headline}. Revision saved: ${revisionId}. ${reasons}`.trim();
+  }
+
+  return `${headline}. ${reasons}`.trim();
 }
 
 function buildHistoryItem(
@@ -225,6 +248,53 @@ async function loadWorkflow(
   };
 }
 
+async function persistComposeChat(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    workflow: WorkflowRecord;
+    userId: string;
+    threadId: string;
+    mode: "preview" | "apply";
+    userMessage: string;
+    assistantMessage: string;
+    metadata: Record<string, unknown>;
+  },
+) {
+  const userWrite = await appendWorkflowChatMessage(supabase, {
+    thread_id: input.threadId,
+    workflow_id: input.workflow.id,
+    workspace_id: input.workflow.workspace_id,
+    created_by_user_id: input.userId,
+    role: "user",
+    message: input.userMessage,
+    metadata: {
+      source: "compose",
+      mode: input.mode,
+    },
+  });
+
+  const assistantWrite = await appendWorkflowChatMessage(supabase, {
+    thread_id: input.threadId,
+    workflow_id: input.workflow.id,
+    workspace_id: input.workflow.workspace_id,
+    created_by_user_id: input.userId,
+    role: "assistant",
+    message: input.assistantMessage,
+    metadata: input.metadata,
+  });
+
+  return {
+    user_message_saved: Boolean(userWrite.messageId),
+    assistant_message_saved: Boolean(assistantWrite.messageId),
+    user_message_id: userWrite.messageId || undefined,
+    assistant_message_id: assistantWrite.messageId || undefined,
+    error:
+      userWrite.error?.message || assistantWrite.error?.message
+        ? `${userWrite.error?.message ?? ""} ${assistantWrite.error?.message ?? ""}`.trim()
+        : "",
+  };
+}
+
 export async function GET(_: NextRequest, context: RouteContext) {
   const { workflowId } = await Promise.resolve(context.params);
 
@@ -288,6 +358,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const body = asRecord(await request.json().catch(() => ({})));
   const message = asString(body.message);
   const mode = parseMode(body.mode);
+  const threadId = asString(body.threadId);
 
   if (!message) {
     return NextResponse.json({ error: "message is required." }, { status: 400 });
@@ -301,6 +372,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   if (workflow.status === "archived") {
     return NextResponse.json({ error: "Workflow is archived." }, { status: 409 });
+  }
+
+  let thread: { id: string } | null = null;
+
+  if (threadId) {
+    const threadLookup = await getWorkflowChatThread(supabase, workflow.id, threadId);
+    if (!threadLookup.thread) {
+      return NextResponse.json({ error: "threadId not found for workflow." }, { status: 404 });
+    }
+    thread = { id: threadLookup.thread.id };
   }
 
   let proposal: GeneratedWorkflowRevision;
@@ -318,6 +399,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const proposalValidation = validateWorkflowGraph(proposal.graph);
 
   if (mode === "preview") {
+    const chatWrite = thread
+      ? await persistComposeChat(supabase, {
+          workflow,
+          userId: user.id,
+          threadId: thread.id,
+          mode,
+          userMessage: message,
+          assistantMessage: buildAssistantMessage(mode, proposal, proposalValidation.valid),
+          metadata: {
+            source: "compose",
+            mode,
+            valid: proposalValidation.valid,
+            proposal: buildProposalSummary(proposal),
+            validation: proposalValidation,
+          },
+        })
+      : null;
+
     return NextResponse.json({
       mode,
       workflow: {
@@ -329,15 +428,37 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
       proposal: buildProposalSummary(proposal),
       validation: proposalValidation,
+      thread_id: thread?.id,
+      chat_write: chatWrite,
     });
   }
 
   if (!proposalValidation.valid) {
+    const chatWrite = thread
+      ? await persistComposeChat(supabase, {
+          workflow,
+          userId: user.id,
+          threadId: thread.id,
+          mode,
+          userMessage: message,
+          assistantMessage: buildAssistantMessage(mode, proposal, false),
+          metadata: {
+            source: "compose",
+            mode,
+            valid: false,
+            proposal: buildProposalSummary(proposal),
+            validation: proposalValidation,
+          },
+        })
+      : null;
+
     return NextResponse.json(
       {
         error: "Proposed workflow is invalid and cannot be applied.",
         proposal: buildProposalSummary(proposal),
         validation: proposalValidation,
+        thread_id: thread?.id,
+        chat_write: chatWrite,
       },
       { status: 422 },
     );
@@ -369,6 +490,26 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const revisionInsert = buildRevisionInsert(workflow, user.id, message, proposal);
   const revisionWrite = await insertRevision(supabase, revisionInsert);
 
+  const chatWrite = thread
+    ? await persistComposeChat(supabase, {
+        workflow,
+        userId: user.id,
+        threadId: thread.id,
+        mode,
+        userMessage: message,
+        assistantMessage: buildAssistantMessage(mode, proposal, true, revisionWrite.revisionId),
+        metadata: {
+          source: "compose",
+          mode,
+          valid: true,
+          applied: true,
+          revision_id: revisionWrite.revisionId,
+          proposal: buildProposalSummary(proposal),
+          validation: proposalValidation,
+        },
+      })
+    : null;
+
   return NextResponse.json({
     mode,
     applied: true,
@@ -378,5 +519,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     revision_saved: Boolean(revisionWrite.revisionId),
     revision_id: revisionWrite.revisionId || undefined,
     revision_error: revisionWrite.error || undefined,
+    thread_id: thread?.id,
+    chat_write: chatWrite,
   });
 }

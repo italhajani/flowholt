@@ -4,8 +4,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 96%**
-- Frontend/UI progress: **about 84%**
+- Backend core progress: **about 97%**
+- Frontend/UI progress: **about 85%**
 - Production hardening progress: **about 35%**
 
 ## Backend foundations
@@ -41,7 +41,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Remaining backend (medium priority)
 
-- [ ] Revision compare endpoint (before vs after graph diff summary)
+- [x] Revision compare endpoint (before vs after graph diff summary)
 - [ ] Batch scheduler claiming with stronger lease renewal
 - [ ] Webhook idempotency key support
 - [x] Draft run simulation endpoint (no external calls, dry-run validation)
@@ -49,6 +49,12 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Audit log table for sensitive actions (restore, delete, secret update)
 - [ ] Advanced trigger types (email, cron presets, external event bus)
 
+## Before full UI redesign
+
+- [ ] Pause for your design survey before visual redesign starts
+- [ ] Define final color system, spacing, typography, and editor shell rules
+- [ ] Redesign Studio layout to premium multi-panel editor inspired by modern workflow tools
+- [ ] Redesign dashboard, runs, integrations, and workflow library into one consistent product system
 ## Frontend to unlock premium experience
 
 - [x] Clean chat sidebar with reasoning timeline

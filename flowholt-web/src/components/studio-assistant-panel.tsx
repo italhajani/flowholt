@@ -59,6 +59,58 @@ type RevisionItem = {
   };
 };
 
+type WorkflowRevisionCompareResponse = {
+  revision: {
+    id: string;
+    workflow_id: string;
+    source: string;
+    message: string;
+    created_at: string;
+    before_name: string;
+    after_name: string;
+  };
+  comparison: {
+    before: {
+      name: string;
+      description: string;
+      node_count: number;
+      edge_count: number;
+    };
+    after: {
+      name: string;
+      description: string;
+      node_count: number;
+      edge_count: number;
+    };
+    flags: {
+      name_changed: boolean;
+      description_changed: boolean;
+    };
+    added_nodes: Array<{ id: string; label: string; type: string }>;
+    removed_nodes: Array<{ id: string; label: string; type: string }>;
+    changed_nodes: Array<{
+      id: string;
+      before_label: string;
+      after_label: string;
+      before_type: string;
+      after_type: string;
+      config_changed: boolean;
+    }>;
+    added_edges: Array<{ source: string; target: string; label: string; branch: string }>;
+    removed_edges: Array<{ source: string; target: string; label: string; branch: string }>;
+    summary_lines: string[];
+  };
+  change_summary?: {
+    reasoning?: string[];
+    changes?: Array<{
+      kind: string;
+      label: string;
+      node_type: string;
+      reason: string;
+    }>;
+  };
+};
+
 type ComposerHistoryItem = {
   at: string;
   mode: "preview" | "apply";
@@ -189,6 +241,9 @@ export function StudioAssistantPanel({
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
   const [history, setHistory] = useState<ComposerHistoryItem[]>([]);
+  const [compareRevisionId, setCompareRevisionId] = useState("");
+  const [compareData, setCompareData] = useState<WorkflowRevisionCompareResponse | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
   const [composerLoading, setComposerLoading] = useState(true);
   const [revisionsLoading, setRevisionsLoading] = useState(true);
   const [threadsLoading, setThreadsLoading] = useState(true);
@@ -252,7 +307,12 @@ export function StudioAssistantPanel({
       const response = await fetch(`/api/workflows/${workflowId}/revisions?limit=8`, { cache: "no-store" });
       const payload = (await response.json().catch(() => ({}))) as { revisions?: RevisionItem[] };
       if (response.ok) {
-        setRevisions(Array.isArray(payload.revisions) ? payload.revisions : []);
+        const nextRevisions = Array.isArray(payload.revisions) ? payload.revisions : [];
+        setRevisions(nextRevisions);
+        if (compareRevisionId && !nextRevisions.some((revision) => revision.id === compareRevisionId)) {
+          setCompareRevisionId("");
+          setCompareData(null);
+        }
       }
     } finally {
       setRevisionsLoading(false);
@@ -361,6 +421,41 @@ export function StudioAssistantPanel({
       ...current,
     ]);
     return payload.thread.id;
+  }
+
+  async function loadRevisionCompare(revisionId: string) {
+    if (compareRevisionId === revisionId && compareData) {
+      setCompareRevisionId("");
+      setCompareData(null);
+      return;
+    }
+
+    setCompareRevisionId(revisionId);
+    setCompareLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(`/api/workflows/${workflowId}/revisions/${revisionId}/compare`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json().catch(() => ({}))) as WorkflowRevisionCompareResponse & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setCompareData(null);
+        setErrorMessage(readError(payload, "Unable to compare revision."));
+        return;
+      }
+
+      setCompareData(payload);
+    } catch (error) {
+      setCompareData(null);
+      setErrorMessage(error instanceof Error ? error.message : "Unable to compare revision.");
+    } finally {
+      setCompareLoading(false);
+    }
   }
 
   async function submitCompose(mode: "preview" | "apply") {
@@ -713,7 +808,7 @@ export function StudioAssistantPanel({
         <div>
           <p className="text-sm font-semibold text-stone-900">Revision history</p>
           <p className="mt-1 text-sm leading-6 text-stone-500">
-            Restore any recent workflow version with one click.
+            Compare what changed, then restore any recent workflow version with confidence.
           </p>
         </div>
 
@@ -721,29 +816,143 @@ export function StudioAssistantPanel({
           {revisionsLoading ? (
             <p className="text-sm text-stone-500">Loading revisions...</p>
           ) : revisions.length ? (
-            revisions.map((revision) => (
-              <div key={revision.id} className="rounded-2xl bg-stone-50 px-4 py-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-400">
-                      {revision.source} | {new Date(revision.created_at).toLocaleString()}
-                    </p>
-                    <p className="mt-2 text-sm text-stone-600">
-                      {revision.before_name} to {revision.after_name}
-                    </p>
+            revisions.map((revision) => {
+              const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
+              const comparison = isCompareOpen ? compareData?.comparison : null;
+              const compareSummary = isCompareOpen ? compareData?.change_summary : undefined;
+
+              return (
+                <div key={revision.id} className="rounded-2xl bg-stone-50 px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-400">
+                        {revision.source} | {new Date(revision.created_at).toLocaleString()}
+                      </p>
+                      <p className="mt-2 text-sm text-stone-600">
+                        {revision.before_name} to {revision.after_name}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void loadRevisionCompare(revision.id)}
+                        disabled={(compareLoading && compareRevisionId === revision.id) || workingMode !== null || isPending}
+                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {compareLoading && compareRevisionId === revision.id
+                          ? "Comparing..."
+                          : isCompareOpen
+                            ? "Hide compare"
+                            : "Compare"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void restoreRevision(revision.id, "restore")}
+                        disabled={workingMode !== null || isPending}
+                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {workingMode === "restore" ? "Restoring..." : "Restore"}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void restoreRevision(revision.id, "restore")}
-                    disabled={workingMode !== null || isPending}
-                    className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {workingMode === "restore" ? "Restoring..." : "Restore"}
-                  </button>
+
+                  {isCompareOpen && comparison ? (
+                    <div className="mt-4 rounded-[24px] border border-stone-900/10 bg-white/85 p-4">
+                      <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                        <span className="rounded-full bg-stone-100 px-3 py-1">
+                          {comparison.before.node_count} nodes before
+                        </span>
+                        <span className="rounded-full bg-stone-100 px-3 py-1">
+                          {comparison.after.node_count} nodes after
+                        </span>
+                        <span className="rounded-full bg-stone-100 px-3 py-1">
+                          {comparison.before.edge_count} edges before
+                        </span>
+                        <span className="rounded-full bg-stone-100 px-3 py-1">
+                          {comparison.after.edge_count} edges after
+                        </span>
+                      </div>
+
+                      <div className="mt-4 space-y-2 text-sm leading-6 text-stone-700">
+                        {comparison.summary_lines.map((line, index) => (
+                          <p key={`${revision.id}-summary-${index}`}>{line}</p>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Added nodes</p>
+                          <div className="mt-3 space-y-2 text-sm text-stone-600">
+                            {comparison.added_nodes.length ? (
+                              comparison.added_nodes.slice(0, 6).map((node) => (
+                                <p key={`${revision.id}-added-${node.id}`}>
+                                  {node.label} | {node.type}
+                                </p>
+                              ))
+                            ) : (
+                              <p>No new nodes.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Updated nodes</p>
+                          <div className="mt-3 space-y-2 text-sm text-stone-600">
+                            {comparison.changed_nodes.length ? (
+                              comparison.changed_nodes.slice(0, 6).map((node) => (
+                                <p key={`${revision.id}-changed-${node.id}`}>
+                                  {node.before_label} to {node.after_label}
+                                  {node.config_changed ? " | settings changed" : ""}
+                                </p>
+                              ))
+                            ) : (
+                              <p>No existing nodes were updated.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Removed nodes</p>
+                          <div className="mt-3 space-y-2 text-sm text-stone-600">
+                            {comparison.removed_nodes.length ? (
+                              comparison.removed_nodes.slice(0, 6).map((node) => (
+                                <p key={`${revision.id}-removed-${node.id}`}>
+                                  {node.label} | {node.type}
+                                </p>
+                              ))
+                            ) : (
+                              <p>No nodes were removed.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Connection changes</p>
+                          <div className="mt-3 space-y-2 text-sm text-stone-600">
+                            <p>Added: {comparison.added_edges.length}</p>
+                            <p>Removed: {comparison.removed_edges.length}</p>
+                            {comparison.flags.name_changed ? <p>Name updated.</p> : null}
+                            {comparison.flags.description_changed ? <p>Description updated.</p> : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {compareSummary?.reasoning?.length ? (
+                        <div className="mt-4 rounded-2xl bg-[#f6f1ea] px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Assistant reasoning</p>
+                          <div className="mt-3 space-y-2 text-sm text-stone-600">
+                            {compareSummary.reasoning.slice(0, 4).map((item, index) => (
+                              <p key={`${revision.id}-reasoning-${index}`}>{item}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-sm text-stone-500">No revisions yet. Applying assistant changes will start filling this history.</p>
           )}

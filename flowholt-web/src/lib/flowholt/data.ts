@@ -1,3 +1,4 @@
+import { getWorkspaceState, resolveWorkspaceRole } from "@/lib/flowholt/workspace-context";
 import { createClient } from "@/lib/supabase/server";
 import type {
   DashboardSnapshot,
@@ -11,7 +12,8 @@ import type {
   WorkflowRunListItem,
   WorkflowRunRecord,
   WorkflowScheduleRecord,
-  WorkspaceRecord,
+  WorkspaceMembershipRecord,
+  WorkspaceSettingsSnapshot,
 } from "@/lib/flowholt/types";
 
 export const starterGraph: WorkflowGraph = {
@@ -84,30 +86,77 @@ function emptyIntegrationsSnapshot(): IntegrationsSnapshot {
   };
 }
 
-async function getWorkspaceState() {
-  const supabase = await createClient();
-  const { data: workspaces, error } = await supabase
-    .from("workspaces")
-    .select("id, name, slug, description, created_at, updated_at")
-    .order("created_at", { ascending: true });
+function emptyWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
+  return {
+    schemaReady: false,
+    rbacReady: false,
+    workspaces: [],
+    activeWorkspace: null,
+    currentUserId: null,
+    currentUserRole: null,
+    canManageMembers: false,
+    members: [],
+    teamSize: 0,
+  };
+}
 
-  if (error) {
-    return {
-      schemaReady: false,
-      workspaces: [] as WorkspaceRecord[],
-      activeWorkspace: null as WorkspaceRecord | null,
-      supabase,
-    };
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asMembershipRole(value: unknown): WorkspaceMembershipRecord["role"] {
+  return value === "owner" || value === "admin" || value === "member" ? value : "member";
+}
+
+function asMembershipStatus(value: unknown): WorkspaceMembershipRecord["status"] {
+  return value === "revoked" ? "revoked" : "active";
+}
+
+function toWorkspaceMembershipRecord(value: unknown): WorkspaceMembershipRecord {
+  const row = asRecord(value);
+  return {
+    id: typeof row.id === "string" ? row.id : crypto.randomUUID(),
+    workspace_id: typeof row.workspace_id === "string" ? row.workspace_id : "",
+    user_id: typeof row.user_id === "string" ? row.user_id : "",
+    role: asMembershipRole(row.role),
+    status: asMembershipStatus(row.status),
+    created_at: typeof row.created_at === "string" ? row.created_at : new Date(0).toISOString(),
+    updated_at: typeof row.updated_at === "string" ? row.updated_at : new Date(0).toISOString(),
+  };
+}
+function membershipRank(role: WorkspaceMembershipRecord["role"]) {
+  if (role === "owner") {
+    return 3;
+  }
+  if (role === "admin") {
+    return 2;
+  }
+  return 1;
+}
+
+function ensureOwnerMembership(
+  memberships: WorkspaceMembershipRecord[],
+  workspaceId: string,
+  ownerUserId: string,
+): WorkspaceMembershipRecord[] {
+  if (memberships.some((membership) => membership.user_id === ownerUserId)) {
+    return memberships;
   }
 
-  const workspaceList = (workspaces ?? []) as WorkspaceRecord[];
-
-  return {
-    schemaReady: true,
-    workspaces: workspaceList,
-    activeWorkspace: workspaceList[0] ?? null,
-    supabase,
-  };
+  return [
+    {
+      id: `owner-${workspaceId}`,
+      workspace_id: workspaceId,
+      user_id: ownerUserId,
+      role: "owner",
+      status: "active",
+      created_at: new Date(0).toISOString(),
+      updated_at: new Date(0).toISOString(),
+    },
+    ...memberships,
+  ];
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
@@ -196,11 +245,9 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const recentWorkflows = (workflows ?? []) as WorkflowRecord[];
   const recentRuns = (runs ?? []) as WorkflowRunRecord[];
   const succeededRuns = recentRuns.filter((run) => run.status === "succeeded").length;
-  const successRate = recentRuns.length
-    ? Math.round((succeededRuns / recentRuns.length) * 100)
-    : 0;
-  const usageRunRows = ((usageRuns ?? []) as Array<{ status: string }>);
-  const usageNodeRows = ((nodeExecutions ?? []) as Array<{ token_estimate: number | null }>);
+  const successRate = recentRuns.length ? Math.round((succeededRuns / recentRuns.length) * 100) : 0;
+  const usageRunRows = (usageRuns ?? []) as Array<{ status: string }>;
+  const usageNodeRows = (nodeExecutions ?? []) as Array<{ token_estimate: number | null }>;
 
   return {
     schemaReady: true,
@@ -379,6 +426,90 @@ export async function getIntegrationsSnapshot(): Promise<IntegrationsSnapshot> {
   };
 }
 
+export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsSnapshot> {
+  const workspaceState = await getWorkspaceState();
+
+  if (!workspaceState.schemaReady) {
+    return emptyWorkspaceSettingsSnapshot();
+  }
+
+  if (!workspaceState.activeWorkspace) {
+    return {
+      ...emptyWorkspaceSettingsSnapshot(),
+      schemaReady: true,
+      rbacReady: true,
+      workspaces: workspaceState.workspaces,
+      currentUserId: workspaceState.currentUserId,
+    };
+  }
+
+  const { data, error } = await workspaceState.supabase
+    .from("workspace_memberships")
+    .select("id, workspace_id, user_id, role, status, created_at, updated_at")
+    .eq("workspace_id", workspaceState.activeWorkspace.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    const currentUserRole: WorkspaceMembershipRecord["role"] | null =
+      workspaceState.activeWorkspace.owner_user_id === workspaceState.currentUserId ? "owner" : null;
+
+    return {
+      schemaReady: true,
+      rbacReady: false,
+      workspaces: workspaceState.workspaces,
+      activeWorkspace: workspaceState.activeWorkspace,
+      currentUserId: workspaceState.currentUserId,
+      currentUserRole,
+      canManageMembers: false,
+      members: currentUserRole === "owner"
+        ? ensureOwnerMembership([], workspaceState.activeWorkspace.id, workspaceState.activeWorkspace.owner_user_id)
+        : [],
+      teamSize: currentUserRole === "owner" ? 1 : 0,
+    };
+  }
+
+  const memberships = ensureOwnerMembership(
+    (data ?? [])
+      .map((membership) => toWorkspaceMembershipRecord(membership))
+      .filter((membership) => membership.status === "active"),
+    workspaceState.activeWorkspace.id,
+    workspaceState.activeWorkspace.owner_user_id,
+  ).sort((left, right) => {
+    const roleDiff = membershipRank(right.role) - membershipRank(left.role);
+    if (roleDiff !== 0) {
+      return roleDiff;
+    }
+
+    if (left.user_id === workspaceState.currentUserId) {
+      return -1;
+    }
+    if (right.user_id === workspaceState.currentUserId) {
+      return 1;
+    }
+
+    return left.created_at.localeCompare(right.created_at);
+  });
+
+  const currentUserRole = resolveWorkspaceRole(
+    workspaceState.activeWorkspace,
+    workspaceState.currentUserId,
+    memberships,
+  );
+
+  return {
+    schemaReady: true,
+    rbacReady: true,
+    workspaces: workspaceState.workspaces,
+    activeWorkspace: workspaceState.activeWorkspace,
+    currentUserId: workspaceState.currentUserId,
+    currentUserRole,
+    canManageMembers: currentUserRole === "owner" || currentUserRole === "admin",
+    members: memberships,
+    teamSize: memberships.length,
+  };
+}
+
 export async function getWorkflowForStudio(workflowId: string) {
   if (workflowId === demoWorkflow.id) {
     return demoWorkflow;
@@ -420,6 +551,3 @@ export async function getWorkflowSchedules(workflowId: string) {
 export function getDemoWorkflow() {
   return demoWorkflow;
 }
-
-
-

@@ -4,8 +4,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 97%**
-- Frontend/UI progress: **about 85%**
+- Backend core progress: **about 98%**
+- Frontend/UI progress: **about 86%**
 - Production hardening progress: **about 35%**
 
 ## Backend foundations
@@ -33,7 +33,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Real-time run streaming (SSE/WebSocket for node-by-node updates)
 - [x] Chat session storage for composer sidebar (threads/messages tables)
 - [x] Node-level execution metrics (duration, token estimate, error class)
-- [ ] Multi-workspace membership and role-based access (owner/admin/member)
+- [x] Multi-workspace membership and role-based access (owner/admin/member)
 - [ ] Secret rotation flow (replace integration secrets safely)
 - [ ] Rate limiting and abuse guardrails on public endpoints
 - [ ] Usage and billing counters (runs, tokens, tool calls, workspace limits)
@@ -60,6 +60,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Clean chat sidebar with reasoning timeline
 - [x] Composer controls in Studio: Preview, Apply, Undo
 - [x] Revisions panel with one-click restore and compare view
+- [x] Workspace switcher with active workspace state
 - [x] Live run monitor page with streamed logs/status
 - [x] Live node timeline with duration and token estimates
 - [x] Schedule builder UI (no API manual calls)

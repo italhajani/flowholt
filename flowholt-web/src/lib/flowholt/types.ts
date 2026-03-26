@@ -31,11 +31,24 @@ export type WorkflowGraph = {
   edges: WorkflowEdge[];
 };
 
+export type WorkspaceMembershipRole = "owner" | "admin" | "member";
+
 export type WorkspaceRecord = {
   id: string;
+  owner_user_id: string;
   name: string;
   slug: string;
   description: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkspaceMembershipRecord = {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  role: WorkspaceMembershipRole;
+  status: "active" | "revoked";
   created_at: string;
   updated_at: string;
 };
@@ -201,3 +214,14 @@ export type IntegrationsSnapshot = {
   integrations: IntegrationConnectionRecord[];
 };
 
+export type WorkspaceSettingsSnapshot = {
+  schemaReady: boolean;
+  rbacReady: boolean;
+  workspaces: WorkspaceRecord[];
+  activeWorkspace: WorkspaceRecord | null;
+  currentUserId: string | null;
+  currentUserRole: WorkspaceMembershipRole | null;
+  canManageMembers: boolean;
+  members: WorkspaceMembershipRecord[];
+  teamSize: number;
+};

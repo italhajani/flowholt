@@ -2,8 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 import { starterGraph } from "@/lib/flowholt/data";
+import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/flowholt/workspace-context";
 import { createClient } from "@/lib/supabase/server";
 
 function slugify(value: string) {
@@ -30,19 +32,32 @@ export async function createWorkspace(formData: FormData) {
   const slugBase = slugify(name) || "workspace";
   const slug = `${slugBase}-${Date.now().toString().slice(-6)}`;
 
-  const { error } = await supabase.from("workspaces").insert({
-    owner_user_id: user.id,
-    name,
-    slug,
-    description: "Primary FlowHolt workspace",
-  });
+  const { data, error } = await supabase
+    .from("workspaces")
+    .insert({
+      owner_user_id: user.id,
+      name,
+      slug,
+      description: "Primary FlowHolt workspace",
+    })
+    .select("id")
+    .single();
 
-  if (error) {
-    redirect(`/app/dashboard?error=${encodeURIComponent(error.message)}`);
+  if (error || !data) {
+    redirect(`/app/dashboard?error=${encodeURIComponent(error?.message ?? "Unable to create workspace")}`);
   }
+
+  const cookieStore = await cookies();
+  cookieStore.set(ACTIVE_WORKSPACE_COOKIE, data.id, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+  });
 
   revalidatePath("/app/dashboard");
   revalidatePath("/app/workflows");
+  revalidatePath("/app/settings");
   redirect("/app/dashboard?message=Workspace created");
 }
 

@@ -25,6 +25,21 @@ type ComposerHistoryItem = {
   };
 };
 
+type WorkflowRevisionInsert = {
+  workflow_id: string;
+  workspace_id: string;
+  created_by_user_id: string;
+  source: "compose_apply" | "restore" | "manual" | "api";
+  message: string;
+  before_name: string;
+  before_description: string;
+  before_graph: Record<string, unknown>;
+  after_name: string;
+  after_description: string;
+  after_graph: Record<string, unknown>;
+  change_summary: Record<string, unknown>;
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -136,6 +151,53 @@ function withComposerSettings(
       },
     },
     composer_history: [...history, item].slice(-25),
+  };
+}
+
+function buildRevisionInsert(
+  workflow: WorkflowRecord,
+  userId: string,
+  message: string,
+  proposal: GeneratedWorkflowRevision,
+): WorkflowRevisionInsert {
+  return {
+    workflow_id: workflow.id,
+    workspace_id: workflow.workspace_id,
+    created_by_user_id: userId,
+    source: "compose_apply",
+    message,
+    before_name: workflow.name,
+    before_description: workflow.description,
+    before_graph: workflow.graph as unknown as Record<string, unknown>,
+    after_name: proposal.name,
+    after_description: proposal.description,
+    after_graph: proposal.graph as unknown as Record<string, unknown>,
+    change_summary: {
+      mode: "apply",
+      reasoning: proposal.reasoning,
+      changes: proposal.changes,
+      generation: proposal.generation,
+      summary: {
+        node_count: proposal.graph.nodes.length,
+        edge_count: proposal.graph.edges.length,
+      },
+    },
+  };
+}
+
+async function insertRevision(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  revision: WorkflowRevisionInsert,
+) {
+  const { data, error } = await supabase
+    .from("workflow_revisions")
+    .insert(revision)
+    .select("id")
+    .maybeSingle();
+
+  return {
+    revisionId: data?.id ? String(data.id) : "",
+    error: error?.message ?? "",
   };
 }
 
@@ -284,10 +346,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
+  const revisionInsert = buildRevisionInsert(workflow, user.id, message, proposal);
+  const revisionWrite = await insertRevision(supabase, revisionInsert);
+
   return NextResponse.json({
     mode,
     applied: true,
     workflow: updated,
     proposal: buildProposalSummary(proposal),
+    revision_saved: Boolean(revisionWrite.revisionId),
+    revision_id: revisionWrite.revisionId || undefined,
+    revision_error: revisionWrite.error || undefined,
   });
 }

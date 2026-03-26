@@ -4,6 +4,7 @@ import {
   executeWorkflowRun,
   WorkflowExecutionError,
 } from "@/lib/flowholt/workflow-runner";
+import { assertWorkspaceCanEnqueueRun } from "@/lib/flowholt/usage-limits";
 import type { WorkflowRecord, WorkflowRunJobRecord } from "@/lib/flowholt/types";
 
 type RunJobRow = WorkflowRunJobRecord;
@@ -113,6 +114,8 @@ export async function enqueueWorkflowRunJob({
   maxAttempts = 3,
   availableAt,
 }: EnqueueWorkflowRunJobInput): Promise<WorkflowRunJobRecord> {
+  await assertWorkspaceCanEnqueueRun(supabase, workflow.workspace_id);
+
   const insertPayload: Record<string, unknown> = {
     workflow_id: workflow.id,
     workspace_id: workflow.workspace_id,

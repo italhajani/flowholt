@@ -7,6 +7,7 @@ import {
   updateWorkspaceMemberRole,
 } from "@/app/app/settings/actions";
 import { getWorkspaceSettingsSnapshot } from "@/lib/flowholt/data";
+import type { UsageCounter } from "@/lib/flowholt/types";
 import { assessPlatformReadiness } from "@/lib/platform/readiness";
 
 type SettingsPageProps = {
@@ -39,6 +40,16 @@ function shortUserLabel(userId: string, currentUserId: string | null) {
   }
 
   return `${userId.slice(0, 8)}...${userId.slice(-4)}`;
+}
+
+function counterTone(level: UsageCounter["level"]) {
+  if (level === "blocked") {
+    return "bg-[#f7ede2] text-amber-950";
+  }
+  if (level === "warn") {
+    return "bg-[#eef4ef] text-emerald-900";
+  }
+  return "bg-white/80 text-stone-700";
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -111,6 +122,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                       <span className="rounded-full bg-stone-100 px-3 py-1">
                         team size: {snapshot.teamSize}
                       </span>
+                      {snapshot.limits ? (
+                        <span className="rounded-full bg-stone-100 px-3 py-1">
+                          plan: {snapshot.limits.planName}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
@@ -145,6 +161,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             >
               {snapshot.activeWorkspace ? (
                 <div className="space-y-4">
+                  {snapshot.limits ? (
+                    <div className={`rounded-2xl px-4 py-3 text-sm ${counterTone(snapshot.limits.members.level)}`}>
+                      Team seats used: {snapshot.limits.members.used} / {snapshot.limits.members.limit}
+                    </div>
+                  ) : null}
+
                   <div className="space-y-3">
                     {snapshot.members.length ? (
                       snapshot.members.map((member) => (
@@ -245,6 +267,38 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </div>
 
           <div className="space-y-5">
+            {snapshot.limits ? (
+              <SurfaceCard
+                title="Plan and usage"
+                description="This is the first billing-style workspace summary for FlowHolt."
+                tone={snapshot.limits.runsMonthly.level === "blocked" || snapshot.limits.tokensMonthly.level === "blocked" ? "sand" : "default"}
+              >
+                <div className="space-y-3 text-sm leading-6 text-stone-700">
+                  <div className="rounded-2xl bg-white/80 px-4 py-3">
+                    {snapshot.limits.planName} plan | {snapshot.limits.periodLabel}
+                  </div>
+                  <div className={`rounded-2xl px-4 py-3 ${counterTone(snapshot.limits.runsMonthly.level)}`}>
+                    Runs: {snapshot.limits.runsMonthly.used} / {snapshot.limits.runsMonthly.limit}
+                  </div>
+                  <div className={`rounded-2xl px-4 py-3 ${counterTone(snapshot.limits.tokensMonthly.level)}`}>
+                    Tokens: {snapshot.limits.tokensMonthly.used} / {snapshot.limits.tokensMonthly.limit}
+                  </div>
+                  <div className={`rounded-2xl px-4 py-3 ${counterTone(snapshot.limits.activeWorkflows.level)}`}>
+                    Active workflows: {snapshot.limits.activeWorkflows.used} / {snapshot.limits.activeWorkflows.limit}
+                  </div>
+                  <div className={`rounded-2xl px-4 py-3 ${counterTone(snapshot.limits.members.level)}`}>
+                    Members: {snapshot.limits.members.used} / {snapshot.limits.members.limit}
+                  </div>
+                  <div className={`rounded-2xl px-4 py-3 ${counterTone(snapshot.limits.schedules.level)}`}>
+                    Schedules: {snapshot.limits.schedules.used} / {snapshot.limits.schedules.limit}
+                  </div>
+                  <div className="rounded-2xl bg-white/80 px-4 py-3">
+                    Tool calls this month: {snapshot.limits.toolCallsMonthlyCount}
+                  </div>
+                </div>
+              </SurfaceCard>
+            ) : null}
+
             <SurfaceCard
               title="Permission levels"
               description="A simple explanation of what each workspace role is for."

@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export type WorkflowNodeType =
   | "trigger"
   | "agent"
@@ -51,6 +53,41 @@ export type WorkspaceMembershipRecord = {
   status: "active" | "revoked";
   created_at: string;
   updated_at: string;
+};
+
+export type WorkspaceUsageLimitRecord = {
+  workspace_id: string;
+  plan_name: string;
+  monthly_run_limit: number;
+  monthly_token_limit: number;
+  active_workflow_limit: number;
+  member_limit: number;
+  schedule_limit: number;
+  warning_threshold_percent: number;
+  enforce_hard_limits: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UsageCounter = {
+  used: number;
+  limit: number;
+  remaining: number;
+  percent: number;
+  level: "ok" | "warn" | "blocked";
+};
+
+export type WorkspaceUsageStatus = {
+  planName: string;
+  enforceHardLimits: boolean;
+  warningThresholdPercent: number;
+  periodLabel: string;
+  runsMonthly: UsageCounter;
+  tokensMonthly: UsageCounter;
+  activeWorkflows: UsageCounter;
+  members: UsageCounter;
+  schedules: UsageCounter;
+  toolCallsMonthlyCount: number;
 };
 
 export type IntegrationProvider = "groq" | "http" | "webhook";
@@ -161,6 +198,10 @@ export type DashboardUsageSnapshot = {
   runsLast7Days: number;
   failedRunsLast7Days: number;
   tokenEstimateLast7Days: number;
+  toolCallsThisMonth: number;
+  planName: string;
+  monthlyRunRemaining: number;
+  monthlyTokenRemaining: number;
 };
 
 export type DashboardSnapshot = {
@@ -173,6 +214,7 @@ export type DashboardSnapshot = {
   runCount: number;
   successRate: number;
   usage: DashboardUsageSnapshot;
+  limits: WorkspaceUsageStatus | null;
 };
 
 export type WorkflowLibrarySnapshot = {
@@ -224,4 +266,10 @@ export type WorkspaceSettingsSnapshot = {
   canManageMembers: boolean;
   members: WorkspaceMembershipRecord[];
   teamSize: number;
+  limits: WorkspaceUsageStatus | null;
+};
+
+export type UsageLimitContext = {
+  supabase: SupabaseClient;
+  workspaceId: string;
 };

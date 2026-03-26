@@ -5,6 +5,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/flowholt/workspace-context";
+import {
+  assertWorkspaceCanAddMember,
+  getWorkspaceUsageErrorMessage,
+} from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
 
 function normalizeRole(value: FormDataEntryValue | null): "owner" | "admin" | "member" {
@@ -77,6 +81,13 @@ export async function addWorkspaceMember(formData: FormData) {
   const workspaceId = workspaceIdValue;
   const userId = userIdValue.trim();
   const supabase = await createClient();
+
+  try {
+    await assertWorkspaceCanAddMember(supabase, workspaceId);
+  } catch (error) {
+    redirectWithMessage("error", getWorkspaceUsageErrorMessage(error, "Unable to add teammate."));
+  }
+
   const { error } = await supabase.from("workspace_memberships").insert({
     workspace_id: workspaceId,
     user_id: userId,

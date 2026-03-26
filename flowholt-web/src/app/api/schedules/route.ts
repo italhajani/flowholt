@@ -1,5 +1,10 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
+import {
+  assertWorkspaceCanCreateSchedule,
+  getWorkspaceUsageErrorMessage,
+  isWorkspaceUsageLimitError,
+} from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -98,6 +103,16 @@ export async function POST(request: NextRequest) {
 
   if (workflowError || !workflow) {
     return NextResponse.json({ error: "Workflow not found." }, { status: 404 });
+  }
+
+  try {
+    await assertWorkspaceCanCreateSchedule(supabase, workflow.workspace_id);
+  } catch (error) {
+    const status = isWorkspaceUsageLimitError(error) ? 409 : 400;
+    return NextResponse.json(
+      { error: getWorkspaceUsageErrorMessage(error, "Unable to create schedule.") },
+      { status },
+    );
   }
 
   const nowIso = new Date().toISOString();

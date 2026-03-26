@@ -1,4 +1,5 @@
 import { getWorkspaceState, resolveWorkspaceRole } from "@/lib/flowholt/workspace-context";
+import { getWorkspaceUsageStatus } from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
 import type {
   DashboardSnapshot,
@@ -64,7 +65,12 @@ function emptySnapshot(): DashboardSnapshot {
       runsLast7Days: 0,
       failedRunsLast7Days: 0,
       tokenEstimateLast7Days: 0,
+      toolCallsThisMonth: 0,
+      planName: "starter",
+      monthlyRunRemaining: 0,
+      monthlyTokenRemaining: 0,
     },
+    limits: null,
   };
 }
 
@@ -97,6 +103,7 @@ function emptyWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
     canManageMembers: false,
     members: [],
     teamSize: 0,
+    limits: null,
   };
 }
 
@@ -126,6 +133,7 @@ function toWorkspaceMembershipRecord(value: unknown): WorkspaceMembershipRecord 
     updated_at: typeof row.updated_at === "string" ? row.updated_at : new Date(0).toISOString(),
   };
 }
+
 function membershipRank(role: WorkspaceMembershipRecord["role"]) {
   if (role === "owner") {
     return 3;
@@ -186,6 +194,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     { data: nodeExecutions },
     { data: activeSchedules },
     { data: queuedJobs },
+    limits,
   ] = await Promise.all([
     workspaceState.supabase
       .from("workflows")
@@ -231,6 +240,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       .select("id")
       .eq("workspace_id", workspaceId)
       .in("status", ["queued", "processing"]),
+    getWorkspaceUsageStatus({ supabase: workspaceState.supabase, workspaceId }),
   ]);
 
   if (workflowsError || runsError) {
@@ -267,7 +277,12 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
         (total, row) => total + (Number(row.token_estimate) || 0),
         0,
       ),
+      toolCallsThisMonth: limits?.toolCallsMonthlyCount ?? 0,
+      planName: limits?.planName ?? "starter",
+      monthlyRunRemaining: limits?.runsMonthly.remaining ?? 0,
+      monthlyTokenRemaining: limits?.tokensMonthly.remaining ?? 0,
     },
+    limits,
   };
 }
 
@@ -462,10 +477,16 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
       currentUserId: workspaceState.currentUserId,
       currentUserRole,
       canManageMembers: false,
-      members: currentUserRole === "owner"
-        ? ensureOwnerMembership([], workspaceState.activeWorkspace.id, workspaceState.activeWorkspace.owner_user_id)
-        : [],
+      members:
+        currentUserRole === "owner"
+          ? ensureOwnerMembership([], workspaceState.activeWorkspace.id, workspaceState.activeWorkspace.owner_user_id)
+          : [],
       teamSize: currentUserRole === "owner" ? 1 : 0,
+      limits: await getWorkspaceUsageStatus({
+        supabase: workspaceState.supabase,
+        workspaceId: workspaceState.activeWorkspace.id,
+        memberCountHint: currentUserRole === "owner" ? 1 : 0,
+      }),
     };
   }
 
@@ -507,6 +528,11 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
     canManageMembers: currentUserRole === "owner" || currentUserRole === "admin",
     members: memberships,
     teamSize: memberships.length,
+    limits: await getWorkspaceUsageStatus({
+      supabase: workspaceState.supabase,
+      workspaceId: workspaceState.activeWorkspace.id,
+      memberCountHint: memberships.length,
+    }),
   };
 }
 

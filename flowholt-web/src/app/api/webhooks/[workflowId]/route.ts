@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
+import {
+  getWorkspaceUsageErrorMessage,
+  isWorkspaceUsageLimitError,
+} from "@/lib/flowholt/usage-limits";
 import type { WorkflowNode, WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -305,8 +309,9 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
       { status: 500 },
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Webhook run failed.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const status = isWorkspaceUsageLimitError(error) ? 409 : 500;
+    const message = getWorkspaceUsageErrorMessage(error, "Webhook run failed.");
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }
 

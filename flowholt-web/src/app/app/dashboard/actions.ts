@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
 import { starterGraph } from "@/lib/flowholt/data";
+import {
+  assertWorkspaceCanCreateWorkflow,
+  getWorkspaceUsageErrorMessage,
+} from "@/lib/flowholt/usage-limits";
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/flowholt/workspace-context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -75,6 +79,12 @@ export async function createStarterWorkflow(formData: FormData) {
 
   if (typeof workspaceId !== "string" || !workspaceId) {
     redirect("/app/dashboard?error=Missing workspace id");
+  }
+
+  try {
+    await assertWorkspaceCanCreateWorkflow(supabase, workspaceId);
+  } catch (error) {
+    redirect(`/app/dashboard?error=${encodeURIComponent(getWorkspaceUsageErrorMessage(error, "Unable to create workflow."))}`);
   }
 
   const { data, error } = await supabase

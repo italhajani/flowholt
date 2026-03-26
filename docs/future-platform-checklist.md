@@ -4,9 +4,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Current status snapshot
 
-- Backend core progress: **about 98%**
-- Frontend/UI progress: **about 86%**
-- Production hardening progress: **about 35%**
+- Backend core progress: **about 99%**
+- Frontend/UI progress: **about 87%**
+- Production hardening progress: **about 36%**
 
 ## Backend foundations
 
@@ -25,6 +25,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Durable run job queue table + worker endpoint
 - [x] Node-level execution metrics storage
 - [x] Usage snapshot aggregation (runs, tokens, schedules, queued jobs)
+- [x] Workspace usage limits foundation (`workspace_usage_limits` + enforcement helpers)
 
 ## Remaining backend (high priority)
 
@@ -34,9 +35,10 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Chat session storage for composer sidebar (threads/messages tables)
 - [x] Node-level execution metrics (duration, token estimate, error class)
 - [x] Multi-workspace membership and role-based access (owner/admin/member)
+- [x] First billing-style counters and workspace limits (runs, tokens, seats, schedules, tool-call count)
 - [ ] Secret rotation flow (replace integration secrets safely)
 - [ ] Rate limiting and abuse guardrails on public endpoints
-- [ ] Usage and billing counters (runs, tokens, tool calls, workspace limits)
+- [ ] Full billing engine (plan upgrades, invoices, payment hooks, usage overage rules)
 - [x] Export/import workflow package endpoint (JSON schema with versioning)
 
 ## Remaining backend (medium priority)
@@ -55,6 +57,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Define final color system, spacing, typography, and editor shell rules
 - [ ] Redesign Studio layout to premium multi-panel editor inspired by modern workflow tools
 - [ ] Redesign dashboard, runs, integrations, and workflow library into one consistent product system
+
 ## Frontend to unlock premium experience
 
 - [x] Clean chat sidebar with reasoning timeline
@@ -67,6 +70,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Human-readable node config forms (hide raw JSON by default)
 - [x] Integrations setup UI with inline connection tests
 - [x] Studio flow preview summary (human-readable simulation)
+- [x] Settings plan-and-usage card for workspace limits
 - [ ] Mobile-friendly responsive editor shell
 
 ## Production and reliability
@@ -86,7 +90,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
 - [ ] Phase 6: responsive polish and Studio refinement
-- [ ] Phase 7: RBAC, billing, monitoring, security hardening
+- [ ] Phase 7: secret safety, audit logs, rate limits, billing hardening, monitoring
 
 ## Definition of "finalized platform" (what done means)
 
@@ -94,9 +98,4 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can run, monitor, pause, and retry without touching JSON
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
-- [ ] Team can operate safely in production with metrics, alerts, and RBAC
-
-
-
-
-
+- [ ] Team can operate safely in production with metrics, alerts, RBAC, and usage controls

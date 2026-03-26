@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { parseWorkflowPackage } from "@/lib/flowholt/workflow-package";
+import {
+  assertWorkspaceCanCreateWorkflow,
+  getWorkspaceUsageErrorMessage,
+} from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
 
 export async function createBlankWorkflow(formData: FormData) {
@@ -20,6 +24,12 @@ export async function createBlankWorkflow(formData: FormData) {
 
   if (typeof workspaceId !== "string" || !workspaceId) {
     redirect("/app/workflows?error=Missing workspace id");
+  }
+
+  try {
+    await assertWorkspaceCanCreateWorkflow(supabase, workspaceId);
+  } catch (error) {
+    redirect(`/app/workflows?error=${encodeURIComponent(getWorkspaceUsageErrorMessage(error, "Unable to create workflow."))}`);
   }
 
   const { data, error } = await supabase
@@ -74,6 +84,12 @@ export async function importWorkflowPackage(formData: FormData) {
       redirect(`/app/workflows?error=${encodeURIComponent(message)}`);
     }
   })();
+
+  try {
+    await assertWorkspaceCanCreateWorkflow(supabase, workspaceId);
+  } catch (error) {
+    redirect(`/app/workflows?error=${encodeURIComponent(getWorkspaceUsageErrorMessage(error, "Unable to import workflow package."))}`);
+  }
 
   const importedSettings = {
     ...workflowPackage.workflow.settings,

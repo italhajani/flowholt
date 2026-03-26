@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { generateWorkflowDraft } from "@/lib/ai/workflow-generator";
+import {
+  assertWorkspaceCanCreateWorkflow,
+  getWorkspaceUsageErrorMessage,
+} from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
 
 function getValue(formData: FormData, key: string) {
@@ -32,6 +36,12 @@ export async function createWorkflowFromChat(formData: FormData) {
     redirect("/app/create?error=Please describe the task first");
   }
 
+  try {
+    await assertWorkspaceCanCreateWorkflow(supabase, workspaceId);
+  } catch (error) {
+    redirect(`/app/create?error=${encodeURIComponent(getWorkspaceUsageErrorMessage(error, "Unable to create workflow."))}&prompt=${encodeURIComponent(prompt)}`);
+  }
+
   const draft = await generateWorkflowDraft(prompt);
 
   const { data, error } = await supabase
@@ -53,7 +63,7 @@ export async function createWorkflowFromChat(formData: FormData) {
     .single();
 
   if (error || !data) {
-    redirect(`/app/create?error=${encodeURIComponent(error?.message ?? "Unable to create workflow from chat")}`);
+    redirect(`/app/create?error=${encodeURIComponent(error?.message ?? "Unable to create workflow from chat")}&prompt=${encodeURIComponent(prompt)}`);
   }
 
   revalidatePath("/app/create");

@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 92%**
-- Frontend/UI progress: **about 63%**
+- Frontend/UI progress: **about 68%**
 - Production hardening progress: **about 35%**
 
 ## Backend foundations
@@ -56,7 +56,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Live run monitor page with streamed logs/status
 - [x] Live node timeline with duration and token estimates
 - [ ] Schedule builder UI (no API manual calls)
-- [ ] Human-readable node config forms (hide raw JSON by default)
+- [x] Human-readable node config forms (hide raw JSON by default)
 - [x] Integrations setup UI with inline connection tests
 - [x] Studio flow preview summary (human-readable simulation)
 - [ ] Mobile-friendly responsive editor shell
@@ -76,8 +76,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 2: chat session storage, revisions, validation, simulation foundation
 - [x] Phase 3: durable queue table, node metrics, worker endpoint, timeline groundwork
 - [x] Phase 4: first premium Studio assistant controls and revision UX
-- [ ] Phase 5: schedule UI, human-friendly node editors, responsive polish
-- [ ] Phase 6: RBAC, billing, monitoring, security hardening
+- [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
+- [ ] Phase 6: schedule UI, responsive polish, and reasoning-first chat sidebar
+- [ ] Phase 7: RBAC, billing, monitoring, security hardening
 
 ## Definition of "finalized platform" (what done means)
 

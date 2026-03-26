@@ -23,6 +23,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 
 import type { WorkflowEdge, WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
+import { StudioNodeConfigForm } from "@/components/studio-node-config-form";
 
 type StudioCanvasProps = {
   initialGraph: WorkflowGraph;
@@ -146,23 +147,6 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
       return { result: "{{previous}}" };
     default:
       return {};
-  }
-}
-
-function configHint(nodeType: WorkflowNodeType) {
-  switch (nodeType) {
-    case "agent":
-      return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile"}';
-    case "tool":
-      return 'Example: {"method":"POST","url":"https://httpbin.org/post","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
-    case "condition":
-      return 'Example: {"value":"{{previous.status_code}}","equals":200,"branch_on_match":"true","branch_on_miss":"false"}';
-    case "output":
-      return 'Example: {"result":"{{nodes.writer.text}}"}';
-    case "trigger":
-      return 'Example: {"mode":"manual"}';
-    default:
-      return 'Use JSON settings for advanced behavior. Empty object is fine.';
   }
 }
 
@@ -807,24 +791,13 @@ function CanvasInner({
                     </p>
                   </div>
                 ) : null}
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Settings JSON
-                  </label>
-                  <textarea
-                    key={`${selectedNode.id}:${selectedNodeConnectionId}`}
-                    defaultValue={JSON.stringify(selectedNode.data?.config ?? {}, null, 2)}
-                    onChange={(event) => handleConfigDraftChange(event.target.value)}
-                    rows={9}
-                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 font-mono text-xs leading-6 outline-none"
-                  />
-                  <p className="mt-2 text-xs leading-5 text-stone-500">
-                    {configHint(selectedNode.data?.nodeType ?? "agent")}
-                  </p>
-                  {configError ? (
-                    <p className="mt-2 text-xs font-medium text-amber-700">{configError}</p>
-                  ) : null}
-                </div>
+                <StudioNodeConfigForm
+                  nodeType={selectedNode.data?.nodeType ?? "agent"}
+                  config={selectedNode.data?.config ?? {}}
+                  configError={configError}
+                  onConfigChange={updateSelectedNodeConfig}
+                  onDraftJsonChange={handleConfigDraftChange}
+                />
               </div>
             ) : (
               <p className="mt-5 text-sm leading-6 text-stone-500">
@@ -936,5 +909,8 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+
+
 
 

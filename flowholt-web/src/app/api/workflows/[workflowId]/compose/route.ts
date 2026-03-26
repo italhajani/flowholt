@@ -4,6 +4,7 @@ import {
   generateWorkflowRevision,
   type GeneratedWorkflowRevision,
 } from "@/lib/ai/workflow-generator";
+import { validateWorkflowGraph } from "@/lib/flowholt/graph-validator";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -159,8 +160,10 @@ function buildRevisionInsert(
   userId: string,
   message: string,
   proposal: GeneratedWorkflowRevision,
-): WorkflowRevisionInsert {
-  return {
+) {
+  const validation = validateWorkflowGraph(proposal.graph);
+
+  const revision: WorkflowRevisionInsert = {
     workflow_id: workflow.id,
     workspace_id: workflow.workspace_id,
     created_by_user_id: userId,
@@ -177,12 +180,15 @@ function buildRevisionInsert(
       reasoning: proposal.reasoning,
       changes: proposal.changes,
       generation: proposal.generation,
+      validation,
       summary: {
         node_count: proposal.graph.nodes.length,
         edge_count: proposal.graph.edges.length,
       },
     },
   };
+
+  return revision;
 }
 
 async function insertRevision(
@@ -309,6 +315,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: messageText }, { status: 500 });
   }
 
+  const proposalValidation = validateWorkflowGraph(proposal.graph);
+
   if (mode === "preview") {
     return NextResponse.json({
       mode,
@@ -320,7 +328,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
         updated_at: workflow.updated_at,
       },
       proposal: buildProposalSummary(proposal),
+      validation: proposalValidation,
     });
+  }
+
+  if (!proposalValidation.valid) {
+    return NextResponse.json(
+      {
+        error: "Proposed workflow is invalid and cannot be applied.",
+        proposal: buildProposalSummary(proposal),
+        validation: proposalValidation,
+      },
+      { status: 422 },
+    );
   }
 
   const nextSettings = withComposerSettings(workflow.settings, mode, message, proposal);
@@ -354,6 +374,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     applied: true,
     workflow: updated,
     proposal: buildProposalSummary(proposal),
+    validation: proposalValidation,
     revision_saved: Boolean(revisionWrite.revisionId),
     revision_id: revisionWrite.revisionId || undefined,
     revision_error: revisionWrite.error || undefined,

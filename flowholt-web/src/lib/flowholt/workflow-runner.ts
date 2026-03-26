@@ -1,6 +1,10 @@
-﻿import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { runWorkflowWithEngine, type EngineRunResponse } from "@/lib/flowholt/engine";
+import {
+  validateWorkflowGraph,
+  validationFailureMessage,
+} from "@/lib/flowholt/graph-validator";
 import type { WorkflowGraph, WorkflowNode, WorkflowRecord } from "@/lib/flowholt/types";
 
 type IntegrationConnectionRuntime = {
@@ -229,6 +233,11 @@ export async function executeWorkflowRun({
       connectionIds,
     );
     const resolvedGraph = resolveGraphWithConnections(workflow.graph, connectionsById);
+    const validationReport = validateWorkflowGraph(resolvedGraph);
+
+    if (!validationReport.valid) {
+      throw new Error(validationFailureMessage(validationReport));
+    }
 
     const result = await runWorkflowWithEngine({
       run_id: runId,

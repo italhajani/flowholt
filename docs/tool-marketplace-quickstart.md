@@ -6,7 +6,7 @@ Now FlowHolt has a shared marketplace/resources model that groups tools into wor
 
 ## What changed
 
-Studio now has a richer `Resources` panel on the right side.
+Studio now has a richer `Resources` panel on the right side, with a cleaner premium pack launcher layout.
 
 It shows categories like:
 
@@ -42,12 +42,13 @@ And now it can recognize vendor-style profile hints such as:
 
 ## Assistant sidebar update
 
-The Studio assistant sidebar now uses these packs too.
+The Studio assistant sidebar now uses these packs too, and the Resources panel can launch them directly.
 
-It shows `Suggested from your resources`, where you can:
+You can now:
 
-- click `Use idea` to drop a pack-based prompt into the composer
-- click `Preview from pack` to immediately ask FlowHolt to build a preview from that pack idea
+- click `Use idea` from the assistant or the Resources panel to prefill a pack-based prompt
+- click `Preview from pack` from the assistant or the Resources panel to immediately ask FlowHolt to build a preview from that pack idea
+- switch between `Overview`, `Workflow packs`, and `Provider packs` inside the Resources panel
 
 ## New pack-aware generation behavior
 
@@ -80,18 +81,19 @@ Later, when we redesign the full UI, this same shared marketplace model can powe
 
 1. Restart `flowholt-web`.
 2. Open `/app/studio/[workflowId]`.
-3. In the assistant sidebar, look for `Suggested from your resources`.
-4. Click `Preview from pack`.
-5. Review the proposed reasoning and planned graph changes.
-6. Open `/app/integrations` if you want to improve vendor/profile readiness.
-7. Refresh Studio and try another pack suggestion.
+3. In the right-side `Resources` panel, try `Overview`, `Workflow packs`, and `Provider packs`.
+4. Click `Preview from pack` on any ready workflow pack.
+5. Watch the assistant sidebar auto-open that pack idea and build a preview.
+6. Review the proposed reasoning and planned graph changes.
+7. Open `/app/integrations` if you want to improve vendor/profile readiness.
+8. Refresh Studio and try another pack suggestion.
 
 ## What you should notice
 
-- the right side now feels more like a real workflow platform catalog
+- the right side now feels more like a guided premium resources sidebar instead of a plain list
 - FlowHolt can explain which packs are ready in this workspace
 - vendor-aware hints now make the connection system feel less generic
-- the assistant can now use the same resource language to start building workflow proposals faster
+- resource packs can now launch assistant ideas directly from the sidebar
 - pack-based previews now steer the generated graph more intentionally toward the selected solution pattern
 - the planner also knows about these marketplace packs when generating workflow drafts
 - the resources model now starts bridging from low-level provider setup toward complete solution packs

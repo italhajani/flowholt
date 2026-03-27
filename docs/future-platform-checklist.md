@@ -5,9 +5,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 95%**
+- Frontend/UI progress: **about 96%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 97%**
+- Agent/tool architecture groundwork: **about 98%**
 
 ## Backend foundations
 
@@ -68,7 +68,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Vendor-aware profile detection for resources and integrations
 - [x] Resource-driven assistant composition hints from featured workflow packs
 - [x] Pack-aware workflow generation rules for featured resource packs
-- [ ] Premium resources sidebar redesign using this marketplace model
+- [x] Premium resources sidebar redesign using this marketplace model
 
 ## Before full UI redesign
 
@@ -103,6 +103,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Integrations page recommended packs card tied to Studio resources
 - [x] Vendor quick-start guidance for integration setup
 - [x] One-click assistant pack suggestions in Studio sidebar
+- [x] Resources sidebar quick actions that prefill or auto-preview pack-based workflow ideas
 
 ## Production and reliability
 
@@ -142,6 +143,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 15: add vendor-aware resource detection so packs feel closer to real products, not only generic providers
 - [x] Phase 16: turn featured resource packs into one-click assistant workflow suggestions
 - [x] Phase 17: make the generator follow selected resource-pack patterns more intentionally
+- [x] Phase 18: turn the resources panel into a cleaner premium pack launcher tied directly to the assistant
 
 ## Definition of "finalized platform" (what done means)
 

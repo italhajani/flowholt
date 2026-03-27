@@ -157,6 +157,9 @@ type StudioAssistantPanelProps = {
   workflowId: string;
   workflowName: string;
   initialPrompt?: string;
+  prefillMessage?: string;
+  autoPreviewResourceKitKey?: string;
+  clearAutoPreviewUrl?: string;
   resourceSuggestions?: ResourceSuggestion[];
 };
 
@@ -244,10 +247,13 @@ export function StudioAssistantPanel({
   workflowId,
   workflowName,
   initialPrompt = "",
+  prefillMessage = "",
+  autoPreviewResourceKitKey = "",
+  clearAutoPreviewUrl = "",
   resourceSuggestions = [],
 }: StudioAssistantPanelProps) {
   const router = useRouter();
-  const [message, setMessage] = useState(initialPrompt);
+  const [message, setMessage] = useState(prefillMessage || initialPrompt);
   const [threadId, setThreadId] = useState("");
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
@@ -265,6 +271,7 @@ export function StudioAssistantPanel({
   const [workingMode, setWorkingMode] = useState<"preview" | "apply" | "restore" | "undo" | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [autoPreviewState, setAutoPreviewState] = useState("");
   const [isPending, startTransition] = useTransition();
 
   async function loadComposerState() {
@@ -403,6 +410,12 @@ export function StudioAssistantPanel({
     void loadInitialSidebarState();
   }, [workflowId, workflowName]);
 
+  useEffect(() => {
+    if (prefillMessage.trim()) {
+      setMessage(prefillMessage.trim());
+    }
+  }, [prefillMessage]);
+
   async function ensureThreadId() {
     if (threadId) {
       return threadId;
@@ -476,7 +489,7 @@ export function StudioAssistantPanel({
     const trimmed = (overrideMessage ?? message).trim();
     if (!trimmed) {
       setErrorMessage("Write what you want the assistant to change first.");
-      return;
+      return false;
     }
 
     if (overrideMessage) {
@@ -533,8 +546,11 @@ export function StudioAssistantPanel({
           router.refresh();
         });
       }
+
+      return response.ok;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Assistant request failed.");
+      return false;
     } finally {
       setWorkingMode(null);
     }
@@ -543,6 +559,35 @@ export function StudioAssistantPanel({
   async function previewResourceSuggestion(suggestion: ResourceSuggestion) {
     await submitCompose("preview", suggestion.prompt, suggestion.kitKey);
   }
+
+  const runAutoPreview = useEffectEvent(async (nextMessage: string, nextKitKey: string) => {
+    const ok = await submitCompose("preview", nextMessage, nextKitKey);
+    if (ok && clearAutoPreviewUrl) {
+      router.replace(clearAutoPreviewUrl, { scroll: false });
+    }
+  });
+
+  useEffect(() => {
+    const trimmedPrefill = prefillMessage.trim();
+    const trimmedKit = autoPreviewResourceKitKey.trim();
+    const autoPreviewKey = trimmedPrefill && trimmedKit
+      ? `${workflowId}:${trimmedKit}:${trimmedPrefill}`
+      : "";
+
+    if (!autoPreviewKey || autoPreviewState === autoPreviewKey) {
+      return;
+    }
+
+    setAutoPreviewState(autoPreviewKey);
+
+    void runAutoPreview(trimmedPrefill, trimmedKit);
+  }, [
+    autoPreviewResourceKitKey,
+    autoPreviewState,
+    clearAutoPreviewUrl,
+    prefillMessage,
+    workflowId,
+  ]);
 
   async function restoreRevision(revisionId: string, mode: "restore" | "undo") {
     setWorkingMode(mode);
@@ -1073,5 +1118,6 @@ export function StudioAssistantPanel({
     </div>
   );
 }
+
 
 

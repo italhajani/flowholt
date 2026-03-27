@@ -33,6 +33,9 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const paramsState = searchParams ? await searchParams : {};
   const message = readMessage(paramsState.message);
   const error = readMessage(paramsState.error);
+  const assistantPrefill = readMessage(paramsState.assistant);
+  const activePackKey = readMessage(paramsState.kit);
+  const previewPack = readMessage(paramsState.previewPack) === "1";
   const settings = workflow.settings as Record<string, unknown>;
   const generation = settings?.generation as
     | { provider?: string; model?: string; notes?: string }
@@ -57,6 +60,9 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     config: row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {},
   }));
   const resourceSuggestions = buildToolMarketplaceComposerSuggestions(integrationOptions);
+  const clearAutoPreviewUrl = assistantPrefill && activePackKey
+    ? `/app/studio/${workflow.id}?assistant=${encodeURIComponent(assistantPrefill)}&kit=${encodeURIComponent(activePackKey)}`
+    : `/app/studio/${workflow.id}`;
 
   return (
     <AppShell
@@ -148,6 +154,9 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 workflowId={workflow.id}
                 workflowName={workflow.name}
                 initialPrompt={originalPrompt}
+                prefillMessage={assistantPrefill}
+                autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
+                clearAutoPreviewUrl={clearAutoPreviewUrl}
                 resourceSuggestions={resourceSuggestions}
               />
 
@@ -215,7 +224,12 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 description="Provider kits and workspace-ready resources for the future premium tools sidebar."
                 tone="default"
               >
-                <StudioResourcesPanel integrations={integrationOptions} />
+                <StudioResourcesPanel
+                  workflowId={workflow.id}
+                  activeKitKey={activePackKey}
+                  integrations={integrationOptions}
+                  resourceSuggestions={resourceSuggestions}
+                />
               </SurfaceCard>
 
               <SurfaceCard

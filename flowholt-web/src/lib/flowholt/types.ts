@@ -55,6 +55,18 @@ export type WorkspaceMembershipRecord = {
   updated_at: string;
 };
 
+export type WorkspaceAuditLogRecord = {
+  id: number;
+  workspace_id: string;
+  actor_user_id: string | null;
+  action: string;
+  target_type: string;
+  target_id: string;
+  summary: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
 export type WorkspaceUsageLimitRecord = {
   workspace_id: string;
   plan_name: string;
@@ -102,6 +114,8 @@ export type IntegrationConnectionRecord = {
   status: "draft" | "active" | "disabled";
   config: Record<string, unknown>;
   secrets: Record<string, unknown>;
+  secret_version?: number;
+  last_secret_rotation_at?: string | null;
   created_at: string;
   updated_at: string;
 };

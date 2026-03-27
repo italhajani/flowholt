@@ -6,6 +6,7 @@ import {
   setActiveWorkspace,
   updateWorkspaceMemberRole,
 } from "@/app/app/settings/actions";
+import { getWorkspaceAuditTrail } from "@/lib/flowholt/audit-trail";
 import { getWorkspaceSettingsSnapshot } from "@/lib/flowholt/data";
 import type { UsageCounter } from "@/lib/flowholt/types";
 import { assessPlatformReadiness } from "@/lib/platform/readiness";
@@ -52,9 +53,16 @@ function counterTone(level: UsageCounter["level"]) {
   return "bg-white/80 text-stone-700";
 }
 
+function prettyAction(action: string) {
+  return action.replace(/[._]/g, " ");
+}
+
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
   const readiness = await assessPlatformReadiness();
   const snapshot = await getWorkspaceSettingsSnapshot();
+  const auditTrail = snapshot.activeWorkspace
+    ? await getWorkspaceAuditTrail(snapshot.activeWorkspace.id)
+    : { auditReady: true, logs: [] };
   const params = searchParams ? await searchParams : {};
   const message = readMessage(params.message);
   const error = readMessage(params.error);
@@ -99,6 +107,19 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <div className="space-y-3 text-sm leading-6 text-stone-700">
               <p>Run `20260326_0007_workspace_memberships.sql` in a new Supabase SQL query.</p>
               <p>Do not replace your old queries. This is one new migration on top of the previous ones.</p>
+            </div>
+          </SurfaceCard>
+        ) : null}
+
+        {!auditTrail.auditReady && snapshot.activeWorkspace ? (
+          <SurfaceCard
+            title="Audit trail migration needed"
+            description="Security events are not ready in this database yet."
+            tone="sand"
+          >
+            <div className="space-y-3 text-sm leading-6 text-stone-700">
+              <p>Run `20260327_0011_audit_logs_and_secret_rotation.sql` in a new Supabase SQL query.</p>
+              <p>Then refresh Settings to see secret rotations, deletes, and restore history.</p>
             </div>
           </SurfaceCard>
         ) : null}
@@ -298,6 +319,38 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </div>
               </SurfaceCard>
             ) : null}
+
+            <SurfaceCard
+              title="Audit trail"
+              description="Sensitive workspace actions now leave a readable history here."
+              tone="sand"
+            >
+              {!auditTrail.auditReady ? (
+                <div className="rounded-2xl bg-white/80 px-4 py-4 text-sm leading-6 text-stone-600">
+                  Run `20260327_0011_audit_logs_and_secret_rotation.sql` to unlock audit history.
+                </div>
+              ) : auditTrail.logs.length ? (
+                <div className="space-y-3">
+                  {auditTrail.logs.map((entry) => (
+                    <div key={entry.id} className="rounded-2xl bg-white/80 px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-stone-900">{entry.summary || prettyAction(entry.action)}</p>
+                        <span className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                          {prettyAction(entry.action)}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs uppercase tracking-[0.16em] text-stone-400">
+                        {entry.actor_user_id ? shortUserLabel(entry.actor_user_id, snapshot.currentUserId) : "System"} | {new Date(entry.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-white/80 px-4 py-4 text-sm leading-6 text-stone-600">
+                  No security-sensitive actions have been logged yet. Rotate a secret, remove a connection, or restore a revision to see entries here.
+                </div>
+              )}
+            </SurfaceCard>
 
             <SurfaceCard
               title="Permission levels"

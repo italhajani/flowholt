@@ -1,4 +1,8 @@
-import { createIntegrationConnection, deleteIntegrationConnection } from "@/app/app/integrations/actions";
+import {
+  createIntegrationConnection,
+  deleteIntegrationConnection,
+  rotateIntegrationSecrets,
+} from "@/app/app/integrations/actions";
 import { AppShell } from "@/components/app-shell";
 import { IntegrationTestButton } from "@/components/integration-test-button";
 import { SurfaceCard } from "@/components/surface-card";
@@ -122,7 +126,7 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
 
           <SurfaceCard
             title="Saved connections"
-            description="These are now testable directly from the UI, so you can confirm credentials before using them in workflows."
+            description="Connections can now be tested, rotated, and tracked through the workspace audit trail."
           >
             <div className="grid gap-3">
               {snapshot.integrations.length ? (
@@ -166,8 +170,40 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
                           <p className="mt-2 text-sm text-stone-700">
                             {savedSecretKeys.length ? savedSecretKeys.join(", ") : "No secret fields filled yet"}
                           </p>
+                          <p className="mt-3 text-xs leading-5 text-stone-500">
+                            Secret values stay hidden here. Use the rotate form below when you need to replace them.
+                          </p>
                         </div>
                       </div>
+
+                      <form action={rotateIntegrationSecrets} className="mt-4 rounded-2xl bg-white px-4 py-4">
+                        <input type="hidden" name="connectionId" value={integration.id} />
+                        <div className="grid gap-3">
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-700">Rotate secrets JSON</label>
+                            <textarea
+                              name="secrets"
+                              rows={4}
+                              placeholder='{"api_key":"new-secret-here"}'
+                              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 font-mono text-xs leading-6 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-stone-700">Rotation note</label>
+                            <input
+                              name="note"
+                              placeholder="Example: rotated after provider key refresh"
+                              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            className="w-full rounded-full border border-stone-900/10 bg-white px-5 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-100"
+                          >
+                            Rotate secrets
+                          </button>
+                        </div>
+                      </form>
                     </div>
                   );
                 })

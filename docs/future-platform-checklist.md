@@ -5,8 +5,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 87%**
-- Production hardening progress: **about 36%**
+- Frontend/UI progress: **about 88%**
+- Production hardening progress: **about 41%**
 
 ## Backend foundations
 
@@ -26,6 +26,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Node-level execution metrics storage
 - [x] Usage snapshot aggregation (runs, tokens, schedules, queued jobs)
 - [x] Workspace usage limits foundation (`workspace_usage_limits` + enforcement helpers)
+- [x] Audit trail foundation for sensitive workspace actions
 
 ## Remaining backend (high priority)
 
@@ -36,7 +37,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Node-level execution metrics (duration, token estimate, error class)
 - [x] Multi-workspace membership and role-based access (owner/admin/member)
 - [x] First billing-style counters and workspace limits (runs, tokens, seats, schedules, tool-call count)
-- [ ] Secret rotation flow (replace integration secrets safely)
+- [x] Secret rotation flow (replace integration secrets safely)
 - [ ] Rate limiting and abuse guardrails on public endpoints
 - [ ] Full billing engine (plan upgrades, invoices, payment hooks, usage overage rules)
 - [x] Export/import workflow package endpoint (JSON schema with versioning)
@@ -48,7 +49,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] Webhook idempotency key support
 - [x] Draft run simulation endpoint (no external calls, dry-run validation)
 - [x] Connection test endpoint per provider
-- [ ] Audit log table for sensitive actions (restore, delete, secret update)
+- [x] Audit log table for sensitive actions (restore, delete, secret update)
 - [ ] Advanced trigger types (email, cron presets, external event bus)
 
 ## Before full UI redesign
@@ -71,6 +72,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Integrations setup UI with inline connection tests
 - [x] Studio flow preview summary (human-readable simulation)
 - [x] Settings plan-and-usage card for workspace limits
+- [x] Settings audit trail card for security events
 - [ ] Mobile-friendly responsive editor shell
 
 ## Production and reliability
@@ -90,7 +92,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
 - [ ] Phase 6: responsive polish and Studio refinement
-- [ ] Phase 7: secret safety, audit logs, rate limits, billing hardening, monitoring
+- [ ] Phase 7: rate limits, billing hardening, monitoring, and final security pass
 
 ## Definition of "finalized platform" (what done means)
 
@@ -98,4 +100,4 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can run, monitor, pause, and retry without touching JSON
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
-- [ ] Team can operate safely in production with metrics, alerts, RBAC, and usage controls
+- [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, and audit history

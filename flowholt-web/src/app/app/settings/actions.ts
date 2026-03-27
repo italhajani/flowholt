@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { recordWorkspaceAuditLog } from "@/lib/flowholt/audit";
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/flowholt/workspace-context";
 import {
   assertWorkspaceCanAddMember,
@@ -81,6 +82,13 @@ export async function addWorkspaceMember(formData: FormData) {
   const workspaceId = workspaceIdValue;
   const userId = userIdValue.trim();
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
 
   try {
     await assertWorkspaceCanAddMember(supabase, workspaceId);
@@ -88,16 +96,34 @@ export async function addWorkspaceMember(formData: FormData) {
     redirectWithMessage("error", getWorkspaceUsageErrorMessage(error, "Unable to add teammate."));
   }
 
-  const { error } = await supabase.from("workspace_memberships").insert({
-    workspace_id: workspaceId,
-    user_id: userId,
-    role,
-    status: "active",
-  });
+  const { data: membership, error } = await supabase
+    .from("workspace_memberships")
+    .insert({
+      workspace_id: workspaceId,
+      user_id: userId,
+      role,
+      status: "active",
+    })
+    .select("id, workspace_id, user_id, role")
+    .single();
 
-  if (error) {
-    redirectWithMessage("error", error.message);
+  if (error || !membership) {
+    redirectWithMessage("error", error?.message ?? "Unable to add teammate.");
   }
+
+  await recordWorkspaceAuditLog({
+    supabase,
+    workspaceId,
+    actorUserId: user.id,
+    action: "membership.added",
+    targetType: "workspace_membership",
+    targetId: membership.id,
+    summary: `Added ${userId} as ${role}`,
+    payload: {
+      member_user_id: membership.user_id,
+      role: membership.role,
+    },
+  });
 
   revalidateWorkspacePages();
   redirectWithMessage("message", "Team member added.");
@@ -113,6 +139,24 @@ export async function updateWorkspaceMemberRole(formData: FormData) {
 
   const membershipId = membershipIdValue;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: existing, error: lookupError } = await supabase
+    .from("workspace_memberships")
+    .select("id, workspace_id, user_id, role")
+    .eq("id", membershipId)
+    .maybeSingle();
+
+  if (lookupError || !existing) {
+    redirectWithMessage("error", lookupError?.message ?? "Membership not found.");
+  }
+
   const { error } = await supabase
     .from("workspace_memberships")
     .update({ role })
@@ -121,6 +165,21 @@ export async function updateWorkspaceMemberRole(formData: FormData) {
   if (error) {
     redirectWithMessage("error", error.message);
   }
+
+  await recordWorkspaceAuditLog({
+    supabase,
+    workspaceId: existing.workspace_id,
+    actorUserId: user.id,
+    action: "membership.role_updated",
+    targetType: "workspace_membership",
+    targetId: existing.id,
+    summary: `Changed ${existing.user_id} from ${existing.role} to ${role}`,
+    payload: {
+      member_user_id: existing.user_id,
+      before_role: existing.role,
+      after_role: role,
+    },
+  });
 
   revalidateWorkspacePages();
   redirectWithMessage("message", "Role updated.");
@@ -135,9 +194,17 @@ export async function removeWorkspaceMember(formData: FormData) {
 
   const membershipId = membershipIdValue;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   const { data: membership, error: lookupError } = await supabase
     .from("workspace_memberships")
-    .select("id, role")
+    .select("id, workspace_id, user_id, role")
     .eq("id", membershipId)
     .maybeSingle();
 
@@ -158,6 +225,20 @@ export async function removeWorkspaceMember(formData: FormData) {
   if (error) {
     redirectWithMessage("error", error.message);
   }
+
+  await recordWorkspaceAuditLog({
+    supabase,
+    workspaceId: membership.workspace_id,
+    actorUserId: user.id,
+    action: "membership.removed",
+    targetType: "workspace_membership",
+    targetId: membership.id,
+    summary: `Removed ${membership.user_id} from the workspace`,
+    payload: {
+      member_user_id: membership.user_id,
+      removed_role: membership.role,
+    },
+  });
 
   revalidateWorkspacePages();
   redirectWithMessage("message", "Team member removed.");

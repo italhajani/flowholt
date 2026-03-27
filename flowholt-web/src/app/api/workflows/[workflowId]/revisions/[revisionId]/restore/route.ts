@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { recordWorkspaceAuditLog } from "@/lib/flowholt/audit";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -132,6 +133,21 @@ export async function POST(_: NextRequest, context: RouteContext) {
     })
     .select("id")
     .maybeSingle();
+
+  await recordWorkspaceAuditLog({
+    supabase,
+    workspaceId: workflow.workspace_id,
+    actorUserId: user.id,
+    action: "workflow.revision_restored",
+    targetType: "workflow",
+    targetId: workflow.id,
+    summary: `Restored workflow ${workflow.name} from revision ${revision.id}`,
+    payload: {
+      restored_from_revision_id: revision.id,
+      restored_from_source: revision.source,
+      restore_revision_log_id: restoreLog?.id ? String(restoreLog.id) : null,
+    },
+  });
 
   return NextResponse.json({
     ok: true,

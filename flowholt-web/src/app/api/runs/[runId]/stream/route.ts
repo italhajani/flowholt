@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const { data: runRow, error: runError } = await supabase
     .from("workflow_runs")
-    .select("id, workflow_id, workspace_id, status, error_message, started_at, finished_at, created_at")
+    .select("id, workflow_id, workspace_id, status, error_message, request_correlation_id, started_at, finished_at, created_at")
     .eq("id", runId)
     .maybeSingle();
 
@@ -65,6 +65,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       let lastStatus = "";
       let lastFinishedAt = "";
       let lastError = "";
+      let lastCorrelationId = "";
 
       const close = () => {
         if (closed) {
@@ -86,6 +87,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       write(
         sseEvent("connected", {
           run_id: runId,
+          request_correlation_id: runRow.request_correlation_id ?? null,
           poll_ms: pollMs,
           timeout_seconds: timeoutSeconds,
           connected_at: new Date().toISOString(),
@@ -116,7 +118,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
             const [runResult, logResult, nodeExecutionResult] = await Promise.all([
               supabase
                 .from("workflow_runs")
-                .select("id, status, error_message, started_at, finished_at, created_at")
+                .select("id, status, error_message, request_correlation_id, started_at, finished_at, created_at")
                 .eq("id", runId)
                 .maybeSingle(),
               supabase
@@ -155,21 +157,27 @@ export async function GET(request: NextRequest, context: RouteContext) {
             const currentStatus = String(currentRun.status);
             const currentFinishedAt = currentRun.finished_at ? String(currentRun.finished_at) : "";
             const currentError = currentRun.error_message ? String(currentRun.error_message) : "";
+            const currentCorrelationId = currentRun.request_correlation_id
+              ? String(currentRun.request_correlation_id)
+              : "";
 
             if (
               currentStatus !== lastStatus ||
               currentFinishedAt !== lastFinishedAt ||
-              currentError !== lastError
+              currentError !== lastError ||
+              currentCorrelationId !== lastCorrelationId
             ) {
               lastStatus = currentStatus;
               lastFinishedAt = currentFinishedAt;
               lastError = currentError;
+              lastCorrelationId = currentCorrelationId;
 
               write(
                 sseEvent("run", {
                   id: currentRun.id,
                   status: currentStatus,
                   error_message: currentError,
+                  request_correlation_id: currentCorrelationId || null,
                   started_at: currentRun.started_at,
                   finished_at: currentRun.finished_at,
                   created_at: currentRun.created_at,
@@ -197,6 +205,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
                 sseEvent("done", {
                   run_id: runId,
                   status: currentStatus,
+                  request_correlation_id: currentCorrelationId || null,
                   finished_at: currentRun.finished_at,
                 }),
               );

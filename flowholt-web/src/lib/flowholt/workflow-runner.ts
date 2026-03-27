@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { createCorrelationId, readCorrelationId } from "@/lib/flowholt/correlation";
 import {
   runWorkflowWithEngine,
   type EngineNodeExecution,
@@ -40,6 +41,7 @@ export type ExecuteWorkflowRunResult = {
   runId: string;
   result: EngineRunResponse;
   runErrorMessage: string;
+  requestCorrelationId: string;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -56,6 +58,10 @@ function readConnectionId(node: WorkflowNode): string {
 
 function listConnectionIds(graph: WorkflowGraph) {
   return [...new Set(graph.nodes.map(readConnectionId).filter(Boolean))];
+}
+
+function resolveRequestCorrelationId(triggerMeta?: Record<string, unknown>) {
+  return readCorrelationId(triggerMeta?.request_correlation_id, "fh_run");
 }
 
 async function loadIntegrationConnections(
@@ -185,19 +191,17 @@ function readOutputErrorMessage(output: Record<string, unknown>) {
 
 function buildRuntimeSettings(
   settings: Record<string, unknown>,
-  triggerPayload?: unknown,
-  triggerMeta?: Record<string, unknown>,
+  triggerPayload: unknown,
+  triggerMeta: Record<string, unknown> | undefined,
+  requestCorrelationId: string,
 ) {
   const baseSettings = asRecord(settings);
-
-  if (triggerPayload === undefined && !triggerMeta) {
-    return baseSettings;
-  }
 
   return {
     ...baseSettings,
     runtime_trigger_payload: triggerPayload ?? null,
     runtime_trigger_meta: triggerMeta ?? {},
+    runtime_request_correlation_id: requestCorrelationId,
   };
 }
 
@@ -219,6 +223,7 @@ async function insertRunLogs(
   workflow: WorkflowRecord,
   runId: string,
   result: EngineRunResponse,
+  requestCorrelationId: string,
 ) {
   if (!result.logs.length) {
     return;
@@ -232,7 +237,10 @@ async function insertRunLogs(
       node_id: log.node_id,
       level: log.level,
       message: log.message,
-      payload: log.payload,
+      payload: {
+        ...asRecord(log.payload),
+        request_correlation_id: requestCorrelationId,
+      },
     })),
   );
 
@@ -293,6 +301,7 @@ export async function executeWorkflowRun({
   triggerMeta,
 }: ExecuteWorkflowRunInput): Promise<ExecuteWorkflowRunResult> {
   let runId = "";
+  const requestCorrelationId = resolveRequestCorrelationId(triggerMeta);
 
   try {
     const { data: insertedRun, error: insertError } = await supabase
@@ -302,6 +311,7 @@ export async function executeWorkflowRun({
         workspace_id: workflow.workspace_id,
         status: "queued",
         trigger_source: triggerSource,
+        request_correlation_id: requestCorrelationId,
       })
       .select("id")
       .single();
@@ -344,12 +354,13 @@ export async function executeWorkflowRun({
       workspace_id: workflow.workspace_id,
       workflow_name: workflow.name,
       trigger_source: triggerSource,
+      request_correlation_id: requestCorrelationId,
       nodes: resolvedGraph.nodes,
       edges: resolvedGraph.edges,
-      settings: buildRuntimeSettings(workflow.settings, triggerPayload, triggerMeta),
+      settings: buildRuntimeSettings(workflow.settings, triggerPayload, triggerMeta, requestCorrelationId),
     });
 
-    await insertRunLogs(supabase, workflow, runId, result);
+    await insertRunLogs(supabase, workflow, runId, result, requestCorrelationId);
     await insertNodeExecutions(supabase, workflow, runId, result);
 
     const runErrorMessage =
@@ -359,7 +370,10 @@ export async function executeWorkflowRun({
       .from("workflow_runs")
       .update({
         status: result.status,
-        output: result.output,
+        output: {
+          ...result.output,
+          request_correlation_id: requestCorrelationId,
+        },
         error_message: runErrorMessage,
         started_at: result.started_at,
         finished_at: result.finished_at,
@@ -384,9 +398,11 @@ export async function executeWorkflowRun({
             output: {
               ...result.output,
               cancelled: true,
+              request_correlation_id: requestCorrelationId,
             },
           },
           runErrorMessage: current.errorMessage || "Run was cancelled by user.",
+          requestCorrelationId,
         };
       }
 
@@ -397,6 +413,7 @@ export async function executeWorkflowRun({
       runId,
       result,
       runErrorMessage,
+      requestCorrelationId,
     };
   } catch (error) {
     const errorMessage =
@@ -417,6 +434,7 @@ export async function executeWorkflowRun({
           message: "Run failed before completion.",
           payload: {
             error: errorMessage,
+            request_correlation_id: requestCorrelationId,
           },
         });
 
@@ -426,6 +444,9 @@ export async function executeWorkflowRun({
             status: "failed",
             error_message: errorMessage,
             finished_at: new Date().toISOString(),
+            output: {
+              request_correlation_id: requestCorrelationId,
+            },
           })
           .eq("id", runId)
           .in("status", ["queued", "running"]);
@@ -434,6 +455,7 @@ export async function executeWorkflowRun({
       throw new WorkflowExecutionError(errorMessage, runId);
     }
 
-    throw new Error(errorMessage);
+    throw new Error(errorMessage || `Workflow execution failed before run creation. Trace: ${requestCorrelationId || createCorrelationId("fh_fail")}`);
   }
 }
+

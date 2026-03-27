@@ -22,6 +22,7 @@ export type EngineRunRequest = {
   workspace_id: string;
   workflow_name: string;
   trigger_source: string;
+  request_correlation_id: string;
   nodes: Array<{
     id: string;
     type: WorkflowNodeType;
@@ -45,6 +46,7 @@ export type EngineRunResponse = {
     edge_count: number;
     executed_nodes: string[];
     trigger_source: string;
+    request_correlation_id: string;
   };
   output: Record<string, unknown>;
   logs: Array<{
@@ -65,6 +67,7 @@ export async function runWorkflowWithEngine(payload: EngineRunRequest): Promise<
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-FlowHolt-Correlation-Id": payload.request_correlation_id,
     },
     body: JSON.stringify(payload),
     cache: "no-store",

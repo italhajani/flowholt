@@ -34,6 +34,7 @@ class WorkflowPayload(BaseModel):
     workspace_id: str
     workflow_name: str = "Untitled workflow"
     trigger_source: str = "manual"
+    request_correlation_id: str | None = None
     nodes: list[WorkflowNode]
     edges: list[WorkflowEdge]
     settings: dict[str, Any] = Field(default_factory=dict)
@@ -70,6 +71,7 @@ class WorkflowRunSummary(BaseModel):
     edge_count: int
     executed_nodes: list[str] = Field(default_factory=list)
     trigger_source: str = "manual"
+    request_correlation_id: str | None = None
 
 
 class WorkflowRunResult(BaseModel):

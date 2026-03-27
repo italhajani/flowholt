@@ -27,7 +27,7 @@ export default async function RunLivePage({ params }: RunLivePageProps) {
 
   const { data: runRow, error } = await supabase
     .from("workflow_runs")
-    .select("id, status, trigger_source, created_at, workflow_id")
+    .select("id, status, trigger_source, created_at, workflow_id, request_correlation_id")
     .eq("id", runId)
     .maybeSingle();
 
@@ -66,7 +66,11 @@ export default async function RunLivePage({ params }: RunLivePageProps) {
           description={`Current status: ${runRow.status} via ${runRow.trigger_source}`}
           tone="mint"
         >
-          <RunLiveMonitor runId={runRow.id} initialStatus={runRow.status} />
+          <RunLiveMonitor
+            runId={runRow.id}
+            initialStatus={runRow.status}
+            initialCorrelationId={runRow.request_correlation_id ?? ""}
+          />
         </SurfaceCard>
       </div>
     </AppShell>

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { readCorrelationId } from "@/lib/flowholt/correlation";
 import {
   executeWorkflowRun,
   WorkflowExecutionError,
@@ -33,15 +34,20 @@ export type DrainWorkflowRunJobResult = {
   error?: string;
   attemptCount: number;
   nextAvailableAt?: string;
+  requestCorrelationId: string;
 };
 
 const JOB_FIELDS =
-  "id, workflow_id, workspace_id, created_by_user_id, status, trigger_source, trigger_payload, trigger_meta, attempt_count, max_attempts, available_at, claimed_at, finished_at, lock_until, run_id, error_message, last_error_class, created_at, updated_at";
+  "id, workflow_id, workspace_id, created_by_user_id, status, trigger_source, trigger_payload, trigger_meta, attempt_count, max_attempts, available_at, claimed_at, finished_at, lock_until, run_id, request_correlation_id, error_message, last_error_class, created_at, updated_at";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function resolveRequestCorrelationId(value: unknown) {
+  return readCorrelationId(value, "fh_job");
 }
 
 function readErrorClass(error: unknown) {
@@ -146,13 +152,20 @@ export async function enqueueWorkflowRunJob({
 }: EnqueueWorkflowRunJobInput): Promise<WorkflowRunJobRecord> {
   await assertWorkspaceCanEnqueueRun(supabase, workflow.workspace_id);
 
+  const requestCorrelationId = resolveRequestCorrelationId(triggerMeta?.request_correlation_id);
+  const resolvedTriggerMeta = {
+    ...(triggerMeta ?? {}),
+    request_correlation_id: requestCorrelationId,
+  };
+
   const insertPayload: Record<string, unknown> = {
     workflow_id: workflow.id,
     workspace_id: workflow.workspace_id,
     created_by_user_id: createdByUserId ?? null,
     status: "queued",
     trigger_source: triggerSource,
-    trigger_meta: triggerMeta ?? {},
+    trigger_meta: resolvedTriggerMeta,
+    request_correlation_id: requestCorrelationId,
     max_attempts: Math.max(1, maxAttempts),
     available_at: availableAt ?? new Date().toISOString(),
   };
@@ -242,6 +255,9 @@ async function processClaimedWorkflowRunJob(
   supabase: SupabaseClient,
   job: WorkflowRunJobRecord,
 ): Promise<DrainWorkflowRunJobResult> {
+  const requestCorrelationId = resolveRequestCorrelationId(
+    job.request_correlation_id ?? asRecord(job.trigger_meta).request_correlation_id,
+  );
   const workflow = await loadWorkflowForJob(supabase, job.workflow_id);
 
   if (!workflow) {
@@ -266,6 +282,7 @@ async function processClaimedWorkflowRunJob(
       status: "failed",
       error: "Workflow not found.",
       attemptCount: job.attempt_count,
+      requestCorrelationId,
     };
   }
 
@@ -291,6 +308,7 @@ async function processClaimedWorkflowRunJob(
       status: "cancelled",
       error: "Workflow is archived.",
       attemptCount: job.attempt_count,
+      requestCorrelationId,
     };
   }
 
@@ -311,6 +329,7 @@ async function processClaimedWorkflowRunJob(
       .update({
         status: finalStatus,
         run_id: execution.runId,
+        request_correlation_id: execution.requestCorrelationId,
         error_message: finalError,
         last_error_class: "",
         finished_at: new Date().toISOString(),
@@ -329,6 +348,7 @@ async function processClaimedWorkflowRunJob(
       runId: execution.runId,
       error: finalError || undefined,
       attemptCount: job.attempt_count,
+      requestCorrelationId: execution.requestCorrelationId,
     };
   } catch (error) {
     const errorMessage = readErrorMessage(error);
@@ -343,6 +363,7 @@ async function processClaimedWorkflowRunJob(
         .update({
           status: "queued",
           run_id: runId ?? null,
+          request_correlation_id: requestCorrelationId,
           error_message: errorMessage,
           last_error_class: errorClass,
           available_at: availableAt,
@@ -362,6 +383,7 @@ async function processClaimedWorkflowRunJob(
         error: errorMessage,
         attemptCount: job.attempt_count,
         nextAvailableAt: availableAt,
+        requestCorrelationId,
       };
     }
 
@@ -370,6 +392,7 @@ async function processClaimedWorkflowRunJob(
       .update({
         status: "failed",
         run_id: runId ?? null,
+        request_correlation_id: requestCorrelationId,
         error_message: errorMessage,
         last_error_class: errorClass,
         finished_at: new Date().toISOString(),
@@ -388,6 +411,7 @@ async function processClaimedWorkflowRunJob(
       runId,
       error: errorMessage,
       attemptCount: job.attempt_count,
+      requestCorrelationId,
     };
   }
 }

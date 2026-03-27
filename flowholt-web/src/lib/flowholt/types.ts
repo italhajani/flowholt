@@ -141,6 +141,7 @@ export type WorkflowRunRecord = {
   trigger_source: string;
   output: Record<string, unknown>;
   error_message: string;
+  request_correlation_id?: string | null;
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
@@ -195,6 +196,7 @@ export type WorkflowRunJobRecord = {
   finished_at: string | null;
   lock_until: string | null;
   run_id: string | null;
+  request_correlation_id?: string | null;
   error_message: string;
   last_error_class: string;
   created_at: string;
@@ -287,3 +289,5 @@ export type UsageLimitContext = {
   supabase: SupabaseClient;
   workspaceId: string;
 };
+
+

@@ -8,6 +8,7 @@ type LiveLog = {
   message: string;
   node_id?: string | null;
   created_at?: string;
+  payload?: Record<string, unknown>;
 };
 
 type NodeExecution = {
@@ -30,6 +31,7 @@ type RunState = {
   id: string;
   status: string;
   error_message?: string;
+  request_correlation_id?: string | null;
   started_at?: string | null;
   finished_at?: string | null;
   created_at?: string;
@@ -38,9 +40,14 @@ type RunState = {
 type RunLiveMonitorProps = {
   runId: string;
   initialStatus: string;
+  initialCorrelationId?: string;
 };
 
-export function RunLiveMonitor({ runId, initialStatus }: RunLiveMonitorProps) {
+export function RunLiveMonitor({
+  runId,
+  initialStatus,
+  initialCorrelationId = "",
+}: RunLiveMonitorProps) {
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState(initialStatus);
   const [errorMessage, setErrorMessage] = useState("");
@@ -48,12 +55,21 @@ export function RunLiveMonitor({ runId, initialStatus }: RunLiveMonitorProps) {
   const [nodeExecutions, setNodeExecutions] = useState<NodeExecution[]>([]);
   const [lastEvent, setLastEvent] = useState("");
   const [runState, setRunState] = useState<RunState | null>(null);
+  const [correlationId, setCorrelationId] = useState(initialCorrelationId);
 
   useEffect(() => {
     const source = new EventSource(`/api/runs/${runId}/stream`);
 
-    function onConnected() {
+    function onConnected(event: MessageEvent<string>) {
       setConnected(true);
+      try {
+        const payload = JSON.parse(event.data) as { request_correlation_id?: string | null };
+        if (payload.request_correlation_id) {
+          setCorrelationId(payload.request_correlation_id);
+        }
+      } catch {
+        // ignore parse noise
+      }
       setLastEvent("connected");
     }
 
@@ -63,6 +79,9 @@ export function RunLiveMonitor({ runId, initialStatus }: RunLiveMonitorProps) {
         setRunState(payload);
         setStatus(payload.status || "unknown");
         setErrorMessage(payload.error_message || "");
+        if (payload.request_correlation_id) {
+          setCorrelationId(payload.request_correlation_id);
+        }
       } catch {
         // ignore parse noise
       }
@@ -116,9 +135,12 @@ export function RunLiveMonitor({ runId, initialStatus }: RunLiveMonitorProps) {
 
     function onDone(event: MessageEvent<string>) {
       try {
-        const payload = JSON.parse(event.data) as { status?: string };
+        const payload = JSON.parse(event.data) as { status?: string; request_correlation_id?: string | null };
         if (payload.status) {
           setStatus(payload.status);
+        }
+        if (payload.request_correlation_id) {
+          setCorrelationId(payload.request_correlation_id);
         }
       } catch {
         // ignore parse noise
@@ -140,7 +162,7 @@ export function RunLiveMonitor({ runId, initialStatus }: RunLiveMonitorProps) {
       setLastEvent("error");
     }
 
-    source.addEventListener("connected", onConnected);
+    source.addEventListener("connected", onConnected as EventListener);
     source.addEventListener("run", onRun as EventListener);
     source.addEventListener("logs", onLogs as EventListener);
     source.addEventListener("node_executions", onNodeExecutions as EventListener);
@@ -165,6 +187,7 @@ export function RunLiveMonitor({ runId, initialStatus }: RunLiveMonitorProps) {
         <p>
           Stream: {connected ? "connected" : "disconnected"} | Status: {status}
         </p>
+        {correlationId ? <p>Trace ID: {correlationId}</p> : null}
         {runState?.started_at ? (
           <p>Started: {new Date(runState.started_at).toLocaleString()}</p>
         ) : null}

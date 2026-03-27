@@ -140,6 +140,13 @@ def _summarize_output(output: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
+def _with_correlation(payload: WorkflowPayload, values: dict[str, Any] | None = None) -> dict[str, Any]:
+    merged = dict(values or {})
+    if payload.request_correlation_id:
+        merged["request_correlation_id"] = payload.request_correlation_id
+    return merged
+
+
 def _node_execution(
     *,
     node_id: str,
@@ -191,16 +198,20 @@ def _failure_result(
         edge_count=len(payload.edges),
         executed_nodes=executed_nodes,
         trigger_source=payload.trigger_source,
+        request_correlation_id=payload.request_correlation_id,
     )
 
-    output = {
-        "summary_text": f"{payload.workflow_name} failed after {len(executed_nodes)} completed steps.",
-        "executed_nodes": executed_nodes,
-        "failed_node_id": failed_node_id,
-        "error": error_message,
-        "trigger_source": payload.trigger_source,
-        "node_outputs": node_outputs,
-    }
+    output = _with_correlation(
+        payload,
+        {
+            "summary_text": f"{payload.workflow_name} failed after {len(executed_nodes)} completed steps.",
+            "executed_nodes": executed_nodes,
+            "failed_node_id": failed_node_id,
+            "error": error_message,
+            "trigger_source": payload.trigger_source,
+            "node_outputs": node_outputs,
+        },
+    )
 
     return WorkflowRunResult(
         status="failed",
@@ -228,15 +239,18 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
     logs: list[WorkflowRunLog] = [
         WorkflowRunLog(
             message="Workflow accepted by FlowHolt engine.",
-            payload={
-                "workflow_id": payload.workflow_id,
-                "run_id": payload.run_id,
-                "workflow_name": payload.workflow_name,
-                "node_count": len(payload.nodes),
-                "edge_count": len(payload.edges),
-                "max_node_retries": max_node_retries,
-                "max_run_seconds": max_run_seconds,
-            },
+            payload=_with_correlation(
+                payload,
+                {
+                    "workflow_id": payload.workflow_id,
+                    "run_id": payload.run_id,
+                    "workflow_name": payload.workflow_name,
+                    "node_count": len(payload.nodes),
+                    "edge_count": len(payload.edges),
+                    "max_node_retries": max_node_retries,
+                    "max_run_seconds": max_run_seconds,
+                },
+            ),
         )
     ]
 
@@ -254,10 +268,13 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                 WorkflowRunLog(
                     level="error",
                     message=timeout_message,
-                    payload={
-                        "executed_nodes": executed_nodes,
-                        "max_run_seconds": max_run_seconds,
-                    },
+                    payload=_with_correlation(
+                        payload,
+                        {
+                            "executed_nodes": executed_nodes,
+                            "max_run_seconds": max_run_seconds,
+                        },
+                    ),
                 )
             )
             return _failure_result(
@@ -296,12 +313,15 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                             if not is_last_attempt
                             else f"Node {node.label} failed after {max_attempts} attempts."
                         ),
-                        payload={
-                            "node_id": node.id,
-                            "attempt": attempt,
-                            "max_attempts": max_attempts,
-                            "error": error_text,
-                        },
+                        payload=_with_correlation(
+                            payload,
+                            {
+                                "node_id": node.id,
+                                "attempt": attempt,
+                                "max_attempts": max_attempts,
+                                "error": error_text,
+                            },
+                        ),
                     )
                 )
 
@@ -344,11 +364,14 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                             node_id=node.id,
                             level="error",
                             message=timeout_message,
-                            payload={
-                                "node_id": node.id,
-                                "attempt": attempt,
-                                "max_run_seconds": max_run_seconds,
-                            },
+                            payload=_with_correlation(
+                                payload,
+                                {
+                                    "node_id": node.id,
+                                    "attempt": attempt,
+                                    "max_run_seconds": max_run_seconds,
+                                },
+                            ),
                         )
                     )
                     node_finished_at = datetime.now(timezone.utc)
@@ -438,18 +461,21 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                     node_id=node.id,
                     level="info",
                     message=f"Condition routed the flow to {', '.join(edge.target for edge in next_edges)}.",
-                    payload={
-                        "branch": result.output.get("branch", "default-continue"),
-                        "targets": [edge.target for edge in next_edges],
-                        "edges": [
-                            {
-                                "target": edge.target,
-                                "label": edge.label,
-                                "branch": edge.branch,
-                            }
-                            for edge in next_edges
-                        ],
-                    },
+                    payload=_with_correlation(
+                        payload,
+                        {
+                            "branch": result.output.get("branch", "default-continue"),
+                            "targets": [edge.target for edge in next_edges],
+                            "edges": [
+                                {
+                                    "target": edge.target,
+                                    "label": edge.label,
+                                    "branch": edge.branch,
+                                }
+                                for edge in next_edges
+                            ],
+                        },
+                    ),
                 )
             )
 
@@ -463,9 +489,12 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
             WorkflowRunLog(
                 level="warn",
                 message="Some nodes were not executed because they were unreachable from the active route.",
-                payload={
-                    "skipped_nodes": skipped_nodes,
-                },
+                payload=_with_correlation(
+                    payload,
+                    {
+                        "skipped_nodes": skipped_nodes,
+                    },
+                ),
             )
         )
 
@@ -478,16 +507,20 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         edge_count=len(payload.edges),
         executed_nodes=executed_nodes,
         trigger_source=payload.trigger_source,
+        request_correlation_id=payload.request_correlation_id,
     )
 
-    output = {
-        "summary_text": f"{payload.workflow_name} completed {len(executed_nodes)} steps.",
-        "executed_nodes": executed_nodes,
-        "skipped_nodes": skipped_nodes,
-        "last_node_id": executed_nodes[-1] if executed_nodes else None,
-        "trigger_source": payload.trigger_source,
-        "node_outputs": node_outputs,
-    }
+    output = _with_correlation(
+        payload,
+        {
+            "summary_text": f"{payload.workflow_name} completed {len(executed_nodes)} steps.",
+            "executed_nodes": executed_nodes,
+            "skipped_nodes": skipped_nodes,
+            "last_node_id": executed_nodes[-1] if executed_nodes else None,
+            "trigger_source": payload.trigger_source,
+            "node_outputs": node_outputs,
+        },
+    )
 
     return WorkflowRunResult(
         status="succeeded",

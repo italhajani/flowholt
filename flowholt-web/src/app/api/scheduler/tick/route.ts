@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { createCorrelationId } from "@/lib/flowholt/correlation";
 import { enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
@@ -173,12 +174,14 @@ export async function POST(request: NextRequest) {
     schedule_id: string;
     workflow_id: string;
     job_id?: string;
+    request_correlation_id?: string;
     status: "failed" | "skipped" | "queued";
     error?: string;
   }> = [];
 
   for (const schedule of claimed) {
     const workflow = workflowsById.get(schedule.workflow_id);
+    const requestCorrelationId = createCorrelationId("fh_sched");
 
     if (!workflow || workflow.status === "archived") {
       await supabase
@@ -195,6 +198,7 @@ export async function POST(request: NextRequest) {
       results.push({
         schedule_id: schedule.id,
         workflow_id: schedule.workflow_id,
+        request_correlation_id: requestCorrelationId,
         status: "skipped",
         error: workflow ? "Workflow is archived." : "Workflow not found.",
       });
@@ -211,6 +215,7 @@ export async function POST(request: NextRequest) {
           schedule_label: schedule.label,
           interval_minutes: schedule.interval_minutes,
           triggered_at: nowIso,
+          request_correlation_id: requestCorrelationId,
         },
         createdByUserId: workflow.created_by_user_id,
       });
@@ -231,6 +236,7 @@ export async function POST(request: NextRequest) {
         schedule_id: schedule.id,
         workflow_id: workflow.id,
         job_id: job.id,
+        request_correlation_id: job.request_correlation_id ?? requestCorrelationId,
         status: "queued",
       });
     } catch (error) {
@@ -250,6 +256,7 @@ export async function POST(request: NextRequest) {
       results.push({
         schedule_id: schedule.id,
         workflow_id: schedule.workflow_id,
+        request_correlation_id: requestCorrelationId,
         status: "failed",
         error: errorMessage,
       });

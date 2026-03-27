@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { createCorrelationId, readCorrelationId } from "@/lib/flowholt/correlation";
 import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
 import {
@@ -110,6 +111,13 @@ function readIdempotencyKey(request: NextRequest) {
     request.nextUrl.searchParams.get("idempotency_key") ??
     ""
   ).trim();
+}
+
+function readIncomingCorrelationId(request: NextRequest) {
+  return readCorrelationId(
+    request.headers.get("x-flowholt-correlation-id") ?? request.nextUrl.searchParams.get("correlation_id"),
+    "fh_webhook",
+  );
 }
 
 function sanitizeHeaders(headers: Headers) {
@@ -370,6 +378,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
   }
 
   const supabase = createAdminClient();
+  const requestCorrelationId = readIncomingCorrelationId(request) || createCorrelationId("fh_webhook");
 
   try {
     await consumeRateLimit({
@@ -382,19 +391,27 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
   } catch (error) {
     if (isRateLimitError(error)) {
       return NextResponse.json(
-        { error: error.message, retry_after_seconds: error.retryAfterSeconds },
+        {
+          error: error.message,
+          retry_after_seconds: error.retryAfterSeconds,
+          request_correlation_id: requestCorrelationId,
+        },
         {
           status: 429,
           headers: {
             "Retry-After": String(error.retryAfterSeconds),
+            "X-FlowHolt-Correlation-Id": requestCorrelationId,
           },
         },
       );
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Webhook limit check failed." },
-      { status: 500 },
+      {
+        error: error instanceof Error ? error.message : "Webhook limit check failed.",
+        request_correlation_id: requestCorrelationId,
+      },
+      { status: 500, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
@@ -407,28 +424,34 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
     .maybeSingle();
 
   if (workflowError || !workflowRow) {
-    return NextResponse.json({ error: "Workflow not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Workflow not found.", request_correlation_id: requestCorrelationId },
+      { status: 404, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
+    );
   }
 
   const workflow = workflowRow as WorkflowRecord;
 
   if (workflow.status === "archived") {
-    return NextResponse.json({ error: "Workflow is archived." }, { status: 409 });
+    return NextResponse.json(
+      { error: "Workflow is archived.", request_correlation_id: requestCorrelationId },
+      { status: 409, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
+    );
   }
 
   const triggerNodes = workflow.graph.nodes.filter((node) => node.type === "trigger");
   if (!triggerNodes.length) {
     return NextResponse.json(
-      { error: "Workflow has no trigger nodes configured." },
-      { status: 400 },
+      { error: "Workflow has no trigger nodes configured.", request_correlation_id: requestCorrelationId },
+      { status: 400, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
   const connectionIds = [...new Set(triggerNodes.map(readConnectionId).filter(Boolean))];
   if (!connectionIds.length) {
     return NextResponse.json(
-      { error: "No webhook trigger connection is configured on trigger nodes." },
-      { status: 400 },
+      { error: "No webhook trigger connection is configured on trigger nodes.", request_correlation_id: requestCorrelationId },
+      { status: 400, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
@@ -442,8 +465,11 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
 
   if (connectionError) {
     return NextResponse.json(
-      { error: `Unable to load webhook connections: ${connectionError.message}` },
-      { status: 500 },
+      {
+        error: `Unable to load webhook connections: ${connectionError.message}`,
+        request_correlation_id: requestCorrelationId,
+      },
+      { status: 500, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
@@ -477,15 +503,19 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
       const allow = Array.from(configuredMethods).join(", ");
       if (!configuredMethods.has(request.method.toUpperCase())) {
         return NextResponse.json(
-          { error: "Webhook method does not match configured trigger method.", allow },
-          { status: 405, headers: { Allow: allow } },
+          {
+            error: "Webhook method does not match configured trigger method.",
+            allow,
+            request_correlation_id: requestCorrelationId,
+          },
+          { status: 405, headers: { Allow: allow, "X-FlowHolt-Correlation-Id": requestCorrelationId } },
         );
       }
     }
 
     return NextResponse.json(
-      { error: "Webhook authentication failed for this workflow trigger." },
-      { status: 401 },
+      { error: "Webhook authentication failed for this workflow trigger.", request_correlation_id: requestCorrelationId },
+      { status: 401, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
@@ -520,8 +550,9 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         {
           error: "This idempotency key was already used with a different webhook payload.",
           idempotency_key: idempotencyKey,
+          request_correlation_id: requestCorrelationId,
         },
-        { status: 409 },
+        { status: 409, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
       );
     }
 
@@ -530,8 +561,11 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
     }
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Webhook idempotency check failed." },
-      { status: 500 },
+      {
+        error: error instanceof Error ? error.message : "Webhook idempotency check failed.",
+        request_correlation_id: requestCorrelationId,
+      },
+      { status: 500, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
@@ -550,6 +584,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         webhook_connection_label: matchedConnection.label,
         idempotency_key: idempotencyKey || undefined,
         received_at: new Date().toISOString(),
+        request_correlation_id: requestCorrelationId,
       },
       createdByUserId: null,
     });
@@ -565,6 +600,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         ok: true,
         accepted: true,
         job_id: job.id,
+        request_correlation_id: job.request_correlation_id ?? requestCorrelationId,
         message: "Webhook accepted and queued.",
       };
       await persistReceiptOutcome(receiptId, {
@@ -573,7 +609,10 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         response_payload: responsePayload,
         run_job_id: job.id,
       });
-      return NextResponse.json(responsePayload, { status: 202 });
+      return NextResponse.json(responsePayload, {
+        status: 202,
+        headers: { "X-FlowHolt-Correlation-Id": responsePayload.request_correlation_id },
+      });
     }
 
     if (result.status === "queued") {
@@ -582,6 +621,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         accepted: true,
         job_id: job.id,
         run_id: result.runId,
+        request_correlation_id: result.requestCorrelationId,
         message: "Webhook accepted and queued for retry.",
       };
       await persistReceiptOutcome(receiptId, {
@@ -591,7 +631,10 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         run_job_id: job.id,
         run_id: result.runId ?? null,
       });
-      return NextResponse.json(responsePayload, { status: 202 });
+      return NextResponse.json(responsePayload, {
+        status: 202,
+        headers: { "X-FlowHolt-Correlation-Id": result.requestCorrelationId },
+      });
     }
 
     if (result.status === "succeeded") {
@@ -600,6 +643,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         status: result.status,
         job_id: job.id,
         run_id: result.runId,
+        request_correlation_id: result.requestCorrelationId,
         message: "Webhook run completed successfully.",
       };
       await persistReceiptOutcome(receiptId, {
@@ -609,7 +653,9 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         run_job_id: job.id,
         run_id: result.runId ?? null,
       });
-      return NextResponse.json(responsePayload);
+      return NextResponse.json(responsePayload, {
+        headers: { "X-FlowHolt-Correlation-Id": result.requestCorrelationId },
+      });
     }
 
     const failedPayload = {
@@ -617,6 +663,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
       status: result.status,
       job_id: job.id,
       run_id: result.runId,
+      request_correlation_id: result.requestCorrelationId,
       error: result.error || "Webhook run failed.",
     };
     await persistReceiptOutcome(receiptId, {
@@ -626,13 +673,17 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
       run_job_id: job.id,
       run_id: result.runId ?? null,
     });
-    return NextResponse.json(failedPayload, { status: 500 });
+    return NextResponse.json(failedPayload, {
+      status: 500,
+      headers: { "X-FlowHolt-Correlation-Id": result.requestCorrelationId },
+    });
   } catch (error) {
     if (isRateLimitError(error)) {
       const limitedPayload = {
         ok: false,
         error: error.message,
         retry_after_seconds: error.retryAfterSeconds,
+        request_correlation_id: requestCorrelationId,
       };
       await persistReceiptOutcome(receiptId, {
         status: "failed",
@@ -643,19 +694,23 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         status: 429,
         headers: {
           "Retry-After": String(error.retryAfterSeconds),
+          "X-FlowHolt-Correlation-Id": requestCorrelationId,
         },
       });
     }
 
     const status = isWorkspaceUsageLimitError(error) ? 409 : 500;
     const message = getWorkspaceUsageErrorMessage(error, "Webhook run failed.");
-    const failedPayload = { ok: false, error: message };
+    const failedPayload = { ok: false, error: message, request_correlation_id: requestCorrelationId };
     await persistReceiptOutcome(receiptId, {
       status: "failed",
       response_status: status,
       response_payload: failedPayload,
     });
-    return NextResponse.json(failedPayload, { status });
+    return NextResponse.json(failedPayload, {
+      status,
+      headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId },
+    });
   }
 }
 

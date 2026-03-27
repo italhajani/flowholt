@@ -53,6 +53,61 @@ const providerTemplates = [
   },
 ] as const;
 
+const vendorQuickStarts = [
+  {
+    title: "HubSpot CRM",
+    provider: "http",
+    description: "Best fit for CRM sync and lead intake packs.",
+    config: {
+      base_url: "https://api.hubapi.com",
+      default_method: "POST",
+      default_headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    },
+    secrets: { bearer_token: "" },
+  },
+  {
+    title: "Notion knowledge",
+    provider: "http",
+    description: "Good for knowledge search and support-resolution flows.",
+    config: {
+      base_url: "https://api.notion.com/v1",
+      default_method: "POST",
+      default_headers: {
+        Accept: "application/json",
+        "Notion-Version": "2022-06-28",
+      },
+    },
+    secrets: { bearer_token: "" },
+  },
+  {
+    title: "Google Sheets bridge",
+    provider: "http",
+    description: "Useful for spreadsheet ops and content/reporting handoffs.",
+    config: {
+      base_url: "https://sheets.googleapis.com/v4/spreadsheets",
+      default_method: "POST",
+      default_headers: {
+        Accept: "application/json",
+      },
+    },
+    secrets: { bearer_token: "" },
+  },
+  {
+    title: "Slack delivery webhook",
+    provider: "webhook",
+    description: "Helpful for delivery and support callback flows.",
+    config: {
+      direction: "outbound",
+      url: "https://hooks.slack.com/services/your/path",
+      method: "POST",
+    },
+    secrets: { api_key: "" },
+  },
+] as const;
+
 type IntegrationsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -248,11 +303,44 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
                       {kit.readiness}
                     </span>
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-500">
+                    {kit.expectedProfiles.map((profile) => (
+                      <span key={profile} className="rounded-full border border-stone-900/10 bg-white px-3 py-1">
+                        wants: {profile.replaceAll("_", " ")}
+                      </span>
+                    ))}
+                  </div>
                   <p className="mt-3 text-xs leading-5 text-stone-500">{kit.setupHint}</p>
                 </div>
               ))}
             </div>
           </SurfaceCard>
+
+          <SurfaceCard
+            title="Vendor quick starts"
+            description="Use these as better starter JSONs when you want the workspace to feel more like real HubSpot, Notion, Sheets, or Slack-ready tooling."
+            tone="mint"
+          >
+            <div className="space-y-3 text-sm leading-6 text-stone-700">
+              {vendorQuickStarts.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-stone-900/10 bg-white px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-stone-900">{item.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">{item.description}</p>
+                    </div>
+                    <span className="rounded-full border border-stone-900/10 bg-stone-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-700">
+                      {item.provider}
+                    </span>
+                  </div>
+                  <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-stone-50 px-3 py-3 font-mono text-[11px] leading-5 text-stone-600">
+                    {JSON.stringify(item.config, null, 2)}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+
           {providerTemplates.map((template) => (
             <SurfaceCard
               key={template.provider}

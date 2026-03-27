@@ -4,11 +4,28 @@ export type MarketplaceConnection = {
   id: string;
   provider: string;
   label: string;
+  description?: string;
+  config?: Record<string, unknown>;
 };
 
 export type ToolMarketplaceReadiness = "ready" | "partial" | "missing";
 export type ToolMarketplaceTone = "default" | "mint" | "sand";
 export type ToolMarketplaceFamily = "provider_pack" | "workflow_pack";
+export type ToolMarketplaceProfileKey =
+  | "groq"
+  | "hubspot"
+  | "notion"
+  | "google_sheets"
+  | "slack"
+  | "generic_http"
+  | "generic_webhook";
+
+export type ToolMarketplaceProfile = {
+  key: ToolMarketplaceProfileKey;
+  title: string;
+  provider: string;
+  summary: string;
+};
 
 export type ToolMarketplaceKit = {
   key: string;
@@ -17,10 +34,12 @@ export type ToolMarketplaceKit = {
   category: ToolMarketplaceCategoryKey;
   family: ToolMarketplaceFamily;
   requiredProviders: string[];
+  expectedProfiles: ToolMarketplaceProfileKey[];
   readiness: ToolMarketplaceReadiness;
   readinessDetail: string;
   matchingConnectionCount: number;
   matchingConnections: MarketplaceConnection[];
+  detectedProfiles: ToolMarketplaceProfile[];
   recommendedToolKeys: string[];
   idealFor: string;
   recommendedStrategy: string;
@@ -70,6 +89,51 @@ const MARKETPLACE_CATEGORY_META: Record<ToolMarketplaceCategoryKey, { title: str
   },
 };
 
+const PROFILE_META: Record<ToolMarketplaceProfileKey, ToolMarketplaceProfile> = {
+  groq: {
+    key: "groq",
+    title: "Groq",
+    provider: "groq",
+    summary: "Fast shared model connection for creator, planner, and reviewer agents.",
+  },
+  hubspot: {
+    key: "hubspot",
+    title: "HubSpot",
+    provider: "http",
+    summary: "CRM-ready HTTP profile for lead and customer sync operations.",
+  },
+  notion: {
+    key: "notion",
+    title: "Notion",
+    provider: "http",
+    summary: "Knowledge API profile for search, docs, and structured workspace context.",
+  },
+  google_sheets: {
+    key: "google_sheets",
+    title: "Google Sheets",
+    provider: "http",
+    summary: "Spreadsheet-oriented API profile for logging, handoff queues, and reporting rows.",
+  },
+  slack: {
+    key: "slack",
+    title: "Slack",
+    provider: "webhook",
+    summary: "Webhook delivery profile for callbacks, notifications, and outbound team updates.",
+  },
+  generic_http: {
+    key: "generic_http",
+    title: "Generic HTTP",
+    provider: "http",
+    summary: "Fallback HTTP profile for custom APIs when no named vendor profile is detected.",
+  },
+  generic_webhook: {
+    key: "generic_webhook",
+    title: "Generic webhook",
+    provider: "webhook",
+    summary: "Fallback webhook profile for generic inbound or outbound delivery flows.",
+  },
+};
+
 const MARKETPLACE_KITS = [
   {
     key: "groq-agent-kit",
@@ -78,6 +142,7 @@ const MARKETPLACE_KITS = [
     category: "ai_agents",
     family: "provider_pack",
     requiredProviders: ["groq"],
+    expectedProfiles: ["groq"],
     recommendedToolKeys: [],
     idealFor: "Creator, planner, reviewer, or summarizer style agent steps.",
     recommendedStrategy: "Start with workspace default, then add read_then_write once tool chains grow.",
@@ -92,6 +157,7 @@ const MARKETPLACE_KITS = [
     category: "search_research",
     family: "provider_pack",
     requiredProviders: ["http"],
+    expectedProfiles: ["notion", "generic_http"],
     recommendedToolKeys: ["knowledge-lookup"],
     idealFor: "Research-first flows, support copilots, and answer-generation steps.",
     recommendedStrategy: "Use read_then_write so lookup happens before any CRM or outbound tool step.",
@@ -106,6 +172,7 @@ const MARKETPLACE_KITS = [
     category: "crm_operations",
     family: "provider_pack",
     requiredProviders: ["http"],
+    expectedProfiles: ["hubspot", "generic_http"],
     recommendedToolKeys: ["crm-upsert"],
     idealFor: "Lead intake, qualification, sales ops, and customer sync flows.",
     recommendedStrategy: "Place this after agent review or after a research step finishes.",
@@ -120,6 +187,7 @@ const MARKETPLACE_KITS = [
     category: "crm_operations",
     family: "provider_pack",
     requiredProviders: ["http"],
+    expectedProfiles: ["google_sheets", "generic_http"],
     recommendedToolKeys: ["spreadsheet-row"],
     idealFor: "Ops handoffs, fulfillment queues, and lightweight reporting lanes.",
     recommendedStrategy: "Use fan_out when you want reporting and writeback to happen in parallel.",
@@ -134,6 +202,7 @@ const MARKETPLACE_KITS = [
     category: "delivery_webhooks",
     family: "provider_pack",
     requiredProviders: ["webhook", "http"],
+    expectedProfiles: ["slack", "generic_webhook", "generic_http"],
     recommendedToolKeys: ["webhook-reply"],
     idealFor: "Callbacks, status updates, and final delivery to external systems.",
     recommendedStrategy: "Keep this near the end so upstream agent and tool work finishes first.",
@@ -148,6 +217,7 @@ const MARKETPLACE_KITS = [
     category: "custom_http",
     family: "provider_pack",
     requiredProviders: ["http"],
+    expectedProfiles: ["generic_http"],
     recommendedToolKeys: ["http-request"],
     idealFor: "Custom vendor APIs, quick experiments, and bridges to systems we do not preset yet.",
     recommendedStrategy: "Use single for one-off calls or fan_out when one agent triggers several APIs.",
@@ -162,6 +232,7 @@ const MARKETPLACE_KITS = [
     category: "crm_operations",
     family: "workflow_pack",
     requiredProviders: ["groq", "http"],
+    expectedProfiles: ["groq", "hubspot", "notion", "generic_http"],
     recommendedToolKeys: ["knowledge-lookup", "crm-upsert"],
     idealFor: "Lead capture, qualification, and sales handoff workflows.",
     recommendedStrategy: "Use read_then_write so research and summarization happen before CRM writeback.",
@@ -176,6 +247,7 @@ const MARKETPLACE_KITS = [
     category: "delivery_webhooks",
     family: "workflow_pack",
     requiredProviders: ["groq", "http", "webhook"],
+    expectedProfiles: ["groq", "notion", "slack", "generic_http", "generic_webhook"],
     recommendedToolKeys: ["knowledge-lookup", "webhook-reply"],
     idealFor: "Support inboxes, ticket summaries, and issue-resolution assistants.",
     recommendedStrategy: "Use read_then_write so context is gathered before the final response is delivered.",
@@ -190,6 +262,7 @@ const MARKETPLACE_KITS = [
     category: "ai_agents",
     family: "workflow_pack",
     requiredProviders: ["groq", "http"],
+    expectedProfiles: ["groq", "google_sheets", "generic_http"],
     recommendedToolKeys: ["http-request", "spreadsheet-row"],
     idealFor: "Content generation, social drafts, outbound campaign prep, and reporting handoffs.",
     recommendedStrategy: "Use fan_out when one approved agent output should feed multiple downstream systems.",
@@ -210,6 +283,67 @@ function uniqueConnections(connections: MarketplaceConnection[]) {
   });
 }
 
+function uniqueProfiles(profiles: ToolMarketplaceProfile[]) {
+  const seen = new Set<ToolMarketplaceProfileKey>();
+  return profiles.filter((profile) => {
+    if (seen.has(profile.key)) {
+      return false;
+    }
+    seen.add(profile.key);
+    return true;
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function connectionSearchText(connection: MarketplaceConnection) {
+  const config = asRecord(connection.config);
+  const parts = [
+    connection.label,
+    connection.description ?? "",
+    typeof config.base_url === "string" ? config.base_url : "",
+    typeof config.url === "string" ? config.url : "",
+    typeof config.path === "string" ? config.path : "",
+  ];
+  return parts.join(" ").toLowerCase();
+}
+
+function detectConnectionProfiles(connection: MarketplaceConnection): ToolMarketplaceProfile[] {
+  const provider = connection.provider.toLowerCase();
+  const text = connectionSearchText(connection);
+  const keys: ToolMarketplaceProfileKey[] = [];
+
+  if (provider === "groq") {
+    keys.push("groq");
+  }
+
+  if (provider === "http") {
+    if (text.includes("hubspot") || text.includes("hubapi.com")) {
+      keys.push("hubspot");
+    }
+    if (text.includes("notion")) {
+      keys.push("notion");
+    }
+    if (text.includes("google sheets") || text.includes("sheets.googleapis.com")) {
+      keys.push("google_sheets");
+    }
+    keys.push("generic_http");
+  }
+
+  if (provider === "webhook") {
+    if (text.includes("slack") || text.includes("hooks.slack.com")) {
+      keys.push("slack");
+    }
+    keys.push("generic_webhook");
+  }
+
+  return uniqueProfiles(keys.map((key) => PROFILE_META[key]));
+}
+
 function matchingConnectionsForProviders(
   providers: readonly string[],
   connections: MarketplaceConnection[],
@@ -217,6 +351,19 @@ function matchingConnectionsForProviders(
   return uniqueConnections(
     connections.filter((connection) => providers.includes(connection.provider)),
   );
+}
+
+function matchingProfilesForKit(
+  expectedProfiles: readonly ToolMarketplaceProfileKey[],
+  matches: MarketplaceConnection[],
+) {
+  const detected = uniqueProfiles(matches.flatMap((connection) => detectConnectionProfiles(connection)));
+
+  if (!expectedProfiles.length) {
+    return detected;
+  }
+
+  return detected.filter((profile) => expectedProfiles.includes(profile.key));
 }
 
 function kitReadiness(requiredProviders: readonly string[], matches: MarketplaceConnection[]) {
@@ -242,6 +389,7 @@ function readinessDetail(
   readiness: ToolMarketplaceReadiness,
   requiredProviders: readonly string[],
   matches: MarketplaceConnection[],
+  profiles: ToolMarketplaceProfile[],
 ) {
   if (!requiredProviders.length) {
     return "No saved provider is required for this kit.";
@@ -249,16 +397,19 @@ function readinessDetail(
 
   const matchedProviders = [...new Set(matches.map((connection) => connection.provider))];
   const missingProviders = requiredProviders.filter((provider) => !matchedProviders.includes(provider));
+  const profileText = profiles.length
+    ? ` Detected profiles: ${profiles.map((profile) => profile.title).join(", ")}.`
+    : "";
 
   if (readiness === "ready") {
-    return `Ready with ${matches.length} matching connection${matches.length === 1 ? "" : "s"}.`;
+    return `Ready with ${matches.length} matching connection${matches.length === 1 ? "" : "s"}.${profileText}`;
   }
 
   if (readiness === "partial") {
-    return `Partially ready. Still missing provider: ${missingProviders.join(", ")}.`;
+    return `Partially ready. Still missing provider: ${missingProviders.join(", ")}.${profileText}`;
   }
 
-  return `Missing setup. Needs provider${requiredProviders.length === 1 ? "" : "s"}: ${requiredProviders.join(", ")}.`;
+  return `Missing setup. Needs provider${requiredProviders.length === 1 ? "" : "s"}: ${requiredProviders.join(", ")}.${profileText}`;
 }
 
 export function buildToolMarketplace(connections: MarketplaceConnection[] = []) {
@@ -268,6 +419,7 @@ export function buildToolMarketplace(connections: MarketplaceConnection[] = []) 
       .map((item) => item.key);
     const recommendedToolKeys = [...new Set([...kit.recommendedToolKeys, ...recommendedFromRegistry])];
     const matches = matchingConnectionsForProviders(kit.requiredProviders, connections);
+    const detectedProfiles = matchingProfilesForKit(kit.expectedProfiles, matches);
     const readiness = kitReadiness(kit.requiredProviders, matches);
 
     return {
@@ -277,10 +429,12 @@ export function buildToolMarketplace(connections: MarketplaceConnection[] = []) 
       category: kit.category,
       family: kit.family,
       requiredProviders: [...kit.requiredProviders],
+      expectedProfiles: [...kit.expectedProfiles],
       readiness,
-      readinessDetail: readinessDetail(readiness, kit.requiredProviders, matches),
+      readinessDetail: readinessDetail(readiness, kit.requiredProviders, matches, detectedProfiles),
       matchingConnectionCount: matches.length,
       matchingConnections: matches,
+      detectedProfiles,
       recommendedToolKeys,
       idealFor: kit.idealFor,
       recommendedStrategy: kit.recommendedStrategy,
@@ -319,7 +473,7 @@ export function getToolMarketplacePromptLines() {
     `${category.title}: ${category.description}`,
     ...category.kits.map(
       (kit) =>
-        `${kit.title} [resources | family:${kit.family} | providers:${kit.requiredProviders.join("+") || "none"} | strategy:${kit.recommendedStrategy}] - ${kit.description}`,
+        `${kit.title} [resources | family:${kit.family} | providers:${kit.requiredProviders.join("+") || "none"} | profiles:${kit.expectedProfiles.join("+") || "none"} | strategy:${kit.recommendedStrategy}] - ${kit.description}`,
     ),
   ]);
 }

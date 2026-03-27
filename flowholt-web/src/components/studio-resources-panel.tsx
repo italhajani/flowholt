@@ -7,6 +7,8 @@ type StudioResourcesPanelProps = {
     id: string;
     provider: string;
     label: string;
+    description?: string;
+    config?: Record<string, unknown>;
   }>;
 };
 
@@ -89,6 +91,13 @@ export function StudioResourcesPanel({ integrations }: StudioResourcesPanelProps
                   {readinessLabels[kit.readiness]}
                 </span>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-500">
+                {kit.expectedProfiles.map((profile) => (
+                  <span key={profile} className="rounded-full border border-stone-900/10 bg-white px-3 py-1">
+                    wants: {profile.replaceAll("_", " ")}
+                  </span>
+                ))}
+              </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <div className="rounded-2xl bg-white/80 px-3 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Ideal for</p>
@@ -132,6 +141,11 @@ export function StudioResourcesPanel({ integrations }: StudioResourcesPanelProps
                       provider: {provider}
                     </span>
                   ))}
+                  {kit.expectedProfiles.map((profile) => (
+                    <span key={profile} className="rounded-full border border-stone-900/10 bg-white px-3 py-1">
+                      profile: {profile.replaceAll("_", " ")}
+                    </span>
+                  ))}
                   {kit.recommendedToolKeys.map((toolKey) => (
                     <span key={toolKey} className="rounded-full border border-stone-900/10 bg-white px-3 py-1">
                       preset: {toolKey}
@@ -148,6 +162,18 @@ export function StudioResourcesPanel({ integrations }: StudioResourcesPanelProps
                     <p className="mt-2 text-xs leading-5 text-stone-700">{kit.recommendedStrategy}</p>
                   </div>
                 </div>
+                {kit.detectedProfiles.length ? (
+                  <div className="mt-3 rounded-2xl bg-white/80 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Detected vendor profiles</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-stone-600">
+                      {kit.detectedProfiles.map((profile) => (
+                        <span key={profile.key} className="rounded-full border border-stone-900/10 bg-white px-3 py-1">
+                          {profile.title}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mt-3 text-xs leading-5 text-stone-500">
                   {kit.matchingConnections.length ? (
                     <p>

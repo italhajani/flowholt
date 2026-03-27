@@ -44,7 +44,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const supabase = await createClient();
   const { data: integrationRows } = await supabase
     .from("integration_connections")
-    .select("id, provider, label, status")
+    .select("id, provider, label, description, config, status")
     .eq("workspace_id", workflow.workspace_id)
     .eq("status", "active")
     .order("updated_at", { ascending: false });
@@ -52,6 +52,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     id: String(row.id),
     provider: String(row.provider),
     label: String(row.label),
+    description: typeof row.description === "string" ? row.description : "",
+    config: row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {},
   }));
 
   return (
@@ -360,5 +362,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
+
+
+
 
 

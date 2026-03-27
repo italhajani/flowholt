@@ -1,25 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  buildRunStreamHeaders,
+  isTerminalRunStatus,
+  parsePositiveInt,
+  sseEvent,
+} from "@/lib/flowholt/run-stream-logic";
 import { createClient } from "@/lib/supabase/server";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function parsePositiveInt(value: string | null, fallback: number, min: number, max: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.min(max, Math.max(min, Math.floor(parsed)));
-}
-
-function isTerminalStatus(status: string) {
-  return ["succeeded", "failed", "cancelled"].includes(status);
-}
-
-function sseEvent(event: string, payload: unknown) {
-  return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
 
 type RouteContext = {
@@ -200,7 +190,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
             write(": heartbeat\n\n");
 
-            if (isTerminalStatus(currentStatus)) {
+            if (isTerminalRunStatus(currentStatus)) {
               write(
                 sseEvent("done", {
                   run_id: runId,
@@ -232,11 +222,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
   });
 
   return new NextResponse(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
+    headers: buildRunStreamHeaders(),
   });
 }

@@ -131,7 +131,12 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
     case "trigger":
       return { mode: "manual" };
     case "agent":
-      return { instruction: "", model: "llama-3.3-70b-versatile" };
+      return {
+        instruction: "",
+        model: "llama-3.3-70b-versatile",
+        tool_access_mode: "workspace_default",
+        allowed_tool_keys: [],
+      };
     case "tool":
       return getDefaultToolConfig("http-request");
     case "condition":
@@ -946,4 +951,6 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+
 

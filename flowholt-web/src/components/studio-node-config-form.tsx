@@ -1,6 +1,7 @@
 "use client";
 
 import type { WorkflowNodeType } from "@/lib/flowholt/types";
+import { summarizeAgentToolAccess } from "@/lib/flowholt/agent-tool-access";
 import {
   applyToolPreset,
   getToolRegistryItem,
@@ -31,10 +32,16 @@ function withField(config: Record<string, unknown>, key: string, value: unknown)
   };
 }
 
+function readStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
 function configHint(nodeType: WorkflowNodeType) {
   switch (nodeType) {
     case "agent":
-      return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile"}';
+      return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile","tool_access_mode":"selected","allowed_tool_keys":["knowledge-lookup"]}';
     case "tool":
       return 'Example: {"tool_key":"crm-upsert","method":"POST","url":"https://api.example.com/upsert","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
     case "condition":
@@ -59,6 +66,34 @@ export function StudioNodeConfigForm({
   const triggerMode = asString(config.mode, "manual");
   const selectedToolKey = asString(config.tool_key, "http-request");
   const selectedToolPreset = getToolRegistryItem(selectedToolKey);
+  const agentToolAccessMode = asString(config.tool_access_mode, "workspace_default");
+  const selectedAgentToolKeys = readStringArray(config.allowed_tool_keys);
+  const runtimeAdapter = asString(config.runtime_adapter);
+
+  function updateAgentToolAccessMode(mode: string) {
+    if (mode === "selected") {
+      onConfigChange(withField(config, "tool_access_mode", mode));
+      return;
+    }
+
+    onConfigChange({
+      ...config,
+      tool_access_mode: mode,
+      allowed_tool_keys: [],
+    });
+  }
+
+  function toggleAgentToolKey(toolKey: string, checked: boolean) {
+    const next = checked
+      ? [...new Set([...selectedAgentToolKeys, toolKey])]
+      : selectedAgentToolKeys.filter((value) => value !== toolKey);
+
+    onConfigChange({
+      ...config,
+      tool_access_mode: "selected",
+      allowed_tool_keys: next,
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -203,6 +238,46 @@ export function StudioNodeConfigForm({
               Use workspace default unless you specifically want another Groq model.
             </p>
           </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-stone-700">Tool access</label>
+            <select
+              value={agentToolAccessMode}
+              onChange={(event) => updateAgentToolAccessMode(event.target.value)}
+              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+            >
+              <option value="workspace_default">Workspace default</option>
+              <option value="all">All tools</option>
+              <option value="selected">Selected tools only</option>
+              <option value="none">No tools</option>
+            </select>
+            <p className="mt-2 text-xs leading-5 text-stone-500">
+              {summarizeAgentToolAccess(config)}. This is groundwork for future multi-tool agent orchestration.
+            </p>
+          </div>
+          {agentToolAccessMode === "selected" ? (
+            <div className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-4">
+              <p className="text-sm font-medium text-stone-700">Allowed tool presets</p>
+              <div className="mt-3 space-y-3">
+                {toolRegistry.map((item) => {
+                  const checked = selectedAgentToolKeys.includes(item.key);
+                  return (
+                    <label key={item.key} className="flex items-start gap-3 text-sm text-stone-700">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) => toggleAgentToolKey(item.key, event.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-stone-300"
+                      />
+                      <span>
+                        <span className="font-medium text-stone-900">{item.title}</span>
+                        <span className="mt-1 block text-xs leading-5 text-stone-500">{item.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
 
@@ -224,9 +299,14 @@ export function StudioNodeConfigForm({
             <p className="mt-2 text-xs leading-5 text-stone-500">{selectedToolPreset.description}</p>
             <p className="mt-2 text-xs leading-5 text-stone-500">
               {selectedToolPreset.requiresConnection
-                ? `Requires an active ${selectedToolPreset.connectionProvider ?? "compatible"} connection from Integrations.` 
+                ? `Requires an active ${selectedToolPreset.connectionProvider ?? "compatible"} connection from Integrations.`
                 : "Connection is optional for this preset."}
             </p>
+            {runtimeAdapter ? (
+              <p className="mt-2 text-xs leading-5 text-stone-500">
+                Runtime adapter: {runtimeAdapter}. This helps the starter HTTP connection behave nicely during local/demo runs.
+              </p>
+            ) : null}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
@@ -411,4 +491,3 @@ export function StudioNodeConfigForm({
     </div>
   );
 }
-

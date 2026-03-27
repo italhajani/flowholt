@@ -89,6 +89,7 @@ function buildCreateSystemPrompt() {
     "Use short user-friendly names.",
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
     "If a condition node is used, add explicit edge branch values like true and false.",
+    "Agent nodes may include tool_access_mode (workspace_default, all, selected, none) and allowed_tool_keys when specific tool permissions are needed.",
     "Prefer these built-in FlowHolt blocks when planning:",
     "For tool nodes, prefer the shared tool presets below and include a matching tool_key when one clearly fits the job.",
     ...catalogLines,
@@ -112,6 +113,7 @@ function buildRevisionSystemPrompt() {
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
     "If a condition node exists, edges from it must include branch true and false.",
     "Use short, clear node labels and stable ids.",
+    "When agent permissions matter, use tool_access_mode and allowed_tool_keys instead of assuming unrestricted tool access.",
     "Keep node count between 4 and 10.",
     "Edges must only reference valid ids.",
     "Do not include markdown fences.",
@@ -187,6 +189,8 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
       return {
         instruction: "Complete this step based on the workflow goal and prior outputs.",
         model: "",
+        tool_access_mode: "workspace_default",
+        allowed_tool_keys: [],
       };
     case "tool":
       return getDefaultToolConfig("http-request");
@@ -780,4 +784,6 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
+
+
 

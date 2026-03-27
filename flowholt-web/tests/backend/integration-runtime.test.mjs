@@ -61,6 +61,28 @@ test('resolveNodeConfigWithConnection merges http connection defaults for tool p
   });
 });
 
+test('resolveNodeConfigWithConnection adapts starter httpbin endpoints for preset demos', () => {
+  const resolved = resolveNodeConfigWithConnection(
+    'tool',
+    {
+      tool_key: 'knowledge-lookup',
+      url: '/v1/search',
+    },
+    {
+      id: 'httpbin-1',
+      provider: 'http',
+      label: 'Demo HTTPBin',
+      config: {
+        base_url: 'https://httpbin.org',
+      },
+      secrets: {},
+    },
+  );
+
+  assert.equal(resolved.url, '/anything/v1/search');
+  assert.equal(resolved.runtime_adapter, 'httpbin_anything');
+});
+
 test('resolveNodeConfigWithConnection keeps optional presets runnable without a saved connection', () => {
   const resolved = resolveNodeConfigWithConnection('tool', {
     tool_key: 'webhook-reply',

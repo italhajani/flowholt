@@ -63,6 +63,48 @@ function mergeHeaders(
   };
 }
 
+function parseUrlOrNull(value: string) {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function adaptHttpbinDemoUrl(baseUrl: string, rawUrl: string, capability: string) {
+  if (!rawUrl || capability === "http_request" || capability === "webhook_reply") {
+    return { url: rawUrl, runtimeAdapter: "" };
+  }
+
+  const trimmedUrl = rawUrl.trim();
+  const base = parseUrlOrNull(baseUrl);
+  const absolute = parseUrlOrNull(trimmedUrl);
+
+  const isHttpbinHost = (host: string | undefined) => typeof host === "string" && host.includes("httpbin.org");
+  const normalizePath = (value: string) => (value.startsWith("/") ? value : `/${value}`);
+  const toAnythingPath = (path: string) => {
+    const normalized = normalizePath(path);
+    return normalized.startsWith("/anything/") ? normalized : `/anything${normalized}`;
+  };
+
+  if (absolute && isHttpbinHost(absolute.host) && absolute.pathname.startsWith("/v1/")) {
+    absolute.pathname = toAnythingPath(absolute.pathname);
+    return {
+      url: absolute.toString(),
+      runtimeAdapter: "httpbin_anything",
+    };
+  }
+
+  if (base && isHttpbinHost(base.host) && normalizePath(trimmedUrl).startsWith("/v1/")) {
+    return {
+      url: toAnythingPath(trimmedUrl),
+      runtimeAdapter: "httpbin_anything",
+    };
+  }
+
+  return { url: rawUrl, runtimeAdapter: "" };
+}
+
 function resolveToolConfigWithConnection(
   config: Record<string, unknown>,
   connection: IntegrationConnectionRuntime | null,
@@ -70,6 +112,11 @@ function resolveToolConfigWithConnection(
   const preset = getToolRegistryItem(typeof config.tool_key === "string" ? config.tool_key : "");
   const connectionConfig = asRecord(connection?.config);
   const connectionSecrets = asRecord(connection?.secrets);
+  const adapter = adaptHttpbinDemoUrl(
+    typeof connectionConfig.base_url === "string" ? connectionConfig.base_url : "",
+    typeof config.url === "string" ? config.url : "",
+    preset.capability,
+  );
   const resolved = {
     ...connectionConfig,
     ...config,
@@ -107,6 +154,11 @@ function resolveToolConfigWithConnection(
 
   if (!resolved.api_key_header && typeof connectionConfig.api_key_header === "string") {
     resolved.api_key_header = connectionConfig.api_key_header;
+  }
+
+  if (adapter.runtimeAdapter) {
+    resolved.url = adapter.url;
+    resolved.runtime_adapter = adapter.runtimeAdapter;
   }
 
   if (connection) {

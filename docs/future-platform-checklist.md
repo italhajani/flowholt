@@ -5,9 +5,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 91%**
+- Frontend/UI progress: **about 92%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 34%**
+- Agent/tool architecture groundwork: **about 48%**
 
 ## Backend foundations
 
@@ -60,7 +60,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - [x] Shared tool capability registry for planner + Studio presets
 - [x] Connection-aware tool runtime contracts (map presets to real providers cleanly)
-- [ ] Agent memory/tool permission model per workflow step
+- [x] Agent memory/tool permission model per workflow step
 - [ ] Tool result normalization contracts for planner, monitor, and chat sidebar
 - [ ] Multi-tool agent orchestration rules (when to call tools vs think vs ask)
 - [ ] Tool marketplace shape for future premium resources sidebar
@@ -90,6 +90,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Mobile-friendly responsive editor shell
 - [x] Tool preset selector with capability/auth/output hints
 - [x] Connection-aware tool guidance in Studio
+- [x] Agent tool-access controls in Studio
 
 ## Production and reliability
 
@@ -104,6 +105,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Deploy hardening: response security headers + webhook auth review
 - [x] Tool registry tests for planner-facing capability context
 - [x] Connection/runtime contract tests for preset-based integrations
+- [x] Agent tool-access normalization tests
 
 ## Suggested execution order (practical)
 
@@ -116,6 +118,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 7: billing hardening, responsive polish, and final pre-architecture cleanup
 - [x] Phase 8: start agent/tool integration architecture groundwork
 - [x] Phase 9: add connection-aware runtime contracts for preset-based tools
+- [x] Phase 10: add agent tool-access groundwork for future orchestration
 
 ## Definition of "finalized platform" (what done means)
 

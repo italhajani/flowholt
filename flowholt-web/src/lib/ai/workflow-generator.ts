@@ -4,6 +4,7 @@ import type {
   WorkflowRecord,
 } from "@/lib/flowholt/types";
 import { getCatalogPromptLines } from "@/lib/flowholt/node-catalog";
+import { getToolMarketplacePromptLines } from "@/lib/flowholt/tool-marketplace";
 import { getDefaultToolConfig } from "@/lib/flowholt/tool-registry";
 
 type WorkflowGenerationProvider = "groq" | "huggingface" | "fallback";
@@ -80,6 +81,7 @@ const SUPPORTED_NODE_TYPES: WorkflowNodeType[] = [
 
 function buildCreateSystemPrompt() {
   const catalogLines = getCatalogPromptLines();
+  const marketplaceLines = getToolMarketplacePromptLines();
 
   return [
     "You are an AI workflow planner for a product named FlowHolt.",
@@ -93,6 +95,8 @@ function buildCreateSystemPrompt() {
     "Prefer these built-in FlowHolt blocks when planning:",
     "For tool nodes, prefer the shared tool presets below and include a matching tool_key when one clearly fits the job.",
     ...catalogLines,
+    "Marketplace/resource kit context:",
+    ...marketplaceLines,
     "Create 4 to 8 nodes.",
     "Make node ids short and lowercase with hyphens.",
     "Edges must reference valid node ids.",
@@ -102,6 +106,7 @@ function buildCreateSystemPrompt() {
 
 function buildRevisionSystemPrompt() {
   const catalogLines = getCatalogPromptLines();
+  const marketplaceLines = getToolMarketplacePromptLines();
 
   return [
     "You are an AI workflow orchestrator for FlowHolt.",
@@ -120,6 +125,8 @@ function buildRevisionSystemPrompt() {
     "Node catalog context:",
     "When a tool step is needed, prefer one of the named tool presets below and keep the tool purpose human-readable.",
     ...catalogLines,
+    "Marketplace/resource kit context:",
+    ...marketplaceLines,
   ].join(" ");
 }
 
@@ -785,6 +792,8 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
+
+
 
 
 

@@ -12,6 +12,7 @@ test('getToolRegistryItem falls back to generic http request preset', () => {
   assert.equal(getToolRegistryItem('crm-upsert').capability, 'crm_writeback');
   assert.equal(getToolRegistryItem('crm-upsert').requiresConnection, true);
   assert.equal(getToolRegistryItem('crm-upsert').resultContract, 'record_sync');
+  assert.equal(getToolRegistryItem('crm-upsert').marketplaceCategory, 'crm_operations');
   assert.equal(getToolRegistryItem('missing-preset').key, 'http-request');
 });
 

@@ -5,9 +5,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 93%**
+- Frontend/UI progress: **about 94%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 74%**
+- Agent/tool architecture groundwork: **about 86%**
 
 ## Backend foundations
 
@@ -63,7 +63,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Agent memory/tool permission model per workflow step
 - [x] Tool result normalization contracts for planner, monitor, and chat sidebar groundwork
 - [x] Multi-tool agent orchestration rules (single, read_then_write, fan_out, permission enforcement)
-- [ ] Tool marketplace shape for future premium resources sidebar
+- [x] Tool marketplace/resources model with provider-specific kits and readiness states
+- [ ] Provider-specific tool packs beyond starter HTTP/Groq/webhook kits
+- [ ] Premium resources sidebar redesign using this marketplace model
 
 ## Before full UI redesign
 
@@ -93,6 +95,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Agent tool-access controls in Studio
 - [x] Agent tool-strategy controls in Studio
 - [x] Tool output contract hints in Studio
+- [x] Studio resources panel with marketplace kits and readiness states
 
 ## Production and reliability
 
@@ -110,6 +113,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Agent tool-access normalization tests
 - [x] Tool result contract normalization tests
 - [x] Multi-tool orchestration planning tests
+- [x] Tool marketplace/resource kit tests
 
 ## Suggested execution order (practical)
 
@@ -125,6 +129,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 10: add agent tool-access groundwork for future orchestration
 - [x] Phase 11: add normalized tool result contracts and agent tool-strategy groundwork
 - [x] Phase 12: add real multi-tool orchestration behavior in the engine
+- [x] Phase 13: add shared marketplace/resource kits for the future premium sidebar
 
 ## Definition of "finalized platform" (what done means)
 

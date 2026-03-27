@@ -14,6 +14,7 @@ import './backup-runner-logic.test.mjs';
 import './security.test.mjs';
 import './security-headers.test.mjs';
 import './tool-registry.test.mjs';
+import './tool-marketplace.test.mjs';
 import './tool-result-contract.test.mjs';
 import './integration-runtime.test.mjs';
 import './agent-tool-access.test.mjs';

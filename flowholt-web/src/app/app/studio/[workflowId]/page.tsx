@@ -4,6 +4,7 @@ import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import { AppShell } from "@/components/app-shell";
 import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
 import { StudioCanvas } from "@/components/studio-canvas";
+import { StudioResourcesPanel } from "@/components/studio-resources-panel";
 import { SurfaceCard } from "@/components/surface-card";
 import { WorkflowSchedulePanel } from "@/components/workflow-schedule-panel";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio, getWorkflowSchedules } from "@/lib/flowholt/data";
@@ -205,6 +206,14 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               </SurfaceCard>
 
               <SurfaceCard
+                title="Resources"
+                description="Provider kits and workspace-ready resources for the future premium tools sidebar."
+                tone="default"
+              >
+                <StudioResourcesPanel integrations={integrationOptions} />
+              </SurfaceCard>
+
+              <SurfaceCard
                 title="Flow preview"
                 description="A human-readable simulation summary so you can understand the graph before running it."
                 tone={validation.valid ? "mint" : "sand"}
@@ -351,3 +360,5 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
+
+

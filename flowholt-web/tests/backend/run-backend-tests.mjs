@@ -20,3 +20,5 @@ import './integration-runtime.test.mjs';
 import './agent-tool-access.test.mjs';
 
 import './workflow-generator-pack.test.mjs';
+
+import './billing.test.mjs';

@@ -102,6 +102,84 @@ export type WorkspaceUsageStatus = {
   toolCallsMonthlyCount: number;
 };
 
+export type WorkspaceBillingPlanKey = "starter" | "pro" | "scale";
+
+export type WorkspaceBillingPlanDefinition = {
+  key: WorkspaceBillingPlanKey;
+  name: string;
+  description: string;
+  monthlyBaseCents: number;
+  currency: string;
+  monthlyRunLimit: number;
+  monthlyTokenLimit: number;
+  activeWorkflowLimit: number;
+  memberLimit: number;
+  scheduleLimit: number;
+  overageRunCents: number;
+  overagePer1000TokensCents: number;
+};
+
+export type WorkspaceBillingSubscriptionRecord = {
+  workspace_id: string;
+  created_by_user_id: string | null;
+  plan_key: WorkspaceBillingPlanKey;
+  plan_name: string;
+  status: "trialing" | "active" | "past_due" | "cancelled";
+  billing_email: string;
+  currency: string;
+  monthly_base_cents: number;
+  overage_run_cents: number;
+  overage_per_1000_tokens_cents: number;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  trial_ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WorkspaceBillingInvoiceLineItem = {
+  key: string;
+  label: string;
+  quantity: number;
+  unit_amount_cents: number;
+  total_amount_cents: number;
+  detail: string;
+};
+
+export type WorkspaceBillingInvoiceRecord = {
+  id: string;
+  workspace_id: string;
+  created_by_user_id: string | null;
+  status: "draft" | "open" | "paid" | "void";
+  currency: string;
+  period_start: string;
+  period_end: string;
+  base_amount_cents: number;
+  overage_amount_cents: number;
+  total_amount_cents: number;
+  line_items: WorkspaceBillingInvoiceLineItem[];
+  issued_at: string;
+  paid_at: string | null;
+  notes: string;
+  created_at: string;
+};
+
+export type WorkspaceBillingEstimate = {
+  currency: string;
+  lineItems: WorkspaceBillingInvoiceLineItem[];
+  baseAmountCents: number;
+  overageAmountCents: number;
+  totalAmountCents: number;
+};
+
+export type WorkspaceBillingSnapshot = {
+  currentPlan: WorkspaceBillingPlanDefinition;
+  subscription: WorkspaceBillingSubscriptionRecord;
+  estimate: WorkspaceBillingEstimate;
+  invoices: WorkspaceBillingInvoiceRecord[];
+};
+
 export type IntegrationProvider = "groq" | "http" | "webhook";
 
 export type IntegrationConnectionRecord = {
@@ -322,6 +400,7 @@ export type IntegrationsSnapshot = {
 export type WorkspaceSettingsSnapshot = {
   schemaReady: boolean;
   rbacReady: boolean;
+  billingReady: boolean;
   workspaces: WorkspaceRecord[];
   activeWorkspace: WorkspaceRecord | null;
   currentUserId: string | null;
@@ -330,6 +409,7 @@ export type WorkspaceSettingsSnapshot = {
   members: WorkspaceMembershipRecord[];
   teamSize: number;
   limits: WorkspaceUsageStatus | null;
+  billing: WorkspaceBillingSnapshot | null;
 };
 
 export type UsageLimitContext = {

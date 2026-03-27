@@ -7,6 +7,7 @@ import {
 import { DEFAULT_SECURITY_HEADERS } from "@/lib/flowholt/security-headers";
 import { getWorkspaceState, resolveWorkspaceRole } from "@/lib/flowholt/workspace-context";
 import { getWorkspaceUsageStatus } from "@/lib/flowholt/usage-limits";
+import { getWorkspaceBillingSnapshot } from "@/lib/flowholt/billing";
 import { createClient } from "@/lib/supabase/server";
 import type {
   DashboardSnapshot,
@@ -105,6 +106,7 @@ function emptyWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
   return {
     schemaReady: false,
     rbacReady: false,
+    billingReady: false,
     workspaces: [],
     activeWorkspace: null,
     currentUserId: null,
@@ -113,6 +115,7 @@ function emptyWorkspaceSettingsSnapshot(): WorkspaceSettingsSnapshot {
     members: [],
     teamSize: 0,
     limits: null,
+    billing: null,
   };
 }
 
@@ -738,6 +741,7 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
       ...emptyWorkspaceSettingsSnapshot(),
       schemaReady: true,
       rbacReady: true,
+      billingReady: true,
       workspaces: workspaceState.workspaces,
       currentUserId: workspaceState.currentUserId,
     };
@@ -757,6 +761,7 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
     return {
       schemaReady: true,
       rbacReady: false,
+      billingReady: false,
       workspaces: workspaceState.workspaces,
       activeWorkspace: workspaceState.activeWorkspace,
       currentUserId: workspaceState.currentUserId,
@@ -772,6 +777,7 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
         workspaceId: workspaceState.activeWorkspace.id,
         memberCountHint: currentUserRole === "owner" ? 1 : 0,
       }),
+      billing: null,
     };
   }
 
@@ -802,10 +808,16 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
     workspaceState.currentUserId,
     memberships,
   );
+  const billingSnapshot = await getWorkspaceBillingSnapshot({
+    supabase: workspaceState.supabase,
+    workspaceId: workspaceState.activeWorkspace.id,
+    memberCountHint: memberships.length,
+  });
 
   return {
     schemaReady: true,
     rbacReady: true,
+    billingReady: billingSnapshot.billingReady,
     workspaces: workspaceState.workspaces,
     activeWorkspace: workspaceState.activeWorkspace,
     currentUserId: workspaceState.currentUserId,
@@ -813,11 +825,8 @@ export async function getWorkspaceSettingsSnapshot(): Promise<WorkspaceSettingsS
     canManageMembers: currentUserRole === "owner" || currentUserRole === "admin",
     members: memberships,
     teamSize: memberships.length,
-    limits: await getWorkspaceUsageStatus({
-      supabase: workspaceState.supabase,
-      workspaceId: workspaceState.activeWorkspace.id,
-      memberCountHint: memberships.length,
-    }),
+    limits: billingSnapshot.usage,
+    billing: billingSnapshot.billing,
   };
 }
 

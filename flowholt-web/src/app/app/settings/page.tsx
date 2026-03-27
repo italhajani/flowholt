@@ -2,10 +2,13 @@ import { AppShell } from "@/components/app-shell";
 import { SurfaceCard } from "@/components/surface-card";
 import {
   addWorkspaceMember,
+  changeWorkspacePlan,
+  createWorkspaceInvoice,
   removeWorkspaceMember,
   setActiveWorkspace,
   updateWorkspaceMemberRole,
 } from "@/app/app/settings/actions";
+import { formatCurrencyCents } from "@/lib/flowholt/billing";
 import { getWorkspaceAuditTrail } from "@/lib/flowholt/audit-trail";
 import { getWorkspaceSettingsSnapshot } from "@/lib/flowholt/data";
 import type { UsageCounter } from "@/lib/flowholt/types";
@@ -55,6 +58,15 @@ function counterTone(level: UsageCounter["level"]) {
 
 function prettyAction(action: string) {
   return action.replace(/[._]/g, " ");
+}
+
+function formatDateRange(start: string, end: string) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return "Current billing period";
+  }
+  return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
@@ -120,6 +132,19 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <div className="space-y-3 text-sm leading-6 text-stone-700">
               <p>Run `20260327_0011_audit_logs_and_secret_rotation.sql` in a new Supabase SQL query.</p>
               <p>Then refresh Settings to see secret rotations, deletes, and restore history.</p>
+            </div>
+          </SurfaceCard>
+        ) : null}
+
+        {!snapshot.billingReady && snapshot.activeWorkspace ? (
+          <SurfaceCard
+            title="Billing engine migration needed"
+            description="Usage limits are ready, but the new plan, subscription, and invoice tables are not in this database yet."
+            tone="sand"
+          >
+            <div className="space-y-3 text-sm leading-6 text-stone-700">
+              <p>Run `20260328_0017_workspace_billing_engine.sql` in a new Supabase SQL query.</p>
+              <p>Then refresh Settings to unlock plan switching, draft invoices, and billing history.</p>
             </div>
           </SurfaceCard>
         ) : null}
@@ -288,6 +313,176 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </div>
 
           <div className="space-y-5">
+            {snapshot.billing ? (
+              <SurfaceCard
+                title="Billing engine"
+                description="The workspace now has a real plan, subscription record, draft invoice estimate, and recent invoice history."
+                tone={snapshot.billing.estimate.overageAmountCents > 0 ? "sand" : "mint"}
+              >
+                <div className="space-y-4 text-sm leading-6 text-stone-700">
+                  <div className="rounded-2xl bg-white/80 px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Current plan</p>
+                        <p className="mt-2 text-lg font-semibold tracking-tight text-stone-900">
+                          {snapshot.billing.currentPlan.name}
+                        </p>
+                        <p className="mt-1 text-sm text-stone-600">{snapshot.billing.currentPlan.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Monthly base</p>
+                        <p className="mt-2 text-lg font-semibold tracking-tight text-stone-900">
+                          {formatCurrencyCents(
+                            snapshot.billing.subscription.monthly_base_cents,
+                            snapshot.billing.subscription.currency,
+                          )}
+                        </p>
+                        <p className="text-xs text-stone-500">{snapshot.billing.subscription.status}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                      <span className="rounded-full bg-stone-100 px-3 py-1">
+                        {formatDateRange(
+                          snapshot.billing.subscription.current_period_start,
+                          snapshot.billing.subscription.current_period_end,
+                        )}
+                      </span>
+                      <span className="rounded-full bg-stone-100 px-3 py-1">
+                        billing email: {snapshot.billing.subscription.billing_email || "not set"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-2xl bg-white/80 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Draft invoice total</p>
+                      <p className="mt-2 text-lg font-semibold tracking-tight text-stone-900">
+                        {formatCurrencyCents(
+                          snapshot.billing.estimate.totalAmountCents,
+                          snapshot.billing.estimate.currency,
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-white/80 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Base</p>
+                      <p className="mt-2 text-lg font-semibold tracking-tight text-stone-900">
+                        {formatCurrencyCents(
+                          snapshot.billing.estimate.baseAmountCents,
+                          snapshot.billing.estimate.currency,
+                        )}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-white/80 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Overage</p>
+                      <p className="mt-2 text-lg font-semibold tracking-tight text-stone-900">
+                        {formatCurrencyCents(
+                          snapshot.billing.estimate.overageAmountCents,
+                          snapshot.billing.estimate.currency,
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-white/80 px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Invoice estimate breakdown</p>
+                    <div className="mt-3 space-y-3">
+                      {snapshot.billing.estimate.lineItems.map((lineItem) => (
+                        <div key={lineItem.key} className="rounded-2xl bg-stone-50 px-4 py-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-stone-900">{lineItem.label}</p>
+                              <p className="mt-1 text-xs leading-5 text-stone-500">{lineItem.detail}</p>
+                            </div>
+                            <p className="font-medium text-stone-900">
+                              {formatCurrencyCents(lineItem.total_amount_cents, snapshot.billing!.estimate.currency)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {snapshot.canManageMembers ? (
+                    <form action={changeWorkspacePlan} className="rounded-2xl bg-[#f6f1ea] p-4">
+                      <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace?.id ?? ""} />
+                      <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_auto]">
+                        <select
+                          name="planKey"
+                          defaultValue={snapshot.billing.currentPlan.key}
+                          className="rounded-2xl border border-stone-900/10 bg-white px-4 py-3 text-sm outline-none"
+                        >
+                          <option value="starter">Starter</option>
+                          <option value="pro">Pro</option>
+                          <option value="scale">Scale</option>
+                        </select>
+                        <input
+                          name="billingEmail"
+                          defaultValue={snapshot.billing.subscription.billing_email}
+                          placeholder="Billing email"
+                          className="rounded-2xl border border-stone-900/10 bg-white px-4 py-3 text-sm outline-none"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-full bg-stone-950 px-5 py-3 text-sm font-medium text-stone-50 transition hover:bg-stone-800"
+                        >
+                          Update plan
+                        </button>
+                      </div>
+                      <p className="mt-3 text-xs leading-5 text-stone-500">
+                        This updates the workspace subscription record and also syncs the usage limits for that plan.
+                      </p>
+                    </form>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    {snapshot.canManageMembers ? (
+                      <form action={createWorkspaceInvoice}>
+                        <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace?.id ?? ""} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50"
+                        >
+                          Create draft invoice
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl bg-white/80 px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Recent invoices</p>
+                      <span className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                        {snapshot.billing.invoices.length}
+                      </span>
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {snapshot.billing.invoices.length ? (
+                        snapshot.billing.invoices.map((invoice) => (
+                          <div key={invoice.id} className="rounded-2xl bg-stone-50 px-4 py-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="font-medium text-stone-900">
+                                  {formatCurrencyCents(invoice.total_amount_cents, invoice.currency)}
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-stone-500">
+                                  {formatDateRange(invoice.period_start, invoice.period_end)}
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-600">
+                                {invoice.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm leading-6 text-stone-500">No invoices yet. Create a draft invoice when you want to capture the current usage snapshot.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </SurfaceCard>
+            ) : null}
+
             {snapshot.limits ? (
               <SurfaceCard
                 title="Plan and usage"

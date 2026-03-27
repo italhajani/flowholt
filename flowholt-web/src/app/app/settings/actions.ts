@@ -7,6 +7,12 @@ import { redirect } from "next/navigation";
 import { recordWorkspaceAuditLog } from "@/lib/flowholt/audit";
 import { ACTIVE_WORKSPACE_COOKIE } from "@/lib/flowholt/workspace-context";
 import {
+  buildUsageLimitPatchFromPlan,
+  getBillingPlanByKey,
+  getCurrentBillingPeriodBounds,
+  getWorkspaceBillingSnapshot,
+} from "@/lib/flowholt/billing";
+import {
   assertWorkspaceCanAddMember,
   getWorkspaceUsageErrorMessage,
 } from "@/lib/flowholt/usage-limits";
@@ -242,4 +248,155 @@ export async function removeWorkspaceMember(formData: FormData) {
 
   revalidateWorkspacePages();
   redirectWithMessage("message", "Team member removed.");
+}
+
+
+export async function changeWorkspacePlan(formData: FormData) {
+  const workspaceIdValue = formData.get("workspaceId");
+  const planKeyValue = formData.get("planKey");
+  const billingEmailValue = formData.get("billingEmail");
+
+  if (typeof workspaceIdValue !== "string" || !workspaceIdValue) {
+    redirectWithMessage("error", "Missing workspace id.");
+  }
+
+  if (typeof planKeyValue !== "string" || !planKeyValue) {
+    redirectWithMessage("error", "Choose a plan first.");
+  }
+
+  const plan = getBillingPlanByKey(planKeyValue);
+  if (!plan) {
+    redirectWithMessage("error", "That billing plan is not available.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const workspaceId = workspaceIdValue;
+  const billingEmail = typeof billingEmailValue === "string" ? billingEmailValue.trim() : "";
+  const bounds = getCurrentBillingPeriodBounds();
+
+  const { error: subscriptionError } = await supabase
+    .from("workspace_billing_subscriptions")
+    .upsert({
+      workspace_id: workspaceId,
+      created_by_user_id: user.id,
+      plan_key: plan.key,
+      plan_name: plan.name,
+      status: "active",
+      billing_email: billingEmail,
+      currency: plan.currency,
+      monthly_base_cents: plan.monthlyBaseCents,
+      overage_run_cents: plan.overageRunCents,
+      overage_per_1000_tokens_cents: plan.overagePer1000TokensCents,
+      current_period_start: bounds.periodStart,
+      current_period_end: bounds.periodEnd,
+      cancel_at_period_end: false,
+      trial_ends_at: null,
+    });
+
+  if (subscriptionError) {
+    redirectWithMessage("error", subscriptionError.message);
+  }
+
+  const { error: limitsError } = await supabase
+    .from("workspace_usage_limits")
+    .upsert({
+      workspace_id: workspaceId,
+      ...buildUsageLimitPatchFromPlan(plan),
+    });
+
+  if (limitsError) {
+    redirectWithMessage("error", limitsError.message);
+  }
+
+  await recordWorkspaceAuditLog({
+    supabase,
+    workspaceId,
+    actorUserId: user.id,
+    action: "billing.plan_changed",
+    targetType: "workspace_billing_subscription",
+    targetId: workspaceId,
+    summary: `Changed workspace plan to ${plan.name}`,
+    payload: {
+      plan_key: plan.key,
+      plan_name: plan.name,
+      billing_email: billingEmail,
+    },
+  });
+
+  revalidateWorkspacePages();
+  redirectWithMessage("message", `Workspace plan changed to ${plan.name}.`);
+}
+
+export async function createWorkspaceInvoice(formData: FormData) {
+  const workspaceIdValue = formData.get("workspaceId");
+
+  if (typeof workspaceIdValue !== "string" || !workspaceIdValue) {
+    redirectWithMessage("error", "Missing workspace id.");
+  }
+
+  const workspaceId = workspaceIdValue;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const billingSnapshot = await getWorkspaceBillingSnapshot({
+    supabase,
+    workspaceId,
+  });
+
+  if (!billingSnapshot.billingReady || !billingSnapshot.billing) {
+    redirectWithMessage("error", "Billing tables are not ready in this database yet.");
+  }
+
+  const { billing } = billingSnapshot;
+  const { error } = await supabase
+    .from("workspace_billing_invoices")
+    .insert({
+      workspace_id: workspaceId,
+      created_by_user_id: user.id,
+      status: "draft",
+      currency: billing.subscription.currency,
+      period_start: billing.subscription.current_period_start,
+      period_end: billing.subscription.current_period_end,
+      base_amount_cents: billing.estimate.baseAmountCents,
+      overage_amount_cents: billing.estimate.overageAmountCents,
+      total_amount_cents: billing.estimate.totalAmountCents,
+      line_items: billing.estimate.lineItems,
+      notes: "Draft invoice generated from the current workspace usage snapshot.",
+    });
+
+  if (error) {
+    redirectWithMessage("error", error.message);
+  }
+
+  await recordWorkspaceAuditLog({
+    supabase,
+    workspaceId,
+    actorUserId: user.id,
+    action: "billing.invoice_drafted",
+    targetType: "workspace_billing_invoice",
+    targetId: workspaceId,
+    summary: `Created a draft invoice for ${billing.currentPlan.name}`,
+    payload: {
+      plan_key: billing.currentPlan.key,
+      total_amount_cents: billing.estimate.totalAmountCents,
+      currency: billing.subscription.currency,
+    },
+  });
+
+  revalidateWorkspacePages();
+  redirectWithMessage("message", "Draft invoice created.");
 }

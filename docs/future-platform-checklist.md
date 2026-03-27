@@ -7,7 +7,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 91%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 18%**
+- Agent/tool architecture groundwork: **about 34%**
 
 ## Backend foundations
 
@@ -59,7 +59,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Agent/tool architecture stage
 
 - [x] Shared tool capability registry for planner + Studio presets
-- [ ] Connection-aware tool runtime contracts (map presets to real providers cleanly)
+- [x] Connection-aware tool runtime contracts (map presets to real providers cleanly)
 - [ ] Agent memory/tool permission model per workflow step
 - [ ] Tool result normalization contracts for planner, monitor, and chat sidebar
 - [ ] Multi-tool agent orchestration rules (when to call tools vs think vs ask)
@@ -89,6 +89,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Settings audit trail card for security events
 - [x] Mobile-friendly responsive editor shell
 - [x] Tool preset selector with capability/auth/output hints
+- [x] Connection-aware tool guidance in Studio
 
 ## Production and reliability
 
@@ -102,6 +103,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Security pass: secret handling, endpoint auth, dependency audit foundation
 - [x] Deploy hardening: response security headers + webhook auth review
 - [x] Tool registry tests for planner-facing capability context
+- [x] Connection/runtime contract tests for preset-based integrations
 
 ## Suggested execution order (practical)
 
@@ -113,6 +115,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 6: responsive editor shell groundwork
 - [x] Phase 7: billing hardening, responsive polish, and final pre-architecture cleanup
 - [x] Phase 8: start agent/tool integration architecture groundwork
+- [x] Phase 9: add connection-aware runtime contracts for preset-based tools
 
 ## Definition of "finalized platform" (what done means)
 

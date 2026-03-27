@@ -222,6 +222,11 @@ export function StudioNodeConfigForm({
               ))}
             </select>
             <p className="mt-2 text-xs leading-5 text-stone-500">{selectedToolPreset.description}</p>
+            <p className="mt-2 text-xs leading-5 text-stone-500">
+              {selectedToolPreset.requiresConnection
+                ? `Requires an active ${selectedToolPreset.connectionProvider ?? "compatible"} connection from Integrations.` 
+                : "Connection is optional for this preset."}
+            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
@@ -406,3 +411,4 @@ export function StudioNodeConfigForm({
     </div>
   );
 }
+

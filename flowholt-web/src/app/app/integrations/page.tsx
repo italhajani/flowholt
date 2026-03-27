@@ -24,11 +24,14 @@ const providerTemplates = [
   {
     provider: "http",
     title: "HTTP request connection",
-    description: "Create a reusable API profile for generic HTTP tool nodes.",
+    description: "Create a reusable API profile for HTTP request, CRM, spreadsheet, and knowledge lookup tool presets.",
     config: {
       base_url: "https://httpbin.org",
       default_method: "POST",
-      default_headers: {},
+      default_headers: {
+        Accept: "application/json",
+      },
+      api_key_header: "x-api-key",
     },
     secrets: {
       bearer_token: "",
@@ -126,7 +129,7 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
 
           <SurfaceCard
             title="Saved connections"
-            description="Connections can now be tested, rotated, and tracked through the workspace audit trail."
+            description="Connections can now be tested, rotated, tracked in audit history, and reused by preset-based agent/tool runtime contracts."
           >
             <div className="grid gap-3">
               {snapshot.integrations.length ? (
@@ -283,3 +286,4 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
     </AppShell>
   );
 }
+

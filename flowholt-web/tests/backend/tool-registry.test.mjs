@@ -10,6 +10,7 @@ import {
 
 test('getToolRegistryItem falls back to generic http request preset', () => {
   assert.equal(getToolRegistryItem('crm-upsert').capability, 'crm_writeback');
+  assert.equal(getToolRegistryItem('crm-upsert').requiresConnection, true);
   assert.equal(getToolRegistryItem('missing-preset').key, 'http-request');
 });
 
@@ -34,7 +35,7 @@ test('applyToolPreset keeps connection fields but replaces the main request shap
 
   assert.equal(config.tool_key, 'crm-upsert');
   assert.equal(config.method, 'POST');
-  assert.equal(config.url, 'https://api.example-crm.com/v1/records/upsert');
+  assert.equal(config.url, '/v1/records/upsert');
   assert.equal(config.connection_id, 'conn-123');
   assert.deepEqual(config.headers, { 'x-demo': '1' });
   assert.deepEqual(config.body, {
@@ -51,3 +52,4 @@ test('planner lines include capability context for the AI planner', () => {
   assert.equal(toolLines.some((line) => line.includes('capability:crm_writeback')), true);
   assert.equal(toolLines.some((line) => line.includes('capability:knowledge_lookup')), true);
 });
+

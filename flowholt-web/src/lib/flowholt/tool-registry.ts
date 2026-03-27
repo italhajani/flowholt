@@ -13,6 +13,8 @@ export type ToolRegistryItem = {
   provider: string;
   capability: ToolCapabilityKind;
   authKind: ToolAuthKind;
+  connectionProvider: "http" | "webhook" | null;
+  requiresConnection: boolean;
   recommendedLabel: string;
   defaultConfig: Record<string, unknown>;
   outputShape: string;
@@ -40,6 +42,8 @@ export const toolRegistry: ToolRegistryItem[] = [
     provider: "Generic HTTP",
     capability: "http_request",
     authKind: "bearer_token",
+    connectionProvider: "http",
+    requiresConnection: false,
     recommendedLabel: "HTTP request",
     defaultConfig: {
       tool_key: "http-request",
@@ -61,6 +65,8 @@ export const toolRegistry: ToolRegistryItem[] = [
     provider: "Generic HTTP",
     capability: "webhook_reply",
     authKind: "none",
+    connectionProvider: null,
+    requiresConnection: false,
     recommendedLabel: "Send callback",
     defaultConfig: {
       tool_key: "webhook-reply",
@@ -83,12 +89,14 @@ export const toolRegistry: ToolRegistryItem[] = [
     provider: "CRM",
     capability: "crm_writeback",
     authKind: "workspace_connection",
+    connectionProvider: "http",
+    requiresConnection: true,
     recommendedLabel: "Update CRM",
     defaultConfig: {
       tool_key: "crm-upsert",
       capability: "crm_writeback",
       method: "POST",
-      url: "https://api.example-crm.com/v1/records/upsert",
+      url: "/v1/records/upsert",
       body: {
         external_id: "{{trigger.payload.id}}",
         summary: "{{previous.text}}",
@@ -106,12 +114,14 @@ export const toolRegistry: ToolRegistryItem[] = [
     provider: "Spreadsheet",
     capability: "spreadsheet_row",
     authKind: "workspace_connection",
+    connectionProvider: "http",
+    requiresConnection: true,
     recommendedLabel: "Append row",
     defaultConfig: {
       tool_key: "spreadsheet-row",
       capability: "spreadsheet_row",
       method: "POST",
-      url: "https://sheets.example.com/v1/rows",
+      url: "/v1/rows",
       body: {
         sheet: "operations",
         values: {
@@ -131,12 +141,14 @@ export const toolRegistry: ToolRegistryItem[] = [
     provider: "Knowledge base",
     capability: "knowledge_lookup",
     authKind: "api_key",
+    connectionProvider: "http",
+    requiresConnection: true,
     recommendedLabel: "Knowledge lookup",
     defaultConfig: {
       tool_key: "knowledge-lookup",
       capability: "knowledge_lookup",
       method: "POST",
-      url: "https://knowledge.example.com/v1/search",
+      url: "/v1/search",
       body: {
         query: "{{workflow.original_prompt}}",
         limit: 5,

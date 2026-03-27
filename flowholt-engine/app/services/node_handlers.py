@@ -308,10 +308,18 @@ def handle_tool(
     url = _resolve_tool_url(base_url, raw_url)
     headers = dict(config.get("headers")) if isinstance(config.get("headers"), dict) else {}
     bearer_token = str(config.get("bearer_token") or "").strip()
+    api_key = str(config.get("api_key") or "").strip()
+    api_key_header = str(config.get("api_key_header") or "x-api-key").strip()
+    tool_key = str(config.get("tool_key") or "http-request").strip()
+    capability = str(config.get("capability") or "http_request").strip()
+    connection_label = str(config.get("connection_label") or "").strip()
     body = _safe_json(config.get("body", context.previous_output))
 
     if bearer_token and "authorization" not in {key.lower() for key in headers}:
         headers["Authorization"] = f"Bearer {bearer_token}"
+
+    if api_key and api_key_header and api_key_header.lower() not in {key.lower() for key in headers}:
+        headers[api_key_header] = api_key
 
     if not url:
         return NodeExecutionResult(
@@ -332,7 +340,7 @@ def handle_tool(
                     },
                 ),
             ],
-            output={"status": "not-configured", "method": method},
+            output={"status": "not-configured", "method": method, "tool_key": tool_key, "capability": capability},
         )
 
     request_kwargs: dict[str, Any] = {
@@ -376,6 +384,9 @@ def handle_tool(
                     "method": method,
                     "url": url,
                     "status_code": response.status_code,
+                    "tool_key": tool_key,
+                    "capability": capability,
+                    "connection_label": connection_label,
                 },
             ),
         ],
@@ -384,6 +395,9 @@ def handle_tool(
             "url": url,
             "method": method,
             "response": response_payload,
+            "tool_key": tool_key,
+            "capability": capability,
+            "connection_label": connection_label,
         },
     )
 
@@ -540,3 +554,4 @@ def execute_node(
 ) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
     return handler(node, payload, sequence, context)
+

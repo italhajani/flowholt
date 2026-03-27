@@ -24,6 +24,8 @@ import { useMemo, useRef, useState } from "react";
 
 import type { WorkflowEdge, WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
 import { StudioNodeConfigForm } from "@/components/studio-node-config-form";
+import { expectedConnectionProviderForNode, requiresConnectionForNode } from "@/lib/flowholt/integration-runtime";
+import { getDefaultToolConfig } from "@/lib/flowholt/tool-registry";
 
 type StudioCanvasProps = {
   initialGraph: WorkflowGraph;
@@ -131,7 +133,7 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
     case "agent":
       return { instruction: "", model: "llama-3.3-70b-versatile" };
     case "tool":
-      return { method: "POST", url: "", body: { input: "{{previous.text}}" } };
+      return getDefaultToolConfig("http-request");
     case "condition":
       return {
         value: "{{previous.status_code}}",
@@ -156,18 +158,7 @@ function providerForNodeType(
   nodeType: WorkflowNodeType,
   config?: Record<string, unknown>,
 ): string | null {
-  switch (nodeType) {
-    case "agent":
-      return "groq";
-    case "tool":
-      return "http";
-    case "trigger": {
-      const mode = typeof config?.mode === "string" ? config.mode.trim().toLowerCase() : "manual";
-      return mode === "webhook" ? "webhook" : null;
-    }
-    default:
-      return null;
-  }
+  return expectedConnectionProviderForNode(nodeType, config ?? {});
 }
 function edgeDisplayLabel(edge: Pick<WorkflowEdge, "label" | "branch">) {
   return edge.label || edge.branch || "";
@@ -357,6 +348,9 @@ function CanvasInner({
     selectedNode && typeof selectedNode.data?.config?.connection_id === "string"
       ? selectedNode.data.config.connection_id
       : "";
+  const selectedNodeRequiresConnection = selectedNode
+    ? requiresConnectionForNode(selectedNode.data?.nodeType ?? "agent", selectedNode.data?.config ?? {})
+    : false;
   const providerConnectionOptions = useMemo(() => {
     if (!selectedNodeProvider) {
       return [];
@@ -504,10 +498,7 @@ function CanvasInner({
           return node;
         }
 
-        const currentConfig = node.data?.config ?? {};
-        const nextConfig = Object.keys(currentConfig).length
-          ? currentConfig
-          : defaultNodeConfig(nodeType);
+        const nextConfig = defaultNodeConfig(nodeType);
 
         return {
           ...node,
@@ -830,8 +821,10 @@ function CanvasInner({
                     </select>
                     <p className="mt-2 text-xs leading-5 text-stone-500">
                       {providerConnectionOptions.length
-                        ? `Using active ${selectedNodeProvider} connections from Integrations.`
-                        : `No active ${selectedNodeProvider} connections found. Add one in Integrations.`}
+                        ? `Using active ${selectedNodeProvider} connections from Integrations.` 
+                        : selectedNodeRequiresConnection
+                          ? `This step needs an active ${selectedNodeProvider} connection before it can run.` 
+                          : `No active ${selectedNodeProvider} connections found. Add one in Integrations if you want a reusable connection.`}
                     </p>
                   </div>
                 ) : null}
@@ -953,13 +946,4 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
-
-
-
-
-
-
-
-
-
 

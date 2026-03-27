@@ -7,17 +7,18 @@ import {
   type EngineRunResponse,
 } from "@/lib/flowholt/engine";
 import {
+  asRecord,
+  expectedConnectionProviderForNode,
+  readNodeConnectionId,
+  requiresConnectionForNode,
+  resolveNodeConfigWithConnection,
+  type IntegrationConnectionRuntime,
+} from "@/lib/flowholt/integration-runtime";
+import {
   validateWorkflowGraph,
   validationFailureMessage,
 } from "@/lib/flowholt/graph-validator";
-import type { WorkflowGraph, WorkflowNode, WorkflowRecord } from "@/lib/flowholt/types";
-
-type IntegrationConnectionRuntime = {
-  id: string;
-  provider: string;
-  config: Record<string, unknown>;
-  secrets: Record<string, unknown>;
-};
+import type { WorkflowGraph, WorkflowRecord } from "@/lib/flowholt/types";
 
 export class WorkflowExecutionError extends Error {
   runId: string;
@@ -44,20 +45,8 @@ export type ExecuteWorkflowRunResult = {
   requestCorrelationId: string;
 };
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readConnectionId(node: WorkflowNode): string {
-  const config = asRecord(node.config);
-  const value = config.connection_id;
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function listConnectionIds(graph: WorkflowGraph) {
-  return [...new Set(graph.nodes.map(readConnectionId).filter(Boolean))];
+  return [...new Set(graph.nodes.map((node) => readNodeConnectionId(asRecord(node.config))).filter(Boolean))];
 }
 
 function resolveRequestCorrelationId(triggerMeta?: Record<string, unknown>) {
@@ -75,7 +64,7 @@ async function loadIntegrationConnections(
 
   const { data, error } = await supabase
     .from("integration_connections")
-    .select("id, provider, status, config, secrets")
+    .select("id, provider, label, status, config, secrets")
     .eq("workspace_id", workspaceId)
     .in("id", connectionIds)
     .eq("status", "active");
@@ -87,6 +76,7 @@ async function loadIntegrationConnections(
   const rows = (data ?? []) as Array<{
     id: string;
     provider: string;
+    label: string | null;
     config: Record<string, unknown> | null;
     secrets: Record<string, unknown> | null;
   }>;
@@ -97,6 +87,7 @@ async function loadIntegrationConnections(
       {
         id: row.id,
         provider: row.provider,
+        label: row.label ?? undefined,
         config: row.config ?? {},
         secrets: row.secrets ?? {},
       },
@@ -104,73 +95,40 @@ async function loadIntegrationConnections(
   );
 }
 
-function expectedConnectionProvider(nodeType: WorkflowNode["type"]): string | null {
-  switch (nodeType) {
-    case "agent":
-      return "groq";
-    case "tool":
-      return "http";
-    case "trigger":
-      return "webhook";
-    default:
-      return null;
-  }
-}
-
 function resolveGraphWithConnections(
   graph: WorkflowGraph,
   connectionsById: Map<string, IntegrationConnectionRuntime>,
 ): WorkflowGraph {
-  const missingConnections = new Set<string>();
+  const missingRequiredConnections: string[] = [];
   const providerMismatches: string[] = [];
 
   const nodes = graph.nodes.map((node) => {
     const config = asRecord(node.config);
-    const connectionId = readConnectionId(node);
+    const connectionId = readNodeConnectionId(config);
+    const expectedProvider = expectedConnectionProviderForNode(node.type, config);
+    const connection = connectionId ? connectionsById.get(connectionId) ?? null : null;
 
-    if (!connectionId) {
-      return {
-        ...node,
-        config,
-      };
+    if (!connection && requiresConnectionForNode(node.type, config)) {
+      missingRequiredConnections.push(
+        `${node.label} requires ${expectedProvider ?? "a compatible"} connection`,
+      );
     }
 
-    const connection = connectionsById.get(connectionId);
-
-    if (!connection) {
-      missingConnections.add(connectionId);
-      return {
-        ...node,
-        config,
-      };
-    }
-
-    const expectedProvider = expectedConnectionProvider(node.type);
-    if (expectedProvider && connection.provider !== expectedProvider) {
+    if (connection && expectedProvider && connection.provider !== expectedProvider) {
       providerMismatches.push(
         `${node.label} expects ${expectedProvider} but received ${connection.provider}`,
       );
-      return {
-        ...node,
-        config,
-      };
     }
 
     return {
       ...node,
-      config: {
-        ...connection.config,
-        ...config,
-        ...connection.secrets,
-        connection_id: connection.id,
-        connection_provider: connection.provider,
-      },
+      config: resolveNodeConfigWithConnection(node.type, config, connection),
     };
   });
 
-  if (missingConnections.size) {
+  if (missingRequiredConnections.length) {
     throw new Error(
-      `Missing or inactive integration connection(s): ${Array.from(missingConnections).join(", ")}`,
+      `Missing required integration connection(s): ${missingRequiredConnections.join("; ")}`,
     );
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { WorkflowScheduleRecord } from "@/lib/flowholt/types";
 
@@ -65,19 +65,31 @@ function readScheduleMode(pattern: unknown): ScheduleMode {
   return "interval";
 }
 
-function formatLocalTimeFromUtcParts(hour: number, minute: number) {
+function padNumber(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function formatStableTime(hour: number, minute: number) {
+  return `${padNumber(hour)}:${padNumber(minute)} UTC`;
+}
+
+function formatDisplayTimeFromUtcParts(hour: number, minute: number, hydrated: boolean) {
+  if (!hydrated) {
+    return formatStableTime(hour, minute);
+  }
+
   return new Date(Date.UTC(2026, 0, 1, hour, minute, 0, 0)).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
-function schedulePatternLabel(schedule: WorkflowScheduleRecord) {
+function schedulePatternLabel(schedule: WorkflowScheduleRecord, hydrated: boolean) {
   const pattern = asRecord(schedule.pattern);
   const mode = readScheduleMode(pattern);
 
   if (mode === "daily") {
-    return `Every day at ${formatLocalTimeFromUtcParts(Number(pattern.hour) || 0, Number(pattern.minute) || 0)}`;
+    return `Every day at ${formatDisplayTimeFromUtcParts(Number(pattern.hour) || 0, Number(pattern.minute) || 0, hydrated)}`;
   }
 
   if (mode === "weekdays") {
@@ -86,14 +98,31 @@ function schedulePatternLabel(schedule: WorkflowScheduleRecord) {
       : [1, 2, 3, 4, 5];
     const label = days.length === 5 && days.join(",") === "1,2,3,4,5"
       ? "Weekdays"
-      : days.map((day) => weekdayLabels[Math.min(6, Math.max(0, Math.floor(day)))]) .join(", ");
-    return `${label} at ${formatLocalTimeFromUtcParts(Number(pattern.hour) || 0, Number(pattern.minute) || 0)}`;
+      : days.map((day) => weekdayLabels[Math.min(6, Math.max(0, Math.floor(day)))]).join(", ");
+    return `${label} at ${formatDisplayTimeFromUtcParts(Number(pattern.hour) || 0, Number(pattern.minute) || 0, hydrated)}`;
   }
 
   return intervalLabel(schedule.interval_minutes);
 }
 
-function formatLocalDateTime(value: string | null) {
+function formatStableDateTime(value: string | null) {
+  if (!value) {
+    return "Not scheduled yet";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "Invalid date";
+  }
+
+  return `${parsed.getUTCFullYear()}-${padNumber(parsed.getUTCMonth() + 1)}-${padNumber(parsed.getUTCDate())} ${padNumber(parsed.getUTCHours())}:${padNumber(parsed.getUTCMinutes())} UTC`;
+}
+
+function formatDisplayDateTime(value: string | null, hydrated: boolean) {
+  if (!hydrated) {
+    return formatStableDateTime(value);
+  }
+
   if (!value) {
     return "Not scheduled yet";
   }
@@ -173,10 +202,16 @@ export function WorkflowSchedulePanel({
   const [label, setLabel] = useState(`${workflowName} schedule`);
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("interval");
   const [intervalMinutes, setIntervalMinutes] = useState(60);
-  const [nextRunAt, setNextRunAt] = useState(defaultNextRunAt);
+  const [nextRunAt, setNextRunAt] = useState("");
+  const [hydrated, setHydrated] = useState(false);
   const [busyAction, setBusyAction] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    setHydrated(true);
+    setNextRunAt((current) => current || defaultNextRunAt());
+  }, []);
 
   const activeCount = useMemo(
     () => schedules.filter((schedule) => schedule.status === "active").length,
@@ -427,7 +462,7 @@ export function WorkflowSchedulePanel({
         <button
           type="button"
           onClick={() => void createSchedule()}
-          disabled={Boolean(busyAction)}
+          disabled={Boolean(busyAction) || !nextRunAt}
           className="rounded-full bg-[#ff7f5f] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#f26f4d] disabled:cursor-wait disabled:opacity-60"
         >
           {busyAction === "create" ? "Creating..." : "Create automatic schedule"}
@@ -456,7 +491,7 @@ export function WorkflowSchedulePanel({
                   <div>
                     <p className="font-medium text-stone-900">{schedule.label}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-400">
-                      {schedule.status} | {schedulePatternLabel(schedule)}
+                      {schedule.status} | {schedulePatternLabel(schedule, hydrated)}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -502,11 +537,11 @@ export function WorkflowSchedulePanel({
                 <div className="mt-4 grid gap-3 text-sm leading-6 text-stone-600 md:grid-cols-2">
                   <div className="rounded-2xl bg-stone-50 px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Next run</p>
-                    <p className="mt-2 text-stone-900">{formatLocalDateTime(schedule.next_run_at)}</p>
+                    <p className="mt-2 text-stone-900">{formatDisplayDateTime(schedule.next_run_at, hydrated)}</p>
                   </div>
                   <div className="rounded-2xl bg-stone-50 px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Last run</p>
-                    <p className="mt-2 text-stone-900">{formatLocalDateTime(schedule.last_run_at)}</p>
+                    <p className="mt-2 text-stone-900">{formatDisplayDateTime(schedule.last_run_at, hydrated)}</p>
                     <p className="mt-1 text-xs text-stone-500">
                       {schedule.last_run_status ? `Last status: ${schedule.last_run_status}` : "No runs yet"}
                     </p>

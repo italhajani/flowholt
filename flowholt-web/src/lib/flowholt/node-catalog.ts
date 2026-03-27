@@ -35,6 +35,14 @@ export const nodeCatalog: NodeCatalogItem[] = [
     executionMode: "builtin",
   },
   {
+    key: "email-trigger",
+    type: "trigger",
+    title: "Email trigger",
+    description: "Starts a workflow when a matching inbound email is ingested.",
+    category: "input",
+    executionMode: "builtin",
+  },
+  {
     key: "task-planner",
     type: "agent",
     title: "Task planner",
@@ -105,3 +113,4 @@ export function getCatalogPromptLines() {
     (item) => `${item.title} [${item.type} | ${item.executionMode}] - ${item.description}`,
   );
 }
+

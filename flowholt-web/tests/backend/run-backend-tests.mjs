@@ -8,3 +8,5 @@ import './studio-workflow-logic.test.mjs';
 import './composer-logic.test.mjs';
 import './run-stream-logic.test.mjs';
 import './event-trigger-logic.test.mjs';
+import './email-trigger-logic.test.mjs';
+

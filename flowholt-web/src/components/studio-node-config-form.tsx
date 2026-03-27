@@ -37,7 +37,7 @@ function configHint(nodeType: WorkflowNodeType) {
     case "output":
       return 'Example: {"result":"{{nodes.writer.text}}"}';
     case "trigger":
-      return 'Example: {"mode":"event","event_name":"lead.created"}';
+      return 'Example: {"mode":"email","email_address":"leads@yourcompany.com","subject_contains":"new lead"}';
     default:
       return "Use advanced JSON only if you need extra control.";
   }
@@ -68,6 +68,7 @@ export function StudioNodeConfigForm({
               <option value="webhook">Webhook</option>
               <option value="schedule">Schedule</option>
               <option value="event">Event</option>
+              <option value="email">Email</option>
             </select>
           </div>
 
@@ -123,6 +124,32 @@ export function StudioNodeConfigForm({
               </div>
               <p className="text-xs leading-5 text-stone-500">
                 Use this when your own systems send named workspace events into FlowHolt.
+              </p>
+            </>
+          ) : null}
+
+          {triggerMode === "email" ? (
+            <>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Inbox address</label>
+                <input
+                  value={asString(config.email_address)}
+                  onChange={(event) => onConfigChange(withField(config, "email_address", event.target.value))}
+                  placeholder="leads@yourcompany.com"
+                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Subject must contain</label>
+                <input
+                  value={asString(config.subject_contains)}
+                  onChange={(event) => onConfigChange(withField(config, "subject_contains", event.target.value))}
+                  placeholder="optional, like new lead"
+                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <p className="text-xs leading-5 text-stone-500">
+                Use this when an email provider or inbox parser sends inbound email data into FlowHolt, and you want matching emails to start the workflow automatically.
               </p>
             </>
           ) : null}

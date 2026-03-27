@@ -15,6 +15,7 @@ This is the first real backend test layer for FlowHolt.
 - composer preview/apply helper logic
 - live run stream helper logic
 - event trigger matching logic
+- email trigger matching logic
 
 ## How to run it
 
@@ -37,6 +38,7 @@ These tests protect the core backend logic that powers:
 - how assistant preview/apply state is summarized and stored
 - how live run streaming clamps polling values and formats SSE events
 - how event names and event sources match the right workflows safely
+- how inbox address and subject filters match the right workflows safely
 
 ## Easy meaning
 

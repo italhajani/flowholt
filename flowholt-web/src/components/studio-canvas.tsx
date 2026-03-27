@@ -248,7 +248,7 @@ function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>)
                 : nodeType === "tool"
                   ? "Connects an app, API, or action step."
                   : nodeType === "trigger"
-                    ? "Starts the workflow from an event or schedule."
+                    ? "Starts the workflow from a click, webhook, event, email, or schedule."
                     : nodeType === "memory"
                       ? "Keeps context and saved knowledge in the flow."
                       : nodeType === "output"
@@ -914,3 +914,4 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+

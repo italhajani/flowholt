@@ -6,7 +6,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 89%**
-- Production hardening progress: **about 80%**
+- Production hardening progress: **about 81%**
 
 ## Backend foundations
 
@@ -53,7 +53,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Connection test endpoint per provider
 - [x] Audit log table for sensitive actions (restore, delete, secret update)
 - [x] External event bus trigger foundation
-- [ ] Remaining advanced trigger types (email intake)
+- [x] Remaining advanced trigger types (email intake)
 
 ## Before full UI redesign
 
@@ -107,3 +107,4 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers
+

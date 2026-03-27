@@ -281,11 +281,15 @@ export type WorkflowScheduleRecord = {
   status: "active" | "paused" | "disabled";
   interval_minutes: number;
   next_run_at: string;
+  claim_due_at: string | null;
   last_run_at: string | null;
   last_run_status: "succeeded" | "failed" | null;
   run_count: number;
   last_error: string;
   lock_until: string | null;
+  lock_token: string | null;
+  last_claimed_at: string | null;
+  last_queued_job_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -314,6 +318,8 @@ export type UsageLimitContext = {
   supabase: SupabaseClient;
   workspaceId: string;
 };
+
+
 
 
 

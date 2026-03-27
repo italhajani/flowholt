@@ -13,6 +13,7 @@ This is the first real backend test layer for FlowHolt.
 - studio graph normalization for saved workflows
 - composer preview/apply helper logic
 - live run stream helper logic
+- event trigger matching logic
 
 ## How to run it
 
@@ -33,10 +34,9 @@ These tests protect the core backend logic that powers:
 - how Studio strips bad placeholder model values before save
 - how assistant preview/apply state is summarized and stored
 - how live run streaming clamps polling values and formats SSE events
+- how event names and event sources match the right workflows safely
 
 ## Easy meaning
 
 Before this, we were mostly trusting the backend by manual clicking.
 Now the core runtime path has a bigger automatic safety net before we touch the heavier integration architecture stage.
-
-

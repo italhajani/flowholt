@@ -150,14 +150,19 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
   }
 }
 
-function providerForNodeType(nodeType: WorkflowNodeType): string | null {
+function providerForNodeType(
+  nodeType: WorkflowNodeType,
+  config?: Record<string, unknown>,
+): string | null {
   switch (nodeType) {
     case "agent":
       return "groq";
     case "tool":
       return "http";
-    case "trigger":
-      return "webhook";
+    case "trigger": {
+      const mode = typeof config?.mode === "string" ? config.mode.trim().toLowerCase() : "manual";
+      return mode === "webhook" ? "webhook" : null;
+    }
     default:
       return null;
   }
@@ -339,7 +344,7 @@ function CanvasInner({
     [edges, selectedEdgeId],
   );
   const selectedNodeProvider = selectedNode
-    ? providerForNodeType(selectedNode.data?.nodeType ?? "agent")
+    ? providerForNodeType(selectedNode.data?.nodeType ?? "agent", selectedNode.data?.config ?? {})
     : null;
   const selectedNodeConnectionId =
     selectedNode && typeof selectedNode.data?.config?.connection_id === "string"
@@ -909,9 +914,3 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
-
-
-
-
-
-

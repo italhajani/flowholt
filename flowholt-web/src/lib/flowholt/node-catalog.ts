@@ -27,6 +27,14 @@ export const nodeCatalog: NodeCatalogItem[] = [
     executionMode: "builtin",
   },
   {
+    key: "event-trigger",
+    type: "trigger",
+    title: "Event trigger",
+    description: "Starts a workflow when a named workspace event is ingested.",
+    category: "input",
+    executionMode: "builtin",
+  },
+  {
     key: "task-planner",
     type: "agent",
     title: "Task planner",

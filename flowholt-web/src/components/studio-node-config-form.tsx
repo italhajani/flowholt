@@ -37,7 +37,7 @@ function configHint(nodeType: WorkflowNodeType) {
     case "output":
       return 'Example: {"result":"{{nodes.writer.text}}"}';
     case "trigger":
-      return 'Example: {"mode":"manual"}';
+      return 'Example: {"mode":"event","event_name":"lead.created"}';
     default:
       return "Use advanced JSON only if you need extra control.";
   }
@@ -51,6 +51,7 @@ export function StudioNodeConfigForm({
   onDraftJsonChange,
 }: StudioNodeConfigFormProps) {
   const bodyJson = JSON.stringify(config.body ?? {}, null, 2);
+  const triggerMode = asString(config.mode, "manual");
 
   return (
     <div className="space-y-4">
@@ -59,37 +60,84 @@ export function StudioNodeConfigForm({
           <div>
             <label className="mb-2 block text-sm font-medium text-stone-700">Mode</label>
             <select
-              value={asString(config.mode, "manual")}
+              value={triggerMode}
               onChange={(event) => onConfigChange(withField(config, "mode", event.target.value))}
               className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
             >
               <option value="manual">Manual</option>
               <option value="webhook">Webhook</option>
               <option value="schedule">Schedule</option>
+              <option value="event">Event</option>
             </select>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-stone-700">Method</label>
-            <select
-              value={asString(config.method, "POST")}
-              onChange={(event) => onConfigChange(withField(config, "method", event.target.value))}
-              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-            >
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-              <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-stone-700">Path</label>
-            <input
-              value={asString(config.path, "/")}
-              onChange={(event) => onConfigChange(withField(config, "path", event.target.value))}
-              placeholder="/lead-intake"
-              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-            />
-          </div>
+
+          {triggerMode === "webhook" ? (
+            <>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Method</label>
+                <select
+                  value={asString(config.method, "POST")}
+                  onChange={(event) => onConfigChange(withField(config, "method", event.target.value))}
+                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="PATCH">PATCH</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Path</label>
+                <input
+                  value={asString(config.path, "/")}
+                  onChange={(event) => onConfigChange(withField(config, "path", event.target.value))}
+                  placeholder="/lead-intake"
+                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <p className="text-xs leading-5 text-stone-500">
+                Use this when an outside app calls your FlowHolt webhook URL directly.
+              </p>
+            </>
+          ) : null}
+
+          {triggerMode === "event" ? (
+            <>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Event name</label>
+                <input
+                  value={asString(config.event_name)}
+                  onChange={(event) => onConfigChange(withField(config, "event_name", event.target.value))}
+                  placeholder="lead.created or invoice.*"
+                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-stone-700">Event source</label>
+                <input
+                  value={asString(config.event_source)}
+                  onChange={(event) => onConfigChange(withField(config, "event_source", event.target.value))}
+                  placeholder="crm, billing, forms"
+                  className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                />
+              </div>
+              <p className="text-xs leading-5 text-stone-500">
+                Use this when your own systems send named workspace events into FlowHolt.
+              </p>
+            </>
+          ) : null}
+
+          {triggerMode === "manual" ? (
+            <p className="text-xs leading-5 text-stone-500">
+              Manual means the workflow starts only when someone clicks Run workflow.
+            </p>
+          ) : null}
+
+          {triggerMode === "schedule" ? (
+            <p className="text-xs leading-5 text-stone-500">
+              Schedule details are managed in the Schedule builder panel on the right side of Studio.
+            </p>
+          ) : null}
         </>
       ) : null}
 
@@ -281,5 +329,3 @@ export function StudioNodeConfigForm({
     </div>
   );
 }
-
-

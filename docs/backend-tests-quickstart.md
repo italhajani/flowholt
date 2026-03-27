@@ -16,6 +16,7 @@ This is the first real backend test layer for FlowHolt.
 - live run stream helper logic
 - event trigger matching logic
 - email trigger matching logic
+- migration runner planning logic
 
 ## How to run it
 
@@ -39,6 +40,7 @@ These tests protect the core backend logic that powers:
 - how live run streaming clamps polling values and formats SSE events
 - how event names and event sources match the right workflows safely
 - how inbox address and subject filters match the right workflows safely
+- how deploy environments decide which SQL migrations are still pending
 
 ## Easy meaning
 

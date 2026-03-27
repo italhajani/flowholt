@@ -10,7 +10,9 @@
     "test:backend": "node tests/backend/run-backend-tests.mjs",
     "daemon": "node --env-file=.env.local scripts/flowholt-daemon.mjs --all",
     "daemon:worker": "node --env-file=.env.local scripts/flowholt-daemon.mjs --worker",
-    "daemon:scheduler": "node --env-file=.env.local scripts/flowholt-daemon.mjs --scheduler"
+    "daemon:scheduler": "node --env-file=.env.local scripts/flowholt-daemon.mjs --scheduler",
+    "migrations:status": "node scripts/flowholt-migrations.mjs --status",
+    "migrations:apply": "node scripts/flowholt-migrations.mjs --apply"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
@@ -31,4 +33,3 @@
     "typescript": "^5"
   }
 }
-

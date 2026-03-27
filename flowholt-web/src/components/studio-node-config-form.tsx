@@ -1,12 +1,16 @@
 "use client";
 
 import type { WorkflowNodeType } from "@/lib/flowholt/types";
-import { summarizeAgentToolAccess } from "@/lib/flowholt/agent-tool-access";
+import {
+  summarizeAgentToolAccess,
+  summarizeAgentToolStrategy,
+} from "@/lib/flowholt/agent-tool-access";
 import {
   applyToolPreset,
   getToolRegistryItem,
   toolRegistry,
 } from "@/lib/flowholt/tool-registry";
+import { summarizeToolResultContract } from "@/lib/flowholt/tool-result-contract";
 
 type StudioNodeConfigFormProps = {
   nodeType: WorkflowNodeType;
@@ -41,7 +45,7 @@ function readStringArray(value: unknown) {
 function configHint(nodeType: WorkflowNodeType) {
   switch (nodeType) {
     case "agent":
-      return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile","tool_access_mode":"selected","allowed_tool_keys":["knowledge-lookup"]}';
+      return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile","tool_access_mode":"selected","tool_call_strategy":"read_then_write","allowed_tool_keys":["knowledge-lookup"]}';
     case "tool":
       return 'Example: {"tool_key":"crm-upsert","method":"POST","url":"https://api.example.com/upsert","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
     case "condition":
@@ -68,6 +72,7 @@ export function StudioNodeConfigForm({
   const selectedToolPreset = getToolRegistryItem(selectedToolKey);
   const agentToolAccessMode = asString(config.tool_access_mode, "workspace_default");
   const selectedAgentToolKeys = readStringArray(config.allowed_tool_keys);
+  const agentToolCallStrategy = asString(config.tool_call_strategy, "workspace_default");
   const runtimeAdapter = asString(config.runtime_adapter);
 
   function updateAgentToolAccessMode(mode: string) {
@@ -251,7 +256,23 @@ export function StudioNodeConfigForm({
               <option value="none">No tools</option>
             </select>
             <p className="mt-2 text-xs leading-5 text-stone-500">
-              {summarizeAgentToolAccess(config)}. This is groundwork for future multi-tool agent orchestration.
+              {summarizeAgentToolAccess(config)}. This controls which tool presets this agent step is allowed to use.
+            </p>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-stone-700">Tool strategy</label>
+            <select
+              value={agentToolCallStrategy}
+              onChange={(event) => onConfigChange(withField(config, "tool_call_strategy", event.target.value))}
+              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+            >
+              <option value="workspace_default">Workspace default</option>
+              <option value="single">Single tool step</option>
+              <option value="read_then_write">Read then write</option>
+              <option value="fan_out">Fan out</option>
+            </select>
+            <p className="mt-2 text-xs leading-5 text-stone-500">
+              {summarizeAgentToolStrategy(config)}. This is groundwork for future multi-tool orchestration behavior.
             </p>
           </div>
           {agentToolAccessMode === "selected" ? (
@@ -322,6 +343,9 @@ export function StudioNodeConfigForm({
                 Returns
               </p>
               <p className="mt-2 text-sm text-stone-900">{selectedToolPreset.outputShape}</p>
+              <p className="mt-2 text-xs leading-5 text-stone-500">
+                Normalized as {summarizeToolResultContract(selectedToolPreset.key)} for downstream agent/tool steps.
+              </p>
             </div>
           </div>
           <div>
@@ -372,8 +396,10 @@ export function StudioNodeConfigForm({
             />
           </div>
           <p className="text-xs leading-5 text-stone-500">
-            This is the first step toward FlowHolt tool capabilities. You pick the tool shape here,
-            and later agent planning plus integrations will build on the same preset registry.
+            {selectedToolPreset.orchestrationHint}
+          </p>
+          <p className="text-xs leading-5 text-stone-500">
+            This tool now returns a normalized contract so later agent steps can work with stable result fields instead of raw API-only shapes.
           </p>
         </>
       ) : null}
@@ -491,3 +517,10 @@ export function StudioNodeConfigForm({
     </div>
   );
 }
+
+
+
+
+
+
+

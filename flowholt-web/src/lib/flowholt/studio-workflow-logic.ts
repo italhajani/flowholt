@@ -1,4 +1,4 @@
-import { normalizeAgentToolAccessConfig } from "./agent-tool-access.ts";
+import { normalizeAgentToolPolicyConfig } from "./agent-tool-access.ts";
 import type { WorkflowGraph, WorkflowNode } from "./types.ts";
 
 export function normalizeAgentNode(node: WorkflowNode): WorkflowNode {
@@ -8,10 +8,10 @@ export function normalizeAgentNode(node: WorkflowNode): WorkflowNode {
 
   const config = node.config ?? {};
   const model = typeof config.model === "string" ? config.model.trim() : "";
-  const normalizedToolAccess = normalizeAgentToolAccessConfig(config);
+  const normalizedPolicy = normalizeAgentToolPolicyConfig(config);
   const nextConfig: Record<string, unknown> = {
     ...config,
-    ...normalizedToolAccess,
+    ...normalizedPolicy,
   };
 
   if (!model || model.toLowerCase() === "default") {
@@ -43,3 +43,4 @@ export function parseWorkflowGraphInput(rawGraph: string): WorkflowGraph {
     edges: parsed.edges,
   });
 }
+

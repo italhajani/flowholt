@@ -127,13 +127,23 @@ def _summarize_output(output: dict[str, Any]) -> dict[str, Any]:
     if isinstance(text, str) and text.strip():
         summary["text_preview"] = text.strip()[:180]
 
+    result_text = output.get("result_text")
+    if isinstance(result_text, str) and result_text.strip():
+        summary["result_text_preview"] = result_text.strip()[:180]
+
     result_value = output.get("result")
     if isinstance(result_value, dict):
         summary["result_keys"] = sorted(result_value.keys())
     elif isinstance(result_value, str) and result_value.strip():
         summary["result_preview"] = result_value.strip()[:180]
 
-    for key in ["branch", "matched", "status_code", "provider", "model", "url", "method"]:
+    result_contract = output.get("result_contract")
+    if isinstance(result_contract, dict):
+        for key in ["kind", "item_count", "success", "tool_key", "capability"]:
+            if key in result_contract:
+                summary[f"result_contract_{key}"] = result_contract.get(key)
+
+    for key in ["branch", "matched", "status_code", "provider", "model", "url", "method", "success"]:
         if key in output:
             summary[key] = output.get(key)
 
@@ -531,3 +541,4 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         logs=logs,
         node_executions=node_executions,
     )
+

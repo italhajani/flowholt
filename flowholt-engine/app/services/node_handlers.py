@@ -183,6 +183,141 @@ def _resolve_tool_url(base_url: str, url: str) -> str:
     return clean_url
 
 
+def _tool_result_contract_kind(capability: str) -> str:
+    if capability == "knowledge_lookup":
+        return "document_matches"
+    if capability == "crm_writeback":
+        return "record_sync"
+    if capability == "spreadsheet_row":
+        return "sheet_write"
+    if capability == "webhook_reply":
+        return "callback_ack"
+    return "raw_response"
+
+
+def _tool_result_orchestration_hint(capability: str) -> str:
+    if capability == "knowledge_lookup":
+        return "Use the matched items before a later reasoning or writeback step."
+    if capability == "crm_writeback":
+        return "Use after reasoning is done and the workflow is ready to sync a final business record."
+    if capability == "spreadsheet_row":
+        return "Good for operational logging or fan-out reporting after the main decision step."
+    if capability == "webhook_reply":
+        return "Use near the end of the workflow to send a final callback or acknowledgement."
+    return "Use for flexible API calls when later steps need the raw response."
+
+
+def _tool_items_from_payload(response_payload: Any) -> list[dict[str, Any]]:
+    if isinstance(response_payload, list):
+        return [item for item in response_payload if isinstance(item, dict)]
+
+    if isinstance(response_payload, dict):
+        items: list[dict[str, Any]] = []
+        for key in ["documents", "matches", "items", "results", "rows"]:
+            value = response_payload.get(key)
+            if isinstance(value, list):
+                items.extend(item for item in value if isinstance(item, dict))
+        return items
+
+    return []
+
+
+def _first_non_empty_text(*values: Any) -> str:
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _tool_preview(value: Any) -> str:
+    if isinstance(value, str):
+        return value.strip()[:180]
+
+    try:
+        return json.dumps(value, ensure_ascii=False)[:180]
+    except TypeError:
+        return str(value)[:180]
+
+
+def _normalize_tool_response(
+    *,
+    tool_key: str,
+    capability: str,
+    method: str,
+    url: str,
+    status_code: int,
+    response_payload: Any,
+    connection_label: str,
+) -> dict[str, Any]:
+    payload_record = response_payload if isinstance(response_payload, dict) else {}
+    items = _tool_items_from_payload(response_payload)
+    success = 200 <= status_code < 400
+    contract_kind = _tool_result_contract_kind(capability)
+    orchestration_hint = _tool_result_orchestration_hint(capability)
+
+    if capability == "knowledge_lookup":
+        first_item = items[0] if items else {}
+        result_text = _first_non_empty_text(
+            first_item.get("title") if isinstance(first_item, dict) else None,
+            first_item.get("name") if isinstance(first_item, dict) else None,
+            first_item.get("summary") if isinstance(first_item, dict) else None,
+            first_item.get("snippet") if isinstance(first_item, dict) else None,
+        ) or ("Knowledge matches found." if items else "Knowledge search completed.")
+        result = {
+            "top_match": first_item,
+            "source_count": len(items),
+        }
+    elif capability == "crm_writeback":
+        result_text = _first_non_empty_text(
+            payload_record.get("message") if isinstance(payload_record, dict) else None,
+            payload_record.get("status") if isinstance(payload_record, dict) else None,
+            payload_record.get("result") if isinstance(payload_record, dict) else None,
+        ) or "CRM writeback completed."
+        nested_data = payload_record.get("data") if isinstance(payload_record.get("data"), dict) else {}
+        result = {
+            "record_id": _first_non_empty_text(
+                payload_record.get("record_id"),
+                payload_record.get("id"),
+                nested_data.get("id") if isinstance(nested_data, dict) else None,
+            ),
+            "sync_status": _first_non_empty_text(payload_record.get("status"), payload_record.get("result")) or "synced",
+        }
+    elif capability == "spreadsheet_row":
+        result_text = _first_non_empty_text(payload_record.get("message"), payload_record.get("status")) or "Spreadsheet row written."
+        nested_data = payload_record.get("data") if isinstance(payload_record.get("data"), dict) else {}
+        result = {
+            "row_id": _first_non_empty_text(payload_record.get("row_id"), payload_record.get("id")),
+            "sheet": _first_non_empty_text(payload_record.get("sheet"), nested_data.get("sheet") if isinstance(nested_data, dict) else None),
+            "write_status": _first_non_empty_text(payload_record.get("status")) or "written",
+        }
+    elif capability == "webhook_reply":
+        result_text = _first_non_empty_text(payload_record.get("message"), payload_record.get("status")) or "Webhook reply delivered."
+        result = {
+            "delivery_status": _first_non_empty_text(payload_record.get("status")) or "sent",
+        }
+    else:
+        result_text = _first_non_empty_text(payload_record.get("message"), payload_record.get("status"), payload_record.get("result")) or f"HTTP {status_code} response received."
+        result = payload_record if isinstance(payload_record, dict) else {}
+
+    return {
+        "success": success,
+        "result_text": result_text,
+        "result": result,
+        "items": items,
+        "result_contract": {
+            "kind": contract_kind,
+            "success": success,
+            "item_count": len(items),
+            "primary_text": result_text,
+            "preview": _tool_preview(response_payload),
+            "orchestration_hint": orchestration_hint,
+            "connection_label": connection_label,
+            "tool_key": tool_key,
+            "capability": capability,
+        },
+    }
+
+
 def _coerce_number(value: Any) -> float | None:
     try:
         return float(value)
@@ -554,4 +689,6 @@ def execute_node(
 ) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
     return handler(node, payload, sequence, context)
+
+
 

@@ -1,12 +1,20 @@
 import { getToolRegistryItem, toolRegistry } from "./tool-registry.ts";
 
 export type AgentToolAccessMode = "workspace_default" | "all" | "selected" | "none";
+export type AgentToolCallStrategy = "workspace_default" | "single" | "read_then_write" | "fan_out";
 
 const VALID_ACCESS_MODES = new Set<AgentToolAccessMode>([
   "workspace_default",
   "all",
   "selected",
   "none",
+]);
+
+const VALID_TOOL_CALL_STRATEGIES = new Set<AgentToolCallStrategy>([
+  "workspace_default",
+  "single",
+  "read_then_write",
+  "fan_out",
 ]);
 
 export function normalizeAgentToolAccessConfig(config: Record<string, unknown> = {}) {
@@ -34,6 +42,20 @@ export function normalizeAgentToolAccessConfig(config: Record<string, unknown> =
   return {
     tool_access_mode: toolAccessMode,
     allowed_tool_keys: toolAccessMode === "selected" ? allowedToolKeys : [],
+  };
+}
+
+export function normalizeAgentToolPolicyConfig(config: Record<string, unknown> = {}) {
+  const access = normalizeAgentToolAccessConfig(config);
+  const requestedStrategy =
+    typeof config.tool_call_strategy === "string" ? config.tool_call_strategy.trim().toLowerCase() : "";
+  const toolCallStrategy = VALID_TOOL_CALL_STRATEGIES.has(requestedStrategy as AgentToolCallStrategy)
+    ? (requestedStrategy as AgentToolCallStrategy)
+    : "workspace_default";
+
+  return {
+    ...access,
+    tool_call_strategy: toolCallStrategy,
   };
 }
 
@@ -75,3 +97,19 @@ export function summarizeAgentToolAccess(config: Record<string, unknown> = {}) {
 
   return `Selected tools (${normalized.allowed_tool_keys.length})`;
 }
+
+export function summarizeAgentToolStrategy(config: Record<string, unknown> = {}) {
+  const { tool_call_strategy: strategy } = normalizeAgentToolPolicyConfig(config);
+
+  switch (strategy) {
+    case "single":
+      return "One tool call at a time";
+    case "read_then_write":
+      return "Read first, then write";
+    case "fan_out":
+      return "Fan out to multiple tool steps";
+    default:
+      return "Workspace default strategy";
+  }
+}
+

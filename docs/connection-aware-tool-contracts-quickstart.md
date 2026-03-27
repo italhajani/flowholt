@@ -45,6 +45,7 @@ FlowHolt now adapts those preset demo requests to HTTPBin's `/anything/...` rout
 - FlowHolt merges connection defaults like `base_url`, `default_headers`, and auth keys into runtime
 - API key style connections now work for tool steps too, not only bearer tokens
 - the starter HTTPBin connection no longer 404s on preset demo paths like `/v1/search`
+- tool presets now also lead into a more normalized result contract for later agent steps
 
 ## Important note
 
@@ -56,3 +57,4 @@ The next layers after this are:
 - define tool permissions for agents
 - normalize tool results for reasoning and monitoring
 - build the future premium resources sidebar around these same contracts
+

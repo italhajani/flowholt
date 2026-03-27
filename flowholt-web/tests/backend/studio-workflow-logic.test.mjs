@@ -21,9 +21,10 @@ test('normalizeAgentNode removes the placeholder default model', () => {
   assert.equal(node.config.model, undefined);
   assert.equal(node.config.instruction, 'Summarize the post');
   assert.equal(node.config.tool_access_mode, 'workspace_default');
+  assert.equal(node.config.tool_call_strategy, 'workspace_default');
 });
 
-test('normalizeAgentNode keeps selected tool permissions clean', () => {
+test('normalizeAgentNode keeps selected tool permissions and strategy clean', () => {
   const node = normalizeAgentNode({
     id: 'agent-2',
     type: 'agent',
@@ -31,12 +32,14 @@ test('normalizeAgentNode keeps selected tool permissions clean', () => {
     config: {
       model: 'llama-3.3-70b-versatile',
       tool_access_mode: 'selected',
+      tool_call_strategy: 'read_then_write',
       allowed_tool_keys: ['knowledge-lookup', 'missing-key'],
     },
   });
 
   assert.equal(node.config.model, 'llama-3.3-70b-versatile');
   assert.equal(node.config.tool_access_mode, 'selected');
+  assert.equal(node.config.tool_call_strategy, 'read_then_write');
   assert.deepEqual(node.config.allowed_tool_keys, ['knowledge-lookup']);
 });
 
@@ -63,6 +66,7 @@ test('normalizeWorkflowGraph strips blank agent models but preserves other node 
   assert.equal(graph.nodes[1].config.model, undefined);
   assert.equal(graph.nodes[1].config.instruction, 'Summarize the post');
   assert.equal(graph.nodes[1].config.tool_access_mode, 'workspace_default');
+  assert.equal(graph.nodes[1].config.tool_call_strategy, 'workspace_default');
 });
 
 test('parseWorkflowGraphInput throws when graph JSON is missing nodes or edges arrays', () => {

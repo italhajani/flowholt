@@ -11,6 +11,7 @@ import {
 test('getToolRegistryItem falls back to generic http request preset', () => {
   assert.equal(getToolRegistryItem('crm-upsert').capability, 'crm_writeback');
   assert.equal(getToolRegistryItem('crm-upsert').requiresConnection, true);
+  assert.equal(getToolRegistryItem('crm-upsert').resultContract, 'record_sync');
   assert.equal(getToolRegistryItem('missing-preset').key, 'http-request');
 });
 
@@ -45,11 +46,11 @@ test('applyToolPreset keeps connection fields but replaces the main request shap
   });
 });
 
-test('planner lines include capability context for the AI planner', () => {
+test('planner lines include capability and contract context for the AI planner', () => {
   const toolLines = getToolRegistryPromptLines();
 
   assert.equal(toolLines.length >= 5, true);
   assert.equal(toolLines.some((line) => line.includes('capability:crm_writeback')), true);
   assert.equal(toolLines.some((line) => line.includes('capability:knowledge_lookup')), true);
+  assert.equal(toolLines.some((line) => line.includes('contract:document_matches')), true);
 });
-

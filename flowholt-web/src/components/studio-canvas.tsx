@@ -135,6 +135,7 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
         instruction: "",
         model: "llama-3.3-70b-versatile",
         tool_access_mode: "workspace_default",
+        tool_call_strategy: "workspace_default",
         allowed_tool_keys: [],
       };
     case "tool":
@@ -951,6 +952,9 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+
+
 
 
 

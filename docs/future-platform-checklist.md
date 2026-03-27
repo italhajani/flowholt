@@ -5,9 +5,9 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 92%**
+- Frontend/UI progress: **about 93%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 48%**
+- Agent/tool architecture groundwork: **about 61%**
 
 ## Backend foundations
 
@@ -61,7 +61,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Shared tool capability registry for planner + Studio presets
 - [x] Connection-aware tool runtime contracts (map presets to real providers cleanly)
 - [x] Agent memory/tool permission model per workflow step
-- [ ] Tool result normalization contracts for planner, monitor, and chat sidebar
+- [x] Tool result normalization contracts for planner, monitor, and chat sidebar groundwork
 - [ ] Multi-tool agent orchestration rules (when to call tools vs think vs ask)
 - [ ] Tool marketplace shape for future premium resources sidebar
 
@@ -91,6 +91,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Tool preset selector with capability/auth/output hints
 - [x] Connection-aware tool guidance in Studio
 - [x] Agent tool-access controls in Studio
+- [x] Agent tool-strategy controls in Studio
+- [x] Tool output contract hints in Studio
 
 ## Production and reliability
 
@@ -106,6 +108,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Tool registry tests for planner-facing capability context
 - [x] Connection/runtime contract tests for preset-based integrations
 - [x] Agent tool-access normalization tests
+- [x] Tool result contract normalization tests
 
 ## Suggested execution order (practical)
 
@@ -119,6 +122,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 8: start agent/tool integration architecture groundwork
 - [x] Phase 9: add connection-aware runtime contracts for preset-based tools
 - [x] Phase 10: add agent tool-access groundwork for future orchestration
+- [x] Phase 11: add normalized tool result contracts and agent tool-strategy groundwork
 
 ## Definition of "finalized platform" (what done means)
 

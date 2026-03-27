@@ -12,7 +12,9 @@
     "daemon:worker": "node --env-file=.env.local scripts/flowholt-daemon.mjs --worker",
     "daemon:scheduler": "node --env-file=.env.local scripts/flowholt-daemon.mjs --scheduler",
     "migrations:status": "node scripts/flowholt-migrations.mjs --status",
-    "migrations:apply": "node scripts/flowholt-migrations.mjs --apply"
+    "migrations:apply": "node scripts/flowholt-migrations.mjs --apply",
+    "backup:create": "node scripts/flowholt-backup.mjs create",
+    "backup:restore": "node scripts/flowholt-backup.mjs restore"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

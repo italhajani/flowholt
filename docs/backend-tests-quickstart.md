@@ -17,6 +17,7 @@ This is the first real backend test layer for FlowHolt.
 - event trigger matching logic
 - email trigger matching logic
 - migration runner planning logic
+- backup and restore runner planning logic
 
 ## How to run it
 
@@ -41,6 +42,7 @@ These tests protect the core backend logic that powers:
 - how event names and event sources match the right workflows safely
 - how inbox address and subject filters match the right workflows safely
 - how deploy environments decide which SQL migrations are still pending
+- how workspace backup files remap ids safely during restore
 
 ## Easy meaning
 

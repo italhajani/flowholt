@@ -7,7 +7,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 95%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 94%**
+- Agent/tool architecture groundwork: **about 96%**
 
 ## Backend foundations
 
@@ -66,6 +66,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Tool marketplace/resources model with provider-specific kits and readiness states
 - [x] Provider-specific tool packs beyond starter HTTP/Groq/webhook kits
 - [x] Vendor-aware profile detection for resources and integrations
+- [x] Resource-driven assistant composition hints from featured workflow packs
 - [ ] Premium resources sidebar redesign using this marketplace model
 
 ## Before full UI redesign
@@ -100,6 +101,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Studio resources panel with workflow-ready packs and richer resource guidance
 - [x] Integrations page recommended packs card tied to Studio resources
 - [x] Vendor quick-start guidance for integration setup
+- [x] One-click assistant pack suggestions in Studio sidebar
 
 ## Production and reliability
 
@@ -136,6 +138,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 13: add shared marketplace/resource kits for the future premium sidebar
 - [x] Phase 14: add provider packs and workflow packs that bridge from connections to complete solution patterns
 - [x] Phase 15: add vendor-aware resource detection so packs feel closer to real products, not only generic providers
+- [x] Phase 16: turn featured resource packs into one-click assistant workflow suggestions
 
 ## Definition of "finalized platform" (what done means)
 

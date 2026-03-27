@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildToolMarketplace,
+  buildToolMarketplaceComposerSuggestions,
   buildToolMarketplaceSummary,
   getToolMarketplacePromptLines,
 } from '../../src/lib/flowholt/tool-marketplace.ts';
@@ -73,6 +74,34 @@ test('buildToolMarketplaceSummary exposes provider packs, workflow packs, and fe
   assert.equal(summary.workflowPacks >= 3, true);
   assert.equal(summary.featuredKits.some((kit) => kit.key === 'groq-agent-kit'), true);
   assert.equal(summary.featuredWorkflowPacks.some((kit) => kit.key === 'lead-intake-pack'), true);
+});
+
+test('composer suggestions prioritize featured workflow packs and include prompts', () => {
+  const suggestions = buildToolMarketplaceComposerSuggestions([
+    {
+      id: 'conn-groq',
+      provider: 'groq',
+      label: 'Groq Production',
+      config: { base_url: 'https://api.groq.com/openai/v1' },
+    },
+    {
+      id: 'conn-http',
+      provider: 'http',
+      label: 'HubSpot CRM',
+      config: { base_url: 'https://api.hubapi.com' },
+    },
+    {
+      id: 'conn-webhook',
+      provider: 'webhook',
+      label: 'Slack Delivery',
+      config: { url: 'https://hooks.slack.com/services/demo' },
+    },
+  ]);
+
+  assert.equal(suggestions.length, 3);
+  assert.equal(suggestions[0]?.title.length > 0, true);
+  assert.equal(suggestions.some((item) => item.prompt.includes('workflow')), true);
+  assert.equal(suggestions.some((item) => item.profiles.includes('Groq')), true);
 });
 
 test('marketplace prompt lines include provider-specific kit context for the planner', () => {

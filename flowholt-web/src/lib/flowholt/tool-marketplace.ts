@@ -66,6 +66,18 @@ export type ToolMarketplaceSummary = {
   featuredWorkflowPacks: ToolMarketplaceKit[];
 };
 
+export type ToolMarketplaceComposerSuggestion = {
+  id: string;
+  kitKey: string;
+  title: string;
+  readiness: ToolMarketplaceReadiness;
+  tone: ToolMarketplaceTone;
+  prompt: string;
+  strategy: string;
+  why: string;
+  profiles: string[];
+};
+
 const MARKETPLACE_CATEGORY_META: Record<ToolMarketplaceCategoryKey, { title: string; description: string }> = {
   ai_agents: {
     title: "AI & Agents",
@@ -272,6 +284,12 @@ const MARKETPLACE_KITS = [
   },
 ] as const;
 
+const READINESS_PRIORITY: Record<ToolMarketplaceReadiness, number> = {
+  ready: 0,
+  partial: 1,
+  missing: 2,
+};
+
 function uniqueConnections(connections: MarketplaceConnection[]) {
   const seen = new Set<string>();
   return connections.filter((connection) => {
@@ -412,6 +430,19 @@ function readinessDetail(
   return `Missing setup. Needs provider${requiredProviders.length === 1 ? "" : "s"}: ${requiredProviders.join(", ")}.${profileText}`;
 }
 
+function workflowPackPrompt(kit: ToolMarketplaceKit) {
+  switch (kit.key) {
+    case "lead-intake-pack":
+      return "Build a lead intake workflow that captures an inbound lead, researches company context, summarizes qualification, updates the CRM, and ends with a clear final output for the sales team.";
+    case "support-resolution-pack":
+      return "Build a support resolution workflow that looks up knowledge, drafts a helpful answer, sends a callback or response to the source system, and ends with a clear support summary.";
+    case "content-ops-pack":
+      return "Build a content operations workflow that generates or improves content, fans the result out to delivery and reporting steps, and finishes with a clean human-readable summary.";
+    default:
+      return `Build a workflow using the ${kit.title.toLowerCase()} pattern with a clear trigger, helpful agent reasoning, and a polished final output.`;
+  }
+}
+
 export function buildToolMarketplace(connections: MarketplaceConnection[] = []) {
   const kits: ToolMarketplaceKit[] = MARKETPLACE_KITS.map((kit) => {
     const recommendedFromRegistry = toolRegistry
@@ -466,6 +497,39 @@ export function buildToolMarketplaceSummary(categories: ToolMarketplaceCategory[
       (kit) => kit.featured && kit.family === "workflow_pack",
     ),
   };
+}
+
+export function buildToolMarketplaceComposerSuggestions(
+  connections: MarketplaceConnection[] = [],
+  limit = 3,
+): ToolMarketplaceComposerSuggestion[] {
+  const categories = buildToolMarketplace(connections);
+  const workflowPacks = categories
+    .flatMap((category) => category.kits)
+    .filter((kit) => kit.family === "workflow_pack")
+    .sort((left, right) => {
+      const readinessDiff = READINESS_PRIORITY[left.readiness] - READINESS_PRIORITY[right.readiness];
+      if (readinessDiff !== 0) {
+        return readinessDiff;
+      }
+      if (left.featured !== right.featured) {
+        return left.featured ? -1 : 1;
+      }
+      return left.title.localeCompare(right.title);
+    })
+    .slice(0, limit);
+
+  return workflowPacks.map((kit) => ({
+    id: `${kit.key}-${kit.readiness}`,
+    kitKey: kit.key,
+    title: kit.title,
+    readiness: kit.readiness,
+    tone: kit.tone,
+    prompt: workflowPackPrompt(kit),
+    strategy: kit.recommendedStrategy,
+    why: kit.idealFor,
+    profiles: kit.detectedProfiles.map((profile) => profile.title),
+  }));
 }
 
 export function getToolMarketplacePromptLines() {

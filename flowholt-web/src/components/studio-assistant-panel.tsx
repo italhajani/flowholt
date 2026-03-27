@@ -141,10 +141,22 @@ type ThreadMessage = {
   created_at: string;
 };
 
+type ResourceSuggestion = {
+  id: string;
+  title: string;
+  readiness: "ready" | "partial" | "missing";
+  tone: "default" | "mint" | "sand";
+  prompt: string;
+  strategy: string;
+  why: string;
+  profiles: string[];
+};
+
 type StudioAssistantPanelProps = {
   workflowId: string;
   workflowName: string;
   initialPrompt?: string;
+  resourceSuggestions?: ResourceSuggestion[];
 };
 
 function asRecord(value: unknown) {
@@ -231,6 +243,7 @@ export function StudioAssistantPanel({
   workflowId,
   workflowName,
   initialPrompt = "",
+  resourceSuggestions = [],
 }: StudioAssistantPanelProps) {
   const router = useRouter();
   const [message, setMessage] = useState(initialPrompt);
@@ -458,11 +471,15 @@ export function StudioAssistantPanel({
     }
   }
 
-  async function submitCompose(mode: "preview" | "apply") {
-    const trimmed = message.trim();
+  async function submitCompose(mode: "preview" | "apply", overrideMessage?: string) {
+    const trimmed = (overrideMessage ?? message).trim();
     if (!trimmed) {
       setErrorMessage("Write what you want the assistant to change first.");
       return;
+    }
+
+    if (overrideMessage) {
+      setMessage(trimmed);
     }
 
     setWorkingMode(mode);
@@ -519,6 +536,10 @@ export function StudioAssistantPanel({
     } finally {
       setWorkingMode(null);
     }
+  }
+
+  async function previewResourceSuggestion(suggestion: ResourceSuggestion) {
+    await submitCompose("preview", suggestion.prompt);
   }
 
   async function restoreRevision(revisionId: string, mode: "restore" | "undo") {
@@ -595,6 +616,61 @@ export function StudioAssistantPanel({
             placeholder="Example: add a reviewer step, make the false branch clearer, and show a better final summary."
             className="w-full rounded-[22px] border border-stone-900/10 bg-stone-50 px-4 py-4 text-sm leading-6 text-stone-700 outline-none"
           />
+
+          {resourceSuggestions.length ? (
+            <div className="mt-4 rounded-[22px] border border-stone-900/10 bg-white/70 px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Suggested from your resources</p>
+                  <p className="mt-1 text-sm leading-6 text-stone-500">One click can turn a ready pack into a previewed workflow draft.</p>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-3">
+                {resourceSuggestions.map((suggestion) => (
+                  <div key={suggestion.id} className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-600">
+                        {suggestion.readiness}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      <span className="rounded-full bg-white px-3 py-1">{suggestion.strategy}</span>
+                      {suggestion.profiles.slice(0, 2).map((profile) => (
+                        <span key={`${suggestion.id}-${profile}`} className="rounded-full bg-white px-3 py-1">
+                          {profile}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMessage(suggestion.prompt);
+                          setErrorMessage("");
+                          setSuccessMessage("");
+                        }}
+                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100"
+                      >
+                        Use idea
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void previewResourceSuggestion(suggestion)}
+                        disabled={workingMode !== null || isPending || composerLoading}
+                        className="rounded-full bg-stone-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        Preview from pack
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-stone-400">

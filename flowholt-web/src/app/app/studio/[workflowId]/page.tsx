@@ -10,6 +10,7 @@ import { WorkflowSchedulePanel } from "@/components/workflow-schedule-panel";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio, getWorkflowSchedules } from "@/lib/flowholt/data";
 import { simulateWorkflowGraph } from "@/lib/flowholt/simulator";
 import { validateWorkflowGraph } from "@/lib/flowholt/graph-validator";
+import { buildToolMarketplaceComposerSuggestions } from "@/lib/flowholt/tool-marketplace";
 import { createClient } from "@/lib/supabase/server";
 
 type StudioPageProps = {
@@ -55,6 +56,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     description: typeof row.description === "string" ? row.description : "",
     config: row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {},
   }));
+  const resourceSuggestions = buildToolMarketplaceComposerSuggestions(integrationOptions);
 
   return (
     <AppShell
@@ -146,6 +148,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 workflowId={workflow.id}
                 workflowName={workflow.name}
                 initialPrompt={originalPrompt}
+                resourceSuggestions={resourceSuggestions}
               />
 
               <SurfaceCard
@@ -362,6 +365,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
+
 
 
 

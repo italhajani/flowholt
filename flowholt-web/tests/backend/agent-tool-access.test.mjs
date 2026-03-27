@@ -5,6 +5,7 @@ import {
   canAgentUseToolKey,
   normalizeAgentToolAccessConfig,
   normalizeAgentToolPolicyConfig,
+  planAgentToolOrchestration,
   summarizeAgentToolAccess,
   summarizeAgentToolStrategy,
 } from '../../src/lib/flowholt/agent-tool-access.ts';
@@ -42,6 +43,42 @@ test('canAgentUseToolKey respects none, all, and selected modes', () => {
     canAgentUseToolKey({ tool_access_mode: 'selected', allowed_tool_keys: ['crm-upsert'] }, 'knowledge-lookup'),
     false,
   );
+});
+
+test('planAgentToolOrchestration orders read tools before write tools', () => {
+  const plan = planAgentToolOrchestration(
+    {
+      tool_access_mode: 'all',
+      tool_call_strategy: 'read_then_write',
+    },
+    [
+      { targetId: 'tool-write', targetLabel: 'Update CRM', nodeType: 'tool', toolKey: 'crm-upsert' },
+      { targetId: 'tool-read', targetLabel: 'Knowledge lookup', nodeType: 'tool', toolKey: 'knowledge-lookup' },
+      { targetId: 'output-1', targetLabel: 'Output', nodeType: 'output' },
+    ],
+  );
+
+  assert.deepEqual(plan.selectedTargets.map((item) => item.targetId), ['tool-read', 'tool-write', 'output-1']);
+  assert.deepEqual(plan.blockedTargets, []);
+});
+
+test('planAgentToolOrchestration limits single strategy and blocks unauthorized tool paths', () => {
+  const plan = planAgentToolOrchestration(
+    {
+      tool_access_mode: 'selected',
+      tool_call_strategy: 'single',
+      allowed_tool_keys: ['knowledge-lookup'],
+    },
+    [
+      { targetId: 'tool-read', targetLabel: 'Knowledge lookup', nodeType: 'tool', toolKey: 'knowledge-lookup' },
+      { targetId: 'tool-write', targetLabel: 'Update CRM', nodeType: 'tool', toolKey: 'crm-upsert' },
+      { targetId: 'output-1', targetLabel: 'Output', nodeType: 'output' },
+    ],
+  );
+
+  assert.deepEqual(plan.selectedTargets.map((item) => item.targetId), ['tool-read', 'output-1']);
+  assert.deepEqual(plan.blockedTargets.map((item) => item.targetId), ['tool-write']);
+  assert.deepEqual(plan.deferredTargets, []);
 });
 
 test('summary helpers give simple UI friendly labels', () => {

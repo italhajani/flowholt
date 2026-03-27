@@ -89,7 +89,7 @@ function buildCreateSystemPrompt() {
     "Use short user-friendly names.",
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
     "If a condition node is used, add explicit edge branch values like true and false.",
-    "Agent nodes may include tool_access_mode (workspace_default, all, selected, none), allowed_tool_keys, and tool_call_strategy (workspace_default, single, read_then_write, fan_out) when tool permissions or orchestration rules matter.",
+    "Agent nodes may include tool_access_mode (workspace_default, all, selected, none), allowed_tool_keys, and tool_call_strategy (workspace_default, single, read_then_write, fan_out) when tool permissions or orchestration rules matter. Use read_then_write when one agent should look up information before writeback, and fan_out when multiple downstream tool branches should all run.",
     "Prefer these built-in FlowHolt blocks when planning:",
     "For tool nodes, prefer the shared tool presets below and include a matching tool_key when one clearly fits the job.",
     ...catalogLines,
@@ -113,7 +113,7 @@ function buildRevisionSystemPrompt() {
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
     "If a condition node exists, edges from it must include branch true and false.",
     "Use short, clear node labels and stable ids.",
-    "When agent permissions matter, use tool_access_mode, allowed_tool_keys, and tool_call_strategy instead of assuming unrestricted tool access.",
+    "When agent permissions matter, use tool_access_mode, allowed_tool_keys, and tool_call_strategy instead of assuming unrestricted tool access. Use single for one-tool-next behavior, read_then_write for lookup-then-write chains, and fan_out when all downstream tool branches should continue.",
     "Keep node count between 4 and 10.",
     "Edges must only reference valid ids.",
     "Do not include markdown fences.",
@@ -785,6 +785,7 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
+
 
 
 

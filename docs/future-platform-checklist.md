@@ -7,7 +7,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 93%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 61%**
+- Agent/tool architecture groundwork: **about 74%**
 
 ## Backend foundations
 
@@ -62,7 +62,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Connection-aware tool runtime contracts (map presets to real providers cleanly)
 - [x] Agent memory/tool permission model per workflow step
 - [x] Tool result normalization contracts for planner, monitor, and chat sidebar groundwork
-- [ ] Multi-tool agent orchestration rules (when to call tools vs think vs ask)
+- [x] Multi-tool agent orchestration rules (single, read_then_write, fan_out, permission enforcement)
 - [ ] Tool marketplace shape for future premium resources sidebar
 
 ## Before full UI redesign
@@ -109,6 +109,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Connection/runtime contract tests for preset-based integrations
 - [x] Agent tool-access normalization tests
 - [x] Tool result contract normalization tests
+- [x] Multi-tool orchestration planning tests
 
 ## Suggested execution order (practical)
 
@@ -123,6 +124,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 9: add connection-aware runtime contracts for preset-based tools
 - [x] Phase 10: add agent tool-access groundwork for future orchestration
 - [x] Phase 11: add normalized tool result contracts and agent tool-strategy groundwork
+- [x] Phase 12: add real multi-tool orchestration behavior in the engine
 
 ## Definition of "finalized platform" (what done means)
 

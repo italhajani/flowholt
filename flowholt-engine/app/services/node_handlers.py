@@ -401,8 +401,12 @@ def handle_agent(
     sequence: int,
     context: ExecutionContext,
 ) -> NodeExecutionResult:
+    config = _resolved_config(node, payload, context)
     content, model = _call_groq(node, payload, context)
     provider = "groq" if model != "local-fallback" else "local-fallback"
+    tool_access_mode = str(config.get("tool_access_mode") or "workspace_default").strip() or "workspace_default"
+    tool_call_strategy = str(config.get("tool_call_strategy") or "workspace_default").strip() or "workspace_default"
+    allowed_tool_keys = [str(item).strip() for item in config.get("allowed_tool_keys", []) if str(item).strip()] if isinstance(config.get("allowed_tool_keys"), list) else []
     return NodeExecutionResult(
         logs=[
             WorkflowRunLog(
@@ -419,6 +423,9 @@ def handle_agent(
                     **_base_payload(node, sequence),
                     "provider": provider,
                     "model": model,
+                    "tool_access_mode": tool_access_mode,
+                    "tool_call_strategy": tool_call_strategy,
+                    "allowed_tool_keys": allowed_tool_keys,
                 },
             ),
         ],
@@ -426,6 +433,9 @@ def handle_agent(
             "text": content,
             "provider": provider,
             "model": model,
+            "tool_access_mode": tool_access_mode,
+            "tool_call_strategy": tool_call_strategy,
+            "allowed_tool_keys": allowed_tool_keys,
         },
     )
 
@@ -689,6 +699,7 @@ def execute_node(
 ) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
     return handler(node, payload, sequence, context)
+
 
 
 

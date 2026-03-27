@@ -81,28 +81,149 @@ def _execution_settings(payload: WorkflowPayload) -> dict[str, float | int]:
     }
 
 
-def _choose_next_edges(
-    node_type: str,
-    node_id: str,
-    result_output: dict[str, object],
-    adjacency: dict[str, list[WorkflowEdge]],
-) -> list[WorkflowEdge]:
-    outgoing = adjacency.get(node_id, [])
-    if node_type != "condition" or len(outgoing) <= 1:
-        return outgoing
+def _read_string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return []
 
-    branch = _normalize_branch(result_output.get("branch") or "default-continue")
+
+def _agent_tool_access_mode(node_config: dict[str, Any]) -> str:
+    mode = str(node_config.get("tool_access_mode") or "workspace_default").strip().lower()
+    return mode if mode in {"workspace_default", "all", "selected", "none"} else "workspace_default"
+
+
+def _agent_tool_call_strategy(node_config: dict[str, Any]) -> str:
+    strategy = str(node_config.get("tool_call_strategy") or "workspace_default").strip().lower()
+    return strategy if strategy in {"workspace_default", "single", "read_then_write", "fan_out"} else "workspace_default"
+
+
+def _tool_key_for_node(node: Any) -> str:
+    config = node.config if node is not None and isinstance(getattr(node, "config", None), dict) else {}
+    return str(config.get("tool_key") or "http-request").strip() or "http-request"
+
+
+def _tool_capability_for_node(node: Any) -> str:
+    config = node.config if node is not None and isinstance(getattr(node, "config", None), dict) else {}
+    return str(config.get("capability") or "http_request").strip() or "http_request"
+
+
+def _tool_rank(capability: str) -> int:
+    if capability == "knowledge_lookup":
+        return 0
+    if capability == "http_request":
+        return 1
+    if capability in {"crm_writeback", "spreadsheet_row"}:
+        return 2
+    if capability == "webhook_reply":
+        return 3
+    return 1
+
+
+def _can_agent_use_tool(node_config: dict[str, Any], tool_key: str) -> bool:
+    mode = _agent_tool_access_mode(node_config)
+    if mode == "none":
+        return False
+    if mode in {"all", "workspace_default"}:
+        return True
+
+    allowed_tool_keys = _read_string_list(node_config.get("allowed_tool_keys"))
+    return tool_key in allowed_tool_keys
+
+
+def _choose_agent_next_edges(
+    node: Any,
+    outgoing: list[WorkflowEdge],
+    node_map: dict[str, Any],
+) -> tuple[list[WorkflowEdge], dict[str, Any]]:
+    node_config = node.config if isinstance(node.config, dict) else {}
+    strategy = _agent_tool_call_strategy(node_config)
+    access_mode = _agent_tool_access_mode(node_config)
+    allowed_tool_keys = _read_string_list(node_config.get("allowed_tool_keys")) if access_mode == "selected" else []
+
+    tool_edges: list[WorkflowEdge] = []
+    non_tool_edges: list[WorkflowEdge] = []
+    blocked_edges: list[WorkflowEdge] = []
 
     for edge in outgoing:
-        edge_branch = _normalize_branch(edge.branch or edge.label)
-        if edge_branch and edge_branch == branch:
-            return [edge]
+        target_node = node_map.get(edge.target)
+        if target_node and getattr(target_node, "type", "") == "tool":
+            tool_key = _tool_key_for_node(target_node)
+            if _can_agent_use_tool(node_config, tool_key):
+                tool_edges.append(edge)
+            else:
+                blocked_edges.append(edge)
+        else:
+            non_tool_edges.append(edge)
 
-    unlabeled = [edge for edge in outgoing if not _normalize_branch(edge.branch or edge.label)]
-    if unlabeled:
-        return unlabeled[:1]
+    selected_tool_edges = tool_edges
+    deferred_edges: list[WorkflowEdge] = []
 
-    return outgoing[:1]
+    if strategy == "single" and len(tool_edges) > 1:
+        selected_tool_edges = tool_edges[:1]
+        deferred_edges = tool_edges[1:]
+    elif strategy == "read_then_write" and len(tool_edges) > 1:
+        selected_tool_edges = sorted(
+            tool_edges,
+            key=lambda edge: _tool_rank(_tool_capability_for_node(node_map.get(edge.target))),
+        )
+
+    selected_edges = [*selected_tool_edges, *non_tool_edges]
+
+    info = {
+        "route_kind": "agent_orchestration",
+        "strategy": strategy,
+        "access_mode": access_mode,
+        "allowed_tool_keys": allowed_tool_keys,
+        "selected_targets": [edge.target for edge in selected_edges],
+        "selected_tool_targets": [edge.target for edge in selected_tool_edges],
+        "deferred_targets": [edge.target for edge in deferred_edges],
+        "blocked_targets": [edge.target for edge in blocked_edges],
+        "blocked_tool_keys": [
+            _tool_key_for_node(node_map.get(edge.target))
+            for edge in blocked_edges
+            if node_map.get(edge.target) is not None
+        ],
+    }
+
+    if blocked_edges and not selected_edges:
+        blocked_labels = [
+            getattr(node_map.get(edge.target), "label", edge.target)
+            for edge in blocked_edges
+        ]
+        info["error_message"] = (
+            f"Agent {node.label} is not allowed to call downstream tool step(s): {', '.join(blocked_labels)}."
+        )
+
+    return selected_edges, info
+
+
+def _choose_next_edges(
+    node: Any,
+    result_output: dict[str, object],
+    adjacency: dict[str, list[WorkflowEdge]],
+    node_map: dict[str, Any],
+) -> tuple[list[WorkflowEdge], dict[str, Any]]:
+    outgoing = adjacency.get(node.id, [])
+    if node.type == "condition" and len(outgoing) > 1:
+        branch = _normalize_branch(result_output.get("branch") or "default-continue")
+
+        for edge in outgoing:
+            edge_branch = _normalize_branch(edge.branch or edge.label)
+            if edge_branch and edge_branch == branch:
+                return [edge], {"route_kind": "condition", "branch": branch}
+
+        unlabeled = [edge for edge in outgoing if not _normalize_branch(edge.branch or edge.label)]
+        if unlabeled:
+            return unlabeled[:1], {"route_kind": "condition", "branch": branch}
+
+        return outgoing[:1], {"route_kind": "condition", "branch": branch}
+
+    if node.type == "agent":
+        return _choose_agent_next_edges(node, outgoing, node_map)
+
+    return outgoing, {}
 
 
 def _duration_ms(started_at: datetime, finished_at: datetime) -> int:
@@ -441,7 +562,46 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                 failed_node_id=node.id,
             )
 
+        next_edges, route_info = _choose_next_edges(node, result.output, adjacency, node_map)
+        orchestration_error = str(route_info.get("error_message") or "").strip()
         node_finished_at = datetime.now(timezone.utc)
+
+        if orchestration_error:
+            logs.extend(result.logs)
+            logs.append(
+                WorkflowRunLog(
+                    node_id=node.id,
+                    level="error",
+                    message=orchestration_error,
+                    payload=_with_correlation(payload, route_info),
+                )
+            )
+            node_executions.append(
+                _node_execution(
+                    node_id=node.id,
+                    node_label=node.label,
+                    node_type=node.type,
+                    sequence=sequence,
+                    status="failed",
+                    attempt_count=attempt,
+                    started_at=node_started_at,
+                    finished_at=node_finished_at,
+                    output=result.output,
+                    error_class="AgentToolAccessError",
+                    error_message=orchestration_error,
+                )
+            )
+            return _failure_result(
+                payload,
+                started_at,
+                logs,
+                executed_nodes,
+                node_outputs,
+                node_executions,
+                orchestration_error,
+                failed_node_id=node.id,
+            )
+
         node_executions.append(
             _node_execution(
                 node_id=node.id,
@@ -464,7 +624,6 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         context.previous_output = result.output
         sequence += 1
 
-        next_edges = _choose_next_edges(node.type, node.id, result.output, adjacency)
         if node.type == "condition" and next_edges:
             logs.append(
                 WorkflowRunLog(
@@ -474,7 +633,7 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                     payload=_with_correlation(
                         payload,
                         {
-                            "branch": result.output.get("branch", "default-continue"),
+                            "branch": route_info.get("branch", result.output.get("branch", "default-continue")),
                             "targets": [edge.target for edge in next_edges],
                             "edges": [
                                 {
@@ -488,6 +647,34 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
                     ),
                 )
             )
+
+        if node.type == "agent" and route_info.get("route_kind") == "agent_orchestration":
+            logs.append(
+                WorkflowRunLog(
+                    node_id=node.id,
+                    level="info",
+                    message=f"Agent orchestration selected {', '.join(route_info.get('selected_targets') or []) or 'no next steps'} using {route_info.get('strategy', 'workspace_default')}.",
+                    payload=_with_correlation(payload, route_info),
+                )
+            )
+            if route_info.get("blocked_targets"):
+                logs.append(
+                    WorkflowRunLog(
+                        node_id=node.id,
+                        level="warn",
+                        message=f"Agent skipped blocked tool path(s): {', '.join(route_info.get('blocked_targets') or [])}.",
+                        payload=_with_correlation(payload, route_info),
+                    )
+                )
+            if route_info.get("deferred_targets"):
+                logs.append(
+                    WorkflowRunLog(
+                        node_id=node.id,
+                        level="info",
+                        message=f"Agent deferred downstream tool path(s): {', '.join(route_info.get('deferred_targets') or [])}.",
+                        payload=_with_correlation(payload, route_info),
+                    )
+                )
 
         for edge in next_edges:
             if edge.target not in visited:
@@ -541,4 +728,8 @@ def run_workflow(payload: WorkflowPayload) -> WorkflowRunResult:
         logs=logs,
         node_executions=node_executions,
     )
+
+
+
+
 

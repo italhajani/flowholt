@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
+import { enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -71,7 +71,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Scheduler limit check failed." }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Scheduler limit check failed." },
+      { status: 500 },
+    );
   }
 
   const now = new Date();
@@ -170,8 +173,7 @@ export async function POST(request: NextRequest) {
     schedule_id: string;
     workflow_id: string;
     job_id?: string;
-    run_id?: string;
-    status: "succeeded" | "failed" | "skipped" | "queued";
+    status: "failed" | "skipped" | "queued";
     error?: string;
   }> = [];
 
@@ -183,8 +185,10 @@ export async function POST(request: NextRequest) {
         .from("workflow_schedules")
         .update({
           lock_until: null,
+          last_run_at: nowIso,
           last_run_status: "failed",
           last_error: workflow ? "Workflow is archived." : "Workflow not found.",
+          run_count: (schedule.run_count ?? 0) + 1,
         })
         .eq("id", schedule.id);
 
@@ -211,36 +215,23 @@ export async function POST(request: NextRequest) {
         createdByUserId: workflow.created_by_user_id,
       });
 
-      const [jobResult] = await drainWorkflowRunJobs({
-        supabase,
-        limit: 1,
-        jobIds: [job.id],
-      });
-
-      const finalStatus = jobResult?.status ?? "queued";
-      const finalError =
-        jobResult?.status === "queued"
-          ? jobResult.error || "Scheduled run queued for retry."
-          : jobResult?.error || "";
-
       await supabase
         .from("workflow_schedules")
         .update({
           lock_until: null,
-          last_run_at: new Date().toISOString(),
-          last_run_status: finalStatus === "succeeded" ? "succeeded" : finalStatus === "failed" ? "failed" : null,
-          last_error: finalError,
+          last_run_at: nowIso,
+          last_run_status: null,
+          last_error: "Queued for execution.",
           run_count: (schedule.run_count ?? 0) + 1,
         })
-        .eq("id", schedule.id);
+        .eq("id", schedule.id)
+        .eq("workflow_id", workflow.id);
 
       results.push({
         schedule_id: schedule.id,
         workflow_id: workflow.id,
         job_id: job.id,
-        run_id: jobResult?.runId,
-        status: finalStatus === "cancelled" ? "failed" : finalStatus,
-        error: finalError || undefined,
+        status: "queued",
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Scheduled run failed.";
@@ -249,7 +240,7 @@ export async function POST(request: NextRequest) {
         .from("workflow_schedules")
         .update({
           lock_until: null,
-          last_run_at: new Date().toISOString(),
+          last_run_at: nowIso,
           last_run_status: "failed",
           last_error: errorMessage,
           run_count: (schedule.run_count ?? 0) + 1,
@@ -258,7 +249,7 @@ export async function POST(request: NextRequest) {
 
       results.push({
         schedule_id: schedule.id,
-        workflow_id: workflow.id,
+        workflow_id: schedule.workflow_id,
         status: "failed",
         error: errorMessage,
       });

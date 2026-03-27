@@ -6,7 +6,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 88%**
-- Production hardening progress: **about 46%**
+- Production hardening progress: **about 50%**
 
 ## Backend foundations
 
@@ -28,6 +28,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Workspace usage limits foundation (`workspace_usage_limits` + enforcement helpers)
 - [x] Audit trail foundation for sensitive workspace actions
 - [x] Request rate-limit foundation for public/internal endpoints
+- [x] Webhook idempotency receipt foundation
 
 ## Remaining backend (high priority)
 
@@ -47,7 +48,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - [x] Revision compare endpoint (before vs after graph diff summary)
 - [ ] Batch scheduler claiming with stronger lease renewal
-- [ ] Webhook idempotency key support
+- [x] Webhook idempotency key support
 - [x] Draft run simulation endpoint (no external calls, dry-run validation)
 - [x] Connection test endpoint per provider
 - [x] Audit log table for sensitive actions (restore, delete, secret update)
@@ -101,4 +102,4 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can run, monitor, pause, and retry without touching JSON
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
-- [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, and abuse protection
+- [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers

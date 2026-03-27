@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { NextRequest, NextResponse } from "next/server";
 
 import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
@@ -14,6 +16,9 @@ const WEBHOOK_RATE_LIMIT = {
   windowSeconds: 60,
 };
 
+const RECEIPT_FIELDS =
+  "id, workflow_id, workspace_id, idempotency_key, request_method, request_path, request_fingerprint, status, run_job_id, run_id, response_payload, response_status, request_count, last_seen_at, created_at, updated_at";
+
 type RouteContext = {
   params: Promise<{ workflowId: string }> | { workflowId: string };
 };
@@ -25,10 +30,59 @@ type WebhookConnectionRow = {
   secrets: Record<string, unknown>;
 };
 
+type WebhookEventReceiptRow = {
+  id: number;
+  workflow_id: string;
+  workspace_id: string;
+  idempotency_key: string;
+  request_method: string;
+  request_path: string;
+  request_fingerprint: string;
+  status: "received" | "queued" | "succeeded" | "failed";
+  run_job_id: string | null;
+  run_id: string | null;
+  response_payload: Record<string, unknown>;
+  response_status: number;
+  request_count: number;
+  last_seen_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function asReceiptStatus(value: unknown): WebhookEventReceiptRow["status"] {
+  return value === "queued" || value === "succeeded" || value === "failed" ? value : "received";
+}
+
+function toWebhookEventReceiptRow(value: unknown): WebhookEventReceiptRow {
+  const row = asRecord(value);
+  return {
+    id: Number(row.id) || 0,
+    workflow_id: asString(row.workflow_id),
+    workspace_id: asString(row.workspace_id),
+    idempotency_key: asString(row.idempotency_key),
+    request_method: asString(row.request_method),
+    request_path: asString(row.request_path),
+    request_fingerprint: asString(row.request_fingerprint),
+    status: asReceiptStatus(row.status),
+    run_job_id: typeof row.run_job_id === "string" ? row.run_job_id : null,
+    run_id: typeof row.run_id === "string" ? row.run_id : null,
+    response_payload: asRecord(row.response_payload),
+    response_status: Number(row.response_status) || 202,
+    request_count: Number(row.request_count) || 1,
+    last_seen_at: asString(row.last_seen_at),
+    created_at: asString(row.created_at),
+    updated_at: asString(row.updated_at),
+  };
 }
 
 function readConnectionId(node: WorkflowNode): string {
@@ -49,6 +103,15 @@ function readWebhookKey(request: NextRequest) {
   ).trim();
 }
 
+function readIdempotencyKey(request: NextRequest) {
+  return (
+    request.headers.get("idempotency-key") ??
+    request.headers.get("x-flowholt-idempotency-key") ??
+    request.nextUrl.searchParams.get("idempotency_key") ??
+    ""
+  ).trim();
+}
+
 function sanitizeHeaders(headers: Headers) {
   const ignored = new Set(["authorization", "cookie", "x-flowholt-key"]);
   const output: Record<string, string> = {};
@@ -61,6 +124,22 @@ function sanitizeHeaders(headers: Headers) {
   }
 
   return output;
+}
+
+function createRequestFingerprint(input: {
+  method: string;
+  path: string;
+  query: Record<string, string>;
+  payload: unknown;
+}) {
+  return createHash("sha256")
+    .update(JSON.stringify(input))
+    .digest("hex");
+}
+
+function isIdempotencyUnavailable(message: string) {
+  const normalized = message.toLowerCase();
+  return normalized.includes("webhook_event_receipts") || normalized.includes("does not exist");
 }
 
 async function readWebhookPayload(request: NextRequest): Promise<unknown> {
@@ -143,6 +222,146 @@ function findMatchingConnection(
   };
 }
 
+async function getExistingReceipt(
+  workflowId: string,
+  idempotencyKey: string,
+) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("webhook_event_receipts")
+    .select(RECEIPT_FIELDS)
+    .eq("workflow_id", workflowId)
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return toWebhookEventReceiptRow(data);
+}
+
+async function persistReceiptOutcome(
+  receiptId: number | null,
+  values: {
+    status: WebhookEventReceiptRow["status"];
+    response_status: number;
+    response_payload: Record<string, unknown>;
+    run_job_id?: string | null;
+    run_id?: string | null;
+  },
+) {
+  if (!receiptId) {
+    return;
+  }
+
+  const supabase = createAdminClient();
+  await supabase
+    .from("webhook_event_receipts")
+    .update({
+      status: values.status,
+      response_status: values.response_status,
+      response_payload: values.response_payload,
+      run_job_id: values.run_job_id ?? null,
+      run_id: values.run_id ?? null,
+      last_seen_at: new Date().toISOString(),
+    })
+    .eq("id", receiptId);
+}
+
+async function createOrReuseReceipt(input: {
+  workflowId: string;
+  workspaceId: string;
+  idempotencyKey: string;
+  requestMethod: string;
+  requestPath: string;
+  requestFingerprint: string;
+}) {
+  if (!input.idempotencyKey) {
+    return { enabled: false, duplicate: false, receipt: null as WebhookEventReceiptRow | null };
+  }
+
+  const supabase = createAdminClient();
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("webhook_event_receipts")
+    .insert({
+      workflow_id: input.workflowId,
+      workspace_id: input.workspaceId,
+      idempotency_key: input.idempotencyKey,
+      request_method: input.requestMethod,
+      request_path: input.requestPath,
+      request_fingerprint: input.requestFingerprint,
+      status: "received",
+      response_payload: {},
+      response_status: 202,
+      request_count: 1,
+      last_seen_at: nowIso,
+    })
+    .select(RECEIPT_FIELDS)
+    .maybeSingle();
+
+  if (!error && data) {
+    return {
+      enabled: true,
+      duplicate: false,
+      receipt: toWebhookEventReceiptRow(data),
+    };
+  }
+
+  if (error && isIdempotencyUnavailable(error.message)) {
+    return { enabled: false, duplicate: false, receipt: null as WebhookEventReceiptRow | null };
+  }
+
+  if (error?.code === "23505") {
+    const existing = await getExistingReceipt(input.workflowId, input.idempotencyKey);
+    if (!existing) {
+      return { enabled: false, duplicate: false, receipt: null as WebhookEventReceiptRow | null };
+    }
+
+    if (existing.request_fingerprint && existing.request_fingerprint !== input.requestFingerprint) {
+      return {
+        enabled: true,
+        duplicate: true,
+        receipt: existing,
+        fingerprintConflict: true,
+      };
+    }
+
+    await supabase
+      .from("webhook_event_receipts")
+      .update({
+        request_count: Math.max(1, existing.request_count) + 1,
+        last_seen_at: nowIso,
+      })
+      .eq("id", existing.id);
+
+    return {
+      enabled: true,
+      duplicate: true,
+      receipt: {
+        ...existing,
+        request_count: Math.max(1, existing.request_count) + 1,
+        last_seen_at: nowIso,
+      },
+    };
+  }
+
+  throw new Error(error?.message ?? "Unable to create webhook receipt.");
+}
+
+function buildReplayResponse(receipt: WebhookEventReceiptRow) {
+  const payload = {
+    ...receipt.response_payload,
+    idempotent_replay: true,
+    idempotency_key: receipt.idempotency_key,
+  };
+
+  return NextResponse.json(payload, {
+    status: receipt.response_status || 202,
+  });
+}
+
 async function handleWebhook(request: NextRequest, context: RouteContext) {
   const { workflowId } = await Promise.resolve(context.params);
 
@@ -173,7 +392,10 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
       );
     }
 
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Webhook limit check failed." }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Webhook limit check failed." },
+      { status: 500 },
+    );
   }
 
   const { data: workflowRow, error: workflowError } = await supabase
@@ -269,6 +491,49 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
 
   const payload = await readWebhookPayload(request);
   const query = Object.fromEntries(request.nextUrl.searchParams.entries());
+  const idempotencyKey = readIdempotencyKey(request);
+  const requestFingerprint = createRequestFingerprint({
+    method: request.method,
+    path: request.nextUrl.pathname,
+    query,
+    payload,
+  });
+
+  let receiptId: number | null = null;
+
+  try {
+    const receiptState = await createOrReuseReceipt({
+      workflowId,
+      workspaceId: workflow.workspace_id,
+      idempotencyKey,
+      requestMethod: request.method,
+      requestPath: request.nextUrl.pathname,
+      requestFingerprint,
+    });
+
+    if (receiptState.receipt) {
+      receiptId = receiptState.receipt.id;
+    }
+
+    if (receiptState.fingerprintConflict) {
+      return NextResponse.json(
+        {
+          error: "This idempotency key was already used with a different webhook payload.",
+          idempotency_key: idempotencyKey,
+        },
+        { status: 409 },
+      );
+    }
+
+    if (receiptState.duplicate && receiptState.receipt) {
+      return buildReplayResponse(receiptState.receipt);
+    }
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Webhook idempotency check failed." },
+      { status: 500 },
+    );
+  }
 
   try {
     const job = await enqueueWorkflowRunJob({
@@ -283,6 +548,7 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
         headers: sanitizeHeaders(request.headers),
         webhook_connection_id: matchedConnection.id,
         webhook_connection_label: matchedConnection.label,
+        idempotency_key: idempotencyKey || undefined,
         received_at: new Date().toISOString(),
       },
       createdByUserId: null,
@@ -295,66 +561,101 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
     });
 
     if (!result) {
-      return NextResponse.json(
-        {
-          ok: true,
-          accepted: true,
-          job_id: job.id,
-          message: "Webhook accepted and queued.",
-        },
-        { status: 202 },
-      );
+      const responsePayload = {
+        ok: true,
+        accepted: true,
+        job_id: job.id,
+        message: "Webhook accepted and queued.",
+      };
+      await persistReceiptOutcome(receiptId, {
+        status: "queued",
+        response_status: 202,
+        response_payload: responsePayload,
+        run_job_id: job.id,
+      });
+      return NextResponse.json(responsePayload, { status: 202 });
     }
 
     if (result.status === "queued") {
-      return NextResponse.json(
-        {
-          ok: true,
-          accepted: true,
-          job_id: job.id,
-          run_id: result.runId,
-          message: "Webhook accepted and queued for retry.",
-        },
-        { status: 202 },
-      );
+      const responsePayload = {
+        ok: true,
+        accepted: true,
+        job_id: job.id,
+        run_id: result.runId,
+        message: "Webhook accepted and queued for retry.",
+      };
+      await persistReceiptOutcome(receiptId, {
+        status: "queued",
+        response_status: 202,
+        response_payload: responsePayload,
+        run_job_id: job.id,
+        run_id: result.runId ?? null,
+      });
+      return NextResponse.json(responsePayload, { status: 202 });
     }
 
     if (result.status === "succeeded") {
-      return NextResponse.json({
+      const responsePayload = {
         ok: true,
         status: result.status,
         job_id: job.id,
         run_id: result.runId,
         message: "Webhook run completed successfully.",
+      };
+      await persistReceiptOutcome(receiptId, {
+        status: "succeeded",
+        response_status: 200,
+        response_payload: responsePayload,
+        run_job_id: job.id,
+        run_id: result.runId ?? null,
       });
+      return NextResponse.json(responsePayload);
     }
 
-    return NextResponse.json(
-      {
-        ok: false,
-        status: result.status,
-        job_id: job.id,
-        run_id: result.runId,
-        error: result.error || "Webhook run failed.",
-      },
-      { status: 500 },
-    );
+    const failedPayload = {
+      ok: false,
+      status: result.status,
+      job_id: job.id,
+      run_id: result.runId,
+      error: result.error || "Webhook run failed.",
+    };
+    await persistReceiptOutcome(receiptId, {
+      status: "failed",
+      response_status: 500,
+      response_payload: failedPayload,
+      run_job_id: job.id,
+      run_id: result.runId ?? null,
+    });
+    return NextResponse.json(failedPayload, { status: 500 });
   } catch (error) {
     if (isRateLimitError(error)) {
-      return NextResponse.json(
-        { ok: false, error: error.message, retry_after_seconds: error.retryAfterSeconds },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(error.retryAfterSeconds),
-          },
+      const limitedPayload = {
+        ok: false,
+        error: error.message,
+        retry_after_seconds: error.retryAfterSeconds,
+      };
+      await persistReceiptOutcome(receiptId, {
+        status: "failed",
+        response_status: 429,
+        response_payload: limitedPayload,
+      });
+      return NextResponse.json(limitedPayload, {
+        status: 429,
+        headers: {
+          "Retry-After": String(error.retryAfterSeconds),
         },
-      );
+      });
     }
 
     const status = isWorkspaceUsageLimitError(error) ? 409 : 500;
     const message = getWorkspaceUsageErrorMessage(error, "Webhook run failed.");
-    return NextResponse.json({ ok: false, error: message }, { status });
+    const failedPayload = { ok: false, error: message };
+    await persistReceiptOutcome(receiptId, {
+      status: "failed",
+      response_status: status,
+      response_payload: failedPayload,
+    });
+    return NextResponse.json(failedPayload, { status });
   }
 }
 

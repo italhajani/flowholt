@@ -70,6 +70,36 @@ function lockUntil(minutes = 5) {
   return new Date(Date.now() + minutes * 60_000).toISOString();
 }
 
+function readScheduleId(job: WorkflowRunJobRecord) {
+  const triggerMeta = asRecord(job.trigger_meta);
+  const value = triggerMeta.schedule_id;
+  return typeof value === "string" ? value.trim() : "";
+}
+
+async function updateScheduledRunStatus(
+  supabase: SupabaseClient,
+  job: WorkflowRunJobRecord,
+  values: {
+    last_run_status?: "succeeded" | "failed" | null;
+    last_error?: string;
+  },
+) {
+  const scheduleId = readScheduleId(job);
+  if (!scheduleId) {
+    return;
+  }
+
+  await supabase
+    .from("workflow_schedules")
+    .update({
+      last_run_status:
+        values.last_run_status === undefined ? null : values.last_run_status,
+      last_error: values.last_error ?? "",
+    })
+    .eq("id", scheduleId)
+    .eq("workflow_id", job.workflow_id);
+}
+
 function shouldRetryJob(errorMessage: string) {
   const normalized = errorMessage.toLowerCase();
   const nonRetryablePhrases = [
@@ -226,6 +256,11 @@ async function processClaimedWorkflowRunJob(
       })
       .eq("id", job.id);
 
+    await updateScheduledRunStatus(supabase, job, {
+      last_run_status: "failed",
+      last_error: "Workflow not found.",
+    });
+
     return {
       jobId: job.id,
       status: "failed",
@@ -245,6 +280,11 @@ async function processClaimedWorkflowRunJob(
         lock_until: null,
       })
       .eq("id", job.id);
+
+    await updateScheduledRunStatus(supabase, job, {
+      last_run_status: "failed",
+      last_error: "Workflow is archived.",
+    });
 
     return {
       jobId: job.id,
@@ -278,6 +318,11 @@ async function processClaimedWorkflowRunJob(
       })
       .eq("id", job.id);
 
+    await updateScheduledRunStatus(supabase, job, {
+      last_run_status: finalStatus === "succeeded" ? "succeeded" : "failed",
+      last_error: finalError,
+    });
+
     return {
       jobId: job.id,
       status: finalStatus,
@@ -305,6 +350,11 @@ async function processClaimedWorkflowRunJob(
         })
         .eq("id", job.id);
 
+      await updateScheduledRunStatus(supabase, job, {
+        last_run_status: null,
+        last_error: `Queued for retry: ${errorMessage}`,
+      });
+
       return {
         jobId: job.id,
         status: "queued",
@@ -326,6 +376,11 @@ async function processClaimedWorkflowRunJob(
         lock_until: null,
       })
       .eq("id", job.id);
+
+    await updateScheduledRunStatus(supabase, job, {
+      last_run_status: "failed",
+      last_error: errorMessage,
+    });
 
     return {
       jobId: job.id,

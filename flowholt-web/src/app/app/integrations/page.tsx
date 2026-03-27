@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { IntegrationTestButton } from "@/components/integration-test-button";
 import { SurfaceCard } from "@/components/surface-card";
 import { getIntegrationsSnapshot } from "@/lib/flowholt/data";
+import { buildToolMarketplace, buildToolMarketplaceSummary } from "@/lib/flowholt/tool-marketplace";
 
 const providerTemplates = [
   {
@@ -78,6 +79,8 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
     http: snapshot.integrations.filter((item) => item.provider === "http").length,
     webhook: snapshot.integrations.filter((item) => item.provider === "webhook").length,
   };
+  const marketplaceCategories = buildToolMarketplace(snapshot.integrations);
+  const marketplaceSummary = buildToolMarketplaceSummary(marketplaceCategories);
 
   return (
     <AppShell
@@ -220,6 +223,36 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
         </div>
 
         <div className="grid gap-5 self-start">
+          <SurfaceCard
+            title="Recommended packs"
+            description="These provider and workflow packs power the new Studio resources sidebar and show what your workspace can support right now."
+            tone="default"
+          >
+            <div className="space-y-3 text-sm leading-6 text-stone-700">
+              <div className="rounded-2xl bg-stone-50 px-4 py-3">
+                <p>
+                  {marketplaceSummary.readyKits} ready, {marketplaceSummary.partialKits} partial, {marketplaceSummary.missingKits} missing.
+                </p>
+                <p className="mt-1 text-xs text-stone-500">
+                  {marketplaceSummary.providerPacks} provider packs and {marketplaceSummary.workflowPacks} workflow packs are tracked in this workspace.
+                </p>
+              </div>
+              {marketplaceSummary.featuredWorkflowPacks.map((kit) => (
+                <div key={kit.key} className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-stone-900">{kit.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">{kit.description}</p>
+                    </div>
+                    <span className="rounded-full border border-stone-900/10 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-700">
+                      {kit.readiness}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-stone-500">{kit.setupHint}</p>
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
           {providerTemplates.map((template) => (
             <SurfaceCard
               key={template.provider}
@@ -286,4 +319,3 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
     </AppShell>
   );
 }
-

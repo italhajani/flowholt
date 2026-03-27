@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildToolMarketplace,
+  buildToolMarketplaceSummary,
   getToolMarketplacePromptLines,
 } from '../../src/lib/flowholt/tool-marketplace.ts';
 
@@ -29,6 +30,22 @@ test('buildToolMarketplace marks delivery kit partial when only one provider pat
 
   assert.equal(deliveryKit?.readiness, 'partial');
   assert.equal(deliveryKit?.matchingConnectionCount, 1);
+  assert.equal(deliveryKit?.readinessDetail.includes('Still missing provider'), true);
+});
+
+test('buildToolMarketplaceSummary exposes provider packs, workflow packs, and featured packs', () => {
+  const summary = buildToolMarketplaceSummary(
+    buildToolMarketplace([
+      { id: 'conn-groq', provider: 'groq', label: 'Groq Production' },
+      { id: 'conn-http', provider: 'http', label: 'Ops API' },
+    ]),
+  );
+
+  assert.equal(summary.totalKits >= 9, true);
+  assert.equal(summary.providerPacks >= 6, true);
+  assert.equal(summary.workflowPacks >= 3, true);
+  assert.equal(summary.featuredKits.some((kit) => kit.key === 'groq-agent-kit'), true);
+  assert.equal(summary.featuredWorkflowPacks.some((kit) => kit.key === 'lead-intake-pack'), true);
 });
 
 test('marketplace prompt lines include provider-specific kit context for the planner', () => {
@@ -37,4 +54,6 @@ test('marketplace prompt lines include provider-specific kit context for the pla
   assert.equal(lines.some((line) => line.includes('Groq agent kit')), true);
   assert.equal(lines.some((line) => line.includes('providers:groq')), true);
   assert.equal(lines.some((line) => line.includes('Knowledge search kit')), true);
+  assert.equal(lines.some((line) => line.includes('family:workflow_pack')), true);
+  assert.equal(lines.some((line) => line.includes('strategy:')), true);
 });

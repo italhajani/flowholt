@@ -7,7 +7,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 94%**
 - Production hardening progress: **about 95%**
-- Agent/tool architecture groundwork: **about 86%**
+- Agent/tool architecture groundwork: **about 91%**
 
 ## Backend foundations
 
@@ -64,7 +64,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Tool result normalization contracts for planner, monitor, and chat sidebar groundwork
 - [x] Multi-tool agent orchestration rules (single, read_then_write, fan_out, permission enforcement)
 - [x] Tool marketplace/resources model with provider-specific kits and readiness states
-- [ ] Provider-specific tool packs beyond starter HTTP/Groq/webhook kits
+- [x] Provider-specific tool packs beyond starter HTTP/Groq/webhook kits
 - [ ] Premium resources sidebar redesign using this marketplace model
 
 ## Before full UI redesign
@@ -96,6 +96,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Agent tool-strategy controls in Studio
 - [x] Tool output contract hints in Studio
 - [x] Studio resources panel with marketplace kits and readiness states
+- [x] Studio resources panel with workflow-ready packs and richer resource guidance
+- [x] Integrations page recommended packs card tied to Studio resources
 
 ## Production and reliability
 
@@ -130,6 +132,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 11: add normalized tool result contracts and agent tool-strategy groundwork
 - [x] Phase 12: add real multi-tool orchestration behavior in the engine
 - [x] Phase 13: add shared marketplace/resource kits for the future premium sidebar
+- [x] Phase 14: add provider packs and workflow packs that bridge from connections to complete solution patterns
 
 ## Definition of "finalized platform" (what done means)
 

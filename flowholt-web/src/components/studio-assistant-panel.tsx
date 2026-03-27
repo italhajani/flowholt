@@ -143,6 +143,7 @@ type ThreadMessage = {
 
 type ResourceSuggestion = {
   id: string;
+  kitKey: string;
   title: string;
   readiness: "ready" | "partial" | "missing";
   tone: "default" | "mint" | "sand";
@@ -471,7 +472,7 @@ export function StudioAssistantPanel({
     }
   }
 
-  async function submitCompose(mode: "preview" | "apply", overrideMessage?: string) {
+  async function submitCompose(mode: "preview" | "apply", overrideMessage?: string, resourceKitKey = "") {
     const trimmed = (overrideMessage ?? message).trim();
     if (!trimmed) {
       setErrorMessage("Write what you want the assistant to change first.");
@@ -497,6 +498,7 @@ export function StudioAssistantPanel({
           message: trimmed,
           mode,
           threadId: ensuredThreadId,
+          resourceKitKey,
         }),
       });
 
@@ -539,7 +541,7 @@ export function StudioAssistantPanel({
   }
 
   async function previewResourceSuggestion(suggestion: ResourceSuggestion) {
-    await submitCompose("preview", suggestion.prompt);
+    await submitCompose("preview", suggestion.prompt, suggestion.kitKey);
   }
 
   async function restoreRevision(revisionId: string, mode: "restore" | "undo") {

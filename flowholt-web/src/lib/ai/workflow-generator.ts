@@ -4,7 +4,8 @@ import type {
   WorkflowRecord,
 } from "@/lib/flowholt/types";
 import { getCatalogPromptLines } from "@/lib/flowholt/node-catalog";
-import { getToolMarketplacePromptLines } from "@/lib/flowholt/tool-marketplace";
+import { buildPackAwareFallbackDraft } from "@/lib/flowholt/pack-aware-workflow";
+import { getToolMarketplaceKitByKey, getToolMarketplacePromptLines } from "@/lib/flowholt/tool-marketplace";
 import { getDefaultToolConfig } from "@/lib/flowholt/tool-registry";
 
 type WorkflowGenerationProvider = "groq" | "huggingface" | "fallback";
@@ -62,12 +63,32 @@ type RevisionShape = DraftShape & {
 type GenerateRevisionInput = {
   prompt: string;
   workflow: Pick<WorkflowRecord, "name" | "description" | "graph">;
+  resourceKitKey?: string;
 };
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const HF_URL = "https://router.huggingface.co/v1/chat/completions";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const HF_MODEL = process.env.HUGGINGFACE_MODEL ?? "meta-llama/Llama-3.1-8B-Instruct";
+
+function buildResourceKitPromptContext(resourceKitKey = "") {
+  const kit = getToolMarketplaceKitByKey(resourceKitKey);
+
+  if (!kit) {
+    return [];
+  }
+
+  return [
+    "Preferred resource pack context:",
+    kit.title + " - " + kit.description,
+    "Preferred strategy: " + kit.recommendedStrategy,
+    "Preferred tool presets: " + (kit.recommendedToolKeys.join(", ") || "none"),
+    "Expected profiles: " + (kit.expectedProfiles.join(", ") || "none"),
+    "Ideal for: " + kit.idealFor,
+    "When possible, shape the graph to match this resource pack instead of using a generic pattern.",
+  ];
+}
+
 const SUPPORTED_NODE_TYPES: WorkflowNodeType[] = [
   "trigger",
   "agent",
@@ -104,9 +125,10 @@ function buildCreateSystemPrompt() {
   ].join(" ");
 }
 
-function buildRevisionSystemPrompt() {
+function buildRevisionSystemPrompt(resourceKitKey = "") {
   const catalogLines = getCatalogPromptLines();
   const marketplaceLines = getToolMarketplacePromptLines();
+  const packLines = buildResourceKitPromptContext(resourceKitKey);
 
   return [
     "You are an AI workflow orchestrator for FlowHolt.",
@@ -127,6 +149,7 @@ function buildRevisionSystemPrompt() {
     ...catalogLines,
     "Marketplace/resource kit context:",
     ...marketplaceLines,
+    ...packLines,
   ].join(" ");
 }
 
@@ -513,6 +536,26 @@ async function callProvider(
   return JSON.parse(extractJsonObject(content)) as RevisionShape;
 }
 
+function makePackAwareFallbackDraft(prompt: string, resourceKitKey: string): GeneratedWorkflowDraft | null {
+  const draft = buildPackAwareFallbackDraft(prompt, resourceKitKey);
+
+  if (!draft) {
+    return null;
+  }
+
+  return {
+    name: draft.name,
+    description: draft.description,
+    graph: draft.graph,
+    generation: {
+      provider: "fallback",
+      model: "local-pack-heuristic",
+      notes: draft.notes,
+      originalPrompt: prompt,
+    },
+  };
+}
+
 function makeFallbackDraft(prompt: string): GeneratedWorkflowDraft {
   const clean = prompt.replace(/\s+/g, " ").trim();
   const name = clean ? clean.split(" ").slice(0, 6).join(" ") : "New workflow";
@@ -597,7 +640,7 @@ function makeFallbackRevision(input: GenerateRevisionInput): GeneratedWorkflowRe
     .filter(Boolean)
     .join(". ");
 
-  const draft = makeFallbackDraft(contextualPrompt);
+  const draft = makePackAwareFallbackDraft(contextualPrompt, input.resourceKitKey ?? "") ?? makeFallbackDraft(contextualPrompt);
   const changes = computeGraphChanges(input.workflow.graph, draft.graph);
 
   return {
@@ -605,7 +648,7 @@ function makeFallbackRevision(input: GenerateRevisionInput): GeneratedWorkflowRe
     reasoning: [
       "Built a revised graph from the latest user request.",
       "Kept the result runnable with trigger, action steps, and a final output.",
-      "Used local fallback planning because an external planner was unavailable.",
+      input.resourceKitKey ? "Used the selected resource pack to shape the fallback workflow structure." : "Used local fallback planning because an external planner was unavailable.",
     ],
     changes,
     generation: {
@@ -656,6 +699,7 @@ async function callGroqRevision(input: GenerateRevisionInput) {
     `Current workflow name: ${input.workflow.name}`,
     input.workflow.description ? `Current description: ${input.workflow.description}` : "",
     `Current graph JSON: ${summarizeGraphForPrompt(input.workflow.graph)}`,
+    input.resourceKitKey ? `Preferred resource pack key: ${input.resourceKitKey}` : "",
     `Revision request: ${input.prompt}`,
   ]
     .filter(Boolean)
@@ -665,7 +709,7 @@ async function callGroqRevision(input: GenerateRevisionInput) {
     GROQ_URL,
     apiKey,
     GROQ_MODEL,
-    buildRevisionSystemPrompt(),
+    buildRevisionSystemPrompt(input.resourceKitKey),
     userPrompt,
   );
 
@@ -721,6 +765,7 @@ async function callHuggingFaceRevision(input: GenerateRevisionInput) {
     `Current workflow name: ${input.workflow.name}`,
     input.workflow.description ? `Current description: ${input.workflow.description}` : "",
     `Current graph JSON: ${summarizeGraphForPrompt(input.workflow.graph)}`,
+    input.resourceKitKey ? `Preferred resource pack key: ${input.resourceKitKey}` : "",
     `Revision request: ${input.prompt}`,
   ]
     .filter(Boolean)
@@ -730,7 +775,7 @@ async function callHuggingFaceRevision(input: GenerateRevisionInput) {
     HF_URL,
     apiKey,
     HF_MODEL,
-    buildRevisionSystemPrompt(),
+    buildRevisionSystemPrompt(input.resourceKitKey),
     userPrompt,
   );
 
@@ -792,6 +837,7 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
+
 
 
 

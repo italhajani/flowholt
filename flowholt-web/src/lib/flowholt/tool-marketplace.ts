@@ -483,6 +483,12 @@ export function buildToolMarketplace(connections: MarketplaceConnection[] = []) 
   }));
 }
 
+export function getToolMarketplaceKitByKey(key: string) {
+  return buildToolMarketplace([])
+    .flatMap((category) => category.kits)
+    .find((kit) => kit.key === key) ?? null;
+}
+
 export function buildToolMarketplaceSummary(categories: ToolMarketplaceCategory[]): ToolMarketplaceSummary {
   const allKits = categories.flatMap((category) => category.kits);
   return {

@@ -180,6 +180,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const message = asString(body.message);
   const mode = parseComposerMode(body.mode);
   const threadId = asString(body.threadId);
+  const resourceKitKey = asString(body.resourceKitKey);
 
   if (!message) {
     return NextResponse.json({ error: "message is required." }, { status: 400 });
@@ -211,6 +212,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     proposal = await generateWorkflowRevision({
       prompt: message,
       workflow,
+      resourceKitKey,
     });
   } catch (error) {
     const messageText = error instanceof Error ? error.message : "Unable to generate workflow revision.";

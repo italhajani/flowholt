@@ -2,7 +2,7 @@
 
 This is the next layer after tool presets, result contracts, and multi-tool orchestration.
 
-Now FlowHolt has a shared marketplace/resources model that groups tools into workspace-ready provider packs, workflow-ready packs, vendor-aware profile hints, and assistant-ready pack suggestions.
+Now FlowHolt has a shared marketplace/resources model that groups tools into workspace-ready provider packs, workflow-ready packs, vendor-aware profile hints, assistant-ready pack suggestions, and pack-aware generation rules.
 
 ## What changed
 
@@ -40,19 +40,6 @@ And now it can recognize vendor-style profile hints such as:
 - `Generic HTTP`
 - `Generic webhook`
 
-## What the panel tells you now
-
-For each pack, FlowHolt now shows:
-
-- whether it is `Ready`, `Partial`, or `Missing`
-- whether it is a `Provider pack` or `Workflow pack`
-- which providers it expects
-- which vendor-style profiles it wants
-- which saved connections already match it
-- which tool presets belong to that pack
-- the best orchestration strategy for that pack
-- a setup hint in beginner-friendly words
-
 ## Assistant sidebar update
 
 The Studio assistant sidebar now uses these packs too.
@@ -62,7 +49,17 @@ It shows `Suggested from your resources`, where you can:
 - click `Use idea` to drop a pack-based prompt into the composer
 - click `Preview from pack` to immediately ask FlowHolt to build a preview from that pack idea
 
-This is one of the important bridges from "resource catalog" to "actually build the workflow for me".
+## New pack-aware generation behavior
+
+When a preview starts from one of these pack suggestions, FlowHolt now passes the selected pack key through the composer and generator flow.
+
+That means the generator can shape the workflow more intentionally around the pack instead of treating the request like a vague generic prompt.
+
+Examples:
+
+- `Lead intake pack` now prefers a knowledge lookup plus CRM writeback style flow
+- `Support resolution pack` now prefers lookup plus callback delivery style flow
+- `Content ops pack` now prefers a fan-out style content and reporting flow
 
 ## Integrations page update
 
@@ -75,7 +72,7 @@ So you can see both the workflow patterns you are close to unlocking and the ven
 
 ## Why this matters
 
-This is the real groundwork for the future premium right sidebar.
+This is the real groundwork for the future premium right sidebar and the future "type the task, then watch the platform build the flow" experience.
 
 Later, when we redesign the full UI, this same shared marketplace model can power a cleaner tools/resources panel like the platforms you showed in your screenshots, and it already starts thinking in terms of complete workflow solutions instead of only raw connections.
 
@@ -83,20 +80,18 @@ Later, when we redesign the full UI, this same shared marketplace model can powe
 
 1. Restart `flowholt-web`.
 2. Open `/app/studio/[workflowId]`.
-3. Look at the richer `Resources` card on the right side.
-4. In the assistant sidebar, look for `Suggested from your resources`.
-5. Click `Preview from pack` on one suggestion.
-6. Open `/app/integrations`.
-7. Look for the `Recommended packs` and `Vendor quick starts` cards.
-8. Add or edit connections if you want to complete more packs.
-9. Come back to Studio and refresh.
+3. In the assistant sidebar, look for `Suggested from your resources`.
+4. Click `Preview from pack`.
+5. Review the proposed reasoning and planned graph changes.
+6. Open `/app/integrations` if you want to improve vendor/profile readiness.
+7. Refresh Studio and try another pack suggestion.
 
 ## What you should notice
 
 - the right side now feels more like a real workflow platform catalog
 - FlowHolt can explain which packs are ready in this workspace
 - vendor-aware hints now make the connection system feel less generic
-- Integrations and Studio now speak the same resource language
 - the assistant can now use the same resource language to start building workflow proposals faster
+- pack-based previews now steer the generated graph more intentionally toward the selected solution pattern
 - the planner also knows about these marketplace packs when generating workflow drafts
 - the resources model now starts bridging from low-level provider setup toward complete solution packs

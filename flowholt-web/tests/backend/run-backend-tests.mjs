@@ -18,3 +18,5 @@ import './tool-marketplace.test.mjs';
 import './tool-result-contract.test.mjs';
 import './integration-runtime.test.mjs';
 import './agent-tool-access.test.mjs';
+
+import './workflow-generator-pack.test.mjs';

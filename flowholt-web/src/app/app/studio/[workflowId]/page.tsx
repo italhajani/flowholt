@@ -71,13 +71,13 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           </div>
         ) : null}
 
-        <div className="rounded-[34px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(248,244,236,0.92))] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="rounded-[30px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(248,244,236,0.92))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:rounded-[34px] sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
                 Studio
               </p>
-              <h3 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">
+              <h3 className="mt-3 text-xl font-semibold tracking-tight text-stone-950 sm:text-2xl">
                 Visual workflow editor
               </h3>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
@@ -94,25 +94,34 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               <div className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
                 {simulation.possible_path_count} path{simulation.possible_path_count === 1 ? "" : "s"}
               </div>
-              {workflow.id !== "demo-workflow" ? (
-                <form action={runWorkflow}>
-                  <input type="hidden" name="workflowId" value={workflow.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full border border-stone-900/10 bg-white px-5 py-2.5 text-sm font-medium text-stone-800 transition hover:bg-stone-50"
-                  >
-                    Run workflow
-                  </button>
-                </form>
-              ) : null}
-              <button
-                type="submit"
-                form="workflow-save-form"
-                className="rounded-full bg-[#ff7f5f] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#f26f4d]"
-              >
-                Save changes
-              </button>
             </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            {workflow.id !== "demo-workflow" ? (
+              <form action={runWorkflow} className="w-full sm:w-auto">
+                <input type="hidden" name="workflowId" value={workflow.id} />
+                <button
+                  type="submit"
+                  className="w-full rounded-full border border-stone-900/10 bg-white px-5 py-2.5 text-sm font-medium text-stone-800 transition hover:bg-stone-50 sm:w-auto"
+                >
+                  Run workflow
+                </button>
+              </form>
+            ) : null}
+            <button
+              type="submit"
+              form="workflow-save-form"
+              className="w-full rounded-full bg-[#ff7f5f] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#f26f4d] sm:w-auto"
+            >
+              Save changes
+            </button>
+            <Link
+              href="/app/runs"
+              className="w-full rounded-full border border-stone-900/10 bg-white px-5 py-2.5 text-center text-sm font-medium text-stone-700 transition hover:bg-stone-50 sm:w-auto"
+            >
+              Open runs
+            </Link>
           </div>
         </div>
 
@@ -129,7 +138,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               />
             </div>
 
-            <div className="grid gap-5 self-start">
+            <div className="grid gap-5 self-start xl:sticky xl:top-6">
               <StudioAssistantPanel
                 workflowId={workflow.id}
                 workflowName={workflow.name}
@@ -249,7 +258,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                   {recentRuns.length ? (
                     recentRuns.map((run) => (
                       <div key={run.id} className="rounded-2xl bg-white/80 px-4 py-3">
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <p className="font-medium text-stone-900">{run.status}</p>
                           <p className="text-xs uppercase tracking-[0.16em] text-stone-400">
                             {new Date(run.created_at).toLocaleString()}
@@ -315,22 +324,22 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                 </div>
               </SurfaceCard>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button
                   type="submit"
-                  className="rounded-full bg-[#ff7f5f] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#f26f4d]"
+                  className="w-full rounded-full bg-[#ff7f5f] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#f26f4d] sm:w-auto"
                 >
                   Save changes
                 </button>
                 <Link
                   href="/app/workflows"
-                  className="rounded-full border border-stone-900/10 bg-white px-6 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                  className="w-full rounded-full border border-stone-900/10 bg-white px-6 py-3 text-center text-sm font-medium text-stone-700 transition hover:bg-stone-50 sm:w-auto"
                 >
                   Back to library
                 </Link>
                 <Link
                   href="/app/runs"
-                  className="rounded-full border border-stone-900/10 bg-white px-6 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                  className="w-full rounded-full border border-stone-900/10 bg-white px-6 py-3 text-center text-sm font-medium text-stone-700 transition hover:bg-stone-50 sm:w-auto"
                 >
                   View runs
                 </Link>
@@ -342,4 +351,3 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </AppShell>
   );
 }
-

@@ -46,6 +46,8 @@ type WorkflowEdgeData = {
   branch: string;
 };
 
+type MobileStudioPane = "canvas" | "step" | "connection" | "data" | "json";
+
 const nodeTypeLabels: Record<WorkflowNodeType, string> = {
   trigger: "Trigger",
   agent: "Agent",
@@ -202,6 +204,10 @@ function formatPreviewValue(value: unknown) {
   }
 }
 
+function mobilePaneClasses(activePane: MobileStudioPane, targetPane: MobileStudioPane) {
+  return activePane === targetPane ? "block lg:block" : "hidden lg:block";
+}
+
 function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>) {
   const nodeType = data.nodeType ?? "agent";
   const style = nodeTypeStyles[nodeType];
@@ -331,6 +337,7 @@ function CanvasInner({
   const [edges, setEdges] = useState<Edge<WorkflowEdgeData>[]>(() => toFlowEdges(initialGraph));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialGraph.nodes[0]?.id ?? null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [mobilePane, setMobilePane] = useState<MobileStudioPane>("canvas");
   const [configError, setConfigError] = useState("");
   const nodeCounter = useRef(initialGraph.nodes.length + 1);
 
@@ -454,6 +461,7 @@ function CanvasInner({
     );
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setMobilePane("canvas");
   }
 
   function addNode(nodeType: WorkflowNodeType) {
@@ -478,6 +486,7 @@ function CanvasInner({
     setConfigError("");
     setSelectedEdgeId(null);
     setSelectedNodeId(newNode.id);
+    setMobilePane("step");
   }
 
   function updateSelectedNodeLabel(label: string) {
@@ -592,6 +601,7 @@ function CanvasInner({
     );
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setMobilePane("canvas");
   }
 
   function removeSelectedEdge() {
@@ -601,15 +611,16 @@ function CanvasInner({
 
     setEdges((current) => current.filter((edge) => edge.id !== selectedEdgeId));
     setSelectedEdgeId(null);
+    setMobilePane("canvas");
   }
 
   return (
     <div className="space-y-5">
       <input type="hidden" name="graph" value={graphJson} readOnly />
 
-      <div className="rounded-[30px] border border-stone-900/10 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-stone-900/8 bg-stone-50/90 px-4 py-3">
-          <div className="flex items-center gap-3">
+      <div className="rounded-[24px] border border-stone-900/10 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:rounded-[30px]">
+        <div className="flex flex-col gap-3 rounded-[20px] border border-stone-900/8 bg-stone-50/90 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:rounded-[22px]">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="rounded-full bg-stone-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white">
               Editor
             </div>
@@ -620,7 +631,7 @@ function CanvasInner({
               Tests
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
               Draft ready
             </span>
@@ -631,12 +642,37 @@ function CanvasInner({
         </div>
       </div>
 
+      <div className="rounded-[24px] border border-stone-900/10 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.08)] lg:hidden">
+        <div className="flex gap-2 overflow-x-auto">
+          {([
+            { key: "canvas", label: "Canvas" },
+            { key: "step", label: selectedNode ? "Step" : "Step" },
+            { key: "connection", label: selectedEdge ? "Link" : "Link" },
+            { key: "data", label: "Data" },
+            { key: "json", label: "JSON" },
+          ] as Array<{ key: MobileStudioPane; label: string }>).map((pane) => (
+            <button
+              key={pane.key}
+              type="button"
+              onClick={() => setMobilePane(pane.key)}
+              className={`rounded-full px-3 py-2 text-xs font-medium transition ${
+                mobilePane === pane.key
+                  ? "bg-stone-900 text-white"
+                  : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
+              }`}
+            >
+              {pane.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="rounded-[34px] border border-stone-900/10 bg-[#202226] p-4 shadow-[0_24px_80px_rgba(15,23,42,0.20)]">
-          <div className="grid h-[720px] grid-cols-[84px_minmax(0,1fr)] gap-4">
-            <div className="rounded-[28px] border border-white/8 bg-[#1a1c20] p-3">
-              <div className="flex h-full flex-col items-center justify-between">
-                <div className="grid gap-2">
+        <div className={`${mobilePaneClasses(mobilePane, "canvas")} rounded-[28px] border border-stone-900/10 bg-[#202226] p-3 shadow-[0_24px_80px_rgba(15,23,42,0.20)] sm:rounded-[34px] sm:p-4`}>
+          <div className="grid h-[560px] gap-4 sm:h-[640px] lg:grid-cols-[84px_minmax(0,1fr)] xl:h-[720px]">
+            <div className="order-2 rounded-[24px] border border-white/8 bg-[#1a1c20] p-3 lg:order-1 lg:rounded-[28px]">
+              <div className="flex h-full flex-col gap-3 lg:items-center lg:justify-between">
+                <div className="grid auto-cols-max grid-flow-col gap-2 overflow-x-auto lg:grid-flow-row lg:auto-cols-auto">
                   {([
                     "trigger",
                     "agent",
@@ -649,20 +685,20 @@ function CanvasInner({
                       key={nodeType}
                       type="button"
                       onClick={() => addNode(nodeType)}
-                      className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-200 transition hover:bg-white/10"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-200 transition hover:bg-white/10"
                       title={`Add ${nodeTypeLabels[nodeType]}`}
                     >
                       {nodeTypeIcons[nodeType]}
                     </button>
                   ))}
                 </div>
-                <div className="rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                <div className="hidden rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center text-[10px] uppercase tracking-[0.2em] text-stone-400 lg:block">
                   Studio
                 </div>
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#24272c]">
+            <div className="order-1 overflow-hidden rounded-[24px] border border-white/10 bg-[#24272c] lg:order-2 lg:rounded-[28px]">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -674,27 +710,30 @@ function CanvasInner({
                   setConfigError("");
                   setSelectedEdgeId(null);
                   setSelectedNodeId(node.id);
+                  setMobilePane("step");
                 }}
                 onEdgeClick={(_, edge) => {
                   setConfigError("");
                   setSelectedNodeId(null);
                   setSelectedEdgeId(edge.id);
+                  setMobilePane("connection");
                 }}
                 onPaneClick={() => {
                   setSelectedNodeId(null);
                   setSelectedEdgeId(null);
+                  setMobilePane("canvas");
                 }}
                 fitView
                 minZoom={0.35}
                 className="studio-flow bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),rgba(36,39,44,0.96))]"
                 proOptions={{ hideAttribution: true }}
               >
-                <Panel position="top-left" className="!m-4">
-                  <div className="rounded-full border border-white/10 bg-black/25 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-300 backdrop-blur">
+                <Panel position="top-left" className="!m-3 sm:!m-4">
+                  <div className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-300 backdrop-blur sm:px-4">
                     Canvas
                   </div>
                 </Panel>
-                <Panel position="top-right" className="!m-4">
+                <Panel position="top-right" className="!m-3 hidden sm:!m-4 sm:!block">
                   <div className="flex gap-2 rounded-full border border-white/10 bg-black/25 px-2 py-2 backdrop-blur">
                     <button
                       type="button"
@@ -713,7 +752,7 @@ function CanvasInner({
                 <MiniMap
                   pannable
                   zoomable
-                  className="!m-4 !rounded-2xl !border !border-white/10 !bg-black/25"
+                  className="!m-4 !hidden !rounded-2xl !border !border-white/10 !bg-black/25 sm:!block"
                   maskColor="rgba(14,15,18,0.45)"
                   nodeColor="#e7ebf2"
                 />
@@ -725,7 +764,7 @@ function CanvasInner({
         </div>
 
         <div className="grid gap-5">
-          <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+          <div id="studio-selected-step" className={`${mobilePaneClasses(mobilePane, "step")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-stone-900">Selected step</p>
@@ -811,7 +850,7 @@ function CanvasInner({
             )}
           </div>
 
-          <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+          <div id="studio-selected-connection" className={`${mobilePaneClasses(mobilePane, "connection")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-stone-900">Selected connection</p>
@@ -865,7 +904,7 @@ function CanvasInner({
             )}
           </div>
 
-          <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+          <div id="studio-runtime-data" className={`${mobilePaneClasses(mobilePane, "data")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
             <div>
               <p className="text-sm font-semibold text-stone-900">Runtime data preview</p>
               <p className="mt-1 text-sm text-stone-500">
@@ -882,7 +921,7 @@ function CanvasInner({
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-stone-900/10 bg-[#111317] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.12)]">
+          <div id="studio-graph-json" className={`${mobilePaneClasses(mobilePane, "json")} rounded-[30px] border border-stone-900/10 bg-[#111317] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.12)]`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-stone-100">Graph JSON</p>
@@ -914,4 +953,13 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+
+
+
+
+
+
+
+
 

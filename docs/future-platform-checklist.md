@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 89%**
+- Frontend/UI progress: **about 91%**
 - Production hardening progress: **about 95%**
 
 ## Backend foundations
@@ -77,7 +77,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Studio flow preview summary (human-readable simulation)
 - [x] Settings plan-and-usage card for workspace limits
 - [x] Settings audit trail card for security events
-- [ ] Mobile-friendly responsive editor shell
+- [x] Mobile-friendly responsive editor shell
 
 ## Production and reliability
 
@@ -98,7 +98,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 3: durable queue table, node metrics, worker endpoint, timeline groundwork
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
-- [ ] Phase 6: responsive polish and Studio refinement
+- [x] Phase 6: responsive editor shell groundwork
 - [ ] Phase 7: billing hardening, responsive polish, and final pre-architecture cleanup
 
 ## Definition of "finalized platform" (what done means)
@@ -108,6 +108,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers
+
 
 
 

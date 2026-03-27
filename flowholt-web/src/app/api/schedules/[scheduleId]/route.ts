@@ -1,24 +1,23 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
+import {
+  inferredIntervalMinutesFromPattern,
+  normalizeSchedulePattern,
+  toIntervalMinutes,
+} from "@/lib/flowholt/scheduler-logic";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = {
   params: Promise<{ scheduleId: string }> | { scheduleId: string };
 };
 
+const SCHEDULE_FIELDS =
+  "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, pattern, next_run_at, claim_due_at, last_run_at, last_run_status, run_count, last_error, lock_until, lock_token, last_claimed_at, last_queued_job_id, created_at, updated_at";
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-}
-
-function toIntervalMinutes(value: unknown, fallback = 60) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  const intValue = Math.floor(parsed);
-  return Math.min(10080, Math.max(1, intValue));
 }
 
 function toISOStringOrNull(value: unknown): string | null {
@@ -37,9 +36,7 @@ function toISOStringOrNull(value: unknown): string | null {
 async function resolveSchedule(supabase: Awaited<ReturnType<typeof createClient>>, scheduleId: string) {
   const { data, error } = await supabase
     .from("workflow_schedules")
-    .select(
-      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, next_run_at, last_run_at, last_run_status, run_count, last_error, lock_until, created_at, updated_at",
-    )
+    .select(SCHEDULE_FIELDS)
     .eq("id", scheduleId)
     .maybeSingle();
 
@@ -84,8 +81,24 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     patch.status = status;
   }
 
-  if (body.intervalMinutes !== undefined) {
-    patch.interval_minutes = toIntervalMinutes(body.intervalMinutes, schedule.interval_minutes);
+  const requestedIntervalMinutes =
+    body.intervalMinutes !== undefined
+      ? toIntervalMinutes(body.intervalMinutes, schedule.interval_minutes)
+      : schedule.interval_minutes;
+
+  if (body.pattern !== undefined) {
+    const pattern = normalizeSchedulePattern(body.pattern, requestedIntervalMinutes);
+    patch.pattern = pattern;
+    patch.interval_minutes = inferredIntervalMinutesFromPattern(pattern);
+  } else if (body.intervalMinutes !== undefined) {
+    patch.interval_minutes = requestedIntervalMinutes;
+    patch.pattern = normalizeSchedulePattern(
+      {
+        kind: "interval",
+        intervalMinutes: requestedIntervalMinutes,
+      },
+      requestedIntervalMinutes,
+    );
   }
 
   if (body.nextRunAt !== undefined) {
@@ -108,9 +121,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     .from("workflow_schedules")
     .update(patch)
     .eq("id", scheduleId)
-    .select(
-      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, next_run_at, last_run_at, last_run_status, run_count, last_error, lock_until, created_at, updated_at",
-    )
+    .select(SCHEDULE_FIELDS)
     .single();
 
   if (error || !data) {

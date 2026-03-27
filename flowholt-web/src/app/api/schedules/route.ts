@@ -5,21 +5,20 @@ import {
   getWorkspaceUsageErrorMessage,
   isWorkspaceUsageLimitError,
 } from "@/lib/flowholt/usage-limits";
+import {
+  inferredIntervalMinutesFromPattern,
+  normalizeSchedulePattern,
+  toIntervalMinutes,
+} from "@/lib/flowholt/scheduler-logic";
 import { createClient } from "@/lib/supabase/server";
+
+const SCHEDULE_FIELDS =
+  "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, pattern, next_run_at, claim_due_at, last_run_at, last_run_status, run_count, last_error, lock_until, lock_token, last_claimed_at, last_queued_job_id, created_at, updated_at";
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-}
-
-function toIntervalMinutes(value: unknown, fallback = 60) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  const intValue = Math.floor(parsed);
-  return Math.min(10080, Math.max(1, intValue));
 }
 
 function toISOStringOrDefault(value: unknown, fallback: string) {
@@ -57,9 +56,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("workflow_schedules")
-    .select(
-      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, next_run_at, last_run_at, last_run_status, run_count, last_error, lock_until, created_at, updated_at",
-    )
+    .select(SCHEDULE_FIELDS)
     .order("next_run_at", { ascending: true });
 
   if (workflowId) {
@@ -116,7 +113,9 @@ export async function POST(request: NextRequest) {
   }
 
   const nowIso = new Date().toISOString();
-  const intervalMinutes = toIntervalMinutes(body.intervalMinutes, 60);
+  const requestedIntervalMinutes = toIntervalMinutes(body.intervalMinutes, 60);
+  const pattern = normalizeSchedulePattern(body.pattern, requestedIntervalMinutes);
+  const intervalMinutes = inferredIntervalMinutesFromPattern(pattern);
   const label = String(body.label ?? `${workflow.name} schedule`).trim() || `${workflow.name} schedule`;
   const nextRunAt = toISOStringOrDefault(body.nextRunAt, nowIso);
 
@@ -129,13 +128,12 @@ export async function POST(request: NextRequest) {
       label,
       status: "active",
       interval_minutes: intervalMinutes,
+      pattern,
       next_run_at: nextRunAt,
       run_count: 0,
       last_error: "",
     })
-    .select(
-      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, next_run_at, last_run_at, last_run_status, run_count, last_error, lock_until, created_at, updated_at",
-    )
+    .select(SCHEDULE_FIELDS)
     .single();
 
   if (error || !data) {

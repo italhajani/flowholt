@@ -280,6 +280,7 @@ export type WorkflowScheduleRecord = {
   label: string;
   status: "active" | "paused" | "disabled";
   interval_minutes: number;
+  pattern: Record<string, unknown>;
   next_run_at: string;
   claim_due_at: string | null;
   last_run_at: string | null;

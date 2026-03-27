@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 88%**
+- Frontend/UI progress: **about 89%**
 - Production hardening progress: **about 80%**
 
 ## Backend foundations
@@ -53,7 +53,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Connection test endpoint per provider
 - [x] Audit log table for sensitive actions (restore, delete, secret update)
 - [x] External event bus trigger foundation
-- [ ] Remaining advanced trigger types (email intake, cron presets)
+- [ ] Remaining advanced trigger types (email intake)
 
 ## Before full UI redesign
 
@@ -71,6 +71,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Live run monitor page with streamed logs/status
 - [x] Live node timeline with duration and token estimates
 - [x] Schedule builder UI (no API manual calls)
+- [x] Schedule builder presets (interval, daily, weekdays)
 - [x] Human-readable node config forms (hide raw JSON by default)
 - [x] Integrations setup UI with inline connection tests
 - [x] Studio flow preview summary (human-readable simulation)

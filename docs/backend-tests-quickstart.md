@@ -10,6 +10,7 @@ This is the first real backend test layer for FlowHolt.
 - correlation id helpers
 - queue retry and enqueue runtime logic
 - scheduler claim timing logic
+- scheduler preset pattern logic
 - studio graph normalization for saved workflows
 - composer preview/apply helper logic
 - live run stream helper logic
@@ -31,6 +32,7 @@ These tests protect the core backend logic that powers:
 - how trace ids are generated and preserved
 - how queued jobs retry or fail safely
 - how schedules decide their next run time
+- how daily and weekday presets calculate the next automatic run
 - how Studio strips bad placeholder model values before save
 - how assistant preview/apply state is summarized and stored
 - how live run streaming clamps polling values and formats SSE events

@@ -748,7 +748,7 @@ export async function getWorkflowSchedules(workflowId: string) {
   const { data, error } = await supabase
     .from("workflow_schedules")
     .select(
-      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, next_run_at, last_run_at, last_run_status, run_count, last_error, lock_until, created_at, updated_at",
+      "id, workflow_id, workspace_id, created_by_user_id, label, status, interval_minutes, pattern, next_run_at, claim_due_at, last_run_at, last_run_status, run_count, last_error, lock_until, lock_token, last_claimed_at, last_queued_job_id, created_at, updated_at",
     )
     .eq("workflow_id", workflowId)
     .order("next_run_at", { ascending: true });

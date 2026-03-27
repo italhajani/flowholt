@@ -30,6 +30,7 @@ type ScheduleRow = {
   label: string;
   status: "active" | "paused" | "disabled";
   interval_minutes: number;
+  pattern: Record<string, unknown>;
   next_run_at: string;
   claim_due_at: string | null;
   run_count: number;
@@ -57,6 +58,7 @@ function scheduleFields() {
     "label",
     "status",
     "interval_minutes",
+    "pattern",
     "next_run_at",
     "claim_due_at",
     "run_count",
@@ -209,6 +211,7 @@ export async function POST(request: NextRequest) {
       currentNextRunAt: schedule.next_run_at,
       currentClaimDueAt: schedule.claim_due_at,
       intervalMinutes: toIntervalMinutes(schedule.interval_minutes, 60),
+      pattern: schedule.pattern ?? {},
       now,
       lockMinutes: LOCK_MINUTES,
     });
@@ -330,6 +333,7 @@ export async function POST(request: NextRequest) {
           schedule_id: schedule.id,
           schedule_label: schedule.label,
           interval_minutes: schedule.interval_minutes,
+          schedule_pattern: schedule.pattern ?? {},
           triggered_at: nowIso,
           scheduled_for: schedule.claim_due_at ?? schedule.next_run_at,
           recovered_stale_claim: recoveredStaleClaim,
@@ -393,4 +397,3 @@ export async function POST(request: NextRequest) {
     results,
   });
 }
-

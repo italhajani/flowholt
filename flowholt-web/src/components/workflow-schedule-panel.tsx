@@ -10,6 +10,8 @@ type WorkflowSchedulePanelProps = {
   initialSchedules: WorkflowScheduleRecord[];
 };
 
+type ScheduleMode = "interval" | "daily" | "weekdays";
+
 const intervalPresets = [
   { label: "15 min", value: 15 },
   { label: "1 hour", value: 60 },
@@ -17,6 +19,8 @@ const intervalPresets = [
   { label: "1 day", value: 1440 },
   { label: "1 week", value: 10080 },
 ];
+
+const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function sortSchedules(schedules: WorkflowScheduleRecord[]) {
   return [...schedules].sort(
@@ -41,6 +45,52 @@ function intervalLabel(minutes: number) {
   }
 
   return minutes === 1 ? "Every minute" : `Every ${minutes} minutes`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readScheduleMode(pattern: unknown): ScheduleMode {
+  const record = asRecord(pattern);
+  const kind = typeof record.kind === "string" ? record.kind.trim().toLowerCase() : "interval";
+  if (kind === "daily") {
+    return "daily";
+  }
+  if (kind === "weekdays") {
+    return "weekdays";
+  }
+  return "interval";
+}
+
+function formatLocalTimeFromUtcParts(hour: number, minute: number) {
+  return new Date(Date.UTC(2026, 0, 1, hour, minute, 0, 0)).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function schedulePatternLabel(schedule: WorkflowScheduleRecord) {
+  const pattern = asRecord(schedule.pattern);
+  const mode = readScheduleMode(pattern);
+
+  if (mode === "daily") {
+    return `Every day at ${formatLocalTimeFromUtcParts(Number(pattern.hour) || 0, Number(pattern.minute) || 0)}`;
+  }
+
+  if (mode === "weekdays") {
+    const days = Array.isArray(pattern.days)
+      ? pattern.days.map((value) => Number(value)).filter((value) => Number.isFinite(value))
+      : [1, 2, 3, 4, 5];
+    const label = days.length === 5 && days.join(",") === "1,2,3,4,5"
+      ? "Weekdays"
+      : days.map((day) => weekdayLabels[Math.min(6, Math.max(0, Math.floor(day)))]) .join(", ");
+    return `${label} at ${formatLocalTimeFromUtcParts(Number(pattern.hour) || 0, Number(pattern.minute) || 0)}`;
+  }
+
+  return intervalLabel(schedule.interval_minutes);
 }
 
 function formatLocalDateTime(value: string | null) {
@@ -85,6 +135,35 @@ function readError(payload: unknown, fallback: string) {
   return fallback;
 }
 
+function buildPattern(scheduleMode: ScheduleMode, nextRunAt: string, intervalMinutes: number) {
+  const parsed = nextRunAt ? new Date(nextRunAt) : new Date();
+  const safeDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  const hour = safeDate.getUTCHours();
+  const minute = safeDate.getUTCMinutes();
+
+  if (scheduleMode === "daily") {
+    return {
+      kind: "daily",
+      hour,
+      minute,
+    };
+  }
+
+  if (scheduleMode === "weekdays") {
+    return {
+      kind: "weekdays",
+      hour,
+      minute,
+      days: [1, 2, 3, 4, 5],
+    };
+  }
+
+  return {
+    kind: "interval",
+    intervalMinutes,
+  };
+}
+
 export function WorkflowSchedulePanel({
   workflowId,
   workflowName,
@@ -92,6 +171,7 @@ export function WorkflowSchedulePanel({
 }: WorkflowSchedulePanelProps) {
   const [schedules, setSchedules] = useState<WorkflowScheduleRecord[]>(() => sortSchedules(initialSchedules));
   const [label, setLabel] = useState(`${workflowName} schedule`);
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("interval");
   const [intervalMinutes, setIntervalMinutes] = useState(60);
   const [nextRunAt, setNextRunAt] = useState(defaultNextRunAt);
   const [busyAction, setBusyAction] = useState("");
@@ -144,6 +224,7 @@ export function WorkflowSchedulePanel({
           workflowId,
           label: label.trim() || `${workflowName} schedule`,
           intervalMinutes,
+          pattern: buildPattern(scheduleMode, nextRunAt, intervalMinutes),
           nextRunAt: nextRunAt ? new Date(nextRunAt).toISOString() : undefined,
         }),
       });
@@ -159,6 +240,7 @@ export function WorkflowSchedulePanel({
       setSchedules((current) => sortSchedules([payload.schedule!, ...current]));
       setSuccessMessage("Automatic run schedule created.");
       setLabel(`${workflowName} schedule`);
+      setScheduleMode("interval");
       setIntervalMinutes(60);
       setNextRunAt(defaultNextRunAt());
     } catch (error) {
@@ -268,15 +350,19 @@ export function WorkflowSchedulePanel({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-stone-700">Run every</label>
+          <label className="mb-2 block text-sm font-medium text-stone-700">Schedule preset</label>
           <div className="flex flex-wrap gap-2">
-            {intervalPresets.map((preset) => (
+            {([
+              { label: "Custom interval", value: "interval" },
+              { label: "Daily", value: "daily" },
+              { label: "Weekdays", value: "weekdays" },
+            ] as Array<{ label: string; value: ScheduleMode }>).map((preset) => (
               <button
                 key={preset.value}
                 type="button"
-                onClick={() => setIntervalMinutes(preset.value)}
+                onClick={() => setScheduleMode(preset.value)}
                 className={`rounded-full px-3 py-2 text-xs font-medium transition ${
-                  intervalMinutes === preset.value
+                  scheduleMode === preset.value
                     ? "bg-stone-900 text-white"
                     : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
                 }`}
@@ -285,20 +371,48 @@ export function WorkflowSchedulePanel({
               </button>
             ))}
           </div>
-          <div className="mt-3">
-            <input
-              type="number"
-              min={1}
-              max={10080}
-              value={String(intervalMinutes)}
-              onChange={(event) => setIntervalMinutes(Math.min(10080, Math.max(1, Number(event.target.value) || 1)))}
-              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-            />
-            <p className="mt-2 text-xs leading-5 text-stone-500">
-              {intervalLabel(intervalMinutes)}
-            </p>
-          </div>
         </div>
+
+        {scheduleMode === "interval" ? (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-stone-700">Run every</label>
+            <div className="flex flex-wrap gap-2">
+              {intervalPresets.map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setIntervalMinutes(preset.value)}
+                  className={`rounded-full px-3 py-2 text-xs font-medium transition ${
+                    intervalMinutes === preset.value
+                      ? "bg-stone-900 text-white"
+                      : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3">
+              <input
+                type="number"
+                min={1}
+                max={10080}
+                value={String(intervalMinutes)}
+                onChange={(event) => setIntervalMinutes(Math.min(10080, Math.max(1, Number(event.target.value) || 1)))}
+                className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+              />
+              <p className="mt-2 text-xs leading-5 text-stone-500">
+                {intervalLabel(intervalMinutes)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-stone-50 px-4 py-3 text-xs leading-6 text-stone-600">
+            {scheduleMode === "daily"
+              ? "After the first run time below, FlowHolt will keep running every day at that same time."
+              : "After the first run time below, FlowHolt will keep running on weekdays at that same time."}
+          </div>
+        )}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-700">First run time</label>
@@ -342,7 +456,7 @@ export function WorkflowSchedulePanel({
                   <div>
                     <p className="font-medium text-stone-900">{schedule.label}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-400">
-                      {schedule.status} | {intervalLabel(schedule.interval_minutes)}
+                      {schedule.status} | {schedulePatternLabel(schedule)}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -418,7 +532,3 @@ export function WorkflowSchedulePanel({
     </div>
   );
 }
-
-
-
-

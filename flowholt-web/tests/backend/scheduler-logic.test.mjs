@@ -6,9 +6,12 @@ import {
   buildScheduleCompletionUpdate,
   buildScheduleLeaseRenewal,
   createScheduleLeaseToken,
+  inferredIntervalMinutesFromPattern,
   isScheduleClaimable,
   isStaleClaimRecoverable,
+  nextPatternRunAtFrom,
   nextRunAtFrom,
+  normalizeSchedulePattern,
   scheduleLockUntilFrom,
   shouldInspectScheduleNow,
   shouldRenewScheduleLease,
@@ -22,10 +25,46 @@ test('toIntervalMinutes uses fallback and clamps invalid values safely', () => {
   assert.equal(toIntervalMinutes('15.8'), 15);
 });
 
+test('normalizeSchedulePattern supports interval, daily, and weekday presets safely', () => {
+  assert.deepEqual(normalizeSchedulePattern({}, 45), { kind: 'interval', intervalMinutes: 45 });
+  assert.deepEqual(normalizeSchedulePattern({ kind: 'daily', hour: 9, minute: 30 }, 60), {
+    kind: 'daily',
+    hour: 9,
+    minute: 30,
+  });
+  assert.deepEqual(normalizeSchedulePattern({ kind: 'weekdays', hour: 8, minute: 15, days: [1, 3, 5] }, 60), {
+    kind: 'weekdays',
+    hour: 8,
+    minute: 15,
+    days: [1, 3, 5],
+  });
+});
+
+test('inferredIntervalMinutesFromPattern keeps scheduler limits compatible', () => {
+  assert.equal(inferredIntervalMinutesFromPattern({ kind: 'interval', intervalMinutes: 45 }), 45);
+  assert.equal(inferredIntervalMinutesFromPattern({ kind: 'daily', hour: 9, minute: 0 }), 1440);
+  assert.equal(inferredIntervalMinutesFromPattern({ kind: 'weekdays', hour: 9, minute: 0, days: [1, 2, 3, 4, 5] }), 1440);
+});
+
 test('nextRunAtFrom advances schedule using interval minutes', () => {
   const nextRun = nextRunAtFrom(new Date('2026-03-27T10:00:00.000Z'), 45);
 
   assert.equal(nextRun, '2026-03-27T10:45:00.000Z');
+});
+
+test('nextPatternRunAtFrom advances daily and weekday presets correctly', () => {
+  assert.equal(
+    nextPatternRunAtFrom(new Date('2026-03-27T10:00:00.000Z'), { kind: 'daily', hour: 14, minute: 30 }),
+    '2026-03-27T14:30:00.000Z',
+  );
+  assert.equal(
+    nextPatternRunAtFrom(new Date('2026-03-27T18:00:00.000Z'), { kind: 'daily', hour: 14, minute: 30 }),
+    '2026-03-28T14:30:00.000Z',
+  );
+  assert.equal(
+    nextPatternRunAtFrom(new Date('2026-03-27T18:00:00.000Z'), { kind: 'weekdays', hour: 9, minute: 0, days: [1, 2, 3, 4, 5] }),
+    '2026-03-30T09:00:00.000Z',
+  );
 });
 
 test('scheduleLockUntilFrom sets a lease window into the future', () => {
@@ -100,6 +139,15 @@ test('buildScheduleClaimPlan advances fresh schedules and preserves stale claim 
   assert.equal(fresh.claimDueAt, '2026-03-27T10:00:00.000Z');
   assert.equal(fresh.nextRunAt, '2026-03-27T10:35:00.000Z');
   assert.equal(fresh.update.lock_token, 'lease-fresh');
+
+  const daily = buildScheduleClaimPlan({
+    currentNextRunAt: '2026-03-27T09:00:00.000Z',
+    intervalMinutes: 1440,
+    pattern: { kind: 'daily', hour: 9, minute: 0 },
+    now: new Date('2026-03-27T09:05:00.000Z'),
+  });
+
+  assert.equal(daily.nextRunAt, '2026-03-28T09:00:00.000Z');
 
   const reclaimed = buildScheduleClaimPlan({
     currentNextRunAt: '2026-03-27T10:35:00.000Z',

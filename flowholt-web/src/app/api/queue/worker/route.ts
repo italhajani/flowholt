@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { drainWorkflowRunJobs } from "@/lib/flowholt/run-queue";
+import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const WORKER_RATE_LIMIT = {
+  maxRequests: 180,
+  windowSeconds: 60,
+};
 
 function workerSecret() {
   return process.env.FLOWHOLT_WORKER_KEY ?? process.env.FLOWHOLT_SCHEDULER_KEY ?? "";
@@ -35,10 +41,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized worker request." }, { status: 401 });
   }
 
+  const supabase = createAdminClient();
+
+  try {
+    await consumeRateLimit({
+      supabase,
+      scope: "queue.worker",
+      identifier: getRequestIdentifier(request),
+      maxRequests: WORKER_RATE_LIMIT.maxRequests,
+      windowSeconds: WORKER_RATE_LIMIT.windowSeconds,
+    });
+  } catch (error) {
+    if (isRateLimitError(error)) {
+      return NextResponse.json(
+        { error: error.message, retry_after_seconds: error.retryAfterSeconds },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Worker limit check failed." }, { status: 500 });
+  }
+
   const body = (await request.json().catch(() => ({}))) as { maxJobs?: unknown };
   const maxJobs = parsePositiveInt(body.maxJobs, 5, 1, 25);
 
-  const supabase = createAdminClient();
   const results = await drainWorkflowRunJobs({
     supabase,
     limit: maxJobs,

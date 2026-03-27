@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
+import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
 import {
   getWorkspaceUsageErrorMessage,
   isWorkspaceUsageLimitError,
 } from "@/lib/flowholt/usage-limits";
 import type { WorkflowNode, WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const WEBHOOK_RATE_LIMIT = {
+  maxRequests: 30,
+  windowSeconds: 60,
+};
 
 type RouteContext = {
   params: Promise<{ workflowId: string }> | { workflowId: string };
@@ -145,6 +151,31 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
   }
 
   const supabase = createAdminClient();
+
+  try {
+    await consumeRateLimit({
+      supabase,
+      scope: "workflow.webhook",
+      identifier: `${workflowId}:${getRequestIdentifier(request)}`,
+      maxRequests: WEBHOOK_RATE_LIMIT.maxRequests,
+      windowSeconds: WEBHOOK_RATE_LIMIT.windowSeconds,
+    });
+  } catch (error) {
+    if (isRateLimitError(error)) {
+      return NextResponse.json(
+        { error: error.message, retry_after_seconds: error.retryAfterSeconds },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Webhook limit check failed." }, { status: 500 });
+  }
+
   const { data: workflowRow, error: workflowError } = await supabase
     .from("workflows")
     .select(
@@ -309,6 +340,18 @@ async function handleWebhook(request: NextRequest, context: RouteContext) {
       { status: 500 },
     );
   } catch (error) {
+    if (isRateLimitError(error)) {
+      return NextResponse.json(
+        { ok: false, error: error.message, retry_after_seconds: error.retryAfterSeconds },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
     const status = isWorkspaceUsageLimitError(error) ? 409 : 500;
     const message = getWorkspaceUsageErrorMessage(error, "Webhook run failed.");
     return NextResponse.json({ ok: false, error: message }, { status });

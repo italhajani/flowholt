@@ -6,7 +6,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 88%**
-- Production hardening progress: **about 41%**
+- Production hardening progress: **about 46%**
 
 ## Backend foundations
 
@@ -27,6 +27,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Usage snapshot aggregation (runs, tokens, schedules, queued jobs)
 - [x] Workspace usage limits foundation (`workspace_usage_limits` + enforcement helpers)
 - [x] Audit trail foundation for sensitive workspace actions
+- [x] Request rate-limit foundation for public/internal endpoints
 
 ## Remaining backend (high priority)
 
@@ -38,7 +39,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Multi-workspace membership and role-based access (owner/admin/member)
 - [x] First billing-style counters and workspace limits (runs, tokens, seats, schedules, tool-call count)
 - [x] Secret rotation flow (replace integration secrets safely)
-- [ ] Rate limiting and abuse guardrails on public endpoints
+- [x] Rate limiting and abuse guardrails on public endpoints
 - [ ] Full billing engine (plan upgrades, invoices, payment hooks, usage overage rules)
 - [x] Export/import workflow package endpoint (JSON schema with versioning)
 
@@ -92,7 +93,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
 - [ ] Phase 6: responsive polish and Studio refinement
-- [ ] Phase 7: rate limits, billing hardening, monitoring, and final security pass
+- [ ] Phase 7: billing hardening, monitoring, tests, and final security pass
 
 ## Definition of "finalized platform" (what done means)
 
@@ -100,4 +101,4 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can run, monitor, pause, and retry without touching JSON
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
-- [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, and audit history
+- [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, and abuse protection

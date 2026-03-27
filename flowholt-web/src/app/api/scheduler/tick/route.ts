@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
+import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const MAX_BATCH = 25;
 const LOCK_MINUTES = 5;
+const SCHEDULER_RATE_LIMIT = {
+  maxRequests: 60,
+  windowSeconds: 60,
+};
 
 function schedulerSecret() {
   return process.env.FLOWHOLT_SCHEDULER_KEY ?? "";
@@ -44,6 +49,31 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  try {
+    await consumeRateLimit({
+      supabase,
+      scope: "scheduler.tick",
+      identifier: getRequestIdentifier(request),
+      maxRequests: SCHEDULER_RATE_LIMIT.maxRequests,
+      windowSeconds: SCHEDULER_RATE_LIMIT.windowSeconds,
+    });
+  } catch (error) {
+    if (isRateLimitError(error)) {
+      return NextResponse.json(
+        { error: error.message, retry_after_seconds: error.retryAfterSeconds },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(error.retryAfterSeconds),
+          },
+        },
+      );
+    }
+
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Scheduler limit check failed." }, { status: 500 });
+  }
+
   const now = new Date();
   const nowIso = now.toISOString();
   const lockUntilIso = new Date(now.getTime() + LOCK_MINUTES * 60_000).toISOString();

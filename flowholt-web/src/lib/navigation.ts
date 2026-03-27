@@ -11,6 +11,11 @@ export const appNavigation: AppNavItem[] = [
     description: "Overview, activity, and quick starts",
   },
   {
+    label: "Monitoring",
+    href: "/app/monitoring",
+    description: "Queue health, failures, and operations",
+  },
+  {
     label: "Create",
     href: "/app/create",
     description: "Describe your task in chat",
@@ -51,3 +56,4 @@ export const appNavigation: AppNavItem[] = [
     description: "Workspace and account settings",
   },
 ];
+

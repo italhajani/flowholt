@@ -183,7 +183,7 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
     case "agent":
       return {
         instruction: "Complete this step based on the workflow goal and prior outputs.",
-        model: "llama-3.3-70b-versatile",
+        model: "",
       };
     case "tool":
       return {
@@ -781,5 +781,6 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
+
 
 

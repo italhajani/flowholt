@@ -220,6 +220,31 @@ export type DashboardUsageSnapshot = {
   monthlyTokenRemaining: number;
 };
 
+export type MonitoringSnapshot = {
+  schemaReady: boolean;
+  workspaces: WorkspaceRecord[];
+  activeWorkspace: WorkspaceRecord | null;
+  queueDepth: number;
+  processingJobs: number;
+  stuckRuns: number;
+  stuckJobs: number;
+  runSuccessRate24h: number;
+  failedRuns24h: number;
+  avgRunDurationMs24h: number;
+  avgNodeDurationMs24h: number;
+  rateLimitEvents24h: Array<{
+    scope: string;
+    requestCount: number;
+  }>;
+  topFailingNodes7d: Array<{
+    nodeLabel: string;
+    failures: number;
+  }>;
+  recentAuditActions7d: Array<{
+    action: string;
+    count: number;
+  }>;
+};
 export type DashboardSnapshot = {
   schemaReady: boolean;
   workspaces: WorkspaceRecord[];
@@ -289,5 +314,6 @@ export type UsageLimitContext = {
   supabase: SupabaseClient;
   workspaceId: string;
 };
+
 
 

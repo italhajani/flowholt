@@ -5,6 +5,7 @@ import type {
   DashboardSnapshot,
   IntegrationConnectionRecord,
   IntegrationsSnapshot,
+  MonitoringSnapshot,
   RunLogRecord,
   RunsSnapshot,
   WorkflowGraph,
@@ -286,6 +287,187 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   };
 }
 
+
+function average(values: number[]) {
+  if (!values.length) {
+    return 0;
+  }
+
+  return Math.round(values.reduce((total, value) => total + value, 0) / values.length);
+}
+
+export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
+  const workspaceState = await getWorkspaceState();
+
+  if (!workspaceState.schemaReady) {
+    return {
+      schemaReady: false,
+      workspaces: [],
+      activeWorkspace: null,
+      queueDepth: 0,
+      processingJobs: 0,
+      stuckRuns: 0,
+      stuckJobs: 0,
+      runSuccessRate24h: 0,
+      failedRuns24h: 0,
+      avgRunDurationMs24h: 0,
+      avgNodeDurationMs24h: 0,
+      rateLimitEvents24h: [],
+      topFailingNodes7d: [],
+      recentAuditActions7d: [],
+    };
+  }
+
+  if (!workspaceState.activeWorkspace) {
+    return {
+      schemaReady: true,
+      workspaces: workspaceState.workspaces,
+      activeWorkspace: null,
+      queueDepth: 0,
+      processingJobs: 0,
+      stuckRuns: 0,
+      stuckJobs: 0,
+      runSuccessRate24h: 0,
+      failedRuns24h: 0,
+      avgRunDurationMs24h: 0,
+      avgNodeDurationMs24h: 0,
+      rateLimitEvents24h: [],
+      topFailingNodes7d: [],
+      recentAuditActions7d: [],
+    };
+  }
+
+  const workspaceId = workspaceState.activeWorkspace.id;
+  const now = Date.now();
+  const last24HoursIso = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+  const last7DaysIso = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const stuckRunThresholdIso = new Date(now - 15 * 60 * 1000).toISOString();
+  const stuckJobThresholdIso = new Date(now - 10 * 60 * 1000).toISOString();
+
+  const [
+    { data: recentRuns },
+    { data: nodeExecutions },
+    { data: queuedAndProcessingJobs },
+    { data: stuckRunsRows },
+    { data: stuckJobsRows },
+    { data: rateLimitRows },
+    { data: failedNodeRows },
+    { data: auditRows },
+  ] = await Promise.all([
+    workspaceState.supabase
+      .from("workflow_runs")
+      .select("id, status, started_at, finished_at, created_at")
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", last24HoursIso),
+    workspaceState.supabase
+      .from("workflow_node_executions")
+      .select("duration_ms, created_at")
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", last24HoursIso),
+    workspaceState.supabase
+      .from("workflow_run_jobs")
+      .select("id, status, available_at, claimed_at, created_at")
+      .eq("workspace_id", workspaceId)
+      .in("status", ["queued", "processing"]),
+    workspaceState.supabase
+      .from("workflow_runs")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "running")
+      .lte("started_at", stuckRunThresholdIso),
+    workspaceState.supabase
+      .from("workflow_run_jobs")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .in("status", ["queued", "processing"])
+      .lte("created_at", stuckJobThresholdIso),
+    workspaceState.supabase
+      .from("request_rate_limits")
+      .select("scope, request_count, bucket_start")
+      .gte("bucket_start", last24HoursIso),
+    workspaceState.supabase
+      .from("workflow_node_executions")
+      .select("node_label, status, created_at")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "failed")
+      .gte("created_at", last7DaysIso)
+      .limit(500),
+    workspaceState.supabase
+      .from("workspace_audit_logs")
+      .select("action, created_at")
+      .eq("workspace_id", workspaceId)
+      .gte("created_at", last7DaysIso)
+      .limit(500),
+  ]);
+
+  const runRows = (recentRuns ?? []) as Array<{
+    status: string;
+    started_at: string | null;
+    finished_at: string | null;
+  }>;
+  const nodeRows = (nodeExecutions ?? []) as Array<{ duration_ms: number | null }>;
+  const jobRows = (queuedAndProcessingJobs ?? []) as Array<{ status: string }>;
+  const rateLimitData = (rateLimitRows ?? []) as Array<{ scope: string; request_count: number | null }>;
+  const failedNodes = (failedNodeRows ?? []) as Array<{ node_label: string | null }>;
+  const auditActions = (auditRows ?? []) as Array<{ action: string | null }>;
+
+  const completedRunDurations = runRows
+    .map((run) => {
+      if (!run.started_at || !run.finished_at) {
+        return 0;
+      }
+      return Math.max(0, new Date(run.finished_at).getTime() - new Date(run.started_at).getTime());
+    })
+    .filter((duration) => duration > 0);
+
+  const rateLimitSummary = new Map<string, number>();
+  for (const row of rateLimitData) {
+    const scope = typeof row.scope === "string" && row.scope.trim() ? row.scope : "unknown";
+    rateLimitSummary.set(scope, (rateLimitSummary.get(scope) ?? 0) + (Number(row.request_count) || 0));
+  }
+
+  const failingNodesSummary = new Map<string, number>();
+  for (const row of failedNodes) {
+    const label = typeof row.node_label === "string" && row.node_label.trim() ? row.node_label : "Unknown node";
+    failingNodesSummary.set(label, (failingNodesSummary.get(label) ?? 0) + 1);
+  }
+
+  const auditSummary = new Map<string, number>();
+  for (const row of auditActions) {
+    const action = typeof row.action === "string" && row.action.trim() ? row.action : "unknown";
+    auditSummary.set(action, (auditSummary.get(action) ?? 0) + 1);
+  }
+
+  const failedRuns24h = runRows.filter((run) => run.status === "failed" || run.status === "cancelled").length;
+  const succeededRuns24h = runRows.filter((run) => run.status === "succeeded").length;
+  const finishedRuns24h = failedRuns24h + succeededRuns24h;
+
+  return {
+    schemaReady: true,
+    workspaces: workspaceState.workspaces,
+    activeWorkspace: workspaceState.activeWorkspace,
+    queueDepth: jobRows.length,
+    processingJobs: jobRows.filter((job) => job.status === "processing").length,
+    stuckRuns: (stuckRunsRows ?? []).length,
+    stuckJobs: (stuckJobsRows ?? []).length,
+    runSuccessRate24h: finishedRuns24h ? Math.round((succeededRuns24h / finishedRuns24h) * 100) : 0,
+    failedRuns24h,
+    avgRunDurationMs24h: average(completedRunDurations),
+    avgNodeDurationMs24h: average(nodeRows.map((row) => Number(row.duration_ms) || 0).filter((value) => value > 0)),
+    rateLimitEvents24h: Array.from(rateLimitSummary.entries())
+      .map(([scope, requestCount]) => ({ scope, requestCount }))
+      .sort((left, right) => right.requestCount - left.requestCount)
+      .slice(0, 6),
+    topFailingNodes7d: Array.from(failingNodesSummary.entries())
+      .map(([nodeLabel, failures]) => ({ nodeLabel, failures }))
+      .sort((left, right) => right.failures - left.failures)
+      .slice(0, 6),
+    recentAuditActions7d: Array.from(auditSummary.entries())
+      .map(([action, count]) => ({ action, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 6),
+  };
+}
 export async function getWorkflowLibrarySnapshot(): Promise<WorkflowLibrarySnapshot> {
   const workspaceState = await getWorkspaceState();
 
@@ -577,3 +759,6 @@ export async function getWorkflowSchedules(workflowId: string) {
 export function getDemoWorkflow() {
   return demoWorkflow;
 }
+
+
+

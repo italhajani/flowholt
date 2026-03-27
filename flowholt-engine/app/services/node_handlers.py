@@ -41,10 +41,10 @@ def _safe_json(value: Any) -> Any:
 
 
 def _runtime_context(payload: WorkflowPayload, context: ExecutionContext) -> dict[str, Any]:
-    settings = payload.settings if isinstance(payload.settings, dict) else {}
-    original_prompt = settings.get("originalPrompt")
-    trigger_payload = settings.get("runtime_trigger_payload")
-    trigger_meta = settings.get("runtime_trigger_meta") if isinstance(settings.get("runtime_trigger_meta"), dict) else {}
+    settings_dict = payload.settings if isinstance(payload.settings, dict) else {}
+    original_prompt = settings_dict.get("originalPrompt")
+    trigger_payload = settings_dict.get("runtime_trigger_payload")
+    trigger_meta = settings_dict.get("runtime_trigger_meta") if isinstance(settings_dict.get("runtime_trigger_meta"), dict) else {}
 
     return {
         "workflow": {
@@ -71,15 +71,33 @@ def _resolved_config(node: WorkflowNode, payload: WorkflowPayload, context: Exec
 
 def _resolve_groq_model(config: dict[str, Any]) -> str:
     requested_model = str(config.get("model") or "").strip()
-    if not requested_model or requested_model.lower() == "default":
-        return settings.groq_model
-    return requested_model
+    configured_default = str(settings.groq_model or "").strip()
+
+    for candidate in [requested_model, configured_default, "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
+        normalized = str(candidate or "").strip()
+        if normalized and normalized.lower() not in {"default", "workspace-default", "use-workspace-default"}:
+            return normalized
+
+    return "llama-3.3-70b-versatile"
+
+
+def _is_model_not_found(response: httpx.Response) -> bool:
+    if response.status_code != 404:
+        return False
+
+    try:
+        error_payload = response.json().get("error", {})
+    except ValueError:
+        return False
+
+    return str(error_payload.get("code") or "").strip().lower() == "model_not_found"
 
 
 def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionContext) -> tuple[str, str]:
     config = _resolved_config(node, payload, context)
     prompt = config.get("instruction") or f"Complete the step named '{node.label}'."
-    model = _resolve_groq_model(config)
+    requested_model = str(config.get("model") or "").strip()
+    resolved_model = _resolve_groq_model(config)
     base_url = str(config.get("base_url") or "https://api.groq.com/openai/v1").rstrip("/")
     api_key = str(config.get("api_key") or settings.groq_api_key).strip()
     original_prompt = payload.settings.get("originalPrompt") if isinstance(payload.settings, dict) else ""
@@ -92,44 +110,61 @@ def _call_groq(node: WorkflowNode, payload: WorkflowPayload, context: ExecutionC
         )
         return fallback, "local-fallback"
 
+    model_candidates: list[str] = []
+    for candidate in [requested_model, resolved_model, str(settings.groq_model or "").strip(), "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
+        normalized = str(candidate or "").strip()
+        if normalized and normalized.lower() not in {"default", "workspace-default", "use-workspace-default"} and normalized not in model_candidates:
+            model_candidates.append(normalized)
+
+    last_response: httpx.Response | None = None
     with httpx.Client(timeout=60) as client:
-        response = client.post(
-            f"{base_url}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "temperature": 0.2,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are an execution agent inside FlowHolt. Complete the assigned workflow step clearly and concisely.",
-                    },
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Workflow: {payload.workflow_name}\n"
-                            f"Original task: {original_prompt}\n"
-                            f"Current step: {node.label}\n"
-                            f"Step instruction: {prompt}\n"
-                            f"Previous step output: {previous_output}"
-                        ),
-                    },
-                ],
-            },
-        )
+        for candidate_model in model_candidates:
+            response = client.post(
+                f"{base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": candidate_model,
+                    "temperature": 0.2,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You are an execution agent inside FlowHolt. Complete the assigned workflow step clearly and concisely.",
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Workflow: {payload.workflow_name}\n"
+                                f"Original task: {original_prompt}\n"
+                                f"Current step: {node.label}\n"
+                                f"Step instruction: {prompt}\n"
+                                f"Previous step output: {previous_output}"
+                            ),
+                        },
+                    ],
+                },
+            )
+            last_response = response
 
-    if response.status_code >= 400:
-        raise RuntimeError(f"Groq request failed with {response.status_code}: {response.text[:200]}")
+            if _is_model_not_found(response) and candidate_model != model_candidates[-1]:
+                continue
 
-    data = response.json()
-    content = data.get("choices", [{}])[0].get("message", {}).get("content")
-    if not isinstance(content, str) or not content.strip():
-        raise RuntimeError("Groq returned an empty response for the agent step.")
+            if response.status_code >= 400:
+                raise RuntimeError(f"Groq request failed with {response.status_code}: {response.text[:200]}")
 
-    return content.strip(), model
+            data = response.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise RuntimeError("Groq returned an empty response for the agent step.")
+
+            return content.strip(), candidate_model
+
+    if last_response is not None:
+        raise RuntimeError(f"Groq request failed with {last_response.status_code}: {last_response.text[:200]}")
+
+    raise RuntimeError("No Groq model candidates were available for this agent step.")
 
 
 def _resolve_tool_url(base_url: str, url: str) -> str:
@@ -505,6 +540,3 @@ def execute_node(
 ) -> NodeExecutionResult:
     handler = NODE_HANDLERS.get(node.type, handle_unknown)
     return handler(node, payload, sequence, context)
-
-
-

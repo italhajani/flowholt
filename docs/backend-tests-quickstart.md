@@ -8,6 +8,9 @@ This is the first real backend test layer for FlowHolt.
 - workflow simulation
 - revision compare logic
 - correlation id helpers
+- queue retry and enqueue runtime logic
+- scheduler claim timing logic
+- studio graph normalization for saved workflows
 
 ## How to run it
 
@@ -23,8 +26,11 @@ These tests protect the core backend logic that powers:
 - how the flow is simulated before execution
 - how revisions are compared in Studio
 - how trace ids are generated and preserved
+- how queued jobs retry or fail safely
+- how schedules decide their next run time
+- how Studio strips bad placeholder model values before save
 
 ## Easy meaning
 
 Before this, we were mostly trusting the backend by manual clicking.
-Now we have the first automatic safety net.
+Now the core runtime path has a bigger automatic safety net before we touch the heavier integration architecture stage.

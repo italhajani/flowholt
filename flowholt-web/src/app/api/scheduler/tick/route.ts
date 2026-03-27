@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createCorrelationId } from "@/lib/flowholt/correlation";
 import { enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
+import {
+  isScheduleClaimable,
+  nextRunAtFrom,
+  toIntervalMinutes,
+} from "@/lib/flowholt/scheduler-logic";
 import type { WorkflowRecord } from "@/lib/flowholt/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -23,19 +28,6 @@ function readSchedulerKey(request: NextRequest) {
     request.nextUrl.searchParams.get("key") ??
     ""
   ).trim();
-}
-
-function toIntervalMinutes(value: unknown, fallback = 60) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  const intValue = Math.floor(parsed);
-  return Math.min(10080, Math.max(1, intValue));
-}
-
-function nextRunAtFrom(base: Date, intervalMinutes: number) {
-  return new Date(base.getTime() + intervalMinutes * 60_000).toISOString();
 }
 
 export async function POST(request: NextRequest) {
@@ -97,10 +89,7 @@ export async function POST(request: NextRequest) {
   }
 
   const candidates = (dueRows ?? []).filter((row) => {
-    if (!row.lock_until) {
-      return true;
-    }
-    return new Date(row.lock_until).getTime() <= now.getTime();
+    return isScheduleClaimable(row.lock_until, now);
   });
 
   if (!candidates.length) {

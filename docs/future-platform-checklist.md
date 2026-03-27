@@ -6,7 +6,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 88%**
-- Production hardening progress: **about 67%**
+- Production hardening progress: **about 70%**
 
 ## Backend foundations
 
@@ -80,7 +80,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Production and reliability
 
 - [x] First backend unit tests for validation, simulation, revision compare, and correlation helpers
-- [ ] Add backend tests for scheduler, queueing, composer, validation, revisions, streaming
+- [x] Add backend tests for scheduler, queueing, validation, revisions, and graph save normalization
+- [ ] Add backend tests for composer preview/apply flows and live streaming endpoints
 - [ ] Add migration runner process for deploy environments
 - [x] Add structured logging and correlation IDs across web + engine
 - [x] Add monitoring dashboards (error rate, run latency, queue depth)
@@ -104,8 +105,3 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers
-
-
-
-
-

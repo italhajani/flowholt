@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { readCorrelationId } from "@/lib/flowholt/correlation";
+import {
+  asRecord,
+  buildEnqueueRunJobPayload,
+  lockUntilFrom,
+  planJobFailure,
+  resolveJobCorrelationId,
+} from "@/lib/flowholt/run-queue-logic";
 import {
   executeWorkflowRun,
   WorkflowExecutionError,
@@ -40,16 +46,6 @@ export type DrainWorkflowRunJobResult = {
 const JOB_FIELDS =
   "id, workflow_id, workspace_id, created_by_user_id, status, trigger_source, trigger_payload, trigger_meta, attempt_count, max_attempts, available_at, claimed_at, finished_at, lock_until, run_id, request_correlation_id, error_message, last_error_class, created_at, updated_at";
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function resolveRequestCorrelationId(value: unknown) {
-  return readCorrelationId(value, "fh_job");
-}
-
 function readErrorClass(error: unknown) {
   if (error instanceof Error && error.name) {
     return error.name;
@@ -62,18 +58,6 @@ function readErrorMessage(error: unknown) {
     return error.message.trim();
   }
   return "Workflow job failed.";
-}
-
-function retryDelaySeconds(attemptCount: number) {
-  return Math.min(300, Math.max(10, attemptCount * 15));
-}
-
-function nextAvailableAt(seconds: number) {
-  return new Date(Date.now() + seconds * 1000).toISOString();
-}
-
-function lockUntil(minutes = 5) {
-  return new Date(Date.now() + minutes * 60_000).toISOString();
 }
 
 function readScheduleId(job: WorkflowRunJobRecord) {
@@ -104,21 +88,6 @@ async function updateScheduledRunStatus(
     })
     .eq("id", scheduleId)
     .eq("workflow_id", job.workflow_id);
-}
-
-function shouldRetryJob(errorMessage: string) {
-  const normalized = errorMessage.toLowerCase();
-  const nonRetryablePhrases = [
-    "workflow graph is invalid",
-    "workflow not found",
-    "workflow is archived",
-    "missing or inactive integration connection",
-    "connection provider mismatch",
-    "unauthorized",
-    "missing workflow id",
-  ];
-
-  return !nonRetryablePhrases.some((phrase) => normalized.includes(phrase));
 }
 
 async function loadWorkflowForJob(
@@ -152,27 +121,16 @@ export async function enqueueWorkflowRunJob({
 }: EnqueueWorkflowRunJobInput): Promise<WorkflowRunJobRecord> {
   await assertWorkspaceCanEnqueueRun(supabase, workflow.workspace_id);
 
-  const requestCorrelationId = resolveRequestCorrelationId(triggerMeta?.request_correlation_id);
-  const resolvedTriggerMeta = {
-    ...(triggerMeta ?? {}),
-    request_correlation_id: requestCorrelationId,
-  };
-
-  const insertPayload: Record<string, unknown> = {
-    workflow_id: workflow.id,
-    workspace_id: workflow.workspace_id,
-    created_by_user_id: createdByUserId ?? null,
-    status: "queued",
-    trigger_source: triggerSource,
-    trigger_meta: resolvedTriggerMeta,
-    request_correlation_id: requestCorrelationId,
-    max_attempts: Math.max(1, maxAttempts),
-    available_at: availableAt ?? new Date().toISOString(),
-  };
-
-  if (triggerPayload !== undefined && triggerPayload !== null) {
-    insertPayload.trigger_payload = triggerPayload;
-  }
+  const { insertPayload } = buildEnqueueRunJobPayload({
+    workflowId: workflow.id,
+    workspaceId: workflow.workspace_id,
+    triggerSource,
+    triggerPayload,
+    triggerMeta,
+    createdByUserId,
+    maxAttempts,
+    availableAt,
+  });
 
   const { data, error } = await supabase
     .from("workflow_run_jobs")
@@ -230,7 +188,7 @@ async function claimWorkflowRunJobs({
         status: "processing",
         attempt_count: (candidate.attempt_count ?? 0) + 1,
         claimed_at: nowIso,
-        lock_until: lockUntil(),
+        lock_until: lockUntilFrom(new Date()),
         finished_at: null,
       })
       .eq("id", candidate.id)
@@ -255,7 +213,7 @@ async function processClaimedWorkflowRunJob(
   supabase: SupabaseClient,
   job: WorkflowRunJobRecord,
 ): Promise<DrainWorkflowRunJobResult> {
-  const requestCorrelationId = resolveRequestCorrelationId(
+  const requestCorrelationId = resolveJobCorrelationId(
     job.request_correlation_id ?? asRecord(job.trigger_meta).request_correlation_id,
   );
   const workflow = await loadWorkflowForJob(supabase, job.workflow_id);
@@ -354,23 +312,21 @@ async function processClaimedWorkflowRunJob(
     const errorMessage = readErrorMessage(error);
     const errorClass = readErrorClass(error);
     const runId = error instanceof WorkflowExecutionError ? error.runId : undefined;
-    const retryable = shouldRetryJob(errorMessage) && job.attempt_count < job.max_attempts;
+    const failurePlan = planJobFailure({
+      errorMessage,
+      errorClass,
+      attemptCount: job.attempt_count,
+      maxAttempts: job.max_attempts,
+      requestCorrelationId,
+      runId,
+    });
 
-    if (retryable) {
-      const availableAt = nextAvailableAt(retryDelaySeconds(job.attempt_count));
-      await supabase
-        .from("workflow_run_jobs")
-        .update({
-          status: "queued",
-          run_id: runId ?? null,
-          request_correlation_id: requestCorrelationId,
-          error_message: errorMessage,
-          last_error_class: errorClass,
-          available_at: availableAt,
-          lock_until: null,
-        })
-        .eq("id", job.id);
+    await supabase
+      .from("workflow_run_jobs")
+      .update(failurePlan.update)
+      .eq("id", job.id);
 
+    if (failurePlan.shouldRetry) {
       await updateScheduledRunStatus(supabase, job, {
         last_run_status: null,
         last_error: `Queued for retry: ${errorMessage}`,
@@ -382,23 +338,10 @@ async function processClaimedWorkflowRunJob(
         runId,
         error: errorMessage,
         attemptCount: job.attempt_count,
-        nextAvailableAt: availableAt,
+        nextAvailableAt: failurePlan.nextAvailableAt,
         requestCorrelationId,
       };
     }
-
-    await supabase
-      .from("workflow_run_jobs")
-      .update({
-        status: "failed",
-        run_id: runId ?? null,
-        request_correlation_id: requestCorrelationId,
-        error_message: errorMessage,
-        last_error_class: errorClass,
-        finished_at: new Date().toISOString(),
-        lock_until: null,
-      })
-      .eq("id", job.id);
 
     await updateScheduledRunStatus(supabase, job, {
       last_run_status: "failed",

@@ -4,52 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
-import type { WorkflowGraph, WorkflowNode, WorkflowRecord } from "@/lib/flowholt/types";
+import { parseWorkflowGraphInput } from "@/lib/flowholt/studio-workflow-logic";
+import type { WorkflowGraph, WorkflowRecord } from "@/lib/flowholt/types";
 import { createClient } from "@/lib/supabase/server";
 
 function getValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeAgentNode(node: WorkflowNode): WorkflowNode {
-  if (node.type !== "agent") {
-    return node;
-  }
-
-  const config = node.config ?? {};
-  const model = typeof config.model === "string" ? config.model.trim() : "";
-
-  if (!model || model.toLowerCase() === "default") {
-    const rest = { ...config };
-    delete rest.model;
-    return {
-      ...node,
-      config: rest,
-    };
-  }
-
-  return node;
-}
-
-function normalizeWorkflowGraph(graph: WorkflowGraph): WorkflowGraph {
-  return {
-    nodes: graph.nodes.map(normalizeAgentNode),
-    edges: graph.edges,
-  };
-}
-
-function parseGraph(rawGraph: string): WorkflowGraph {
-  const parsed = JSON.parse(rawGraph) as Partial<WorkflowGraph>;
-
-  if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-    throw new Error("Graph JSON must include nodes and edges arrays.");
-  }
-
-  return normalizeWorkflowGraph({
-    nodes: parsed.nodes as WorkflowNode[],
-    edges: parsed.edges,
-  });
 }
 
 async function getWorkflowRecord(workflowId: string) {
@@ -93,7 +54,7 @@ export async function saveWorkflow(formData: FormData) {
   let graph: WorkflowGraph;
 
   try {
-    graph = parseGraph(graphInput);
+    graph = parseWorkflowGraphInput(graphInput);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid graph JSON";
     redirect(`/app/studio/${workflowId}?error=${encodeURIComponent(message)}`);
@@ -181,5 +142,3 @@ export async function runWorkflow(formData: FormData) {
   revalidateWorkflowPaths(workflow.id);
   redirect(`/app/studio/${workflow.id}?message=${encodeURIComponent("Run queued successfully")}`);
 }
-
-

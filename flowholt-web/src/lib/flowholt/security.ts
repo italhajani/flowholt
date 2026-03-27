@@ -77,6 +77,10 @@ function evaluateSecretValue(secret: unknown, minLength: number): SecretEvaluati
   return { normalized, issues };
 }
 
+export function inspectSecretStrength(secret: unknown, minLength = MIN_ENDPOINT_SECRET_LENGTH): SecretEvaluation {
+  return evaluateSecretValue(secret, minLength);
+}
+
 export function compareSecretsConstantTime(provided: unknown, expected: unknown): boolean {
   const left = normalizeSecret(provided);
   const right = normalizeSecret(expected);

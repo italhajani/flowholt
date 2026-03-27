@@ -19,6 +19,7 @@ This is the first real backend test layer for FlowHolt.
 - migration runner planning logic
 - backup and restore runner planning logic
 - security key validation and config posture logic
+- deploy response security header config
 
 ## How to run it
 
@@ -45,6 +46,7 @@ These tests protect the core backend logic that powers:
 - how deploy environments decide which SQL migrations are still pending
 - how workspace backup files remap ids safely during restore
 - how protected endpoint secrets are validated before runtime accepts requests
+- how FlowHolt deploy responses keep a stronger browser security baseline
 
 ## Easy meaning
 

@@ -6,7 +6,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 89%**
-- Production hardening progress: **about 93%**
+- Production hardening progress: **about 95%**
 
 ## Backend foundations
 
@@ -89,6 +89,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Add monitoring dashboards (error rate, run latency, queue depth)
 - [x] Add backup and restore procedure for workflow data
 - [x] Security pass: secret handling, endpoint auth, dependency audit foundation
+- [x] Deploy hardening: response security headers + webhook auth review
 
 ## Suggested execution order (practical)
 
@@ -98,7 +99,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
 - [ ] Phase 6: responsive polish and Studio refinement
-- [ ] Phase 7: billing hardening, monitoring, tests, and final security pass
+- [ ] Phase 7: billing hardening, responsive polish, and final pre-architecture cleanup
 
 ## Definition of "finalized platform" (what done means)
 
@@ -107,6 +108,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers
+
 
 
 

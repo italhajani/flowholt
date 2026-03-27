@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
+import { buildSecurityHeaders } from "./src/lib/flowholt/security-headers";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: buildSecurityHeaders(),
+      },
+    ];
+  },
 };
 
 export default nextConfig;

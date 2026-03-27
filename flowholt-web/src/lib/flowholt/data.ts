@@ -1,4 +1,10 @@
-import { buildSecurityChecks, summarizeSecurityChecks } from "@/lib/flowholt/security";
+import {
+  MIN_ENDPOINT_SECRET_LENGTH,
+  buildSecurityChecks,
+  inspectSecretStrength,
+  summarizeSecurityChecks,
+} from "@/lib/flowholt/security";
+import { DEFAULT_SECURITY_HEADERS } from "@/lib/flowholt/security-headers";
 import { getWorkspaceState, resolveWorkspaceRole } from "@/lib/flowholt/workspace-context";
 import { getWorkspaceUsageStatus } from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +15,7 @@ import type {
   MonitoringSnapshot,
   RunLogRecord,
   RunsSnapshot,
+  SecurityCheckItem,
   WorkflowGraph,
   WorkflowLibrarySnapshot,
   WorkflowRecord,
@@ -169,8 +176,71 @@ function ensureOwnerMembership(
   ];
 }
 
-function buildMonitoringSecuritySnapshot() {
-  const securityChecks = buildSecurityChecks(process.env);
+function buildWebhookIntegrationSecurityChecks(
+  rows: Array<{ label: string | null; secrets: Record<string, unknown> | null; config: Record<string, unknown> | null }>,
+): SecurityCheckItem[] {
+  const inboundRows = rows.filter((row) => {
+    const config = row.config ?? {};
+    const direction = typeof config.direction === "string" ? config.direction.toLowerCase() : "inbound";
+    return direction === "inbound";
+  });
+
+  if (!inboundRows.length) {
+    return [
+      {
+        key: "webhook-integrations",
+        label: "Webhook integration keys",
+        status: "ok",
+        detail: "No active inbound webhook connections need review right now.",
+      },
+    ];
+  }
+
+  return inboundRows.map((row, index) => {
+    const label = typeof row.label === "string" && row.label.trim() ? row.label.trim() : `Webhook ${index + 1}`;
+    const inspection = inspectSecretStrength(row.secrets?.api_key, MIN_ENDPOINT_SECRET_LENGTH);
+
+    if (!inspection.normalized) {
+      return {
+        key: `webhook-key-${index + 1}`,
+        label: `${label} webhook key`,
+        status: "warn",
+        detail: `${label} has no API key, so that inbound webhook is publicly callable if someone knows the URL.`,
+      };
+    }
+
+    if (inspection.issues.length) {
+      return {
+        key: `webhook-key-${index + 1}`,
+        label: `${label} webhook key`,
+        status: "warn",
+        detail: `${label} uses a weak webhook key: ${inspection.issues.join(", ")}.`,
+      };
+    }
+
+    return {
+      key: `webhook-key-${index + 1}`,
+      label: `${label} webhook key`,
+      status: "ok",
+      detail: `${label} uses a strong inbound webhook key.`,
+    };
+  });
+}
+
+function buildMonitoringSecuritySnapshot(
+  webhookConnections: Array<{ label: string | null; secrets: Record<string, unknown> | null; config: Record<string, unknown> | null }> = [],
+) {
+  const securityChecks: SecurityCheckItem[] = [
+    ...buildSecurityChecks(process.env),
+    {
+      key: "response-security-headers",
+      label: "Response security headers",
+      status: "ok",
+      detail: `Next.js responses include ${DEFAULT_SECURITY_HEADERS.length} baseline security headers for deploy safety.`,
+    },
+    ...buildWebhookIntegrationSecurityChecks(webhookConnections),
+  ];
+
   return {
     securityChecks,
     securitySummary: summarizeSecurityChecks(securityChecks),
@@ -306,9 +376,10 @@ function average(values: number[]) {
 
 export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
   const workspaceState = await getWorkspaceState();
-  const securitySnapshot = buildMonitoringSecuritySnapshot();
 
   if (!workspaceState.schemaReady) {
+    const securitySnapshot = buildMonitoringSecuritySnapshot();
+
     return {
       schemaReady: false,
       workspaces: [],
@@ -330,6 +401,8 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
   }
 
   if (!workspaceState.activeWorkspace) {
+    const securitySnapshot = buildMonitoringSecuritySnapshot();
+
     return {
       schemaReady: true,
       workspaces: workspaceState.workspaces,
@@ -366,6 +439,7 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
     { data: rateLimitRows },
     { data: failedNodeRows },
     { data: auditRows },
+    { data: webhookConnectionRows },
   ] = await Promise.all([
     workspaceState.supabase
       .from("workflow_runs")
@@ -411,6 +485,12 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
       .eq("workspace_id", workspaceId)
       .gte("created_at", last7DaysIso)
       .limit(500),
+    workspaceState.supabase
+      .from("integration_connections")
+      .select("label, secrets, config")
+      .eq("workspace_id", workspaceId)
+      .eq("provider", "webhook")
+      .eq("status", "active"),
   ]);
 
   const runRows = (recentRuns ?? []) as Array<{
@@ -423,6 +503,13 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
   const rateLimitData = (rateLimitRows ?? []) as Array<{ scope: string; request_count: number | null }>;
   const failedNodes = (failedNodeRows ?? []) as Array<{ node_label: string | null }>;
   const auditActions = (auditRows ?? []) as Array<{ action: string | null }>;
+  const securitySnapshot = buildMonitoringSecuritySnapshot(
+    ((webhookConnectionRows ?? []) as Array<{
+      label: string | null;
+      secrets: Record<string, unknown> | null;
+      config: Record<string, unknown> | null;
+    }>),
+  );
 
   const completedRunDurations = runRows
     .map((run) => {
@@ -775,3 +862,8 @@ export async function getWorkflowSchedules(workflowId: string) {
 export function getDemoWorkflow() {
   return demoWorkflow;
 }
+
+
+
+
+

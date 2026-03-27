@@ -3,8 +3,9 @@ import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createCorrelationId, readCorrelationId } from "@/lib/flowholt/correlation";
-import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
+import { drainWorkflowRunJobs, enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
+import { compareSecretsConstantTime } from "@/lib/flowholt/security";
 import {
   getWorkspaceUsageErrorMessage,
   isWorkspaceUsageLimitError,
@@ -214,7 +215,7 @@ function findMatchingConnection(
     }
 
     const expectedKey = String(connection.secrets.api_key ?? "").trim();
-    if (expectedKey && expectedKey !== providedKey) {
+    if (expectedKey && !compareSecretsConstantTime(providedKey, expectedKey)) {
       continue;
     }
 
@@ -733,3 +734,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   return handleWebhook(request, context);
 }
+
+
+
+

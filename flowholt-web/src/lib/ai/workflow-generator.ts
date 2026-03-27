@@ -4,6 +4,7 @@ import type {
   WorkflowRecord,
 } from "@/lib/flowholt/types";
 import { getCatalogPromptLines } from "@/lib/flowholt/node-catalog";
+import { getDefaultToolConfig } from "@/lib/flowholt/tool-registry";
 
 type WorkflowGenerationProvider = "groq" | "huggingface" | "fallback";
 type WorkflowChangeKind = "add" | "remove" | "update";
@@ -89,6 +90,7 @@ function buildCreateSystemPrompt() {
     "Supported node types are: trigger, agent, tool, condition, loop, memory, retriever, output.",
     "If a condition node is used, add explicit edge branch values like true and false.",
     "Prefer these built-in FlowHolt blocks when planning:",
+    "For tool nodes, prefer the shared tool presets below and include a matching tool_key when one clearly fits the job.",
     ...catalogLines,
     "Create 4 to 8 nodes.",
     "Make node ids short and lowercase with hyphens.",
@@ -114,6 +116,7 @@ function buildRevisionSystemPrompt() {
     "Edges must only reference valid ids.",
     "Do not include markdown fences.",
     "Node catalog context:",
+    "When a tool step is needed, prefer one of the named tool presets below and keep the tool purpose human-readable.",
     ...catalogLines,
   ].join(" ");
 }
@@ -186,11 +189,7 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
         model: "",
       };
     case "tool":
-      return {
-        method: "POST",
-        url: "",
-        body: { input: "{{previous.text}}" },
-      };
+      return getDefaultToolConfig("http-request");
     case "condition":
       return {
         value: "{{previous.status_code}}",
@@ -781,6 +780,4 @@ export async function generateWorkflowRevision(
 
   return makeFallbackRevision(input);
 }
-
-
 

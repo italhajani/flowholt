@@ -7,6 +7,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - Backend core progress: **about 99%**
 - Frontend/UI progress: **about 91%**
 - Production hardening progress: **about 95%**
+- Agent/tool architecture groundwork: **about 18%**
 
 ## Backend foundations
 
@@ -55,6 +56,15 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] External event bus trigger foundation
 - [x] Remaining advanced trigger types (email intake)
 
+## Agent/tool architecture stage
+
+- [x] Shared tool capability registry for planner + Studio presets
+- [ ] Connection-aware tool runtime contracts (map presets to real providers cleanly)
+- [ ] Agent memory/tool permission model per workflow step
+- [ ] Tool result normalization contracts for planner, monitor, and chat sidebar
+- [ ] Multi-tool agent orchestration rules (when to call tools vs think vs ask)
+- [ ] Tool marketplace shape for future premium resources sidebar
+
 ## Before full UI redesign
 
 - [ ] Pause for your design survey before visual redesign starts
@@ -78,6 +88,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Settings plan-and-usage card for workspace limits
 - [x] Settings audit trail card for security events
 - [x] Mobile-friendly responsive editor shell
+- [x] Tool preset selector with capability/auth/output hints
 
 ## Production and reliability
 
@@ -90,6 +101,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Add backup and restore procedure for workflow data
 - [x] Security pass: secret handling, endpoint auth, dependency audit foundation
 - [x] Deploy hardening: response security headers + webhook auth review
+- [x] Tool registry tests for planner-facing capability context
 
 ## Suggested execution order (practical)
 
@@ -99,7 +111,8 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Phase 4: first premium Studio assistant controls and revision UX
 - [x] Phase 5: human-friendly node forms replacing raw JSON as the main editing surface
 - [x] Phase 6: responsive editor shell groundwork
-- [ ] Phase 7: billing hardening, responsive polish, and final pre-architecture cleanup
+- [x] Phase 7: billing hardening, responsive polish, and final pre-architecture cleanup
+- [x] Phase 8: start agent/tool integration architecture groundwork
 
 ## Definition of "finalized platform" (what done means)
 
@@ -108,9 +121,4 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers
-
-
-
-
-
-
+- [ ] Agent can understand available tools, choose the right tool shape, and explain that choice in a human-readable way

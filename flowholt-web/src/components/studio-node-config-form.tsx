@@ -1,6 +1,11 @@
 "use client";
 
 import type { WorkflowNodeType } from "@/lib/flowholt/types";
+import {
+  applyToolPreset,
+  getToolRegistryItem,
+  toolRegistry,
+} from "@/lib/flowholt/tool-registry";
 
 type StudioNodeConfigFormProps = {
   nodeType: WorkflowNodeType;
@@ -31,7 +36,7 @@ function configHint(nodeType: WorkflowNodeType) {
     case "agent":
       return 'Example: {"instruction":"Use {{workflow.original_prompt}} and improve {{previous.text}}","model":"llama-3.3-70b-versatile"}';
     case "tool":
-      return 'Example: {"method":"POST","url":"https://httpbin.org/post","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
+      return 'Example: {"tool_key":"crm-upsert","method":"POST","url":"https://api.example.com/upsert","body":{"draft":"{{previous.text}}","task":"{{workflow.original_prompt}}"}}';
     case "condition":
       return 'Example: {"value":"{{previous.status_code}}","equals":200,"branch_on_match":"true","branch_on_miss":"false"}';
     case "output":
@@ -52,6 +57,8 @@ export function StudioNodeConfigForm({
 }: StudioNodeConfigFormProps) {
   const bodyJson = JSON.stringify(config.body ?? {}, null, 2);
   const triggerMode = asString(config.mode, "manual");
+  const selectedToolKey = asString(config.tool_key, "http-request");
+  const selectedToolPreset = getToolRegistryItem(selectedToolKey);
 
   return (
     <div className="space-y-4">
@@ -202,6 +209,37 @@ export function StudioNodeConfigForm({
       {nodeType === "tool" ? (
         <>
           <div>
+            <label className="mb-2 block text-sm font-medium text-stone-700">Tool preset</label>
+            <select
+              value={selectedToolPreset.key}
+              onChange={(event) => onConfigChange(applyToolPreset(event.target.value, config))}
+              className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+            >
+              {toolRegistry.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs leading-5 text-stone-500">{selectedToolPreset.description}</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                Auth
+              </p>
+              <p className="mt-2 text-sm text-stone-900">
+                {selectedToolPreset.authKind.replaceAll("_", " ")}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-stone-500">
+                Returns
+              </p>
+              <p className="mt-2 text-sm text-stone-900">{selectedToolPreset.outputShape}</p>
+            </div>
+          </div>
+          <div>
             <label className="mb-2 block text-sm font-medium text-stone-700">Method</label>
             <select
               value={asString(config.method, "POST")}
@@ -225,6 +263,14 @@ export function StudioNodeConfigForm({
             />
           </div>
           <div>
+            <label className="mb-2 block text-sm font-medium text-stone-700">Recommended label</label>
+            <input
+              value={selectedToolPreset.recommendedLabel}
+              readOnly
+              className="w-full rounded-2xl border border-dashed border-stone-900/10 bg-stone-100 px-4 py-3 text-sm text-stone-500 outline-none"
+            />
+          </div>
+          <div>
             <label className="mb-2 block text-sm font-medium text-stone-700">Request body</label>
             <textarea
               value={bodyJson}
@@ -240,6 +286,10 @@ export function StudioNodeConfigForm({
               className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 font-mono text-xs leading-6 outline-none"
             />
           </div>
+          <p className="text-xs leading-5 text-stone-500">
+            This is the first step toward FlowHolt tool capabilities. You pick the tool shape here,
+            and later agent planning plus integrations will build on the same preset registry.
+          </p>
         </>
       ) : null}
 

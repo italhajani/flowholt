@@ -1,4 +1,5 @@
 import type { WorkflowNodeType } from "@/lib/flowholt/types";
+import { getToolRegistryPromptLines } from "@/lib/flowholt/tool-registry";
 
 export type NodeCatalogItem = {
   key: string;
@@ -109,8 +110,10 @@ export const nodeCatalog: NodeCatalogItem[] = [
 ];
 
 export function getCatalogPromptLines() {
-  return nodeCatalog.map(
-    (item) => `${item.title} [${item.type} | ${item.executionMode}] - ${item.description}`,
-  );
+  return [
+    ...nodeCatalog.map(
+      (item) => `${item.title} [${item.type} | ${item.executionMode}] - ${item.description}`,
+    ),
+    ...getToolRegistryPromptLines(),
+  ];
 }
-

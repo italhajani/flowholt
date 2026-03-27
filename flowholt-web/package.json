@@ -14,7 +14,9 @@
     "migrations:status": "node scripts/flowholt-migrations.mjs --status",
     "migrations:apply": "node scripts/flowholt-migrations.mjs --apply",
     "backup:create": "node scripts/flowholt-backup.mjs create",
-    "backup:restore": "node scripts/flowholt-backup.mjs restore"
+    "backup:restore": "node scripts/flowholt-backup.mjs restore",
+    "security:check": "node scripts/flowholt-security-check.mjs",
+    "security:deps": "node scripts/flowholt-security-check.mjs --deps"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

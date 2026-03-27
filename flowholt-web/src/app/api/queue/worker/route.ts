@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { drainWorkflowRunJobs } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
+import { compareSecretsConstantTime, validateProtectedEndpointSecret } from "@/lib/flowholt/security";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const WORKER_RATE_LIMIT = {
@@ -31,13 +32,13 @@ function parsePositiveInt(value: unknown, fallback: number, min: number, max: nu
 }
 
 export async function POST(request: NextRequest) {
-  const secret = workerSecret();
-  if (!secret) {
-    return NextResponse.json({ error: "FLOWHOLT_WORKER_KEY is not configured." }, { status: 500 });
+  const configuredSecret = validateProtectedEndpointSecret(workerSecret(), "FLOWHOLT_WORKER_KEY");
+  if (!configuredSecret.ok) {
+    return NextResponse.json({ error: configuredSecret.message }, { status: 500 });
   }
 
   const providedKey = readWorkerKey(request);
-  if (!providedKey || providedKey !== secret) {
+  if (!compareSecretsConstantTime(providedKey, configuredSecret.value)) {
     return NextResponse.json({ error: "Unauthorized worker request." }, { status: 401 });
   }
 
@@ -81,3 +82,5 @@ export async function POST(request: NextRequest) {
     results,
   });
 }
+
+

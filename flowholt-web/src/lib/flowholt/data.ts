@@ -1,3 +1,4 @@
+import { buildSecurityChecks, summarizeSecurityChecks } from "@/lib/flowholt/security";
 import { getWorkspaceState, resolveWorkspaceRole } from "@/lib/flowholt/workspace-context";
 import { getWorkspaceUsageStatus } from "@/lib/flowholt/usage-limits";
 import { createClient } from "@/lib/supabase/server";
@@ -168,6 +169,14 @@ function ensureOwnerMembership(
   ];
 }
 
+function buildMonitoringSecuritySnapshot() {
+  const securityChecks = buildSecurityChecks(process.env);
+  return {
+    securityChecks,
+    securitySummary: summarizeSecurityChecks(securityChecks),
+  };
+}
+
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const workspaceState = await getWorkspaceState();
 
@@ -287,7 +296,6 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   };
 }
 
-
 function average(values: number[]) {
   if (!values.length) {
     return 0;
@@ -298,6 +306,7 @@ function average(values: number[]) {
 
 export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
   const workspaceState = await getWorkspaceState();
+  const securitySnapshot = buildMonitoringSecuritySnapshot();
 
   if (!workspaceState.schemaReady) {
     return {
@@ -315,6 +324,8 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
       rateLimitEvents24h: [],
       topFailingNodes7d: [],
       recentAuditActions7d: [],
+      securityChecks: securitySnapshot.securityChecks,
+      securitySummary: securitySnapshot.securitySummary,
     };
   }
 
@@ -334,6 +345,8 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
       rateLimitEvents24h: [],
       topFailingNodes7d: [],
       recentAuditActions7d: [],
+      securityChecks: securitySnapshot.securityChecks,
+      securitySummary: securitySnapshot.securitySummary,
     };
   }
 
@@ -466,8 +479,11 @@ export async function getMonitoringSnapshot(): Promise<MonitoringSnapshot> {
       .map(([action, count]) => ({ action, count }))
       .sort((left, right) => right.count - left.count)
       .slice(0, 6),
+    securityChecks: securitySnapshot.securityChecks,
+    securitySummary: securitySnapshot.securitySummary,
   };
 }
+
 export async function getWorkflowLibrarySnapshot(): Promise<WorkflowLibrarySnapshot> {
   const workspaceState = await getWorkspaceState();
 
@@ -759,6 +775,3 @@ export async function getWorkflowSchedules(workflowId: string) {
 export function getDemoWorkflow() {
   return demoWorkflow;
 }
-
-
-

@@ -14,6 +14,16 @@ function formatDuration(ms: number) {
   return `${Math.round(ms / 1000)}s`;
 }
 
+function securityTone(status: "ok" | "warn" | "error") {
+  if (status === "error") {
+    return "text-red-700 bg-red-50 border-red-200";
+  }
+  if (status === "warn") {
+    return "text-amber-800 bg-amber-50 border-amber-200";
+  }
+  return "text-emerald-700 bg-emerald-50 border-emerald-200";
+}
+
 export default async function MonitoringPage() {
   const snapshot = await getMonitoringSnapshot();
 
@@ -41,7 +51,33 @@ export default async function MonitoringPage() {
           ))}
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-3">
+        <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+          <SurfaceCard
+            title="Security posture"
+            description="FlowHolt checks your protected endpoint keys and deploy-time secrets for risky config patterns."
+            tone="mint"
+          >
+            <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.16em]">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
+                {snapshot.securitySummary.ok} ok
+              </span>
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
+                {snapshot.securitySummary.warn} warnings
+              </span>
+              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-700">
+                {snapshot.securitySummary.error} errors
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {snapshot.securityChecks.map((item) => (
+                <div key={item.key} className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${securityTone(item.status)}`}>
+                  <p className="font-medium">{item.label}</p>
+                  <p className="mt-1 text-sm">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </SurfaceCard>
+
           <SurfaceCard
             title="Rate limit pressure"
             description="The busiest protected endpoints in the last 24 hours."
@@ -60,7 +96,9 @@ export default async function MonitoringPage() {
               )}
             </div>
           </SurfaceCard>
+        </div>
 
+        <div className="grid gap-5 xl:grid-cols-2">
           <SurfaceCard
             title="Top failing nodes"
             description="The most failure-prone workflow steps in the last 7 days."
@@ -103,4 +141,3 @@ export default async function MonitoringPage() {
     </AppShell>
   );
 }
-

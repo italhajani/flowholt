@@ -7,6 +7,7 @@ import {
   type WorkspaceEmailInput,
 } from "@/lib/flowholt/email-trigger-logic";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
+import { compareSecretsConstantTime, validateProtectedEndpointSecret } from "@/lib/flowholt/security";
 import { enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import {
   getWorkspaceUsageErrorMessage,
@@ -61,20 +62,20 @@ function readEmailInput(body: unknown): WorkspaceEmailInput {
 export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const requestCorrelationId = readIncomingCorrelationId(request) || createCorrelationId("fh_email");
-  const configuredKey = (process.env.FLOWHOLT_EMAIL_KEY ?? "").trim();
+  const configuredSecret = validateProtectedEndpointSecret(process.env.FLOWHOLT_EMAIL_KEY ?? "", "FLOWHOLT_EMAIL_KEY");
 
-  if (!configuredKey) {
+  if (!configuredSecret.ok) {
     return NextResponse.json(
       {
         ok: false,
-        error: "FLOWHOLT_EMAIL_KEY is not configured.",
+        error: configuredSecret.message,
         request_correlation_id: requestCorrelationId,
       },
       { status: 500, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
-  if (readEmailKey(request) !== configuredKey) {
+  if (!compareSecretsConstantTime(readEmailKey(request), configuredSecret.value)) {
     return NextResponse.json(
       {
         ok: false,
@@ -238,3 +239,4 @@ export async function POST(request: NextRequest) {
     },
   );
 }
+

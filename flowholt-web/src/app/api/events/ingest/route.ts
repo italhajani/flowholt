@@ -7,6 +7,7 @@ import {
   type WorkspaceEventInput,
 } from "@/lib/flowholt/event-trigger-logic";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
+import { compareSecretsConstantTime, validateProtectedEndpointSecret } from "@/lib/flowholt/security";
 import { enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import {
   getWorkspaceUsageErrorMessage,
@@ -57,20 +58,20 @@ function readEventInput(body: unknown): WorkspaceEventInput {
 export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const requestCorrelationId = readIncomingCorrelationId(request) || createCorrelationId("fh_event");
-  const configuredKey = (process.env.FLOWHOLT_EVENT_KEY ?? "").trim();
+  const configuredSecret = validateProtectedEndpointSecret(process.env.FLOWHOLT_EVENT_KEY ?? "", "FLOWHOLT_EVENT_KEY");
 
-  if (!configuredKey) {
+  if (!configuredSecret.ok) {
     return NextResponse.json(
       {
         ok: false,
-        error: "FLOWHOLT_EVENT_KEY is not configured.",
+        error: configuredSecret.message,
         request_correlation_id: requestCorrelationId,
       },
       { status: 500, headers: { "X-FlowHolt-Correlation-Id": requestCorrelationId } },
     );
   }
 
-  if (readEventKey(request) !== configuredKey) {
+  if (!compareSecretsConstantTime(readEventKey(request), configuredSecret.value)) {
     return NextResponse.json(
       {
         ok: false,
@@ -228,3 +229,5 @@ export async function POST(request: NextRequest) {
     },
   );
 }
+
+

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createCorrelationId } from "@/lib/flowholt/correlation";
 import { enqueueWorkflowRunJob } from "@/lib/flowholt/run-queue";
 import { consumeRateLimit, getRequestIdentifier, isRateLimitError } from "@/lib/flowholt/rate-limit";
+import { compareSecretsConstantTime, validateProtectedEndpointSecret } from "@/lib/flowholt/security";
 import {
   buildScheduleClaimPlan,
   buildScheduleCompletionUpdate,
@@ -136,13 +137,13 @@ async function renewScheduleLease(
 }
 
 export async function POST(request: NextRequest) {
-  const secret = schedulerSecret();
-  if (!secret) {
-    return NextResponse.json({ error: "FLOWHOLT_SCHEDULER_KEY is not configured." }, { status: 500 });
+  const configuredSecret = validateProtectedEndpointSecret(schedulerSecret(), "FLOWHOLT_SCHEDULER_KEY");
+  if (!configuredSecret.ok) {
+    return NextResponse.json({ error: configuredSecret.message }, { status: 500 });
   }
 
   const providedKey = readSchedulerKey(request);
-  if (!providedKey || providedKey !== secret) {
+  if (!compareSecretsConstantTime(providedKey, configuredSecret.value)) {
     return NextResponse.json({ error: "Unauthorized scheduler request." }, { status: 401 });
   }
 
@@ -397,3 +398,4 @@ export async function POST(request: NextRequest) {
     results,
   });
 }
+

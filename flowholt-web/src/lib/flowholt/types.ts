@@ -220,6 +220,21 @@ export type DashboardUsageSnapshot = {
   monthlyTokenRemaining: number;
 };
 
+export type SecurityCheckStatus = "ok" | "warn" | "error";
+
+export type SecurityCheckItem = {
+  key: string;
+  label: string;
+  status: SecurityCheckStatus;
+  detail: string;
+};
+
+export type SecurityCheckSummary = {
+  ok: number;
+  warn: number;
+  error: number;
+};
+
 export type MonitoringSnapshot = {
   schemaReady: boolean;
   workspaces: WorkspaceRecord[];
@@ -244,6 +259,8 @@ export type MonitoringSnapshot = {
     action: string;
     count: number;
   }>;
+  securityChecks: SecurityCheckItem[];
+  securitySummary: SecurityCheckSummary;
 };
 export type DashboardSnapshot = {
   schemaReady: boolean;
@@ -319,8 +336,3 @@ export type UsageLimitContext = {
   supabase: SupabaseClient;
   workspaceId: string;
 };
-
-
-
-
-

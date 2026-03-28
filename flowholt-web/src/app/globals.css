@@ -4,6 +4,23 @@
 :root {
   --background: #f4f1e8;
   --foreground: #1d1a17;
+  --fh-bg: #f4f1e8;
+  --fh-panel: rgba(255, 252, 246, 0.94);
+  --fh-panel-strong: #ffffff;
+  --fh-sidebar: #171514;
+  --fh-sidebar-panel: rgba(255, 255, 255, 0.05);
+  --fh-topbar: rgba(255, 252, 247, 0.76);
+  --fh-border: rgba(39, 35, 31, 0.1);
+  --fh-text: #1d1a17;
+  --fh-muted: #6d655d;
+  --fh-accent: #ff7f5f;
+  --fh-accent-strong: #eb6e50;
+  --fh-mint: #edf5f0;
+  --fh-sand: #f7ede1;
+  --fh-radius-xl: 1.75rem;
+  --fh-radius-2xl: 2rem;
+  --fh-shadow-card: 0 12px 40px rgba(39, 35, 31, 0.06);
+  --fh-shadow-shell: 0 24px 80px rgba(15, 23, 42, 0.08);
 }
 
 @theme inline {
@@ -18,12 +35,14 @@
 }
 
 html {
-  background: var(--background);
+  background: var(--fh-bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.62), transparent 34%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.78), rgba(244, 241, 232, 1));
+  color: var(--fh-text);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
@@ -34,6 +53,85 @@ a {
 
 ::selection {
   background: rgba(31, 77, 69, 0.18);
+}
+
+.flowholt-shell {
+  min-height: 100vh;
+  background: var(--fh-bg);
+  color: var(--fh-text);
+}
+
+.flowholt-sidebar {
+  background: var(--fh-sidebar);
+  color: #f7f5f2;
+}
+
+.flowholt-sidebar-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--fh-sidebar-panel);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.flowholt-topbar {
+  border-bottom: 1px solid var(--fh-border);
+  background: var(--fh-topbar);
+  backdrop-filter: blur(16px);
+}
+
+.flowholt-surface {
+  border: 1px solid var(--fh-border);
+  border-radius: var(--fh-radius-xl);
+  box-shadow: var(--fh-shadow-card);
+}
+
+.flowholt-surface--default {
+  background: var(--fh-panel);
+}
+
+.flowholt-surface--mint {
+  background: var(--fh-mint);
+}
+
+.flowholt-surface--sand {
+  background: var(--fh-sand);
+}
+
+.flowholt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--fh-border);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.45rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fh-muted);
+}
+
+.flowholt-primary-button {
+  border-radius: 9999px;
+  background: var(--fh-accent);
+  color: white;
+  transition: background 160ms ease;
+}
+
+.flowholt-primary-button:hover {
+  background: var(--fh-accent-strong);
+}
+
+.flowholt-secondary-button {
+  border: 1px solid var(--fh-border);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--fh-text);
+  transition: background 160ms ease;
+}
+
+.flowholt-secondary-button:hover {
+  background: rgba(255, 255, 255, 1);
 }
 
 .studio-flow .react-flow__pane {

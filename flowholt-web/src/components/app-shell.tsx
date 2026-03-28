@@ -17,9 +17,9 @@ export function AppShell({
   children,
 }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#f4f1e8] text-stone-900">
-      <div className="border-b border-stone-900/10 bg-stone-950 px-4 py-5 text-stone-100 lg:hidden">
-        <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+    <div className="flowholt-shell">
+      <div className="border-b border-stone-900/10 px-4 py-5 text-stone-100 lg:hidden flowholt-sidebar">
+        <div className="flowholt-sidebar-panel rounded-[1.5rem] p-4">
           <p className="text-[11px] uppercase tracking-[0.28em] text-stone-400">FlowHolt</p>
           <h1 className="mt-2 text-xl font-semibold">Build work that runs itself</h1>
           <p className="mt-2 text-sm leading-6 text-stone-400">
@@ -32,7 +32,7 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
-              className="min-w-[148px] rounded-2xl border border-white/5 bg-white/5 px-4 py-3 transition hover:border-white/10 hover:bg-white/10"
+              className="flowholt-sidebar-panel min-w-[148px] rounded-2xl px-4 py-3 transition hover:border-white/10 hover:bg-white/10"
             >
               <p className="text-sm font-medium text-stone-100">{item.label}</p>
               <p className="mt-1 text-xs leading-5 text-stone-400">{item.description}</p>
@@ -42,11 +42,9 @@ export function AppShell({
       </div>
 
       <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[280px_1fr]">
-        <aside className="hidden border-r border-stone-900/10 bg-stone-950 px-5 py-6 text-stone-100 lg:block">
-          <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-stone-400">
-              FlowHolt
-            </p>
+        <aside className="flowholt-sidebar hidden border-r border-white/6 px-5 py-6 lg:block">
+          <div className="flowholt-sidebar-panel rounded-[1.75rem] p-5">
+            <p className="text-xs uppercase tracking-[0.3em] text-stone-400">FlowHolt</p>
             <h1 className="mt-3 text-2xl font-semibold">Build work that runs itself</h1>
             <p className="mt-2 text-sm leading-6 text-stone-400">
               Describe the task, shape the workflow, then run it from one clean workspace.
@@ -61,36 +59,30 @@ export function AppShell({
                 className="block rounded-2xl border border-white/5 px-4 py-3 transition hover:border-white/10 hover:bg-white/5"
               >
                 <p className="text-sm font-medium text-stone-100">{item.label}</p>
-                <p className="mt-1 text-xs leading-5 text-stone-400">
-                  {item.description}
-                </p>
+                <p className="mt-1 text-xs leading-5 text-stone-400">{item.description}</p>
               </Link>
             ))}
           </nav>
         </aside>
 
         <div className="flex min-h-screen flex-col">
-          <header className="border-b border-stone-900/10 bg-white/70 px-4 py-5 backdrop-blur sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
-              {eyebrow}
-            </p>
+          <header className="flowholt-topbar px-4 py-5 sm:px-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">{eyebrow}</p>
             <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">
-                  {description}
-                </p>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-stone-600">{description}</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-start md:justify-end">
                 <Link
                   href="/app/create"
-                  className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-center text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                  className="flowholt-secondary-button px-4 py-2 text-center text-sm font-medium"
                 >
                   Create with chat
                 </Link>
                 <Link
                   href="/app/studio/demo-workflow"
-                  className="rounded-full bg-stone-950 px-4 py-2 text-center text-sm font-medium text-stone-50 transition hover:bg-stone-800"
+                  className="flowholt-primary-button px-4 py-2 text-center text-sm font-medium"
                 >
                   Open studio
                 </Link>

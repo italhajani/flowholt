@@ -51,6 +51,11 @@ export const appNavigation: AppNavItem[] = [
     description: "Files and knowledge sources",
   },
   {
+    label: "Design",
+    href: "/app/design",
+    description: "Survey and visual direction",
+  },
+  {
     label: "Settings",
     href: "/app/settings",
     description: "Workspace and account settings",

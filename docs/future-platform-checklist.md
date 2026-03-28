@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 96%**
+- Frontend/UI progress: **about 97%**
 - Production hardening progress: **about 96%**
 - Agent/tool architecture groundwork: **about 98%**
 
@@ -73,6 +73,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Before full UI redesign
 
+- [x] Design-system token groundwork and in-app survey board
 - [ ] Pause for your design survey before visual redesign starts
 - [ ] Define final color system, spacing, typography, and editor shell rules
 - [ ] Redesign Studio layout to premium multi-panel editor inspired by modern workflow tools
@@ -104,6 +105,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Integrations page recommended packs card tied to Studio resources
 - [x] Vendor quick-start guidance for integration setup
 - [x] One-click assistant pack suggestions in Studio sidebar
+- [x] Design survey board and shell token groundwork for the upcoming premium redesign
 - [x] Resources sidebar quick actions that prefill or auto-preview pack-based workflow ideas
 
 ## Production and reliability

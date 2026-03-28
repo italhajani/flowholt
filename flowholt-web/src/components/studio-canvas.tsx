@@ -21,6 +21,19 @@ import {
 } from "@xyflow/react";
 import { useMemo, useRef, useState } from "react";
 
+import {
+  IconAgent,
+  IconCondition,
+  IconGrid,
+  IconLoop,
+  IconMemory,
+  IconOutput,
+  IconPlus,
+  IconRetriever,
+  IconTool,
+  IconTrigger,
+  IconX,
+} from "@/components/icons";
 import { StudioNodeConfigForm } from "@/components/studio-node-config-form";
 import { expectedConnectionProviderForNode, requiresConnectionForNode } from "@/lib/flowholt/integration-runtime";
 import { getDefaultToolConfig } from "@/lib/flowholt/tool-registry";
@@ -60,58 +73,26 @@ const nodeTypeLabels: Record<WorkflowNodeType, string> = {
   output: "Output",
 };
 
-const nodeTypeIcons: Record<WorkflowNodeType, string> = {
-  trigger: "TR",
-  agent: "AI",
-  tool: "AP",
-  condition: "IF",
-  loop: "LP",
-  memory: "KB",
-  retriever: "RG",
-  output: "OT",
+const nodeTypeIcons: Record<WorkflowNodeType, typeof IconTrigger> = {
+  trigger: IconTrigger,
+  agent: IconAgent,
+  tool: IconTool,
+  condition: IconCondition,
+  loop: IconLoop,
+  memory: IconMemory,
+  retriever: IconRetriever,
+  output: IconOutput,
 };
 
-const nodeTypeStyles: Record<WorkflowNodeType, { badge: string; icon: string; border: string }> = {
-  trigger: {
-    badge: "bg-emerald-50 text-emerald-700",
-    icon: "bg-emerald-100 text-emerald-700",
-    border: "border-emerald-200",
-  },
-  agent: {
-    badge: "bg-violet-50 text-violet-700",
-    icon: "bg-violet-100 text-violet-700",
-    border: "border-violet-200",
-  },
-  tool: {
-    badge: "bg-sky-50 text-sky-700",
-    icon: "bg-sky-100 text-sky-700",
-    border: "border-sky-200",
-  },
-  condition: {
-    badge: "bg-rose-50 text-rose-700",
-    icon: "bg-rose-100 text-rose-700",
-    border: "border-rose-200",
-  },
-  loop: {
-    badge: "bg-cyan-50 text-cyan-700",
-    icon: "bg-cyan-100 text-cyan-700",
-    border: "border-cyan-200",
-  },
-  memory: {
-    badge: "bg-amber-50 text-amber-700",
-    icon: "bg-amber-100 text-amber-700",
-    border: "border-amber-200",
-  },
-  retriever: {
-    badge: "bg-lime-50 text-lime-700",
-    icon: "bg-lime-100 text-lime-700",
-    border: "border-lime-200",
-  },
-  output: {
-    badge: "bg-orange-50 text-orange-700",
-    icon: "bg-orange-100 text-orange-700",
-    border: "border-orange-200",
-  },
+const nodeTypeStyles: Record<WorkflowNodeType, { accent: string; chip: string }> = {
+  trigger: { accent: "#19a05b", chip: "bg-[#eef8f1] text-[#1b7d4d]" },
+  agent: { accent: "#6f5bf3", chip: "bg-[#f1efff] text-[#6553e6]" },
+  tool: { accent: "#3b82f6", chip: "bg-[#eef5ff] text-[#2f6fdd]" },
+  condition: { accent: "#ef6a3a", chip: "bg-[#fff4ef] text-[#dc5d30]" },
+  loop: { accent: "#0ea5a4", chip: "bg-[#edf8f8] text-[#0b8988]" },
+  memory: { accent: "#d97706", chip: "bg-[#fff6eb] text-[#b66300]" },
+  retriever: { accent: "#7c3aed", chip: "bg-[#f5efff] text-[#6b31d7]" },
+  output: { accent: "#ef4444", chip: "bg-[#fff1f1] text-[#d93a3a]" },
 };
 
 function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> {
@@ -190,35 +171,37 @@ function formatPreviewValue(value: unknown) {
 function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>) {
   const nodeType = data.nodeType ?? "agent";
   const style = nodeTypeStyles[nodeType];
+  const Icon = nodeTypeIcons[nodeType];
 
   return (
     <div
-      className={`min-w-[210px] rounded-[18px] border bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] ${style.border} ${selected ? "ring-2 ring-[#7c68f5]/30" : ""}`}
+      className={`min-w-[210px] border bg-white px-4 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] ${selected ? "ring-1 ring-[#ef6a3a]/40" : ""}`}
+      style={{ borderColor: selected ? style.accent : "rgba(15,23,42,0.1)" }}
     >
-      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-white !bg-stone-400" />
-      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-stone-400" />
+      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border !border-white !bg-stone-400" />
+      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border !border-white !bg-stone-400" />
       <div className="flex items-start gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-[12px] text-[11px] font-semibold ${style.icon}`}>
-          {nodeTypeIcons[nodeType]}
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center border" style={{ borderColor: style.accent, color: style.accent }}>
+          <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${style.badge}`}>
+            <span className={`px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${style.chip}`}>
               {nodeTypeLabels[nodeType]}
             </span>
           </div>
-          <p className="mt-3 truncate text-sm font-semibold text-stone-900">{data.label}</p>
+          <p className="mt-2 truncate text-sm font-semibold text-stone-900">{data.label}</p>
           <p className="mt-1 text-xs leading-5 text-stone-500">
             {nodeType === "agent"
-              ? "Reason and produce the next step."
+              ? "Reason and decide the next step."
               : nodeType === "tool"
-                ? "Call an app or API action."
+                ? "Run an external action or app call."
                 : nodeType === "trigger"
                   ? "Start the workflow."
                   : nodeType === "condition"
-                    ? "Route to different branches."
+                    ? "Route the flow to another branch."
                     : nodeType === "output"
-                      ? "Finish and return the result."
+                      ? "Return the final result."
                       : "Reusable workflow block."}
           </p>
         </div>
@@ -232,7 +215,7 @@ function toFlowNodes(graph: WorkflowGraph): Node<WorkflowNodeData>[] {
     id: node.id,
     type: "workflow",
     position: node.position ?? {
-      x: 140 + (index % 3) * 270,
+      x: 160 + (index % 3) * 270,
       y: 120 + Math.floor(index / 3) * 170,
     },
     data: {
@@ -257,7 +240,7 @@ function toFlowEdges(graph: WorkflowGraph): Edge<WorkflowEdgeData>[] {
       fontWeight: 600,
     },
     labelBgPadding: [8, 4],
-    labelBgBorderRadius: 999,
+    labelBgBorderRadius: 4,
     labelBgStyle: {
       fill: "rgba(255, 255, 255, 0.96)",
     },
@@ -295,10 +278,11 @@ function CanvasInner({
 }: StudioCanvasProps) {
   const [nodes, setNodes] = useState<Node<WorkflowNodeData>[]>(() => toFlowNodes(initialGraph));
   const [edges, setEdges] = useState<Edge<WorkflowEdgeData>[]>(() => toFlowEdges(initialGraph));
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialGraph.nodes[0]?.id ?? null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [inspectorPane, setInspectorPane] = useState<InspectorPane>("step");
   const [configError, setConfigError] = useState("");
+  const [manualInspectorOpen, setManualInspectorOpen] = useState(false);
   const nodeCounter = useRef(initialGraph.nodes.length + 1);
 
   const selectedNode = useMemo(
@@ -408,7 +392,7 @@ function CanvasInner({
             fontWeight: 600,
           },
           labelBgPadding: [8, 4],
-          labelBgBorderRadius: 999,
+          labelBgBorderRadius: 4,
           labelBgStyle: {
             fill: "rgba(255,255,255,0.96)",
           },
@@ -448,6 +432,7 @@ function CanvasInner({
     setConfigError("");
     setSelectedEdgeId(null);
     setSelectedNodeId(newNode.id);
+    setManualInspectorOpen(true);
     setInspectorPane("step");
   }
 
@@ -558,6 +543,7 @@ function CanvasInner({
     setEdges((current) => current.filter((edge) => edge.source !== selectedNodeId && edge.target !== selectedNodeId));
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
+    setManualInspectorOpen(false);
     setInspectorPane("step");
   }
 
@@ -568,6 +554,7 @@ function CanvasInner({
 
     setEdges((current) => current.filter((edge) => edge.id !== selectedEdgeId));
     setSelectedEdgeId(null);
+    setManualInspectorOpen(false);
     setInspectorPane("connection");
   }
 
@@ -577,104 +564,98 @@ function CanvasInner({
     { key: "data", label: "Data" },
     { key: "json", label: "JSON" },
   ];
-  const [manualInspectorOpen, setManualInspectorOpen] = useState(false);
   const inspectorVisible = Boolean(manualInspectorOpen || selectedNode || selectedEdge);
 
   return (
-    <div className="flex h-full flex-col space-y-0">
+    <div className="flex h-full flex-col">
       <input type="hidden" name="graph" value={graphJson} readOnly />
 
-      <div className="flex-1 overflow-hidden rounded-[20px] border border-black/6 bg-[#fafafa] shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
-        <div className="flex h-full flex-col">
-            <div className="flex flex-1 min-h-0 gap-0">
-            <div className="hidden lg:block w-[84px] border-r border-black/6 bg-white p-3">
-              <div className="grid auto-rows-max gap-2">
-                {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => (
+      <div className="flex-1 overflow-hidden border border-black/8 bg-[#f8f8f6]">
+        <div className="flex h-full min-h-0">
+          <div className="hidden w-[56px] shrink-0 border-r border-black/8 bg-white lg:block">
+            <div className="grid auto-rows-max gap-2 p-2.5">
+              {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => {
+                const Icon = nodeTypeIcons[nodeType];
+                return (
                   <button
                     key={nodeType}
                     type="button"
                     onClick={() => addNode(nodeType)}
-                    className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-black/8 bg-[#fafafa] text-[11px] font-semibold text-stone-600 transition hover:bg-white hover:border-black/12"
+                    className="flex h-10 w-10 items-center justify-center border border-black/8 bg-[#faf9f7] text-stone-600 transition-smooth hover:bg-white hover:text-stone-950"
                     title={`Add ${nodeTypeLabels[nodeType]}`}
                   >
-                    {nodeTypeIcons[nodeType]}
+                    <Icon className="h-4 w-4" />
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </div>
 
-            <div className="relative flex-1 overflow-hidden bg-transparent">
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onNodeClick={(_, node) => {
-                  setConfigError("");
-                  setSelectedEdgeId(null);
-                  setSelectedNodeId(node.id);
-                  setInspectorPane("step");
-                }}
-                onEdgeClick={(_, edge) => {
-                  setConfigError("");
-                  setSelectedNodeId(null);
-                  setSelectedEdgeId(edge.id);
-                  setInspectorPane("connection");
-                }}
-                onPaneClick={() => {
-                  setSelectedNodeId(null);
-                  setSelectedEdgeId(null);
-                }}
-                fitView
-                minZoom={0.35}
-                className="studio-flow flowholt-grid-dots bg-[#fcfcfb]"
-                proOptions={{ hideAttribution: true }}
-              >
-                <Panel position="top-left" className="!m-4">
-                  <div className="rounded-full border border-black/8 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 shadow-sm">
-                    Drag to connect
-                  </div>
-                </Panel>
-                <Controls showInteractive={false} />
-                <Background gap={24} size={1.2} color="rgba(107,114,128,0.16)" />
-              </ReactFlow>
+          <div className="relative min-w-0 flex-1 overflow-hidden">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={(_, node) => {
+                setConfigError("");
+                setSelectedEdgeId(null);
+                setSelectedNodeId(node.id);
+                setManualInspectorOpen(true);
+                setInspectorPane("step");
+              }}
+              onEdgeClick={(_, edge) => {
+                setConfigError("");
+                setSelectedNodeId(null);
+                setSelectedEdgeId(edge.id);
+                setManualInspectorOpen(true);
+                setInspectorPane("connection");
+              }}
+              onPaneClick={() => {
+                setSelectedNodeId(null);
+                setSelectedEdgeId(null);
+              }}
+              fitView
+              minZoom={0.35}
+              className="studio-flow flowholt-grid-dots"
+              proOptions={{ hideAttribution: true }}
+            >
+              <Panel position="top-left" className="!m-3">
+                <div className="flex items-center gap-2 border border-black/8 bg-white px-3 py-2 text-[11px] font-medium text-stone-500 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                  <IconGrid className="h-3.5 w-3.5" />
+                  <span>Drag, connect, refine</span>
+                </div>
+              </Panel>
+              <Controls showInteractive={false} />
+              <Background gap={22} size={1.1} color="rgba(107,114,128,0.16)" />
+            </ReactFlow>
 
-              {/* floating inspector toggle */}
-              <button
-                type="button"
-                onClick={() => setManualInspectorOpen((v) => !v)}
-                aria-label="Toggle inspector"
-                className="absolute right-4 bottom-4 z-40 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 border border-black/8 shadow-sm hover:bg-white transition"
-              >
-                {manualInspectorOpen || selectedNode || selectedEdge ? (
-                  <svg className="w-4 h-4 text-stone-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4 text-stone-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-                  </svg>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setManualInspectorOpen((value) => !value)}
+              aria-label="Toggle inspector"
+              className="absolute bottom-4 right-4 z-40 flex h-9 w-9 items-center justify-center border border-black/8 bg-white text-stone-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-smooth hover:bg-[#f7f6f3]"
+            >
+              {inspectorVisible ? <IconX className="h-4 w-4" /> : <IconPlus className="h-4 w-4" />}
+            </button>
           </div>
         </div>
       </div>
 
       {inspectorVisible ? (
-        <div className="mt-4 overflow-hidden rounded-[20px] border border-black/6 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-          <div className="flex flex-wrap gap-1.5 border-b border-black/6 bg-white px-4 py-3 sm:gap-2">
+        <div className="mt-3 overflow-hidden border border-black/8 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
+          <div className="flex flex-wrap gap-1 border-b border-black/8 bg-[#faf9f7] px-3 py-2.5">
             {inspectorButtons.map((pane) => (
               <button
                 key={pane.key}
                 type="button"
                 onClick={() => setInspectorPane(pane.key)}
-                className={`rounded-[10px] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                className={`px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-smooth ${
                   inspectorPane === pane.key
                     ? "bg-stone-900 text-white"
-                    : "border border-black/8 bg-white text-stone-500 hover:bg-[#f7f7f5]"
+                    : "border border-black/8 bg-white text-stone-500 hover:bg-[#f7f6f3]"
                 }`}
               >
                 {pane.label}
@@ -682,7 +663,7 @@ function CanvasInner({
             ))}
           </div>
 
-          <div className="max-h-[340px] overflow-y-auto p-5">
+          <div className="max-h-[280px] overflow-y-auto p-4">
             {inspectorPane === "step" ? (
               selectedNode ? (
                 <div className="space-y-4">
@@ -694,7 +675,7 @@ function CanvasInner({
                     <button
                       type="button"
                       onClick={removeSelectedNode}
-                      className="shrink-0 rounded-[10px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                      className="border border-[#f5c6b7] bg-[#fff4ef] px-3 py-1.5 text-xs font-medium text-[#d95c31] transition-smooth hover:bg-[#ffece5]"
                     >
                       Remove
                     </button>
@@ -706,7 +687,7 @@ function CanvasInner({
                       <input
                         value={String(selectedNode.data?.label ?? "")}
                         onChange={(event) => updateSelectedNodeLabel(event.target.value)}
-                        className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                        className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none"
                       />
                     </div>
                     <div>
@@ -714,7 +695,7 @@ function CanvasInner({
                       <select
                         value={String(selectedNode.data?.nodeType ?? "agent")}
                         onChange={(event) => updateSelectedNodeType(event.target.value as WorkflowNodeType)}
-                        className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                        className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none"
                       >
                         {Object.entries(nodeTypeLabels).map(([key, label]) => (
                           <option key={key} value={key}>
@@ -731,7 +712,7 @@ function CanvasInner({
                       <select
                         value={selectedNodeConnectionId}
                         onChange={(event) => updateSelectedNodeConnection(event.target.value)}
-                        className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                        className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none"
                       >
                         <option value="">No connection</option>
                         {providerConnectionOptions.map((option) => (
@@ -759,7 +740,7 @@ function CanvasInner({
                   />
                 </div>
               ) : (
-                <div className="rounded-[12px] bg-[#fafafa] px-3 py-3 text-xs text-stone-500">
+                <div className="border border-black/8 bg-[#faf9f7] px-3 py-3 text-xs text-stone-500">
                   Select a node on the canvas to edit its settings.
                 </div>
               )
@@ -776,14 +757,14 @@ function CanvasInner({
                     <button
                       type="button"
                       onClick={removeSelectedEdge}
-                      className="shrink-0 rounded-[10px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                      className="border border-[#f5c6b7] bg-[#fff4ef] px-3 py-1.5 text-xs font-medium text-[#d95c31] transition-smooth hover:bg-[#ffece5]"
                     >
                       Remove
                     </button>
                   </div>
 
-                  <div className="rounded-[12px] bg-[#fafafa] px-3 py-2 text-xs text-stone-600 font-mono">
-                    {selectedEdge.source} â†’ {selectedEdge.target}
+                  <div className="border border-black/8 bg-[#faf9f7] px-3 py-2 text-xs font-mono text-stone-600">
+                    {selectedEdge.source} -&gt; {selectedEdge.target}
                   </div>
                   <div>
                     <label className="mb-2 block text-xs font-semibold text-stone-700">Branch key</label>
@@ -791,7 +772,7 @@ function CanvasInner({
                       value={selectedEdge.data?.branch ?? ""}
                       onChange={(event) => updateSelectedEdgeBranch(event.target.value)}
                       placeholder="true, false, retry"
-                      className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                      className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none"
                     />
                   </div>
                   <div>
@@ -800,12 +781,12 @@ function CanvasInner({
                       value={typeof selectedEdge.label === "string" ? selectedEdge.label : ""}
                       onChange={(event) => updateSelectedEdgeLabel(event.target.value)}
                       placeholder="Shown on the canvas"
-                      className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                      className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none"
                     />
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[12px] bg-[#fafafa] px-3 py-3 text-xs text-stone-500">
+                <div className="border border-black/8 bg-[#faf9f7] px-3 py-3 text-xs text-stone-500">
                   Select a connection on the canvas to edit its branch and label.
                 </div>
               )
@@ -819,9 +800,9 @@ function CanvasInner({
                 </div>
                 <div className="grid gap-2">
                   {previewEntries.slice(0, 5).map((entry) => (
-                    <div key={entry.key} className="rounded-[12px] bg-[#fafafa] px-3 py-2.5 text-xs">
+                    <div key={entry.key} className="border border-black/8 bg-[#faf9f7] px-3 py-2.5 text-xs">
                       <p className="font-mono text-stone-600">{entry.key}</p>
-                      <p className="mt-1 leading-5 text-stone-500 break-words">{formatPreviewValue(entry.value)}</p>
+                      <p className="mt-1 break-words leading-5 text-stone-500">{formatPreviewValue(entry.value)}</p>
                     </div>
                   ))}
                 </div>
@@ -838,7 +819,7 @@ function CanvasInner({
                   value={graphJson}
                   readOnly
                   rows={10}
-                  className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] p-3 font-mono text-xs leading-5 text-stone-600 outline-none"
+                  className="w-full border border-black/8 bg-[#faf9f7] p-3 font-mono text-xs leading-5 text-stone-600 outline-none"
                 />
               </div>
             ) : null}
@@ -856,3 +837,5 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+

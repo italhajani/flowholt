@@ -2,6 +2,13 @@
 
 import { ReactNode, useState } from "react";
 
+import {
+  IconMessage,
+  IconStudio,
+  IconTool,
+  IconWorkflows,
+} from "@/components/icons";
+
 type SidebarTab = "assistant" | "workflow" | "models" | "resources";
 
 type StudioSidebarTabsProps = {
@@ -12,12 +19,12 @@ type StudioSidebarTabsProps = {
   initialTab?: SidebarTab;
 };
 
-const tabLabels: Record<SidebarTab, string> = {
-  assistant: "Assist",
-  workflow: "Workflow",
-  models: "Models",
-  resources: "Resources",
-};
+const tabs: Array<{ key: SidebarTab; label: string; icon: typeof IconMessage }> = [
+  { key: "assistant", label: "Assist", icon: IconMessage },
+  { key: "workflow", label: "Workflow", icon: IconWorkflows },
+  { key: "models", label: "Models", icon: IconStudio },
+  { key: "resources", label: "Resources", icon: IconTool },
+];
 
 export function StudioSidebarTabs({
   assistant,
@@ -38,26 +45,26 @@ export function StudioSidebarTabs({
           : resources;
 
   return (
-    <aside className="flex h-full min-h-0 flex-col bg-[#fbfbfa]">
-      <div className="shrink-0 border-b border-black/6 px-3 py-2">
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-stone-400">
-            <span className="font-semibold text-[#ea6f49]">{tabLabels[activeTab]}</span>
-          </div>
-          <div className="flex gap-1">
-            {(["assistant", "workflow", "models", "resources"] as SidebarTab[]).map((tab) => (
+    <aside className="flex h-full min-h-0 flex-col bg-[#fbfaf7]">
+      <div className="shrink-0 border-b border-black/8 px-2 py-2">
+        <div className="grid grid-cols-4 gap-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.key;
+            return (
               <button
-                key={tab}
+                key={tab.key}
                 type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-[8px] px-2 py-1 text-xs font-medium transition ${
-                  activeTab === tab ? "bg-white text-[#ea6f49] shadow-sm" : "text-stone-500 hover:bg-white"
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex flex-col items-center gap-1 px-2 py-2 text-[11px] font-medium transition-smooth ${
+                  active ? "bg-white text-[#ef6a3a] shadow-[0_2px_8px_rgba(15,23,42,0.04)]" : "text-stone-500 hover:bg-white"
                 }`}
               >
-                {tabLabels[tab]}
+                <Icon className="h-4 w-4" />
+                <span>{tab.label}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -65,3 +72,5 @@ export function StudioSidebarTabs({
     </aside>
   );
 }
+
+

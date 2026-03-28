@@ -5,12 +5,15 @@ import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import {
   IconAgents,
   IconChevronDown,
+  IconClock,
   IconIntegrations,
   IconPlay,
   IconRuns,
   IconSave,
   IconSettings,
+  IconSparkles,
   IconStudio,
+  IconTool,
   IconWorkflows,
 } from "@/components/icons";
 import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
@@ -50,22 +53,29 @@ function formatDateLabel(value: string) {
 function CompactSection({
   title,
   meta,
+  icon,
   defaultOpen = false,
   children,
 }: {
   title: string;
   meta?: string;
+  icon: ReactNode;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
   return (
-    <details open={defaultOpen} className="border border-black/8 bg-white">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{title}</p>
-          {meta ? <p className="mt-1 text-sm text-stone-700">{meta}</p> : null}
+    <details open={defaultOpen} className="overflow-hidden border border-black/8 bg-white">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center border border-black/8 bg-[#faf9f7] text-stone-500">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-stone-900">{title}</p>
+            {meta ? <p className="mt-0.5 truncate text-xs text-stone-500">{meta}</p> : null}
+          </div>
         </div>
-        <IconChevronDown className="h-4 w-4 text-stone-400" />
+        <IconChevronDown className="h-4 w-4 shrink-0 text-stone-400" />
       </summary>
       <div className="border-t border-black/8 px-3 py-3">{children}</div>
     </details>
@@ -83,7 +93,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const error = readMessage(paramsState.error);
   const assistantPrefill = readMessage(paramsState.assistant);
   const activePackKey = readMessage(paramsState.kit);
-  const openPanel = readMessage(paramsState.openPanel) || "assistant";
+  const openPanel = readMessage(paramsState.openPanel);
   const autoSend = readMessage(paramsState.autoSend) === "1";
   const previewPack = readMessage(paramsState.previewPack) === "1";
   const centerMode = readMessage(paramsState.center) || "canvas";
@@ -112,6 +122,16 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   }));
   const resourceSuggestions = buildToolMarketplaceComposerSuggestions(integrationOptions);
   const clearAutoPreviewUrl = `/app/studio/${workflow.id}`;
+
+  const initialRightMode = autoSend || Boolean(assistantPrefill)
+    ? "chat"
+    : openPanel === "workflow" || openPanel === "models" || openPanel === "resources"
+      ? "tools"
+      : openPanel === "assistant"
+        ? "chat"
+        : null;
+
+  const initialRightTab = openPanel === "models" || openPanel === "resources" ? openPanel : "workflow";
 
   const header = (
     <div className="flex min-w-0 items-center justify-between gap-4">
@@ -300,7 +320,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
 
   const workflowSidebar = (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
-      <CompactSection title="Workflow" meta="Name and description" defaultOpen>
+      <CompactSection title="Workflow" meta="Name and description" icon={<IconStudio className="h-4 w-4" />} defaultOpen>
         <form action={saveWorkflow} className="space-y-3">
           <input type="hidden" name="workflowId" value={workflow.id} />
           <div>
@@ -315,8 +335,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
         </form>
       </CompactSection>
 
-      <CompactSection title="Schedule" meta="Automatic runs and timing">
-        <div className="max-h-[360px] overflow-y-auto pr-1">
+      <CompactSection title="Schedule" meta="Automatic runs" icon={<IconClock className="h-4 w-4" />}>
+        <div className="max-h-[300px] overflow-y-auto pr-1">
           <WorkflowSchedulePanel workflowId={workflow.id} workflowName={workflow.name} initialSchedules={workflowSchedules} />
         </div>
       </CompactSection>
@@ -325,21 +345,21 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
 
   const modelsSidebar = (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
-      <CompactSection title="Active model" meta="Provider and primary model" defaultOpen>
+      <CompactSection title="Active model" meta="Provider and runtime" icon={<IconSparkles className="h-4 w-4" />} defaultOpen>
         <div className="border border-black/8 bg-[#faf9f7] px-3 py-3">
           <p className="text-sm font-medium text-stone-900">{generation?.model ?? "GPT-4o-mini"}</p>
           <p className="mt-1 text-xs text-stone-500">Provider: {generation?.provider ?? "OpenAI"}</p>
         </div>
       </CompactSection>
 
-      <CompactSection title="Runtime health" meta="Validation and path count">
+      <CompactSection title="Runtime health" meta="Validation and paths" icon={<IconTool className="h-4 w-4" />}>
         <div className="space-y-2 text-sm leading-6 text-stone-600">
           <div className="border border-black/8 bg-[#faf9f7] px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Validation</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Validation</p>
             <p className="mt-2 text-xl font-semibold text-stone-950">{validation.score}/100</p>
           </div>
           <div className="border border-black/8 bg-[#faf9f7] px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Paths</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Paths</p>
             <p className="mt-2 text-xl font-semibold text-stone-950">{simulation.possible_path_count}</p>
           </div>
         </div>
@@ -355,8 +375,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           header={header}
           leftRail={leftRail}
           initialMode={(centerMode as "create" | "canvas" | "runs" | "integrations" | "settings") || "canvas"}
-          initialRightTab={(openPanel as "assistant" | "workflow" | "models" | "resources") || "assistant"}
-          initialRightOpen={autoSend || Boolean(assistantPrefill)}
+          initialRightTab={initialRightTab}
+          initialRightMode={initialRightMode}
           createContent={createContent}
           canvasContent={canvasContent}
           runsContent={runsContent}
@@ -382,7 +402,3 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </main>
   );
 }
-
-
-
-

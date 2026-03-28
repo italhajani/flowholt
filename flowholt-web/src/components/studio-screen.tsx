@@ -13,7 +13,8 @@ import { StudioSidebarTabs } from "@/components/studio-sidebar-tabs";
 import { StudioWorkspaceShell } from "@/components/studio-workspace-shell";
 
 type StudioCenterMode = "create" | "canvas" | "runs" | "integrations" | "settings";
-type StudioRightTab = "assistant" | "workflow" | "models" | "resources";
+type StudioRightTab = "workflow" | "models" | "resources";
+type RightMode = "tools" | "chat" | null;
 
 type StudioScreenProps = {
   header: ReactNode;
@@ -29,7 +30,7 @@ type StudioScreenProps = {
   resourcesSidebar: ReactNode;
   initialMode?: StudioCenterMode;
   initialRightTab?: StudioRightTab;
-  initialRightOpen?: boolean;
+  initialRightMode?: RightMode;
   workflowName: string;
 };
 
@@ -59,8 +60,8 @@ export function StudioScreen({
   modelsSidebar,
   resourcesSidebar,
   initialMode = "canvas",
-  initialRightTab = "assistant",
-  initialRightOpen = false,
+  initialRightTab = "workflow",
+  initialRightMode = null,
   workflowName,
 }: StudioScreenProps) {
   const [activeMode, setActiveMode] = useState<StudioCenterMode>(initialMode);
@@ -80,7 +81,7 @@ export function StudioScreen({
     <div className="px-3 py-3">
       <div className="border-b border-black/8 pb-3">
         <p className="text-sm font-medium text-stone-900">Studio</p>
-        <p className="mt-1 text-xs text-stone-500 truncate">{workflowName}</p>
+        <p className="mt-1 truncate text-xs text-stone-500">{workflowName}</p>
       </div>
 
       {["Create", "Monitor", "Config"].map((section) => (
@@ -120,12 +121,12 @@ export function StudioScreen({
       leftRail={leftRail}
       leftPanel={leftPanel}
       initialLeftOpen={false}
-      initialRightOpen={initialRightOpen}
+      initialRightMode={initialRightMode}
       canvas={centerContent}
-      rightPanel={
+      chatPanel={assistantSidebar}
+      toolsPanel={
         <StudioSidebarTabs
           initialTab={initialRightTab}
-          assistant={assistantSidebar}
           workflow={workflowSidebar}
           models={modelsSidebar}
           resources={resourcesSidebar}
@@ -134,5 +135,3 @@ export function StudioScreen({
     />
   );
 }
-
-

@@ -113,19 +113,6 @@ type WorkflowRevisionCompareResponse = {
   };
 };
 
-type ComposerHistoryItem = {
-  at: string;
-  mode: "preview" | "apply";
-  message: string;
-  proposal: {
-    name: string;
-    description: string;
-    node_count: number;
-    edge_count: number;
-    provider: string;
-    model: string;
-  };
-};
 
 type ThreadItem = {
   id: string;
@@ -308,7 +295,7 @@ export function StudioAssistantPanel({
   const [proposal, setProposal] = useState<ProposalSummary | null>(null);
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
-  const [history, setHistory] = useState<ComposerHistoryItem[]>([]);
+
   const [compareRevisionId, setCompareRevisionId] = useState("");
   const [compareData, setCompareData] = useState<WorkflowRevisionCompareResponse | null>(null);
   const [compareLoading, setCompareLoading] = useState(false);
@@ -334,7 +321,7 @@ export function StudioAssistantPanel({
             generation?: ProposalSummary["generation"];
             summary?: ProposalSummary["summary"];
           };
-          history?: ComposerHistoryItem[];
+
           last_message?: string;
         };
       };
@@ -360,7 +347,7 @@ export function StudioAssistantPanel({
             },
           );
         }
-        setHistory(Array.isArray(payload.composer.history) ? payload.composer.history : []);
+
         if (!message && typeof payload.composer.last_message === "string") {
           setMessage(payload.composer.last_message);
         }
@@ -687,7 +674,7 @@ export function StudioAssistantPanel({
     }
   }
 
-  const latestRevisionId = revisions[0]?.id ?? "";
+
   const proposalTone = useMemo(() => {
     if (!validation) {
       return "border-stone-900/10 bg-stone-50";
@@ -985,6 +972,8 @@ export function StudioAssistantPanel({
     </div>
   );
 }
+
+
 
 
 

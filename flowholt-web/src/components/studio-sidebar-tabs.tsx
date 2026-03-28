@@ -2,52 +2,42 @@
 
 import { ReactNode, useState } from "react";
 
-import {
-  IconMessage,
-  IconStudio,
-  IconTool,
-  IconWorkflows,
-} from "@/components/icons";
+import { IconStudio, IconTool, IconWorkflows } from "@/components/icons";
 
-type SidebarTab = "assistant" | "workflow" | "models" | "resources";
+type SidebarTab = "workflow" | "models" | "resources";
 
 type StudioSidebarTabsProps = {
-  assistant: ReactNode;
   workflow: ReactNode;
   models: ReactNode;
   resources: ReactNode;
   initialTab?: SidebarTab;
 };
 
-const tabs: Array<{ key: SidebarTab; label: string; icon: typeof IconMessage }> = [
-  { key: "assistant", label: "Assist", icon: IconMessage },
+const tabs: Array<{ key: SidebarTab; label: string; icon: typeof IconWorkflows }> = [
   { key: "workflow", label: "Workflow", icon: IconWorkflows },
   { key: "models", label: "Models", icon: IconStudio },
   { key: "resources", label: "Resources", icon: IconTool },
 ];
 
 export function StudioSidebarTabs({
-  assistant,
   workflow,
   models,
   resources,
-  initialTab = "assistant",
+  initialTab = "workflow",
 }: StudioSidebarTabsProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>(initialTab);
 
   const content =
-    activeTab === "assistant"
-      ? assistant
-      : activeTab === "workflow"
-        ? workflow
-        : activeTab === "models"
-          ? models
-          : resources;
+    activeTab === "workflow"
+      ? workflow
+      : activeTab === "models"
+        ? models
+        : resources;
 
   return (
     <aside className="flex h-full min-h-0 flex-col bg-[#fbfaf7]">
       <div className="shrink-0 border-b border-black/8 px-2 py-2">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
@@ -72,5 +62,3 @@ export function StudioSidebarTabs({
     </aside>
   );
 }
-
-

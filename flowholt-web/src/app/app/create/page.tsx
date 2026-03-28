@@ -205,9 +205,10 @@ export default async function CreatePage({ searchParams }: CreatePageProps) {
           leftRail={leftRail}
           leftPanel={leftPanel}
           canvas={center}
-          rightPanel={<div className="flex h-full items-center justify-center p-4 text-sm text-stone-400">Send a message from the center and the assistant opens here.</div>}
+          toolsPanel={<div className="h-full bg-[#fbfaf7]" />}
+          chatPanel={<div className="flex h-full items-center justify-center p-4 text-sm text-stone-400">Send a message from the center and the assistant opens here.</div>}
           initialLeftOpen={false}
-          initialRightOpen={false}
+          initialRightMode={null}
         />
       </div>
     </main>

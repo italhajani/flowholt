@@ -577,6 +577,7 @@ function CanvasInner({
     { key: "data", label: "Data" },
     { key: "json", label: "JSON" },
   ];
+  const inspectorVisible = Boolean(selectedNode || selectedEdge);
 
   return (
     <div className="space-y-4">
@@ -664,7 +665,8 @@ function CanvasInner({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[22px] border border-black/6 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+      {inspectorVisible ? (
+        <div className="overflow-hidden rounded-[22px] border border-black/6 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
         <div className="flex flex-wrap gap-2 border-b border-black/6 px-4 py-3">
           {inspectorButtons.map((pane) => (
             <button
@@ -839,7 +841,8 @@ function CanvasInner({
             </div>
           ) : null}
         </div>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

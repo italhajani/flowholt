@@ -577,7 +577,8 @@ function CanvasInner({
     { key: "data", label: "Data" },
     { key: "json", label: "JSON" },
   ];
-  const inspectorVisible = Boolean(selectedNode || selectedEdge);
+  const [manualInspectorOpen, setManualInspectorOpen] = useState(false);
+  const inspectorVisible = Boolean(manualInspectorOpen || selectedNode || selectedEdge);
 
   return (
     <div className="flex h-full flex-col space-y-0">
@@ -585,22 +586,7 @@ function CanvasInner({
 
       <div className="flex-1 overflow-hidden rounded-[20px] border border-black/6 bg-[#fafafa] shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
         <div className="flex h-full flex-col">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/6 bg-white px-5 py-3.5 sm:gap-3">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <button type="button" className="rounded-[10px] bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white">
-                Editor
-              </button>
-              <button type="button" className="rounded-[10px] border border-black/8 bg-white px-3 py-1.5 text-xs font-medium text-stone-500 transition hover:bg-[#f7f7f5]">
-                Canvas
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-              <span className="inline-flex rounded-full bg-[#eef9f2] px-3 py-1 text-[11px] font-semibold text-emerald-700">Ready to test</span>
-              <span className="inline-flex rounded-full bg-[#f5f5f5] px-3 py-1 text-[11px] font-semibold text-stone-500">{nodes.length} nodes</span>
-            </div>
-          </div>
-
-          <div className="flex flex-1 min-h-0 gap-0">
+            <div className="flex flex-1 min-h-0 gap-0">
             <div className="hidden lg:block w-[84px] border-r border-black/6 bg-white p-3">
               <div className="grid auto-rows-max gap-2">
                 {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => (
@@ -617,7 +603,7 @@ function CanvasInner({
               </div>
             </div>
 
-            <div className="relative flex-1 overflow-hidden bg-[#fcfcfb]">
+            <div className="relative flex-1 overflow-hidden bg-transparent">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -654,6 +640,24 @@ function CanvasInner({
                 <Controls showInteractive={false} />
                 <Background gap={24} size={1.2} color="rgba(107,114,128,0.16)" />
               </ReactFlow>
+
+              {/* floating inspector toggle */}
+              <button
+                type="button"
+                onClick={() => setManualInspectorOpen((v) => !v)}
+                aria-label="Toggle inspector"
+                className="absolute right-4 bottom-4 z-40 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 border border-black/8 shadow-sm hover:bg-white transition"
+              >
+                {manualInspectorOpen || selectedNode || selectedEdge ? (
+                  <svg className="w-4 h-4 text-stone-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-stone-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>

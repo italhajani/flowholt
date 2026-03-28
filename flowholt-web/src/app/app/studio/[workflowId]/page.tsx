@@ -120,15 +120,16 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
 
   const canvasContent = (
     <div className="flex h-full flex-col overflow-hidden bg-[#f4f4f2]">
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="p-4 sm:p-5 lg:p-6">
-          {message ? <div className="mb-4 rounded-[14px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
-          {error ? <div className="mb-4 rounded-[14px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
-          <form id="workflow-save-form" action={saveWorkflow} className="h-full">
-            <input type="hidden" name="workflowId" value={workflow.id} />
+      <div className="flex-1 min-h-0 overflow-auto h-full">
+        {/* removed outer padding so canvas can fill the available area exactly */}
+        {message ? <div className="mb-4 rounded-[14px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
+        {error ? <div className="mb-4 rounded-[14px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
+        <form id="workflow-save-form" action={saveWorkflow} className="h-full">
+          <input type="hidden" name="workflowId" value={workflow.id} />
+          <div className="h-full min-h-0">
             <StudioCanvas initialGraph={graph} originalPrompt={originalPrompt} latestRunOutput={latestRunOutput} integrationOptions={integrationOptions} />
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -226,48 +227,93 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   );
 
   const workflowSidebar = (
-    <div className="space-y-4">
-      <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Workflow</p>
-        <form action={saveWorkflow} className="mt-4 space-y-4">
-          <input type="hidden" name="workflowId" value={workflow.id} />
-          <div>
-            <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="workflow-name">Name</label>
-            <input id="workflow-name" name="name" defaultValue={workflow.name} className="w-full rounded-[14px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none" />
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+      <details open className="overflow-hidden rounded-[18px] border border-black/6 bg-white">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Workflow</p>
+              <p className="mt-1 text-sm font-medium text-stone-900">Name and description</p>
+            </div>
+            <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">Open</span>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="workflow-description">Description</label>
-            <textarea id="workflow-description" name="description" defaultValue={workflow.description} rows={3} className="w-full rounded-[14px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none" />
-          </div>
-          <button type="submit" className="w-full rounded-[12px] border border-black/8 bg-white px-4 py-3 text-sm font-medium text-stone-900">Save workflow</button>
-        </form>
-      </div>
+        </summary>
+        <div className="border-t border-black/6 px-4 py-4">
+          <form action={saveWorkflow} className="space-y-4">
+            <input type="hidden" name="workflowId" value={workflow.id} />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="workflow-name">Name</label>
+              <input id="workflow-name" name="name" defaultValue={workflow.name} className="w-full rounded-[14px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none" />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="workflow-description">Description</label>
+              <textarea id="workflow-description" name="description" defaultValue={workflow.description} rows={3} className="w-full rounded-[14px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none" />
+            </div>
+            <button type="submit" className="w-full rounded-[12px] border border-black/8 bg-white px-4 py-3 text-sm font-medium text-stone-900">Save workflow</button>
+          </form>
+        </div>
+      </details>
 
-      <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Schedule</p>
-        <div className="mt-4">
+      <details className="overflow-hidden rounded-[18px] border border-black/6 bg-white">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Schedule</p>
+              <p className="mt-1 text-sm font-medium text-stone-900">Automatic runs and timing</p>
+            </div>
+            <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">Toggle</span>
+          </div>
+        </summary>
+        <div className="border-t border-black/6 px-4 py-4 max-h-[520px] overflow-y-auto pr-2">
           <WorkflowSchedulePanel workflowId={workflow.id} workflowName={workflow.name} initialSchedules={workflowSchedules} />
         </div>
-      </div>
+      </details>
     </div>
   );
 
   const modelsSidebar = (
-    <div className="space-y-4">
-      <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Active model</p>
-        <div className="mt-3 flex items-center justify-between rounded-[14px] bg-[#fafafa] px-4 py-3">
-          <span className="text-sm font-medium text-stone-900">{generation?.model ?? "GPT-4o-mini"}</span>
-          <span className="rounded-full bg-[#f2efff] px-3 py-1 text-xs font-medium text-[#6f5bf3]">{generation?.provider ?? "OpenAI"}</span>
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+      <details open className="overflow-hidden rounded-[18px] border border-black/6 bg-white">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Active model</p>
+              <p className="mt-1 text-sm font-medium text-stone-900">Provider and primary model</p>
+            </div>
+            <span className="rounded-full bg-[#f2efff] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6f5bf3]">{generation?.provider ?? "OpenAI"}</span>
+          </div>
+        </summary>
+        <div className="border-t border-black/6 px-4 py-4">
+          <div className="rounded-[14px] bg-[#fafafa] px-4 py-3">
+            <p className="text-sm font-medium text-stone-900">{generation?.model ?? "GPT-4o-mini"}</p>
+            <p className="mt-1 text-xs text-stone-500">Used for the main assistant reasoning step.</p>
+          </div>
         </div>
-      </div>
-      <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4 text-sm leading-6 text-stone-600">
-        <p>Validation score: {validation.score}/100</p>
-        <p>Estimated paths: {simulation.possible_path_count}</p>
-      </div>
+      </details>
+
+      <details className="overflow-hidden rounded-[18px] border border-black/6 bg-white">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Runtime health</p>
+              <p className="mt-1 text-sm font-medium text-stone-900">Validation and path count</p>
+            </div>
+            <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">Toggle</span>
+          </div>
+        </summary>
+        <div className="border-t border-black/6 px-4 py-4 space-y-3 text-sm leading-6 text-stone-600">
+          <div className="rounded-[14px] bg-[#fafafa] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Validation</p>
+            <p className="mt-2 text-xl font-semibold text-stone-950">{validation.score}/100</p>
+          </div>
+          <div className="rounded-[14px] bg-[#fafafa] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Paths</p>
+            <p className="mt-2 text-xl font-semibold text-stone-950">{simulation.possible_path_count}</p>
+          </div>
+        </div>
+      </details>
     </div>
   );
-
   return (
     <main className="h-screen overflow-hidden bg-[#f4f4f2] text-stone-950">
       <div className="mx-auto flex h-full max-w-[1680px] gap-5 px-4 py-4">

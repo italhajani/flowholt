@@ -1,4 +1,4 @@
-import Link from "next/link";
+ï»¿import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { SurfaceCard } from "@/components/surface-card";
@@ -22,7 +22,7 @@ const designDirections = [
   },
   {
     key: "mint-sand",
-    title: "Mint & Sand",
+    title: "Mint and Sand",
     description:
       "Gentle contrast with one signature accent, softer surface layers, and a friendlier builder experience.",
     fit:
@@ -52,21 +52,27 @@ export default function DesignPage() {
           description="The product foundation is now strong enough that the next major move should be your design survey, then the full premium redesign across Studio, dashboard, runs, integrations, and workflows."
           tone="mint"
         >
-          <div className="grid gap-3 md:grid-cols-3 text-sm leading-6 text-stone-700">
+          <div className="grid gap-3 text-sm leading-6 text-stone-700 md:grid-cols-3">
             <div className="rounded-2xl bg-white/80 px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Backend</p>
               <p className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">99%</p>
-              <p className="mt-1 text-stone-600">Runs, schedules, revisions, resources, billing foundation, security, and monitoring are in place.</p>
+              <p className="mt-1 text-stone-600">
+                Runs, schedules, revisions, resources, billing foundation, security, and monitoring are in place.
+              </p>
             </div>
             <div className="rounded-2xl bg-white/80 px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">UI foundation</p>
               <p className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">96%</p>
-              <p className="mt-1 text-stone-600">The product shell, Studio sidebar, resources layer, and billing/settings surfaces are ready for redesign.</p>
+              <p className="mt-1 text-stone-600">
+                The product shell, Studio sidebar, resources layer, and billing/settings surfaces are ready for redesign.
+              </p>
             </div>
             <div className="rounded-2xl bg-white/80 px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Next phase</p>
               <p className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">Survey</p>
-              <p className="mt-1 text-stone-600">We should use your taste to lock the final premium visual system before repainting the whole app.</p>
+              <p className="mt-1 text-stone-600">
+                We should use your taste to lock the final premium visual system before repainting the whole app.
+              </p>
             </div>
           </div>
         </SurfaceCard>
@@ -96,22 +102,30 @@ export default function DesignPage() {
               description="These are the surfaces that should be redesigned together once your survey answers are locked."
               tone="sand"
             >
-              <div className="grid gap-3 md:grid-cols-2 text-sm leading-6 text-stone-700">
+              <div className="grid gap-3 text-sm leading-6 text-stone-700 md:grid-cols-2">
                 <div className="rounded-2xl bg-white/80 px-4 py-4">
                   <p className="font-semibold text-stone-950">Studio</p>
-                  <p className="mt-1 text-stone-600">Multi-panel editor shell, premium canvas chrome, cleaner resources and assistant layout.</p>
+                  <p className="mt-1 text-stone-600">
+                    Multi-panel editor shell, premium canvas chrome, cleaner resources and assistant layout.
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-white/80 px-4 py-4">
                   <p className="font-semibold text-stone-950">Dashboard and runs</p>
-                  <p className="mt-1 text-stone-600">Consistent summary cards, timelines, health views, and calmer hierarchy.</p>
+                  <p className="mt-1 text-stone-600">
+                    Consistent summary cards, timelines, health views, and calmer hierarchy.
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-white/80 px-4 py-4">
                   <p className="font-semibold text-stone-950">Integrations and settings</p>
-                  <p className="mt-1 text-stone-600">More polished setup flows, billing views, and account/workspace administration surfaces.</p>
+                  <p className="mt-1 text-stone-600">
+                    More polished setup flows, billing views, and account/workspace administration surfaces.
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-white/80 px-4 py-4">
                   <p className="font-semibold text-stone-950">Workflow library</p>
-                  <p className="mt-1 text-stone-600">A cleaner portfolio-style library for drafts, live automations, and reusable workflow packs.</p>
+                  <p className="mt-1 text-stone-600">
+                    A cleaner portfolio-style library for drafts, live automations, and reusable workflow packs.
+                  </p>
                 </div>
               </div>
             </SurfaceCard>
@@ -120,13 +134,15 @@ export default function DesignPage() {
           <div className="space-y-5">
             <SurfaceCard
               title="Survey checklist"
-              description="These are the exact decisions I’ll need from you before the full premium redesign starts."
+              description="These are the exact decisions I will need from you before the full premium redesign starts."
               tone="default"
             >
               <div className="space-y-3 text-sm leading-6 text-stone-700">
                 {surveySections.map((item, index) => (
                   <div key={item} className="rounded-2xl bg-white/80 px-4 py-3">
-                    <p className="font-medium text-stone-900">{index + 1}. {item}</p>
+                    <p className="font-medium text-stone-900">
+                      {index + 1}. {item}
+                    </p>
                   </div>
                 ))}
               </div>

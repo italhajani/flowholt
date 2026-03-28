@@ -24,7 +24,7 @@ type StudioScreenProps = {
   runsContent: ReactNode;
   integrationsContent: ReactNode;
   settingsContent: ReactNode;
-  assistantSidebar: ReactNode;
+  renderAssistantSidebar: (controls: { close: () => void }) => ReactNode;
   workflowSidebar: ReactNode;
   modelsSidebar: ReactNode;
   resourcesSidebar: ReactNode;
@@ -55,7 +55,7 @@ export function StudioScreen({
   runsContent,
   integrationsContent,
   settingsContent,
-  assistantSidebar,
+  renderAssistantSidebar,
   workflowSidebar,
   modelsSidebar,
   resourcesSidebar,
@@ -104,7 +104,7 @@ export function StudioScreen({
                         : "text-[#6b6760] hover:bg-[#f7f7f6]"
                     }`}
                   >
-                    {active ? <span className="absolute left-0 top-0 h-full w-[2px] rounded-r-[2px] bg-[#d4500a]" /> : null}
+                    {active ? <span className="absolute left-0 top-0 h-full w-[2px] bg-[#d4500a]" /> : null}
                     <Icon className="h-[14px] w-[14px] shrink-0" />
                     <span>{item.label}</span>
                   </button>
@@ -124,7 +124,7 @@ export function StudioScreen({
       initialLeftOpen={true}
       initialRightMode={initialRightMode}
       canvas={centerContent}
-      chatPanel={assistantSidebar}
+      renderChatPanel={renderAssistantSidebar}
       toolsPanel={
         <StudioSidebarTabs
           initialTab={initialRightTab}

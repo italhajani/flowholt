@@ -1,9 +1,16 @@
 "use client";
 
-import { ReactNode, useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { IconCheck, IconChevronDown, IconClock, IconMessage, IconSparkles } from "@/components/icons";
+import {
+  IconCheck,
+  IconClock,
+  IconMessage,
+  IconPlus,
+  IconSparkles,
+  IconX,
+} from "@/components/icons";
 
 type ProposalSummary = {
   name: string;
@@ -50,69 +57,7 @@ type RevisionItem = {
   before_name: string;
   after_name: string;
   created_at: string;
-  change_summary?: {
-    reasoning?: string[];
-    changes?: Array<{
-      kind: string;
-      label: string;
-      node_type: string;
-      reason: string;
-    }>;
-  };
 };
-
-type WorkflowRevisionCompareResponse = {
-  revision: {
-    id: string;
-    workflow_id: string;
-    source: string;
-    message: string;
-    created_at: string;
-    before_name: string;
-    after_name: string;
-  };
-  comparison: {
-    before: {
-      name: string;
-      description: string;
-      node_count: number;
-      edge_count: number;
-    };
-    after: {
-      name: string;
-      description: string;
-      node_count: number;
-      edge_count: number;
-    };
-    flags: {
-      name_changed: boolean;
-      description_changed: boolean;
-    };
-    added_nodes: Array<{ id: string; label: string; type: string }>;
-    removed_nodes: Array<{ id: string; label: string; type: string }>;
-    changed_nodes: Array<{
-      id: string;
-      before_label: string;
-      after_label: string;
-      before_type: string;
-      after_type: string;
-      config_changed: boolean;
-    }>;
-    added_edges: Array<{ source: string; target: string; label: string; branch: string }>;
-    removed_edges: Array<{ source: string; target: string; label: string; branch: string }>;
-    summary_lines: string[];
-  };
-  change_summary?: {
-    reasoning?: string[];
-    changes?: Array<{
-      kind: string;
-      label: string;
-      node_type: string;
-      reason: string;
-    }>;
-  };
-};
-
 
 type ThreadItem = {
   id: string;
@@ -151,6 +96,7 @@ type StudioAssistantPanelProps = {
   autoPreviewResourceKitKey?: string;
   clearAutoPreviewUrl?: string;
   resourceSuggestions?: ResourceSuggestion[];
+  onClose?: () => void;
 };
 
 function asRecord(value: unknown) {
@@ -173,34 +119,22 @@ function readError(payload: unknown, fallback: string) {
   return fallback;
 }
 
-function formatDateTime(value: string | null | undefined) {
+function formatStamp(value: string | null | undefined) {
   if (!value) {
-    return "Just now";
+    return "Now";
   }
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return "Just now";
+    return "Now";
   }
 
-  return parsed.toLocaleString();
+  return parsed.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function messageTone(role: ThreadMessage["role"]) {
+function formatWho(role: ThreadMessage["role"]) {
   if (role === "assistant") {
-    return "ml-4 border-[#e7e3ff] bg-[#faf9ff]";
-  }
-
-  if (role === "system") {
-    return "border-[#f0e4d4] bg-[#fbf7f1]";
-  }
-
-  return "mr-4 border-black/8 bg-white";
-}
-
-function messageLabel(role: ThreadMessage["role"]) {
-  if (role === "assistant") {
-    return "FlowHolt assistant";
+    return "Workflow Agent";
   }
 
   if (role === "system") {
@@ -208,71 +142,6 @@ function messageLabel(role: ThreadMessage["role"]) {
   }
 
   return "You";
-}
-
-function metadataBadges(metadata: Record<string, unknown>) {
-  const badges: string[] = [];
-  const mode = asString(metadata.mode);
-  const source = asString(metadata.source);
-  const applied = metadata.applied === true;
-  const valid = metadata.valid === true;
-
-  if (mode) {
-    badges.push(mode);
-  }
-  if (applied) {
-    badges.push("applied");
-  }
-  if (valid) {
-    badges.push("valid");
-  }
-  if (source && source !== "compose") {
-    badges.push(source);
-  }
-
-  return badges.slice(0, 3);
-}
-
-type AssistantSectionProps = {
-  title: string;
-  subtitle: string;
-  badge?: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-};
-
-function AssistantSection({
-  title,
-  subtitle,
-  badge,
-  defaultOpen = false,
-  children,
-}: AssistantSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <section className="border-b border-black/8 py-3 last:border-b-0">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-3 text-left transition-smooth hover:text-stone-950"
-      >
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium text-stone-950">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-stone-500">{subtitle}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 text-stone-400">
-          {badge ? (
-            <span className="rounded-[999px] border border-black/8 px-2 py-0.5 text-[10px] font-medium text-stone-500">
-              {badge}
-            </span>
-          ) : null}
-          <IconChevronDown className="h-4 w-4" />
-        </div>
-      </button>
-      {open ? <div className="pt-3">{children}</div> : null}
-    </section>
-  );
 }
 
 export function StudioAssistantPanel({
@@ -284,6 +153,7 @@ export function StudioAssistantPanel({
   autoPreviewResourceKitKey = "",
   clearAutoPreviewUrl = "",
   resourceSuggestions = [],
+  onClose,
 }: StudioAssistantPanelProps) {
   const router = useRouter();
   const [message, setMessage] = useState(prefillMessage || initialPrompt);
@@ -293,10 +163,6 @@ export function StudioAssistantPanel({
   const [proposal, setProposal] = useState<ProposalSummary | null>(null);
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
-
-  const [compareRevisionId, setCompareRevisionId] = useState("");
-  const [compareData, setCompareData] = useState<WorkflowRevisionCompareResponse | null>(null);
-  const [compareLoading, setCompareLoading] = useState(false);
   const [composerLoading, setComposerLoading] = useState(true);
   const [revisionsLoading, setRevisionsLoading] = useState(true);
   const [threadsLoading, setThreadsLoading] = useState(true);
@@ -319,7 +185,6 @@ export function StudioAssistantPanel({
             generation?: ProposalSummary["generation"];
             summary?: ProposalSummary["summary"];
           };
-
           last_message?: string;
         };
       };
@@ -361,12 +226,7 @@ export function StudioAssistantPanel({
       const response = await fetch(`/api/workflows/${workflowId}/revisions?limit=8`, { cache: "no-store" });
       const payload = (await response.json().catch(() => ({}))) as { revisions?: RevisionItem[] };
       if (response.ok) {
-        const nextRevisions = Array.isArray(payload.revisions) ? payload.revisions : [];
-        setRevisions(nextRevisions);
-        if (compareRevisionId && !nextRevisions.some((revision) => revision.id === compareRevisionId)) {
-          setCompareRevisionId("");
-          setCompareData(null);
-        }
+        setRevisions(Array.isArray(payload.revisions) ? payload.revisions : []);
       }
     } finally {
       setRevisionsLoading(false);
@@ -483,41 +343,6 @@ export function StudioAssistantPanel({
     return payload.thread.id;
   }
 
-  async function loadRevisionCompare(revisionId: string) {
-    if (compareRevisionId === revisionId && compareData) {
-      setCompareRevisionId("");
-      setCompareData(null);
-      return;
-    }
-
-    setCompareRevisionId(revisionId);
-    setCompareLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/workflows/${workflowId}/revisions/${revisionId}/compare`, {
-        cache: "no-store",
-      });
-      const payload = (await response.json().catch(() => ({}))) as WorkflowRevisionCompareResponse & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        setCompareData(null);
-        setErrorMessage(readError(payload, "Unable to compare revision."));
-        return;
-      }
-
-      setCompareData(payload);
-    } catch (error) {
-      setCompareData(null);
-      setErrorMessage(error instanceof Error ? error.message : "Unable to compare revision.");
-    } finally {
-      setCompareLoading(false);
-    }
-  }
-
   async function submitCompose(mode: "preview" | "apply", overrideMessage?: string, resourceKitKey = "") {
     const trimmed = (overrideMessage ?? message).trim();
     if (!trimmed) {
@@ -552,7 +377,6 @@ export function StudioAssistantPanel({
         proposal?: ProposalSummary;
         validation?: ValidationReport;
         error?: string;
-        applied?: boolean;
       };
 
       setProposal(payload.proposal ?? null);
@@ -561,18 +385,10 @@ export function StudioAssistantPanel({
       if (!response.ok) {
         setErrorMessage(readError(payload, "Assistant request failed."));
       } else {
-        setSuccessMessage(
-          mode === "apply"
-            ? "Workflow updated from assistant proposal."
-            : "Preview ready. Review it before applying.",
-        );
+        setSuccessMessage(mode === "apply" ? "Applied to canvas." : "Ready to review.");
       }
 
-      await Promise.all([
-        loadComposerState(),
-        loadRevisions(),
-        loadThreads(ensuredThreadId),
-      ]);
+      await Promise.all([loadComposerState(), loadRevisions(), loadThreads(ensuredThreadId)]);
 
       if (response.ok && mode === "apply") {
         startTransition(() => {
@@ -636,346 +452,200 @@ export function StudioAssistantPanel({
     setAutoPreviewState(autoPreviewKey);
 
     void runAutoPreview(trimmedPrefill, trimmedKit);
-  }, [
-    autoPreviewResourceKitKey,
-    autoPreviewState,
-    clearAutoPreviewUrl,
-    prefillMessage,
-    workflowId,
-  ]);
+  }, [autoPreviewResourceKitKey, autoPreviewState, clearAutoPreviewUrl, prefillMessage, workflowId]);
 
-  async function restoreRevision(revisionId: string, mode: "restore" | "undo") {
-    setWorkingMode(mode);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/workflows/${workflowId}/revisions/${revisionId}/restore`, {
-        method: "POST",
-      });
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setErrorMessage(readError(payload, "Unable to restore revision."));
-        return;
-      }
-
-      setSuccessMessage(mode === "undo" ? "Last change undone." : "Revision restored successfully.");
-      await Promise.all([loadRevisions(), loadComposerState(), loadThreads(threadId)]);
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to restore revision.");
-    } finally {
-      setWorkingMode(null);
-    }
-  }
-
-
-  const proposalTone = useMemo(() => {
-    if (!validation) {
-      return "border-stone-900/10 bg-stone-50";
-    }
-    return validation.valid ? "border-emerald-200 bg-[#eef4ef]" : "border-amber-200 bg-[#f7ede2]";
-  }, [validation]);
-
-  const threadSummary = useMemo(() => {
-    if (!threads.length) {
-      return "No conversation yet";
-    }
-
-    return `${threads.length} thread${threads.length === 1 ? "" : "s"}`;
-  }, [threads]);
+  const thoughtSteps = useMemo(() => proposal?.reasoning?.slice(0, 4) ?? [], [proposal]);
+  const recentMessages = useMemo(() => messages.slice(-8), [messages]);
+  const latestChange = proposal?.changes?.[0] ?? null;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <div className="space-y-3">
-          <div className="border-b border-black/8 pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <IconSparkles className="h-4 w-4 text-[#6f5bf3]" />
-                <p className="text-sm font-semibold text-stone-900">Thought process</p>
-              </div>
-              <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                {threadsLoading ? "Loading" : threadSummary}
-              </span>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-stone-700">
-              {composerLoading
-                ? "I am checking the current workflow state and gathering the best next change."
-                : proposal?.reasoning?.[0]
-                  ? proposal.reasoning[0]
-                  : messages.findLast((item) => item.role === "assistant")?.message || "Ask FlowHolt to change or build something and the assistant will work here."}
-            </p>
+      <div className="flex h-[58px] items-center justify-between border-b border-[#ece8e1] px-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#1f1f1d] text-white">
+            <span className="text-[11px] font-semibold">AI</span>
           </div>
-
-          <div className="border-b border-black/8 py-4">
-            <div className="space-y-3">
-              {(proposal?.reasoning?.slice(0, 4) ?? []).map((item, index) => (
-                <div key={`${item}-${index}`} className="flex gap-3">
-                  <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-emerald-600">
-                    <IconCheck className="h-4 w-4" />
-                  </span>
-                  <p className="text-sm leading-6 text-stone-700">{item}</p>
-                </div>
-              ))}
-              {workingMode ? (
-                <div className="flex gap-3">
-                  <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-stone-500">
-                    <IconClock className="h-4 w-4" />
-                  </span>
-                  <p className="text-sm leading-6 text-stone-600">
-                    {workingMode === "preview" ? "Thinking... preparing workflow preview." : workingMode === "apply" ? "Applying assistant change..." : workingMode === "restore" ? "Restoring revision..." : "Undoing the last change..."}
-                  </p>
-                </div>
-              ) : null}
-            </div>
+          <div>
+            <p className="text-[14px] font-semibold text-[#141413]">Workflow Agent</p>
+            <p className="text-[12px] text-[#9a9387]">AI-powered workflow builder</p>
           </div>
-
-          {messagesLoading ? (
-            <div className="py-4 text-sm leading-6 text-stone-500">Loading conversation...</div>
-          ) : messages.length ? (
-            <div className="space-y-3">
-              {messages.slice(-6).map((item) => {
-                const badges = metadataBadges(item.metadata);
-                return (
-                  <div key={item.id} className={`border px-3 py-3 ${messageTone(item.role)}`}>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                        {messageLabel(item.role)}
-                      </p>
-                      <p className="text-[11px] text-stone-400">{formatDateTime(item.created_at)}</p>
-                    </div>
-                    {badges.length ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {badges.map((badge) => (
-                          <span
-                            key={`${item.id}-${badge}`}
-                            className="border border-black/8 bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500"
-                          >
-                            {badge}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700">{item.message}</p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="py-4 text-sm leading-6 text-stone-500">
-              No assistant conversation yet. Send a message below and the chat builds here.
-            </div>
-          )}
-
-          {resourceSuggestions.length ? (
-            <AssistantSection
-              title="Pack suggestions"
-              subtitle="Use a ready idea from your resources."
-              badge={`${resourceSuggestions.length} ideas`}
-            >
-              <div className="space-y-3">
-                {resourceSuggestions.slice(0, 3).map((suggestion) => (
-                  <div key={suggestion.id} className="rounded-[8px] border border-black/10 bg-[#faf9f7] px-3 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
-                      </div>
-                      <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                        {suggestion.readiness}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMessage(suggestion.prompt);
-                          setErrorMessage("");
-                          setSuccessMessage("");
-                        }}
-                        className="border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
-                      >
-                        Use idea
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void previewResourceSuggestion(suggestion)}
-                        disabled={workingMode !== null || isPending || composerLoading}
-                        className="border border-black/8 bg-stone-900 px-3 py-2 text-xs font-medium text-white transition-smooth hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
-                      >
-                        Preview pack
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </AssistantSection>
-          ) : null}
-
-          <AssistantSection
-            title="Reasoning details"
-            subtitle="Preview summary, validation, and the planned node changes."
-            badge={proposal ? `${proposal.summary.node_count} nodes` : "Empty"}
-            defaultOpen={Boolean(proposal)}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setMessage("");
+              setErrorMessage("");
+              setSuccessMessage("");
+            }}
+            className="inline-flex h-7 w-7 items-center justify-center text-[#7b756b] transition-smooth hover:bg-[#f6f4ef]"
+            aria-label="New chat"
           >
-            {proposal ? (
-              <div className="space-y-3 text-sm text-stone-700">
-                <div className={`rounded-[8px] border px-3 py-3 ${proposalTone}`}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-stone-900">{proposal.name}</p>
-                      <p className="mt-1 text-sm text-stone-600">{proposal.description}</p>
-                    </div>
-                    <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                      {proposal.generation.provider} | {proposal.generation.model}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                    <span className="border border-black/8 bg-white px-2 py-1">{proposal.summary.edge_count} edges</span>
-                    <span className="border border-black/8 bg-white px-2 py-1">{proposal.summary.tool_count} tools</span>
-                    {validation ? <span className="border border-black/8 bg-white px-2 py-1">Score {validation.score}</span> : null}
-                  </div>
-                </div>
-
-                {proposal.changes.length ? (
-                  <div className="space-y-3">
-                    {proposal.changes.slice(0, 4).map((change, index) => (
-                      <div key={`${change.node_id}-${index}`} className="rounded-[8px] border border-black/10 bg-[#faf9f7] px-3 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-medium text-stone-900">{change.label}</p>
-                          <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                            {change.kind} | {change.node_type}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm leading-6 text-stone-600">{change.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-stone-500">No planned changes yet.</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm leading-6 text-stone-500">No proposal yet. Use Send to see the plan.</p>
-            )}
-          </AssistantSection>
-
-          <AssistantSection
-            title="Revision history"
-            subtitle="Compare or restore recent workflow versions."
-            badge={revisions.length ? `${revisions.length} recent` : "Empty"}
+            <IconPlus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-7 w-7 items-center justify-center text-[#7b756b] transition-smooth hover:bg-[#f6f4ef]"
+            aria-label="Close chat"
           >
-            <div className="space-y-3">
-              {revisionsLoading ? (
-                <p className="text-sm text-stone-500">Loading revisions...</p>
-              ) : revisions.length ? (
-                revisions.map((revision) => {
-                  const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
-                  const comparison = isCompareOpen ? compareData?.comparison : null;
-                  return (
-                    <div key={revision.id} className="rounded-[8px] border border-black/10 bg-[#faf9f7] px-3 py-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
-                          <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-stone-400">
-                            {revision.source} | {new Date(revision.created_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void loadRevisionCompare(revision.id)}
-                            disabled={(compareLoading && compareRevisionId === revision.id) || workingMode !== null || isPending}
-                            className="border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
-                          >
-                            {compareLoading && compareRevisionId === revision.id ? "Comparing..." : isCompareOpen ? "Hide" : "Compare"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void restoreRevision(revision.id, "restore")}
-                            disabled={workingMode !== null || isPending}
-                            className="border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
-                          >
-                            {workingMode === "restore" ? "Restoring..." : "Restore"}
-                          </button>
-                        </div>
-                      </div>
-                      {isCompareOpen && comparison ? (
-                        <div className="mt-3 border border-black/8 bg-white px-3 py-3 text-sm leading-6 text-stone-700">
-                          {comparison.summary_lines.map((line, index) => (
-                            <p key={`${revision.id}-${index}`}>{line}</p>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-stone-500">No revisions yet.</p>
-              )}
-            </div>
-          </AssistantSection>
+            <IconX className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-black/8 bg-white px-4 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#faf8f4] px-3 py-3">
+        <div className="space-y-3">
+          {thoughtSteps.length ? (
+            <div className="border border-[#e7e2d8] bg-[#f1efea] px-3 py-3">
+              <div className="mb-2 flex items-center gap-2 text-[#59544c]">
+                <IconSparkles className="h-4 w-4" />
+                <p className="text-[12px] font-medium">Thought process</p>
+              </div>
+              <div className="space-y-2">
+                {thoughtSteps.map((item, index) => (
+                  <div key={`${item}-${index}`} className="flex items-start gap-2 text-[13px] leading-6 text-[#3f3b36]">
+                    <IconCheck className="mt-1 h-3.5 w-3.5 shrink-0 text-[#27a35b]" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {messagesLoading || threadsLoading ? (
+            <div className="px-1 py-2 text-[13px] text-[#8d877c]">Loading conversation...</div>
+          ) : recentMessages.length ? (
+            recentMessages.map((item) => {
+              const assistant = item.role === "assistant";
+              return (
+                <div key={item.id} className={`flex ${assistant ? "justify-start" : "justify-end"}`}>
+                  <div className={`max-w-[88%] ${assistant ? "" : "text-right"}`}>
+                    <div className={`mb-1 flex items-center gap-2 text-[11px] text-[#a39b8f] ${assistant ? "justify-start" : "justify-end"}`}>
+                      <span>{formatWho(item.role)}</span>
+                      <span>-</span>
+                      <span>{formatStamp(item.created_at)}</span>
+                    </div>
+                    <div className={`border px-3 py-3 text-[14px] leading-6 ${assistant ? "border-[#e8e2d8] bg-white text-[#181715]" : "border-[#eadfce] bg-[#fffaf3] text-[#181715]"}`}>
+                      {item.message}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="border border-dashed border-[#dfd9ce] bg-white/60 px-4 py-5 text-[13px] leading-6 text-[#8b857a]">
+              Ask anything about this workflow and the agent will suggest nodes, edits, and changes here.
+            </div>
+          )}
+
+          {latestChange ? (
+            <div className="border border-[#ded7cb] bg-white">
+              <div className="border-b border-[#efe9de] px-3 py-2 text-[13px] font-medium text-[#181715]">
+                New node - {latestChange.label}
+              </div>
+              <div className="space-y-2 px-3 py-3 text-[12px] text-[#6d675d]">
+                <div className="flex items-center justify-between gap-3 border-b border-[#f3eee5] pb-2">
+                  <span>Type</span>
+                  <span className="font-medium text-[#181715]">{latestChange.node_type}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-b border-[#f3eee5] pb-2">
+                  <span>Change</span>
+                  <span className="font-medium capitalize text-[#181715]">{latestChange.kind}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span>Validation</span>
+                  <span className="font-medium text-[#181715]">{validation ? `${validation.score}/100` : "Ready"}</span>
+                </div>
+                <p className="pt-1 text-[12px] leading-5 text-[#7b756b]">{latestChange.reason}</p>
+              </div>
+              <div className="flex gap-2 border-t border-[#efe9de] px-3 py-3">
+                <button
+                  type="button"
+                  onClick={() => void submitCompose("apply")}
+                  disabled={workingMode !== null || isPending || composerLoading}
+                  className="inline-flex h-8 items-center justify-center bg-[#1f1f1d] px-3 text-[12px] font-medium text-white transition-smooth hover:bg-[#2c2b28] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {workingMode === "apply" ? "Applying..." : "Apply to canvas"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessage(latestChange.reason)}
+                  className="inline-flex h-8 items-center justify-center border border-[#ddd6ca] bg-white px-3 text-[12px] font-medium text-[#38342f] transition-smooth hover:bg-[#f7f4ee]"
+                >
+                  Edit first
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {resourceSuggestions.length ? (
+            <div className="space-y-2">
+              {resourceSuggestions.slice(0, 2).map((suggestion) => (
+                <button
+                  key={suggestion.id}
+                  type="button"
+                  onClick={() => void previewResourceSuggestion(suggestion)}
+                  className="w-full border border-[#e4ddd1] bg-white px-3 py-3 text-left transition-smooth hover:bg-[#fcfaf6]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[13px] font-medium text-[#181715]">{suggestion.title}</p>
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-[#a39b8f]">{suggestion.readiness}</span>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-5 text-[#7d766b]">{suggestion.why}</p>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {workingMode ? (
+            <div className="flex items-center gap-2 px-1 py-1 text-[13px] text-[#6e685f]">
+              <IconClock className="h-4 w-4" />
+              <span>{workingMode === "preview" ? "Thinking..." : workingMode === "apply" ? "Applying change..." : "Working..."}</span>
+            </div>
+          ) : null}
+
+          {revisionsLoading ? null : revisions.length ? (
+            <div className="px-1 text-[11px] text-[#a39b8f]">{revisions.length} recent revisions available</div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="shrink-0 border-t border-[#ece8e1] bg-white px-3 py-3">
         {errorMessage ? (
-          <div className="mb-2 border border-[#f6d2c3] bg-[#fff4ef] px-3 py-2 text-sm text-[#b45309]">{errorMessage}</div>
+          <div className="mb-2 border border-[#f2d7ca] bg-[#fff6f1] px-3 py-2 text-[12px] text-[#b45309]">{errorMessage}</div>
         ) : null}
         {successMessage ? (
-          <div className="mb-2 border border-[#cce8d4] bg-[#eef8f1] px-3 py-2 text-sm text-emerald-900">{successMessage}</div>
+          <div className="mb-2 border border-[#cfe7d7] bg-[#eff7f1] px-3 py-2 text-[12px] text-[#1f6e47]">{successMessage}</div>
         ) : null}
 
-        <textarea
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          rows={3}
-          placeholder="Ask, build, or refine..."
-          className="w-full resize-none rounded-[8px] border border-black/10 bg-white px-3 py-3 text-sm leading-6 text-stone-700 outline-none"
-        />
+        <div className="mb-2 flex items-center justify-between gap-3 text-[11px] text-[#8f887c]">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-[#27a35b]" />
+            <span>Aware of canvas context</span>
+          </div>
+          <span>{threads.length ? `${threads.length} thread${threads.length === 1 ? "" : "s"}` : "Ready to send"}</span>
+        </div>
 
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button type="button" className="inline-flex h-8 w-8 items-center justify-center border border-black/8 bg-white text-stone-500 transition-smooth hover:bg-[#f7f6f3]">
-              <IconSparkles className="h-4 w-4" />
-            </button>
-            <button type="button" className="inline-flex h-8 w-8 items-center justify-center border border-black/8 bg-white text-stone-500 transition-smooth hover:bg-[#f7f6f3]">
-              <IconMessage className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void submitCompose("preview")}
-              disabled={workingMode !== null || isPending || composerLoading}
-              className="rounded-[6px] border border-black/10 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
-            >
-              {workingMode === "preview" ? "Sending..." : "Send"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void submitCompose("apply")}
-              disabled={workingMode !== null || isPending || composerLoading}
-              className="rounded-[6px] border border-black/10 bg-stone-900 px-3 py-2 text-sm font-medium text-white transition-smooth hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
-            >
-              {workingMode === "apply" ? "Applying..." : "Apply"}
-            </button>
-          </div>
+        <div className="flex items-end gap-2 border border-[#e0d9ce] bg-[#fbfaf7] p-2">
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            rows={2}
+            placeholder="Ask anything about this workflow..."
+            className="min-h-[40px] flex-1 resize-none border-0 bg-transparent px-2 py-2 text-[13px] leading-6 text-[#1a1917] outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => void submitCompose("preview")}
+            disabled={workingMode !== null || isPending || composerLoading}
+            className="inline-flex h-9 w-9 items-center justify-center bg-[#1f1f1d] text-white transition-smooth hover:bg-[#2c2b28] disabled:cursor-wait disabled:opacity-60"
+            aria-label="Send to workflow agent"
+          >
+            <IconMessage className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

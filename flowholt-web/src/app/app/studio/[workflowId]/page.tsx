@@ -407,8 +407,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   );
 
   return (
-    <main className="h-screen overflow-hidden bg-[#f7f7f6] text-[#1a1917]">
-      <div className="flex h-full px-3 py-3">
+    <main className="h-screen overflow-hidden bg-white text-[#1a1917]">
+      <div className="flex h-full">
         <StudioScreen
           workflowName={workflow.name}
           header={header}
@@ -421,7 +421,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           runsContent={runsContent}
           integrationsContent={integrationsContent}
           settingsContent={settingsContent}
-          assistantSidebar={
+          renderAssistantSidebar={({ close }) => (
             <StudioAssistantPanel
               workflowId={workflow.id}
               workflowName={workflow.name}
@@ -431,8 +431,9 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
               autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
               clearAutoPreviewUrl={clearAutoPreviewUrl}
               resourceSuggestions={resourceSuggestions}
+              onClose={close}
             />
-          }
+          )}
           workflowSidebar={workflowSidebar}
           modelsSidebar={modelsSidebar}
           resourcesSidebar={<StudioResourcesPanel workflowId={workflow.id} activeKitKey={activePackKey} integrations={integrationOptions} resourceSuggestions={resourceSuggestions} />}

@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react";
 
-import { IconChevronLeft, IconChevronRight, IconPanelLeft, IconPanelRight } from "@/components/icons";
+import { IconChevronLeft, IconChevronRight, IconMessage, IconPanelLeft, IconPanelRight } from "@/components/icons";
 
 type StudioWorkspaceShellProps = {
   header: ReactNode;
@@ -27,7 +27,7 @@ export function StudioWorkspaceShell({
   const [rightOpen, setRightOpen] = useState(initialRightOpen);
 
   return (
-    <section className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-black/8 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
+    <section className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border border-black/8 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
       <header className="border-b border-black/8 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">{header}</div>
@@ -56,7 +56,7 @@ export function StudioWorkspaceShell({
         <div className="hidden w-[54px] shrink-0 border-r border-black/8 bg-white lg:block">{leftRail}</div>
         <div
           className={`hidden shrink-0 overflow-hidden border-r border-black/8 bg-[#fbfaf7] transition-smooth lg:block ${
-            leftOpen ? "w-[188px] opacity-100" : "w-0 opacity-0"
+            leftOpen ? "w-[176px] opacity-100" : "w-0 opacity-0"
           }`}
         >
           <div className="h-full min-h-0 overflow-y-auto">{leftPanel}</div>
@@ -64,12 +64,23 @@ export function StudioWorkspaceShell({
         <div className="min-w-0 flex-1 overflow-hidden">{canvas}</div>
         <div
           className={`shrink-0 overflow-hidden border-l border-black/8 bg-[#fbfaf7] transition-smooth ${
-            rightOpen ? "w-full opacity-100 lg:w-[312px] xl:w-[320px]" : "w-0 border-l-0 opacity-0"
+            rightOpen ? "w-full opacity-100 lg:w-[292px] xl:w-[300px]" : "w-0 border-l-0 opacity-0"
           }`}
         >
           <div className="h-full min-h-0 overflow-hidden">{rightPanel}</div>
         </div>
       </div>
+
+      {!rightOpen ? (
+        <button
+          type="button"
+          onClick={() => setRightOpen(true)}
+          className="absolute bottom-4 right-4 z-30 inline-flex h-10 w-10 items-center justify-center border border-black/8 bg-white text-stone-700 shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-smooth hover:bg-[#f7f6f3]"
+          aria-label="Open assistant sidebar"
+        >
+          <IconMessage className="h-4 w-4" />
+        </button>
+      ) : null}
     </section>
   );
 }

@@ -3,6 +3,8 @@
 import { ReactNode, useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { IconCheck, IconClock, IconMessage, IconSparkles } from "@/components/icons";
+
 type ProposalSummary = {
   name: string;
   description: string;
@@ -199,14 +201,14 @@ function formatDateTime(value: string | null | undefined) {
 
 function messageTone(role: ThreadMessage["role"]) {
   if (role === "assistant") {
-    return "ml-6 border-violet-200 bg-violet-50/80";
+    return "ml-4 border-[#ddd9ff] bg-[#f5f3ff]";
   }
 
   if (role === "system") {
-    return "mx-3 border-amber-200 bg-amber-50/80";
+    return "border-[#f0dcc4] bg-[#faf2e7]";
   }
 
-  return "mr-6 border-stone-900/10 bg-white";
+  return "mr-4 border-black/8 bg-white";
 }
 
 function messageLabel(role: ThreadMessage["role"]) {
@@ -262,11 +264,11 @@ function AssistantSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="overflow-hidden rounded-[20px] border border-black/6 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+    <section className="overflow-hidden border border-black/8 bg-white">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left transition hover:bg-[#f7f7f5]"
+        className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left transition-smooth hover:bg-[#f7f6f3]"
       >
         <div className="min-w-0">
           <p className="text-sm font-semibold text-stone-900">{title}</p>
@@ -274,16 +276,16 @@ function AssistantSection({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {badge ? (
-            <span className="rounded-full bg-[#f4f4f2] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+            <span className="border border-black/8 bg-[#f6f5f2] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
               {badge}
             </span>
           ) : null}
-          <span className="rounded-full border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+          <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
             {open ? "Hide" : "Show"}
           </span>
         </div>
       </button>
-      {open ? <div className="border-t border-black/6 px-3 py-3">{children}</div> : null}
+      {open ? <div className="border-t border-black/8 px-3 py-3">{children}</div> : null}
     </section>
   );
 }
@@ -702,148 +704,59 @@ export function StudioAssistantPanel({
   }, [threads]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="shrink-0 rounded-[22px] border border-black/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,241,234,0.94))] p-4 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-stone-900">Assistant</p>
-            <p className="mt-1 text-xs leading-5 text-stone-500">Describe the change, preview it, then apply when it looks right.</p>
+    <div className="flex h-full min-h-0 flex-col border border-black/8 bg-[#f5f5f3]">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="space-y-2">
+          <div className="border border-black/8 bg-[#eceff3] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <IconSparkles className="h-4 w-4 text-[#6f5bf3]" />
+                <p className="text-sm font-semibold text-stone-900">Thought process</p>
+              </div>
+              <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {threadsLoading ? "Loading" : threadSummary}
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-stone-700">
+              {composerLoading
+                ? "I am checking the current workflow state and gathering the best next change."
+                : proposal?.reasoning?.[0]
+                  ? proposal.reasoning[0]
+                  : messages.findLast((item) => item.role === "assistant")?.message || "Ask FlowHolt to change or build something and the assistant will work here."}
+            </p>
           </div>
-          {latestRevisionId ? (
-            <button
-              type="button"
-              onClick={() => void restoreRevision(latestRevisionId, "undo")}
-              disabled={workingMode !== null || isPending}
-              className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
-            >
-              {workingMode === "undo" ? "Undoing..." : "Undo"}
-            </button>
-          ) : null}
-        </div>
 
-        <textarea
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          rows={4}
-          placeholder="Example: add a reviewer step before publish and make the success path clearer."
-          className="mt-3 w-full rounded-[18px] border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-stone-700 outline-none transition focus:border-[#ea6f49]"
-        />
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-          <span className="rounded-full bg-white px-3 py-1">{threadSummary}</span>
-          {threadId ? <span className="rounded-full bg-white px-3 py-1">Active thread</span> : null}
-          {proposal ? <span className="rounded-full bg-white px-3 py-1">{proposal.summary.node_count} nodes planned</span> : null}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void submitCompose("preview")}
-            disabled={workingMode !== null || isPending || composerLoading}
-            className="rounded-[12px] border border-black/8 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
-          >
-            {workingMode === "preview" ? "Preparing..." : "Preview"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void submitCompose("apply")}
-            disabled={workingMode !== null || isPending || composerLoading}
-            className="rounded-[12px] bg-[#ff7f5f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#f26f4d] disabled:cursor-wait disabled:opacity-60"
-          >
-            {workingMode === "apply" ? "Applying..." : "Apply change"}
-          </button>
-        </div>
-
-        {errorMessage ? (
-          <div className="mt-3 rounded-[14px] bg-[#f7ede2] px-3 py-2 text-sm text-amber-950">{errorMessage}</div>
-        ) : null}
-        {successMessage ? (
-          <div className="mt-3 rounded-[14px] bg-[#eef4ef] px-3 py-2 text-sm text-emerald-900">{successMessage}</div>
-        ) : null}
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-        {resourceSuggestions.length ? (
-          <AssistantSection
-            title="Suggested from your resources"
-            subtitle="Ready packs that can start a cleaner workflow draft."
-            badge={`${resourceSuggestions.length} ideas`}
-          >
+          <div className="border border-black/8 bg-white p-3">
             <div className="space-y-2">
-              {resourceSuggestions.slice(0, 4).map((suggestion) => (
-                <div key={suggestion.id} className="rounded-[16px] border border-black/6 bg-[#f8f7f4] px-3 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
-                      <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
-                    </div>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                      {suggestion.readiness}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMessage(suggestion.prompt);
-                        setErrorMessage("");
-                        setSuccessMessage("");
-                      }}
-                      className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100"
-                    >
-                      Use idea
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void previewResourceSuggestion(suggestion)}
-                      disabled={workingMode !== null || isPending || composerLoading}
-                      className="rounded-[10px] bg-stone-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
-                    >
-                      Preview pack
-                    </button>
-                  </div>
+              {(proposal?.reasoning?.slice(0, 4) ?? []).map((item, index) => (
+                <div key={`${item}-${index}`} className="flex gap-3">
+                  <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-emerald-600">
+                    <IconCheck className="h-4 w-4" />
+                  </span>
+                  <p className="text-sm leading-6 text-stone-700">{item}</p>
                 </div>
               ))}
+              {workingMode ? (
+                <div className="flex gap-3">
+                  <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-stone-500">
+                    <IconClock className="h-4 w-4" />
+                  </span>
+                  <p className="text-sm leading-6 text-stone-600">
+                    {workingMode === "preview" ? "Thinking... preparing workflow preview." : workingMode === "apply" ? "Applying assistant change..." : workingMode === "restore" ? "Restoring revision..." : "Undoing the last change..."}
+                  </p>
+                </div>
+              ) : null}
             </div>
-          </AssistantSection>
-        ) : null}
+          </div>
 
-        <AssistantSection
-          title="Conversation"
-          subtitle="Keep the latest request and assistant replies in one place."
-          badge={threadsLoading ? "Loading" : threadSummary}
-          defaultOpen
-        >
-          {threads.length ? (
-            <div className="flex flex-wrap gap-2">
-              {threads.slice(0, 4).map((thread) => (
-                <button
-                  key={thread.id}
-                  type="button"
-                  onClick={() => {
-                    setThreadId(thread.id);
-                    void loadMessages(thread.id);
-                  }}
-                  className={`rounded-full px-3 py-2 text-xs font-medium transition ${
-                    thread.id === threadId
-                      ? "bg-stone-900 text-white"
-                      : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
-                  }`}
-                >
-                  {thread.title}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="mt-3 max-h-[320px] space-y-2 overflow-y-auto pr-1">
-            {messagesLoading ? (
-              <p className="text-sm text-stone-500">Loading conversation...</p>
-            ) : messages.length ? (
-              messages.slice(-8).map((item) => {
+          {messagesLoading ? (
+            <div className="border border-black/8 bg-white px-3 py-3 text-sm leading-6 text-stone-500">Loading conversation...</div>
+          ) : messages.length ? (
+            <div className="space-y-2">
+              {messages.slice(-6).map((item) => {
                 const badges = metadataBadges(item.metadata);
                 return (
-                  <div key={item.id} className={`rounded-[16px] border px-3 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] ${messageTone(item.role)}`}>
+                  <div key={item.id} className={`border px-3 py-3 shadow-[0_2px_8px_rgba(15,23,42,0.03)] ${messageTone(item.role)}`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                         {messageLabel(item.role)}
@@ -855,7 +768,7 @@ export function StudioAssistantPanel({
                         {badges.map((badge) => (
                           <span
                             key={`${item.id}-${badge}`}
-                            className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500"
+                            className="border border-black/8 bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500"
                           >
                             {badge}
                           </span>
@@ -865,208 +778,215 @@ export function StudioAssistantPanel({
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700">{item.message}</p>
                   </div>
                 );
-              })
-            ) : (
-              <div className="rounded-[14px] bg-stone-50 px-3 py-3 text-sm leading-6 text-stone-500">
-                No assistant conversation yet. Write a request above and click Preview.
-              </div>
-            )}
-          </div>
-        </AssistantSection>
+              })}
+            </div>
+          ) : (
+            <div className="border border-black/8 bg-white px-3 py-3 text-sm leading-6 text-stone-500">
+              No assistant conversation yet. Send a message below and the chat builds here.
+            </div>
+          )}
 
-        <AssistantSection
-          title="Reasoning"
-          subtitle="Preview summary, validation, and the planned node changes."
-          badge={proposal ? `${proposal.summary.node_count} nodes` : "Empty"}
-          defaultOpen={Boolean(proposal)}
-        >
-          {proposal ? (
-            <div className="max-h-[340px] space-y-3 overflow-y-auto pr-1 text-sm text-stone-700">
-              <div className={`rounded-[16px] border px-3 py-3 ${proposalTone}`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-stone-900">{proposal.name}</p>
-                    <p className="mt-1 text-sm text-stone-600">{proposal.description}</p>
-                  </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                    {proposal.generation.provider} | {proposal.generation.model}
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  <span className="rounded-full bg-white px-2.5 py-1">{proposal.summary.edge_count} edges</span>
-                  <span className="rounded-full bg-white px-2.5 py-1">{proposal.summary.tool_count} tools</span>
-                  {validation ? <span className="rounded-full bg-white px-2.5 py-1">Score {validation.score}</span> : null}
-                </div>
-              </div>
-
-              {validation?.issues.length ? (
-                <div className="rounded-[16px] bg-white px-3 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Validation</p>
-                  <div className="mt-2 space-y-2">
-                    {validation.issues.slice(0, 3).map((issue, index) => (
-                      <p key={`${issue.code}-${index}`} className="text-sm text-stone-600">
-                        <span className="font-medium uppercase text-stone-900">{issue.severity}</span>: {issue.message}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="rounded-[16px] bg-white px-3 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Reasoning steps</p>
-                <div className="mt-2 space-y-2">
-                  {proposal.reasoning.length ? (
-                    proposal.reasoning.slice(0, 5).map((item, index) => (
-                      <div key={`${item}-${index}`} className="flex gap-3">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-900 text-[11px] font-semibold text-white">
-                          {index + 1}
-                        </div>
-                        <p className="pt-0.5 leading-6 text-stone-700">{item}</p>
+          {resourceSuggestions.length ? (
+            <AssistantSection
+              title="Pack suggestions"
+              subtitle="Use a ready idea from your resources."
+              badge={`${resourceSuggestions.length} ideas`}
+            >
+              <div className="space-y-2">
+                {resourceSuggestions.slice(0, 3).map((suggestion) => (
+                  <div key={suggestion.id} className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-stone-500">No reasoning yet.</p>
-                  )}
-                </div>
+                      <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                        {suggestion.readiness}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMessage(suggestion.prompt);
+                          setErrorMessage("");
+                          setSuccessMessage("");
+                        }}
+                        className="border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
+                      >
+                        Use idea
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void previewResourceSuggestion(suggestion)}
+                        disabled={workingMode !== null || isPending || composerLoading}
+                        className="border border-black/8 bg-stone-900 px-3 py-2 text-xs font-medium text-white transition-smooth hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        Preview pack
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
+            </AssistantSection>
+          ) : null}
 
-              <div className="rounded-[16px] bg-white px-3 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Planned changes</p>
-                <div className="mt-2 space-y-2">
-                  {proposal.changes.length ? (
-                    proposal.changes.slice(0, 5).map((change, index) => (
-                      <div key={`${change.node_id}-${index}`} className="rounded-[14px] bg-stone-50 px-3 py-3">
+          <AssistantSection
+            title="Reasoning details"
+            subtitle="Preview summary, validation, and the planned node changes."
+            badge={proposal ? `${proposal.summary.node_count} nodes` : "Empty"}
+            defaultOpen={Boolean(proposal)}
+          >
+            {proposal ? (
+              <div className="space-y-3 text-sm text-stone-700">
+                <div className={`border px-3 py-3 ${proposalTone}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-stone-900">{proposal.name}</p>
+                      <p className="mt-1 text-sm text-stone-600">{proposal.description}</p>
+                    </div>
+                    <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      {proposal.generation.provider} | {proposal.generation.model}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    <span className="border border-black/8 bg-white px-2 py-1">{proposal.summary.edge_count} edges</span>
+                    <span className="border border-black/8 bg-white px-2 py-1">{proposal.summary.tool_count} tools</span>
+                    {validation ? <span className="border border-black/8 bg-white px-2 py-1">Score {validation.score}</span> : null}
+                  </div>
+                </div>
+
+                {proposal.changes.length ? (
+                  <div className="space-y-2">
+                    {proposal.changes.slice(0, 4).map((change, index) => (
+                      <div key={`${change.node_id}-${index}`} className="border border-black/8 bg-[#faf9f7] px-3 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="font-medium text-stone-900">{change.label}</p>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                          <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                             {change.kind} | {change.node_type}
                           </span>
                         </div>
                         <p className="mt-2 text-sm leading-6 text-stone-600">{change.reason}</p>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-stone-500">No planned changes yet.</p>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-stone-500">No planned changes yet.</p>
+                )}
               </div>
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-stone-500">No proposal yet. Use Preview to see the plan.</p>
-          )}
-        </AssistantSection>
+            ) : (
+              <p className="text-sm leading-6 text-stone-500">No proposal yet. Use Send to see the plan.</p>
+            )}
+          </AssistantSection>
 
-        <AssistantSection
-          title="Revision history"
-          subtitle="Compare or restore recent workflow versions without leaving Studio."
-          badge={revisions.length ? `${revisions.length} recent` : "Empty"}
-        >
-          <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
-            {revisionsLoading ? (
-              <p className="text-sm text-stone-500">Loading revisions...</p>
-            ) : revisions.length ? (
-              revisions.map((revision) => {
-                const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
-                const comparison = isCompareOpen ? compareData?.comparison : null;
-                const compareSummary = isCompareOpen ? compareData?.change_summary : undefined;
-
-                return (
-                  <div key={revision.id} className="rounded-[16px] bg-stone-50 px-3 py-3">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
-                        <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-stone-400">
-                          {revision.source} | {new Date(revision.created_at).toLocaleString()}
-                        </p>
-                        <p className="mt-2 text-sm text-stone-600">
-                          {revision.before_name} to {revision.after_name}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void loadRevisionCompare(revision.id)}
-                          disabled={(compareLoading && compareRevisionId === revision.id) || workingMode !== null || isPending}
-                          className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
-                        >
-                          {compareLoading && compareRevisionId === revision.id
-                            ? "Comparing..."
-                            : isCompareOpen
-                              ? "Hide"
-                              : "Compare"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void restoreRevision(revision.id, "restore")}
-                          disabled={workingMode !== null || isPending}
-                          className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
-                        >
-                          {workingMode === "restore" ? "Restoring..." : "Restore"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {isCompareOpen && comparison ? (
-                      <div className="mt-3 rounded-[14px] border border-black/6 bg-white px-3 py-3">
-                        <div className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                          <span className="rounded-full bg-stone-100 px-2.5 py-1">{comparison.before.node_count} before</span>
-                          <span className="rounded-full bg-stone-100 px-2.5 py-1">{comparison.after.node_count} after</span>
-                          <span className="rounded-full bg-stone-100 px-2.5 py-1">{comparison.added_edges.length} links added</span>
+          <AssistantSection
+            title="Revision history"
+            subtitle="Compare or restore recent workflow versions."
+            badge={revisions.length ? `${revisions.length} recent` : "Empty"}
+          >
+            <div className="space-y-2">
+              {revisionsLoading ? (
+                <p className="text-sm text-stone-500">Loading revisions...</p>
+              ) : revisions.length ? (
+                revisions.map((revision) => {
+                  const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
+                  const comparison = isCompareOpen ? compareData?.comparison : null;
+                  return (
+                    <div key={revision.id} className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
+                          <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-stone-400">
+                            {revision.source} | {new Date(revision.created_at).toLocaleString()}
+                          </p>
                         </div>
-                        <div className="mt-3 space-y-2 text-sm leading-6 text-stone-700">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void loadRevisionCompare(revision.id)}
+                            disabled={(compareLoading && compareRevisionId === revision.id) || workingMode !== null || isPending}
+                            className="border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {compareLoading && compareRevisionId === revision.id ? "Comparing..." : isCompareOpen ? "Hide" : "Compare"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void restoreRevision(revision.id, "restore")}
+                            disabled={workingMode !== null || isPending}
+                            className="border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {workingMode === "restore" ? "Restoring..." : "Restore"}
+                          </button>
+                        </div>
+                      </div>
+                      {isCompareOpen && comparison ? (
+                        <div className="mt-3 border border-black/8 bg-white px-3 py-3 text-sm leading-6 text-stone-700">
                           {comparison.summary_lines.map((line, index) => (
-                            <p key={`${revision.id}-summary-${index}`}>{line}</p>
+                            <p key={`${revision.id}-${index}`}>{line}</p>
                           ))}
                         </div>
-                        {compareSummary?.reasoning?.length ? (
-                          <div className="mt-3 rounded-[12px] bg-[#f6f1ea] px-3 py-3 text-sm text-stone-600">
-                            {compareSummary.reasoning.slice(0, 3).map((item, index) => (
-                              <p key={`${revision.id}-reasoning-${index}`}>{item}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-sm text-stone-500">No revisions yet.</p>
-            )}
-          </div>
-        </AssistantSection>
+                      ) : null}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-stone-500">No revisions yet.</p>
+              )}
+            </div>
+          </AssistantSection>
+        </div>
+      </div>
 
-        <AssistantSection
-          title="Assistant activity"
-          subtitle="Recent preview and apply requests for this workflow."
-          badge={history.length ? `${history.length} events` : "Empty"}
-        >
-          <div className="space-y-2">
-            {composerLoading ? (
-              <p className="text-sm text-stone-500">Loading assistant history...</p>
-            ) : history.length ? (
-              history.slice().reverse().slice(0, 6).map((item, index) => (
-                <div key={`${item.at}-${index}`} className="rounded-[14px] bg-stone-50 px-3 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-stone-900">{item.message}</p>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                      {item.mode}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-stone-400">
-                    {new Date(item.at).toLocaleString()}
-                  </p>
-                  <p className="mt-2 text-sm text-stone-600">
-                    {item.proposal.name} | {item.proposal.node_count} nodes | {item.proposal.provider}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-stone-500">No assistant activity yet.</p>
-            )}
+      <div className="shrink-0 border-t border-black/8 bg-white p-2">
+        {errorMessage ? (
+          <div className="mb-2 border border-[#f6d2c3] bg-[#fff4ef] px-3 py-2 text-sm text-[#b45309]">{errorMessage}</div>
+        ) : null}
+        {successMessage ? (
+          <div className="mb-2 border border-[#cce8d4] bg-[#eef8f1] px-3 py-2 text-sm text-emerald-900">{successMessage}</div>
+        ) : null}
+
+        <textarea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          rows={3}
+          placeholder="Ask, build, or refine..."
+          className="w-full resize-none border border-black/8 bg-[#faf9f7] px-3 py-3 text-sm leading-6 text-stone-700 outline-none"
+        />
+
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button type="button" className="inline-flex h-8 w-8 items-center justify-center border border-black/8 bg-white text-stone-500 transition-smooth hover:bg-[#f7f6f3]">
+              <IconSparkles className="h-4 w-4" />
+            </button>
+            <button type="button" className="inline-flex h-8 w-8 items-center justify-center border border-black/8 bg-white text-stone-500 transition-smooth hover:bg-[#f7f6f3]">
+              <IconMessage className="h-4 w-4" />
+            </button>
           </div>
-        </AssistantSection>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void submitCompose("preview")}
+              disabled={workingMode !== null || isPending || composerLoading}
+              className="border border-black/8 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
+            >
+              {workingMode === "preview" ? "Sending..." : "Send"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void submitCompose("apply")}
+              disabled={workingMode !== null || isPending || composerLoading}
+              className="border border-black/8 bg-stone-900 px-3 py-2 text-sm font-medium text-white transition-smooth hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+            >
+              {workingMode === "apply" ? "Applying..." : "Apply"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
+
+
+
+

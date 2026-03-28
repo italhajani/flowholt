@@ -14,7 +14,6 @@ import {
   Node,
   NodeChange,
   NodeProps,
-  Panel,
   Position,
   ReactFlow,
   ReactFlowProvider,
@@ -24,10 +23,10 @@ import { useMemo, useRef, useState } from "react";
 import {
   IconAgent,
   IconCondition,
-  IconGrid,
   IconLoop,
   IconMemory,
   IconOutput,
+  IconPanelRight,
   IconPlus,
   IconRetriever,
   IconTool,
@@ -283,6 +282,7 @@ function CanvasInner({
   const [inspectorPane, setInspectorPane] = useState<InspectorPane>("step");
   const [configError, setConfigError] = useState("");
   const [manualInspectorOpen, setManualInspectorOpen] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const nodeCounter = useRef(initialGraph.nodes.length + 1);
 
   const selectedNode = useMemo(
@@ -571,74 +571,75 @@ function CanvasInner({
       <input type="hidden" name="graph" value={graphJson} readOnly />
 
       <div className="flex-1 overflow-hidden border border-black/8 bg-[#f8f8f6]">
-        <div className="flex h-full min-h-0">
-          <div className="hidden w-[56px] shrink-0 border-r border-black/8 bg-white lg:block">
-            <div className="grid auto-rows-max gap-2 p-2.5">
-              {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => {
-                const Icon = nodeTypeIcons[nodeType];
-                return (
-                  <button
-                    key={nodeType}
-                    type="button"
-                    onClick={() => addNode(nodeType)}
-                    className="flex h-10 w-10 items-center justify-center border border-black/8 bg-[#faf9f7] text-stone-600 transition-smooth hover:bg-white hover:text-stone-950"
-                    title={`Add ${nodeTypeLabels[nodeType]}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <div className="relative h-full min-h-0">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={(_, node) => {
+              setConfigError("");
+              setSelectedEdgeId(null);
+              setSelectedNodeId(node.id);
+              setManualInspectorOpen(true);
+              setInspectorPane("step");
+            }}
+            onEdgeClick={(_, edge) => {
+              setConfigError("");
+              setSelectedNodeId(null);
+              setSelectedEdgeId(edge.id);
+              setManualInspectorOpen(true);
+              setInspectorPane("connection");
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null);
+              setSelectedEdgeId(null);
+            }}
+            fitView
+            minZoom={0.35}
+            className="studio-flow flowholt-grid-dots"
+            proOptions={{ hideAttribution: true }}
+          >
+            <Controls showInteractive={false} />
+            <Background gap={22} size={1.1} color="rgba(107,114,128,0.16)" />
+          </ReactFlow>
 
-          <div className="relative min-w-0 flex-1 overflow-hidden">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={(_, node) => {
-                setConfigError("");
-                setSelectedEdgeId(null);
-                setSelectedNodeId(node.id);
-                setManualInspectorOpen(true);
-                setInspectorPane("step");
-              }}
-              onEdgeClick={(_, edge) => {
-                setConfigError("");
-                setSelectedNodeId(null);
-                setSelectedEdgeId(edge.id);
-                setManualInspectorOpen(true);
-                setInspectorPane("connection");
-              }}
-              onPaneClick={() => {
-                setSelectedNodeId(null);
-                setSelectedEdgeId(null);
-              }}
-              fitView
-              minZoom={0.35}
-              className="studio-flow flowholt-grid-dots"
-              proOptions={{ hideAttribution: true }}
-            >
-              <Panel position="top-left" className="!m-3">
-                <div className="flex items-center gap-2 border border-black/8 bg-white px-3 py-2 text-[11px] font-medium text-stone-500 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-                  <IconGrid className="h-3.5 w-3.5" />
-                  <span>Drag, connect, refine</span>
-                </div>
-              </Panel>
-              <Controls showInteractive={false} />
-              <Background gap={22} size={1.1} color="rgba(107,114,128,0.16)" />
-            </ReactFlow>
-
+          <div className="absolute bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+            {showAddMenu ? (
+              <div className="flex flex-col gap-2 border border-black/8 bg-white p-2 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+                {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => {
+                  const Icon = nodeTypeIcons[nodeType];
+                  return (
+                    <button
+                      key={nodeType}
+                      type="button"
+                      onClick={() => addNode(nodeType)}
+                      className="flex h-9 w-9 items-center justify-center border border-black/8 bg-[#faf9f7] text-stone-600 transition-smooth hover:bg-white hover:text-stone-950"
+                      title={`Add ${nodeTypeLabels[nodeType]}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => setManualInspectorOpen((value) => !value)}
               aria-label="Toggle inspector"
-              className="absolute bottom-4 right-4 z-40 flex h-9 w-9 items-center justify-center border border-black/8 bg-white text-stone-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-smooth hover:bg-[#f7f6f3]"
+              className="flex h-9 w-9 items-center justify-center border border-black/8 bg-white text-stone-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-smooth hover:bg-[#f7f6f3]"
             >
-              {inspectorVisible ? <IconX className="h-4 w-4" /> : <IconPlus className="h-4 w-4" />}
+              {inspectorVisible ? <IconX className="h-4 w-4" /> : <IconPanelRight className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddMenu((value) => !value)}
+              aria-label="Open add node menu"
+              className="flex h-9 w-9 items-center justify-center border border-black/8 bg-white text-stone-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-smooth hover:bg-[#f7f6f3]"
+            >
+              {showAddMenu ? <IconX className="h-4 w-4" /> : <IconPlus className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -837,5 +838,12 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
+
+
+
+
+
+
 
 

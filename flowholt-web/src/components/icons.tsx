@@ -1,4 +1,4 @@
-﻿import type { SVGProps } from "react";
+import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & { className?: string };
 
@@ -296,6 +296,32 @@ export function IconOutput(props: IconProps) {
   );
 }
 
+export function IconCheck(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m5 12 4 4 10-10" />
+    </BaseIcon>
+  );
+}
+
+export function IconSparkles(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 3 13.8 8.2 19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z" />
+      <path d="M19 3v4" />
+      <path d="M21 5h-4" />
+    </BaseIcon>
+  );
+}
+
+export function IconClock(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5v5l3 2" />
+    </BaseIcon>
+  );
+}
 export const appIconMap = {
   workflows: IconWorkflows,
   studio: IconStudio,
@@ -306,4 +332,5 @@ export const appIconMap = {
   settings: IconSettings,
   help: IconHelp,
 };
+
 

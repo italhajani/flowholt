@@ -664,7 +664,7 @@ function CanvasInner({
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-5">
         <div className={`${mobilePaneClasses(mobilePane, "canvas")} rounded-[28px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,239,232,0.92))] p-3 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:rounded-[34px] sm:p-4`}>
           <div className="grid h-[560px] gap-4 sm:h-[640px] lg:grid-cols-[84px_minmax(0,1fr)] xl:h-[720px]">
             <div className="order-2 rounded-[24px] border border-stone-900/10 bg-white/82 p-3 shadow-[var(--fh-shadow-soft)] lg:order-1 lg:rounded-[28px]">
@@ -760,7 +760,7 @@ function CanvasInner({
           </div>
         </div>
 
-        <div className="grid gap-5">
+        <div className="grid gap-5 lg:grid-cols-2">
           <div id="studio-selected-step" className={`${mobilePaneClasses(mobilePane, "step")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -952,6 +952,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
 
 
 

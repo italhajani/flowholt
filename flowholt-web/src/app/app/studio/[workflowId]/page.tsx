@@ -1,28 +1,30 @@
 import Link from "next/link";
 
 import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
-import { AppShell } from "@/components/app-shell";
 import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { StudioResourcesPanel } from "@/components/studio-resources-panel";
 import { SurfaceCard } from "@/components/surface-card";
 import { WorkflowSchedulePanel } from "@/components/workflow-schedule-panel";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio, getWorkflowSchedules } from "@/lib/flowholt/data";
-import { simulateWorkflowGraph } from "@/lib/flowholt/simulator";
 import { validateWorkflowGraph } from "@/lib/flowholt/graph-validator";
+import { appNavigation } from "@/lib/navigation";
+import { simulateWorkflowGraph } from "@/lib/flowholt/simulator";
 import { buildToolMarketplaceComposerSuggestions } from "@/lib/flowholt/tool-marketplace";
 import { createClient } from "@/lib/supabase/server";
 
 type StudioPageProps = {
-  params: Promise<{
-    workflowId: string;
-  }>;
+  params: Promise<{ workflowId: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function readMessage(value: string | string[] | undefined) {
   return typeof value === "string" ? value : "";
 }
+
+const studioNavigation = appNavigation.filter((item) =>
+  ["Dashboard", "Create", "Studio", "Workflows", "Runs", "Integrations", "Settings"].includes(item.label),
+);
 
 export default async function StudioPage({ params, searchParams }: StudioPageProps) {
   const { workflowId } = await params;
@@ -37,9 +39,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const activePackKey = readMessage(paramsState.kit);
   const previewPack = readMessage(paramsState.previewPack) === "1";
   const settings = workflow.settings as Record<string, unknown>;
-  const generation = settings?.generation as
-    | { provider?: string; model?: string; notes?: string }
-    | undefined;
+  const generation = settings?.generation as { provider?: string; model?: string; notes?: string } | undefined;
   const originalPrompt = typeof settings?.originalPrompt === "string" ? settings.originalPrompt : "";
   const runsSnapshot = await getRunsSnapshot();
   const recentRuns = runsSnapshot.runs.filter((run) => run.workflow_id === workflow.id).slice(0, 3);
@@ -52,6 +52,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     .eq("workspace_id", workflow.workspace_id)
     .eq("status", "active")
     .order("updated_at", { ascending: false });
+
   const integrationOptions = (integrationRows ?? []).map((row) => ({
     id: String(row.id),
     provider: String(row.provider),
@@ -65,77 +66,95 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     : `/app/studio/${workflow.id}`;
 
   return (
-    <AppShell
-      eyebrow="Studio"
-      title={workflow.name}
-      description="Visual workflow editor with assistant guidance, resources, and runtime controls."
-    >
-      <div className="space-y-5">
-        {message ? <div className="rounded-[1rem] bg-[#eef5ef] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
-        {error ? <div className="rounded-[1rem] bg-[#f8eee4] px-4 py-3 text-sm text-amber-950">{error}</div> : null}
+    <main className="min-h-screen bg-[linear-gradient(180deg,#faf8f4_0%,#f6f4ef_100%)] text-stone-950">
+      <div className="mx-auto grid min-h-screen max-w-[1720px] lg:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="border-r border-stone-900/8 bg-[#fbfaf7] px-5 py-6">
+          <Link href="/" className="block px-2 py-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-400">FlowHolt</p>
+            <p className="mt-2 text-lg font-semibold text-stone-950">Studio</p>
+          </Link>
 
-        <div className="flowholt-window overflow-hidden">
-          <div className="flowholt-window-bar">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flowholt-chip">Editor</span>
-              <span className="flowholt-chip">{workflow.status}</span>
-              <span className="flowholt-chip">{graph.nodes.length} steps</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {workflow.id !== "demo-workflow" ? (
-                <form action={runWorkflow}>
-                  <input type="hidden" name="workflowId" value={workflow.id} />
-                  <button type="submit" className="flowholt-secondary-button px-4 py-2 text-sm font-medium">
-                    Run
-                  </button>
-                </form>
-              ) : null}
-              <button type="submit" form="workflow-save-form" className="flowholt-primary-button px-4 py-2 text-sm font-medium">
-                Save
-              </button>
-            </div>
-          </div>
+          <nav className="mt-6 space-y-1.5">
+            {studioNavigation.map((item) => {
+              const active = item.label === "Studio";
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`block rounded-[1rem] px-4 py-3 transition ${active ? "bg-[var(--fh-accent-soft)] text-stone-950" : "text-stone-700 hover:bg-white"}`}
+                >
+                  <p className="text-sm font-medium">{item.label}</p>
+                  <p className={`mt-1 text-xs leading-5 ${active ? "text-stone-600" : "text-stone-500"}`}>{item.description}</p>
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
 
-          <div className="grid gap-0 2xl:grid-cols-[300px_minmax(0,1fr)_340px]">
-            <div className="border-b border-stone-900/8 bg-[#fbfaf7] p-4 2xl:border-b-0 2xl:border-r">
-              <StudioAssistantPanel
-                workflowId={workflow.id}
-                workflowName={workflow.name}
-                initialPrompt={originalPrompt}
-                prefillMessage={assistantPrefill}
-                autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
-                clearAutoPreviewUrl={clearAutoPreviewUrl}
-                resourceSuggestions={resourceSuggestions}
-              />
-            </div>
-
-            <div className="border-b border-stone-900/8 p-4 2xl:border-b-0 2xl:border-r">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-stone-900/8 bg-[#fbfaf7] px-4 py-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Canvas</p>
-                  <p className="mt-1 text-sm text-stone-600">Edit the workflow visually.</p>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-stone-500">
-                  <span className="flowholt-chip">{validation.score}/100</span>
-                  <span className="flowholt-chip">{simulation.possible_path_count} paths</span>
-                </div>
+        <div className="flex min-h-screen flex-col">
+          <header className="border-b border-stone-900/8 bg-white/88 px-4 py-4 backdrop-blur sm:px-6">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-400">Workflow editor</p>
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">{workflow.name}</h1>
+                <p className="mt-2 text-sm leading-6 text-stone-600">Visual workflow editor with assistant guidance, resources, and runtime controls.</p>
               </div>
-
-              <form id="workflow-save-form" action={saveWorkflow} className="space-y-5">
-                <input type="hidden" name="workflowId" value={workflow.id} />
-                <StudioCanvas
-                  initialGraph={graph}
-                  originalPrompt={originalPrompt}
-                  latestRunOutput={latestRunOutput}
-                  integrationOptions={integrationOptions}
-                />
-              </form>
+              <div className="flex flex-wrap gap-2">
+                <span className="flowholt-chip">{workflow.status}</span>
+                <span className="flowholt-chip">{graph.nodes.length} steps</span>
+                <span className="flowholt-chip">{simulation.possible_path_count} paths</span>
+                {workflow.id !== "demo-workflow" ? (
+                  <form action={runWorkflow}>
+                    <input type="hidden" name="workflowId" value={workflow.id} />
+                    <button type="submit" className="flowholt-secondary-button px-4 py-2 text-sm font-medium">Run</button>
+                  </form>
+                ) : null}
+                <button type="submit" form="workflow-save-form" className="flowholt-primary-button px-4 py-2 text-sm font-medium">Save</button>
+              </div>
             </div>
+            <div className="mt-4 flex gap-2">
+              <span className="rounded-[0.9rem] bg-stone-900 px-4 py-2 text-sm font-medium text-white">Editor</span>
+              <Link href="/app/runs" className="rounded-[0.9rem] border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700">Executions</Link>
+            </div>
+          </header>
 
-            <div className="bg-[#fbfaf7] p-4">
-              <div className="space-y-4">
-                <SurfaceCard title="Workflow" description="Basic workflow details.">
-                  <form action={saveWorkflow} className="space-y-4">
+          <div className="flex-1 p-4 sm:p-6">
+            {message ? <div className="mb-4 rounded-[1rem] bg-[#eef5ef] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
+            {error ? <div className="mb-4 rounded-[1rem] bg-[#f8eee4] px-4 py-3 text-sm text-amber-950">{error}</div> : null}
+
+            <div className="grid gap-4 2xl:grid-cols-[290px_minmax(0,1fr)_330px]">
+              <aside className="space-y-4">
+                <div className="rounded-[1.25rem] border border-stone-900/8 bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Task</p>
+                  <p className="mt-3 text-sm leading-6 text-stone-700">{originalPrompt || "Describe a task to start a workflow draft."}</p>
+                </div>
+                <StudioAssistantPanel
+                  workflowId={workflow.id}
+                  workflowName={workflow.name}
+                  initialPrompt={originalPrompt}
+                  prefillMessage={assistantPrefill}
+                  autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
+                  clearAutoPreviewUrl={clearAutoPreviewUrl}
+                  resourceSuggestions={resourceSuggestions}
+                />
+              </aside>
+
+              <section className="space-y-4">
+                <form id="workflow-save-form" action={saveWorkflow} className="space-y-4">
+                  <input type="hidden" name="workflowId" value={workflow.id} />
+                  <StudioCanvas
+                    initialGraph={graph}
+                    originalPrompt={originalPrompt}
+                    latestRunOutput={latestRunOutput}
+                    integrationOptions={integrationOptions}
+                  />
+                </form>
+              </section>
+
+              <aside className="space-y-4">
+                <div className="rounded-[1.25rem] border border-stone-900/8 bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Workflow</p>
+                  <form action={saveWorkflow} className="mt-4 space-y-4">
                     <input type="hidden" name="workflowId" value={workflow.id} />
                     <div>
                       <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="name">Name</label>
@@ -151,31 +170,36 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                     </div>
                     <div>
                       <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="description">Description</label>
-                      <textarea id="description" name="description" defaultValue={workflow.description} rows={4} className="w-full rounded-[1rem] border border-stone-900/10 bg-[#fbfaf7] px-4 py-3 text-sm outline-none" />
+                      <textarea id="description" name="description" defaultValue={workflow.description} rows={3} className="w-full rounded-[1rem] border border-stone-900/10 bg-[#fbfaf7] px-4 py-3 text-sm outline-none" />
                     </div>
-                    <button type="submit" className="flowholt-primary-button px-5 py-3 text-sm font-medium">Save details</button>
+                    <button type="submit" className="flowholt-primary-button px-4 py-2 text-sm font-medium">Save details</button>
                   </form>
-                </SurfaceCard>
+                </div>
 
-                <SurfaceCard title="Resources" description="Connections and packs available to this workflow.">
-                  <StudioResourcesPanel
-                    workflowId={workflow.id}
-                    activeKitKey={activePackKey}
-                    integrations={integrationOptions}
-                    resourceSuggestions={resourceSuggestions}
-                  />
-                </SurfaceCard>
+                <div className="rounded-[1.25rem] border border-stone-900/8 bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Resources</p>
+                  <div className="mt-4">
+                    <StudioResourcesPanel workflowId={workflow.id} activeKitKey={activePackKey} integrations={integrationOptions} resourceSuggestions={resourceSuggestions} />
+                  </div>
+                </div>
 
-                <SurfaceCard title="Schedule" description="Run automatically on a recurring cadence." tone="mint">
-                  <WorkflowSchedulePanel workflowId={workflow.id} workflowName={workflow.name} initialSchedules={workflowSchedules} />
-                </SurfaceCard>
+                <div className="rounded-[1.25rem] border border-stone-900/8 bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Schedule</p>
+                  <div className="mt-4">
+                    <WorkflowSchedulePanel workflowId={workflow.id} workflowName={workflow.name} initialSchedules={workflowSchedules} />
+                  </div>
+                </div>
 
-                <SurfaceCard title="Recent runs" description="Latest execution attempts." tone="default">
+                <SurfaceCard title="Preview" description="Validation and latest runs." tone="default">
                   <div className="space-y-3 text-sm leading-6 text-stone-700">
+                    <div className="rounded-[1rem] bg-[#fbfaf7] px-4 py-3">
+                      <p>Validation: {validation.score}/100</p>
+                      <p>Estimated steps: {simulation.estimated_step_count}</p>
+                    </div>
                     {recentRuns.length ? (
                       recentRuns.map((run) => (
                         <div key={run.id} className="rounded-[1rem] bg-[#fbfaf7] px-4 py-3">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center justify-between gap-3">
                             <p className="font-medium text-stone-900">{run.status}</p>
                             <p className="text-xs uppercase tracking-[0.16em] text-stone-400">{new Date(run.created_at).toLocaleString()}</p>
                           </div>
@@ -185,26 +209,19 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
                         </div>
                       ))
                     ) : (
-                      <p>No runs yet.</p>
+                      <div className="rounded-[1rem] bg-[#fbfaf7] px-4 py-3">No runs yet.</div>
                     )}
-                  </div>
-                </SurfaceCard>
-
-                <SurfaceCard title="Prompt source" description="Original request behind this workflow." tone="sand">
-                  <div className="space-y-3 text-sm leading-6 text-stone-700">
-                    <div className="rounded-[1rem] bg-white px-4 py-3">{originalPrompt || "No original prompt recorded."}</div>
-                    <div className="rounded-[1rem] bg-white px-4 py-3">
+                    <div className="rounded-[1rem] bg-[#fbfaf7] px-4 py-3">
                       <p>Provider: {generation?.provider ?? "local"}</p>
                       <p>Model: {generation?.model ?? "not recorded"}</p>
-                      <p>{generation?.notes ?? "No generation notes available."}</p>
                     </div>
                   </div>
                 </SurfaceCard>
-              </div>
+              </aside>
             </div>
           </div>
         </div>
       </div>
-    </AppShell>
+    </main>
   );
 }

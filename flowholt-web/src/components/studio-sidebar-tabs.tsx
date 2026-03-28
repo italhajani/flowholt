@@ -2,13 +2,14 @@
 
 import { ReactNode, useState } from "react";
 
+type SidebarTab = "assistant" | "workflow" | "resources";
+
 type StudioSidebarTabsProps = {
   assistant: ReactNode;
   workflow: ReactNode;
   resources: ReactNode;
+  initialTab?: SidebarTab;
 };
-
-type SidebarTab = "assistant" | "workflow" | "resources";
 
 const tabLabels: Record<SidebarTab, string> = {
   assistant: "Assist",
@@ -16,21 +17,21 @@ const tabLabels: Record<SidebarTab, string> = {
   resources: "Resources",
 };
 
-export function StudioSidebarTabs({ assistant, workflow, resources }: StudioSidebarTabsProps) {
-  const [activeTab, setActiveTab] = useState<SidebarTab>("assistant");
+export function StudioSidebarTabs({
+  assistant,
+  workflow,
+  resources,
+  initialTab = "assistant",
+}: StudioSidebarTabsProps) {
+  const [activeTab, setActiveTab] = useState<SidebarTab>(initialTab);
 
-  const content =
-    activeTab === "assistant" ? assistant : activeTab === "workflow" ? workflow : resources;
+  const content = activeTab === "assistant" ? assistant : activeTab === "workflow" ? workflow : resources;
 
   return (
-    <aside className="flex min-h-0 flex-col border-l border-black/6 bg-[#fbfbfa]">
+    <aside className="flex min-h-0 flex-col bg-[#fbfbfa]">
       <div className="border-b border-black/6 px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-stone-900">Workspace panel</p>
-            <p className="mt-1 text-xs text-stone-500">Chat, config, and resources stay close to the canvas.</p>
-          </div>
-        </div>
+        <p className="text-sm font-semibold text-stone-900">Right sidebar</p>
+        <p className="mt-1 text-xs text-stone-500">Chat, workflow details, and resources stay in one place.</p>
         <div className="mt-4 flex gap-2">
           {(["assistant", "workflow", "resources"] as SidebarTab[]).map((tab) => (
             <button

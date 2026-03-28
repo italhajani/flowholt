@@ -158,6 +158,7 @@ type StudioAssistantPanelProps = {
   workflowName: string;
   initialPrompt?: string;
   prefillMessage?: string;
+  autoSubmitMessage?: boolean;
   autoPreviewResourceKitKey?: string;
   clearAutoPreviewUrl?: string;
   resourceSuggestions?: ResourceSuggestion[];
@@ -248,6 +249,7 @@ export function StudioAssistantPanel({
   workflowName,
   initialPrompt = "",
   prefillMessage = "",
+  autoSubmitMessage = false,
   autoPreviewResourceKitKey = "",
   clearAutoPreviewUrl = "",
   resourceSuggestions = [],
@@ -560,12 +562,34 @@ export function StudioAssistantPanel({
     await submitCompose("preview", suggestion.prompt, suggestion.kitKey);
   }
 
+  const runAutoMessagePreview = useEffectEvent(async (nextMessage: string) => {
+    const ok = await submitCompose("preview", nextMessage);
+    if (ok && clearAutoPreviewUrl) {
+      router.replace(clearAutoPreviewUrl, { scroll: false });
+    }
+  });
+
   const runAutoPreview = useEffectEvent(async (nextMessage: string, nextKitKey: string) => {
     const ok = await submitCompose("preview", nextMessage, nextKitKey);
     if (ok && clearAutoPreviewUrl) {
       router.replace(clearAutoPreviewUrl, { scroll: false });
     }
   });
+
+  useEffect(() => {
+    const trimmedPrefill = prefillMessage.trim();
+    if (!autoSubmitMessage || !trimmedPrefill) {
+      return;
+    }
+
+    const autoMessageKey = `${workflowId}:message:${trimmedPrefill}`;
+    if (autoPreviewState === autoMessageKey) {
+      return;
+    }
+
+    setAutoPreviewState(autoMessageKey);
+    void runAutoMessagePreview(trimmedPrefill);
+  }, [autoPreviewState, autoSubmitMessage, prefillMessage, workflowId]);
 
   useEffect(() => {
     const trimmedPrefill = prefillMessage.trim();

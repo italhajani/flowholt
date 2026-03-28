@@ -1,8 +1,7 @@
 import Link from "next/link";
 
-import { AppShell } from "@/components/app-shell";
-import { SurfaceCard } from "@/components/surface-card";
 import { createWorkflowFromChat } from "@/app/app/create/actions";
+import { AppShell } from "@/components/app-shell";
 import { getWorkflowLibrarySnapshot } from "@/lib/flowholt/data";
 
 type CreatePageProps = {
@@ -10,10 +9,10 @@ type CreatePageProps = {
 };
 
 const starterIdeas = [
-  "Summarize customer support tickets every morning",
-  "Score new inbound leads and update the CRM",
-  "Turn form submissions into personalized outreach drafts",
-  "Create a social content workflow with scheduling and review",
+  "Build a lead qualification workflow with CRM writeback",
+  "Create a support automation that summarizes tickets and drafts replies",
+  "Make a content workflow that researches, writes, reviews, and publishes",
+  "Set up a daily operations report from multiple data sources",
 ];
 
 function readMessage(value: string | string[] | undefined) {
@@ -30,153 +29,88 @@ export default async function CreatePage({ searchParams }: CreatePageProps) {
   return (
     <AppShell
       eyebrow="Create"
-      title="Start from the task, not the technical setup"
-      description="Describe the annoying work in plain language. FlowHolt will draft the workflow, then open it in Studio for clean refinement."
+      title="Describe your workflow"
+      description="Start with one clear task. FlowHolt will open Studio with the assistant conversation on the right."
     >
-      <div className="grid gap-5 xl:grid-cols-[1.18fr_0.82fr]">
-        <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="rounded-[28px] border border-black/6 bg-[#fafafa] p-6 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:p-8">
           {message ? (
-            <div className="rounded-[1.5rem] bg-[#eef5ef] px-5 py-4 text-sm text-emerald-900">
-              {message}
-            </div>
+            <div className="mb-4 rounded-[16px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div>
           ) : null}
           {error ? (
-            <div className="rounded-[1.5rem] bg-[#f8eee4] px-5 py-4 text-sm text-amber-950">
-              {error}
-            </div>
+            <div className="mb-4 rounded-[16px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div>
           ) : null}
 
-          <div className="flowholt-window overflow-hidden">
-            <div className="flowholt-window-bar">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">Compose</p>
-                <p className="mt-1 text-sm font-medium text-stone-900">Chat-first workflow creation</p>
-              </div>
-              <span className="flowholt-chip">Assistant draft</span>
-            </div>
+          <form action={createWorkflowFromChat} className="space-y-5">
+            <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace?.id ?? ""} />
 
-            <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="border-b border-stone-900/8 p-5 xl:border-b-0 xl:border-r xl:p-6">
-                <form action={createWorkflowFromChat} className="rounded-[1.9rem] border border-stone-900/10 bg-white p-5 shadow-[var(--fh-shadow-soft)]">
-                  <input
-                    type="hidden"
-                    name="workspaceId"
-                    value={snapshot.activeWorkspace?.id ?? ""}
-                  />
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">Task prompt</p>
-                      <p className="mt-1 text-sm text-stone-500">Describe what the user wants done. FlowHolt will translate it into a draft flow.</p>
-                    </div>
-                    <span className="rounded-full bg-[var(--fh-accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fh-accent-strong)]">
-                      Plain English
-                    </span>
-                  </div>
-                  <textarea
-                    name="prompt"
-                    defaultValue={prompt}
-                    placeholder="Example: when a new lead arrives, research the company, summarize it, draft outreach, and log it back to the CRM."
-                    rows={9}
-                    className="mt-5 w-full resize-none rounded-[1.6rem] border border-stone-900/10 bg-[#fbf8f3] px-4 py-4 text-base leading-8 text-stone-700 outline-none placeholder:text-stone-400"
-                  />
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="submit"
-                      disabled={!snapshot.activeWorkspace}
-                      className="flowholt-primary-button px-5 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:bg-stone-300 disabled:shadow-none"
-                    >
-                      Create draft workflow
-                    </button>
-                    <Link
-                      href="/app/workflows"
-                      className="flowholt-secondary-button px-5 py-3 text-sm font-medium"
-                    >
-                      Open workflow library
-                    </Link>
-                    {!snapshot.activeWorkspace ? (
-                      <Link
-                        href="/app/dashboard"
-                        className="flowholt-secondary-button px-5 py-3 text-sm font-medium"
-                      >
-                        Create workspace first
-                      </Link>
-                    ) : null}
-                  </div>
-                </form>
+            <div className="rounded-[24px] border border-black/6 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Task</p>
+                  <p className="mt-2 text-sm leading-6 text-stone-500">
+                    Write the result you want. After you press send, Studio opens and the right chat sidebar continues the conversation.
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#f2efff] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6f5bf3]">
+                  Chat first
+                </span>
               </div>
 
-              <div className="bg-[#f8f4ee] p-5 xl:p-6">
-                <SurfaceCard
-                  title="What happens next"
-                  description="FlowHolt now keeps the creation path cleaner and more premium instead of dropping the user straight into raw config."
-                  tone="sand"
+              <textarea
+                name="prompt"
+                defaultValue={prompt}
+                placeholder="Example: Build a workflow that receives a new lead, researches the company, summarizes the fit, drafts outreach, and writes the result back to the CRM."
+                rows={12}
+                className="mt-5 w-full resize-none rounded-[22px] border border-black/8 bg-[#fcfcfb] px-5 py-5 text-[15px] leading-8 text-stone-700 outline-none placeholder:text-stone-400"
+              />
+
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={!snapshot.activeWorkspace}
+                  className="rounded-full bg-[#ff7a59] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#f26d4a] disabled:cursor-not-allowed disabled:bg-stone-300"
                 >
-                  <div className="space-y-3 text-sm leading-6 text-stone-700">
-                    <p>1. The assistant drafts a structured workflow from the task.</p>
-                    <p>2. The draft is saved inside the active workspace.</p>
-                    <p>3. Studio opens so the user can refine the flow visually.</p>
-                    <p>4. Schedules, resources, runs, and revisions remain available on the side.</p>
-                  </div>
-                </SurfaceCard>
+                  Send and open Studio
+                </button>
+                <Link href="/app/workflows" className="flowholt-secondary-button px-5 py-3 text-sm font-medium">
+                  Open workflows
+                </Link>
+                {!snapshot.activeWorkspace ? (
+                  <Link href="/app/dashboard" className="flowholt-secondary-button px-5 py-3 text-sm font-medium">
+                    Create workspace first
+                  </Link>
+                ) : null}
               </div>
             </div>
-          </div>
+          </form>
+        </div>
 
-          <SurfaceCard
-            title="Starter prompts"
-            description="Popular clean prompts to help users move faster without having to invent the wording themselves."
-            tone="mint"
-          >
-            <div className="flex flex-wrap gap-3">
+        <div className="space-y-4">
+          <div className="rounded-[24px] border border-black/6 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Starter ideas</p>
+            <div className="mt-4 space-y-3">
               {starterIdeas.map((idea) => (
                 <Link
                   key={idea}
                   href={`/app/create?prompt=${encodeURIComponent(idea)}`}
-                  className="rounded-full border border-stone-900/10 bg-white px-4 py-3 text-sm text-stone-700 transition hover:bg-stone-50"
+                  className="block rounded-[16px] border border-black/6 bg-[#fafafa] px-4 py-3 text-sm text-stone-700 transition hover:bg-[#f5f5f5]"
                 >
                   {idea}
                 </Link>
               ))}
             </div>
-          </SurfaceCard>
-        </div>
+          </div>
 
-        <div className="space-y-5">
-          <SurfaceCard
-            title="Recent drafts"
-            description="Existing work stays nearby so users can jump back into the editor without feeling lost."
-          >
-            <div className="grid gap-3">
-              {snapshot.workflows.length ? (
-                snapshot.workflows.slice(0, 5).map((workflow) => (
-                  <Link
-                    key={workflow.id}
-                    href={`/app/studio/${workflow.id}`}
-                    className="rounded-[1.35rem] border border-stone-900/10 bg-white px-4 py-4 transition hover:bg-stone-50"
-                  >
-                    <p className="text-sm font-medium text-stone-900">{workflow.name}</p>
-                    <p className="mt-1 text-sm text-stone-600">{workflow.description || "No description yet"}</p>
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-[1.35rem] border border-dashed border-stone-900/14 bg-white/75 px-4 py-6 text-sm text-stone-500">
-                  No workflows yet. Create the first one from the prompt area.
-                </div>
-              )}
+          <div className="rounded-[24px] border border-black/6 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">What happens next</p>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-stone-600">
+              <p>1. FlowHolt creates a draft workflow from your prompt.</p>
+              <p>2. Studio opens with the right chat panel ready.</p>
+              <p>3. Your message appears in the sidebar conversation.</p>
+              <p>4. The center stays focused on the canvas, not raw configuration.</p>
             </div>
-          </SurfaceCard>
-
-          <SurfaceCard
-            title="Product direction"
-            description="This page now reflects the final platform intent more closely: task first, assistant second, visual editing third."
-            tone="default"
-          >
-            <div className="space-y-3 text-sm leading-6 text-stone-700">
-              <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">No raw JSON as the primary user experience.</div>
-              <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">Assistant reasoning remains visible but secondary to the task goal.</div>
-              <div className="rounded-[1.25rem] bg-white/85 px-4 py-3">The flow is still editable with schedules, resources, and runs nearby.</div>
-            </div>
-          </SurfaceCard>
+          </div>
         </div>
       </div>
     </AppShell>

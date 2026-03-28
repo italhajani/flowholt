@@ -69,5 +69,5 @@ export async function createWorkflowFromChat(formData: FormData) {
   revalidatePath("/app/create");
   revalidatePath("/app/dashboard");
   revalidatePath("/app/workflows");
-  redirect(`/app/studio/${data.id}?message=Workflow draft created from chat`);
+  redirect(`/app/studio/${data.id}?message=${encodeURIComponent("Workflow draft created from chat")}&assistant=${encodeURIComponent(prompt)}&autoSend=1&openPanel=assistant`);
 }

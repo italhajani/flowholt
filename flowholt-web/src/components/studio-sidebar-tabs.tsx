@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react";
 
-import { IconStudio, IconTool, IconWorkflows } from "@/components/icons";
+import { IconChevronDown, IconStudio, IconTool, IconWorkflows } from "@/components/icons";
 
 type SidebarTab = "workflow" | "models" | "resources";
 
@@ -35,9 +35,9 @@ export function StudioSidebarTabs({
         : resources;
 
   return (
-    <aside className="flex h-full min-h-0 flex-col bg-[#fbfaf7]">
-      <div className="shrink-0 border-b border-black/8 px-2 py-2">
-        <div className="grid grid-cols-3 gap-1">
+    <aside className="flex h-full min-h-0 flex-col bg-white">
+      <div className="shrink-0 border-b border-black/8 px-4 pt-3">
+        <div className="flex items-end gap-5">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.key;
@@ -46,19 +46,25 @@ export function StudioSidebarTabs({
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex flex-col items-center gap-1 px-2 py-2 text-[11px] font-medium transition-smooth ${
-                  active ? "bg-white text-[#ef6a3a] shadow-[0_2px_8px_rgba(15,23,42,0.04)]" : "text-stone-500 hover:bg-white"
+                className={`relative inline-flex items-center gap-2 pb-3 text-[13px] transition-smooth ${
+                  active ? "font-medium text-stone-950" : "font-normal text-stone-500 hover:text-stone-800"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 <span>{tab.label}</span>
+                {active ? <span className="absolute inset-x-0 -bottom-px h-0.5 bg-stone-950" /> : null}
               </button>
             );
           })}
+          <div className="ml-auto pb-3 text-stone-400">
+            <IconChevronDown className="h-4 w-4" />
+          </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden px-2 py-2">{content}</div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="h-full min-h-0 overflow-y-auto px-4 py-4">{content}</div>
+      </div>
     </aside>
   );
 }

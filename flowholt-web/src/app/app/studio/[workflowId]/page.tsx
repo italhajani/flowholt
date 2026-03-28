@@ -64,20 +64,20 @@ function CompactSection({
   children: ReactNode;
 }) {
   return (
-    <details open={defaultOpen} className="overflow-hidden border border-black/8 bg-white">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
+    <details open={defaultOpen} className="border-b border-black/8 py-3 last:border-b-0">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center border border-black/8 bg-[#faf9f7] text-stone-500">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] bg-[#f5f4ed] text-stone-500">
             {icon}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-stone-900">{title}</p>
+            <p className="text-[13px] font-medium text-stone-950">{title}</p>
             {meta ? <p className="mt-0.5 truncate text-xs text-stone-500">{meta}</p> : null}
           </div>
         </div>
         <IconChevronDown className="h-4 w-4 shrink-0 text-stone-400" />
       </summary>
-      <div className="border-t border-black/8 px-3 py-3">{children}</div>
+      <div className="pt-3">{children}</div>
     </details>
   );
 }
@@ -325,13 +325,13 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           <input type="hidden" name="workflowId" value={workflow.id} />
           <div>
             <label className="mb-2 block text-xs font-semibold text-stone-700" htmlFor="workflow-name">Name</label>
-            <input id="workflow-name" name="name" defaultValue={workflow.name} className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none" />
+            <input id="workflow-name" name="name" defaultValue={workflow.name} className="w-full rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-sm outline-none" />
           </div>
           <div>
             <label className="mb-2 block text-xs font-semibold text-stone-700" htmlFor="workflow-description">Description</label>
-            <textarea id="workflow-description" name="description" defaultValue={workflow.description} rows={3} className="w-full border border-black/8 bg-[#faf9f7] px-3 py-2 text-sm outline-none" />
+            <textarea id="workflow-description" name="description" defaultValue={workflow.description} rows={3} className="w-full rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-sm outline-none" />
           </div>
-          <button type="submit" className="w-full border border-black/8 bg-white px-3 py-2 text-sm font-medium text-stone-900 transition-smooth hover:bg-[#f7f6f3]">Save workflow</button>
+          <button type="submit" className="w-full rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-sm font-medium text-stone-900 transition-smooth hover:bg-[#f7f6f3]">Save workflow</button>
         </form>
       </CompactSection>
 
@@ -346,7 +346,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const modelsSidebar = (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
       <CompactSection title="Active model" meta="Provider and runtime" icon={<IconSparkles className="h-4 w-4" />} defaultOpen>
-        <div className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+        <div className="rounded-[6px] border border-black/10 bg-white px-3 py-3">
           <p className="text-sm font-medium text-stone-900">{generation?.model ?? "GPT-4o-mini"}</p>
           <p className="mt-1 text-xs text-stone-500">Provider: {generation?.provider ?? "OpenAI"}</p>
         </div>
@@ -354,11 +354,11 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
 
       <CompactSection title="Runtime health" meta="Validation and paths" icon={<IconTool className="h-4 w-4" />}>
         <div className="space-y-2 text-sm leading-6 text-stone-600">
-          <div className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+          <div className="rounded-[6px] border border-black/10 bg-white px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Validation</p>
             <p className="mt-2 text-xl font-semibold text-stone-950">{validation.score}/100</p>
           </div>
-          <div className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+          <div className="rounded-[6px] border border-black/10 bg-white px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Paths</p>
             <p className="mt-2 text-xl font-semibold text-stone-950">{simulation.possible_path_count}</p>
           </div>
@@ -402,3 +402,4 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </main>
   );
 }
+

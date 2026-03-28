@@ -1,8 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { IconChevronDown, IconIntegrations, IconSparkles, IconWorkflows } from "@/components/icons";
 import { buildToolMarketplace, buildToolMarketplaceSummary } from "@/lib/flowholt/tool-marketplace";
 
 type ResourceSuggestion = {
@@ -38,12 +40,6 @@ const readinessStyles = {
   missing: "border-stone-200 bg-stone-100 text-stone-700",
 };
 
-const toneStyles = {
-  default: "bg-white",
-  mint: "bg-[#edf5f0]",
-  sand: "bg-[#f7ede1]",
-};
-
 const readinessLabels = {
   ready: "Ready",
   partial: "Partial",
@@ -71,6 +67,47 @@ function buildAssistantHref(workflowId: string, suggestion: ResourceSuggestion, 
   return `/app/studio/${workflowId}?${params.toString()}`;
 }
 
+function DrawerSection({
+  icon,
+  title,
+  subtitle,
+  badge,
+  defaultOpen = false,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={defaultOpen} className="border-b border-black/8 py-3 last:border-b-0">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] bg-[#f5f4ed] text-stone-500">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-stone-950">{title}</p>
+            <p className="mt-1 text-xs leading-5 text-stone-500">{subtitle}</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 text-stone-400">
+          {badge ? (
+            <span className="rounded-[999px] border border-black/8 px-2 py-0.5 text-[10px] font-medium text-stone-500">
+              {badge}
+            </span>
+          ) : null}
+          <IconChevronDown className="h-4 w-4" />
+        </div>
+      </summary>
+      <div className="pt-3">{children}</div>
+    </details>
+  );
+}
+
 export function StudioResourcesPanel({
   workflowId,
   activeKitKey = "",
@@ -81,14 +118,8 @@ export function StudioResourcesPanel({
   const categories = useMemo(() => buildToolMarketplace(integrations), [integrations]);
   const summary = useMemo(() => buildToolMarketplaceSummary(categories), [categories]);
   const allKits = useMemo(() => categories.flatMap((category) => category.kits), [categories]);
-  const workflowPacks = useMemo(
-    () => allKits.filter((kit) => kit.family === "workflow_pack"),
-    [allKits],
-  );
-  const providerPacks = useMemo(
-    () => allKits.filter((kit) => kit.family === "provider_pack"),
-    [allKits],
-  );
+  const workflowPacks = useMemo(() => allKits.filter((kit) => kit.family === "workflow_pack"), [allKits]);
+  const providerPacks = useMemo(() => allKits.filter((kit) => kit.family === "provider_pack"), [allKits]);
   const suggestionByKit = useMemo(
     () => new Map(resourceSuggestions.map((suggestion) => [suggestion.kitKey, suggestion])),
     [resourceSuggestions],
@@ -102,172 +133,121 @@ export function StudioResourcesPanel({
         : summary.featuredKits;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2 text-sm leading-6 text-stone-700">
-      <div className="shrink-0 border border-black/8 bg-white px-3 py-3">
-        <div className="flex items-start justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col bg-white text-sm leading-6 text-stone-700">
+      <div className="shrink-0 border-b border-black/8 pb-3">
+        <div className="flex items-start justify-between gap-3 pb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Resources</p>
-            <p className="mt-2 text-sm leading-6 text-stone-700">Workspace packs, setup status, and quick ways to start building.</p>
+            <p className="text-[13px] font-medium text-stone-950">Resources</p>
+            <p className="mt-1 text-xs leading-5 text-stone-500">Workspace packs, setup status, and quick launch ideas.</p>
           </div>
-          <span className="border border-black/8 bg-[#f6f5f2] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600">
+          <span className="rounded-[999px] border border-black/8 px-2 py-0.5 text-[10px] font-medium text-stone-500">
             {summary.totalKits} total
           </span>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
-          <div className="border border-black/8 bg-[#faf9f7] px-2 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Ready</p>
-            <p className="mt-1 text-lg font-semibold text-stone-900">{summary.readyKits}</p>
-          </div>
-          <div className="border border-black/8 bg-[#faf9f7] px-2 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Workflow</p>
-            <p className="mt-1 text-lg font-semibold text-stone-900">{summary.workflowPacks}</p>
-          </div>
-          <div className="border border-black/8 bg-[#faf9f7] px-2 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Provider</p>
-            <p className="mt-1 text-lg font-semibold text-stone-900">{summary.providerPacks}</p>
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {(["overview", "workflow", "provider"] as ResourceTab[]).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={
-                activeTab === tab
-                  ? "border border-black/8 bg-stone-900 px-3 py-1.5 text-[11px] font-semibold text-white"
-                  : "border border-black/8 bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-600 transition-smooth hover:bg-[#f7f6f3]"
-              }
-            >
-              {tabLabels[tab]}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href="/app/integrations"
-            className="border border-black/8 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
-          >
-            Integrations
-          </Link>
-          <Link
-            href="/app/workflows"
-            className="border border-black/8 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
-          >
-            Library
-          </Link>
+        <div className="flex items-end gap-4">
+          {(["overview", "workflow", "provider"] as ResourceTab[]).map((tab) => {
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`relative pb-2 text-[13px] transition-smooth ${
+                  active ? "font-medium text-stone-950" : "text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                {tabLabels[tab]}
+                {active ? <span className="absolute inset-x-0 -bottom-px h-0.5 bg-stone-950" /> : null}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto pt-1">
+        <DrawerSection
+          icon={<IconSparkles className="h-3.5 w-3.5" />}
+          title="Workspace readiness"
+          subtitle="How much of this workspace is ready to use right now."
+          badge={`${summary.readyKits}/${summary.totalKits}`}
+          defaultOpen
+        >
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-[999px] border border-black/8 px-2.5 py-1 text-[11px] text-stone-600">Ready {summary.readyKits}</span>
+            <span className="rounded-[999px] border border-black/8 px-2.5 py-1 text-[11px] text-stone-600">Workflow {summary.workflowPacks}</span>
+            <span className="rounded-[999px] border border-black/8 px-2.5 py-1 text-[11px] text-stone-600">Provider {summary.providerPacks}</span>
+          </div>
+        </DrawerSection>
+
         {resourceSuggestions.length > 0 && activeTab === "overview" ? (
-          <details className="overflow-hidden border border-black/8 bg-white">
-            <summary className="cursor-pointer list-none px-3 py-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-stone-900">Launch from resources</p>
-                  <p className="mt-1 text-xs leading-5 text-stone-500">Use a ready pack idea instead of writing the full request.</p>
-                </div>
-                <span className="border border-black/8 bg-[#f6f5f2] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {resourceSuggestions.length} ideas
-                </span>
-              </div>
-            </summary>
-            <div className="border-t border-black/8 px-3 py-3 space-y-2">
+          <DrawerSection
+            icon={<IconWorkflows className="h-3.5 w-3.5" />}
+            title="Suggested from your packs"
+            subtitle="Use one of these ideas directly in the assistant."
+            badge={`${resourceSuggestions.length}`}
+            defaultOpen
+          >
+            <div className="space-y-3">
               {resourceSuggestions.slice(0, 3).map((suggestion) => (
-                <div key={suggestion.id} className={`border border-black/8 px-3 py-3 ${toneStyles[suggestion.tone]}`}>
+                <div key={suggestion.id} className="space-y-2 border-b border-black/8 pb-3 last:border-b-0 last:pb-0">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
+                      <p className="text-[13px] font-medium text-stone-950">{suggestion.title}</p>
                       <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
                     </div>
-                    <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${readinessStyles[suggestion.readiness]}`}>
+                    <span className={`rounded-[999px] border px-2 py-0.5 text-[10px] font-medium ${readinessStyles[suggestion.readiness]}`}>
                       {readinessLabels[suggestion.readiness]}
                     </span>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Link
-                      href={buildAssistantHref(workflowId, suggestion, false)}
-                      className="border border-black/8 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
-                    >
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={buildAssistantHref(workflowId, suggestion, false)} className="rounded-[6px] border border-black/10 px-3 py-1.5 text-[12px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]">
                       Use idea
                     </Link>
-                    <Link
-                      href={buildAssistantHref(workflowId, suggestion, true)}
-                      className="border border-black/8 bg-stone-900 px-3 py-1.5 text-[11px] font-medium text-white transition-smooth hover:bg-stone-800"
-                    >
+                    <Link href={buildAssistantHref(workflowId, suggestion, true)} className="rounded-[6px] border border-black/10 px-3 py-1.5 text-[12px] font-medium text-stone-900 transition-smooth hover:bg-[#f7f6f3]">
                       Preview pack
                     </Link>
                   </div>
                 </div>
               ))}
             </div>
-          </details>
+          </DrawerSection>
         ) : null}
 
         {packsToRender.map((kit) => {
           const suggestion = suggestionByKit.get(kit.key);
           const isActive = activeKitKey === kit.key;
           return (
-            <details
+            <DrawerSection
               key={kit.key}
-              className={
-                `overflow-hidden border bg-white ${
-                  isActive ? "border-stone-900/30 ring-1 ring-stone-900/10" : "border-black/6"
-                }`
-              }
+              icon={kit.family === "workflow_pack" ? <IconWorkflows className="h-3.5 w-3.5" /> : <IconIntegrations className="h-3.5 w-3.5" />}
+              title={kit.title}
+              subtitle={kit.description}
+              badge={readinessLabels[kit.readiness]}
+              defaultOpen={isActive}
             >
-              <summary className="cursor-pointer list-none px-3 py-2.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-stone-900">{kit.title}</p>
-                      <span className="border border-black/8 bg-[#f6f5f2] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-600">
-                        {familyLabels[kit.family]}
-                      </span>
-                      {isActive ? (
-                        <span className="border border-black/8 bg-stone-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-                          Active
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-xs leading-5 text-stone-500">{kit.description}</p>
-                  </div>
-                  <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${readinessStyles[kit.readiness]}`}>
-                    {readinessLabels[kit.readiness]}
-                  </span>
-                </div>
-              </summary>
-
-              <div className="border-t border-black/8 px-3 py-3 space-y-2">
-                <div className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em] text-stone-500">
+                  <span className="rounded-[999px] border border-black/8 px-2 py-0.5">{familyLabels[kit.family]}</span>
                   {kit.requiredProviders.map((provider) => (
-                    <span key={`${kit.key}-${provider}`} className="rounded-full bg-[#f5f5f5] px-2.5 py-1">
+                    <span key={`${kit.key}-${provider}`} className="rounded-[999px] border border-black/8 px-2 py-0.5">
                       {provider}
                     </span>
                   ))}
-                  {kit.expectedProfiles.slice(0, 3).map((profile) => (
-                    <span key={`${kit.key}-${profile}`} className="rounded-full bg-[#f5f5f5] px-2.5 py-1">
-                      {profile.replaceAll("_", " ")}
-                    </span>
-                  ))}
                 </div>
 
-                <div className="grid gap-2">
-                  <div className="border border-black/8 bg-[#faf9f7] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Best strategy</p>
-                    <p className="mt-1 text-sm text-stone-700">{kit.recommendedStrategy}</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-[11px] text-stone-400">Best strategy</p>
+                    <p className="mt-1 text-[13px] text-stone-700">{kit.recommendedStrategy}</p>
                   </div>
-                  <div className="border border-black/8 bg-[#faf9f7] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Setup hint</p>
-                    <p className="mt-1 text-sm text-stone-700">{kit.setupHint}</p>
+                  <div>
+                    <p className="text-[11px] text-stone-400">Setup hint</p>
+                    <p className="mt-1 text-[13px] text-stone-700">{kit.setupHint}</p>
                   </div>
-                  <div className="border border-black/8 bg-[#faf9f7] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Connections</p>
-                    <p className="mt-1 text-sm text-stone-700">
+                  <div>
+                    <p className="text-[11px] text-stone-400">Connections</p>
+                    <p className="mt-1 text-[13px] text-stone-700">
                       {kit.matchingConnections.length
                         ? kit.matchingConnections.map((connection) => connection.label).join(", ")
                         : "No matching connection saved yet."}
@@ -277,32 +257,26 @@ export function StudioResourcesPanel({
 
                 {suggestion ? (
                   <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={buildAssistantHref(workflowId, suggestion, false)}
-                      className="border border-black/8 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
-                    >
+                    <Link href={buildAssistantHref(workflowId, suggestion, false)} className="rounded-[6px] border border-black/10 px-3 py-1.5 text-[12px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]">
                       Use in assistant
                     </Link>
-                    <Link
-                      href={buildAssistantHref(workflowId, suggestion, true)}
-                      className="border border-black/8 bg-stone-900 px-3 py-1.5 text-[11px] font-medium text-white transition-smooth hover:bg-stone-800"
-                    >
+                    <Link href={buildAssistantHref(workflowId, suggestion, true)} className="rounded-[6px] border border-black/10 px-3 py-1.5 text-[12px] font-medium text-stone-900 transition-smooth hover:bg-[#f7f6f3]">
                       Preview pack
                     </Link>
                   </div>
                 ) : (
-                  <Link
-                    href="/app/integrations"
-                    className="inline-flex border border-black/8 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]"
-                  >
+                  <Link href="/app/integrations" className="inline-flex rounded-[6px] border border-black/10 px-3 py-1.5 text-[12px] font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]">
                     Finish setup in integrations
                   </Link>
                 )}
               </div>
-            </details>
+            </DrawerSection>
           );
         })}
       </div>
     </div>
   );
 }
+
+
+

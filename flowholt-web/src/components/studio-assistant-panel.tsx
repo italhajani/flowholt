@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { IconCheck, IconClock, IconMessage, IconSparkles } from "@/components/icons";
+import { IconCheck, IconChevronDown, IconClock, IconMessage, IconSparkles } from "@/components/icons";
 
 type ProposalSummary = {
   name: string;
@@ -188,11 +188,11 @@ function formatDateTime(value: string | null | undefined) {
 
 function messageTone(role: ThreadMessage["role"]) {
   if (role === "assistant") {
-    return "ml-4 border-[#ddd9ff] bg-[#f5f3ff]";
+    return "ml-4 border-[#e7e3ff] bg-[#faf9ff]";
   }
 
   if (role === "system") {
-    return "border-[#f0dcc4] bg-[#faf2e7]";
+    return "border-[#f0e4d4] bg-[#fbf7f1]";
   }
 
   return "mr-4 border-black/8 bg-white";
@@ -251,28 +251,26 @@ function AssistantSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="overflow-hidden border border-black/8 bg-white">
+    <section className="border-b border-black/8 py-3 last:border-b-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left transition-smooth hover:bg-[#f7f6f3]"
+        className="flex w-full items-start justify-between gap-3 text-left transition-smooth hover:text-stone-950"
       >
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-stone-900">{title}</p>
+          <p className="text-[13px] font-medium text-stone-950">{title}</p>
           <p className="mt-1 text-xs leading-5 text-stone-500">{subtitle}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 text-stone-400">
           {badge ? (
-            <span className="border border-black/8 bg-[#f6f5f2] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+            <span className="rounded-[999px] border border-black/8 px-2 py-0.5 text-[10px] font-medium text-stone-500">
               {badge}
             </span>
           ) : null}
-          <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-            {open ? "Hide" : "Show"}
-          </span>
+          <IconChevronDown className="h-4 w-4" />
         </div>
       </button>
-      {open ? <div className="border-t border-black/8 px-3 py-3">{children}</div> : null}
+      {open ? <div className="pt-3">{children}</div> : null}
     </section>
   );
 }
@@ -691,10 +689,10 @@ export function StudioAssistantPanel({
   }, [threads]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col border border-black/8 bg-[#f5f5f3]">
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <div className="space-y-2">
-          <div className="border border-black/8 bg-[#eceff3] p-3">
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div className="space-y-3">
+          <div className="border-b border-black/8 pb-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <IconSparkles className="h-4 w-4 text-[#6f5bf3]" />
@@ -713,8 +711,8 @@ export function StudioAssistantPanel({
             </p>
           </div>
 
-          <div className="border border-black/8 bg-white p-3">
-            <div className="space-y-2">
+          <div className="border-b border-black/8 py-4">
+            <div className="space-y-3">
               {(proposal?.reasoning?.slice(0, 4) ?? []).map((item, index) => (
                 <div key={`${item}-${index}`} className="flex gap-3">
                   <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center text-emerald-600">
@@ -737,13 +735,13 @@ export function StudioAssistantPanel({
           </div>
 
           {messagesLoading ? (
-            <div className="border border-black/8 bg-white px-3 py-3 text-sm leading-6 text-stone-500">Loading conversation...</div>
+            <div className="py-4 text-sm leading-6 text-stone-500">Loading conversation...</div>
           ) : messages.length ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {messages.slice(-6).map((item) => {
                 const badges = metadataBadges(item.metadata);
                 return (
-                  <div key={item.id} className={`border px-3 py-3 shadow-[0_2px_8px_rgba(15,23,42,0.03)] ${messageTone(item.role)}`}>
+                  <div key={item.id} className={`border px-3 py-3 ${messageTone(item.role)}`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                         {messageLabel(item.role)}
@@ -768,7 +766,7 @@ export function StudioAssistantPanel({
               })}
             </div>
           ) : (
-            <div className="border border-black/8 bg-white px-3 py-3 text-sm leading-6 text-stone-500">
+            <div className="py-4 text-sm leading-6 text-stone-500">
               No assistant conversation yet. Send a message below and the chat builds here.
             </div>
           )}
@@ -779,9 +777,9 @@ export function StudioAssistantPanel({
               subtitle="Use a ready idea from your resources."
               badge={`${resourceSuggestions.length} ideas`}
             >
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {resourceSuggestions.slice(0, 3).map((suggestion) => (
-                  <div key={suggestion.id} className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+                  <div key={suggestion.id} className="rounded-[8px] border border-black/10 bg-[#faf9f7] px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
@@ -826,7 +824,7 @@ export function StudioAssistantPanel({
           >
             {proposal ? (
               <div className="space-y-3 text-sm text-stone-700">
-                <div className={`border px-3 py-3 ${proposalTone}`}>
+                <div className={`rounded-[8px] border px-3 py-3 ${proposalTone}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-stone-900">{proposal.name}</p>
@@ -844,9 +842,9 @@ export function StudioAssistantPanel({
                 </div>
 
                 {proposal.changes.length ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {proposal.changes.slice(0, 4).map((change, index) => (
-                      <div key={`${change.node_id}-${index}`} className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+                      <div key={`${change.node_id}-${index}`} className="rounded-[8px] border border-black/10 bg-[#faf9f7] px-3 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="font-medium text-stone-900">{change.label}</p>
                           <span className="border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
@@ -871,7 +869,7 @@ export function StudioAssistantPanel({
             subtitle="Compare or restore recent workflow versions."
             badge={revisions.length ? `${revisions.length} recent` : "Empty"}
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               {revisionsLoading ? (
                 <p className="text-sm text-stone-500">Loading revisions...</p>
               ) : revisions.length ? (
@@ -879,7 +877,7 @@ export function StudioAssistantPanel({
                   const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
                   const comparison = isCompareOpen ? compareData?.comparison : null;
                   return (
-                    <div key={revision.id} className="border border-black/8 bg-[#faf9f7] px-3 py-3">
+                    <div key={revision.id} className="rounded-[8px] border border-black/10 bg-[#faf9f7] px-3 py-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
@@ -924,7 +922,7 @@ export function StudioAssistantPanel({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-black/8 bg-white p-2">
+      <div className="shrink-0 border-t border-black/8 bg-white px-4 py-3">
         {errorMessage ? (
           <div className="mb-2 border border-[#f6d2c3] bg-[#fff4ef] px-3 py-2 text-sm text-[#b45309]">{errorMessage}</div>
         ) : null}
@@ -937,7 +935,7 @@ export function StudioAssistantPanel({
           onChange={(event) => setMessage(event.target.value)}
           rows={3}
           placeholder="Ask, build, or refine..."
-          className="w-full resize-none border border-black/8 bg-[#faf9f7] px-3 py-3 text-sm leading-6 text-stone-700 outline-none"
+          className="w-full resize-none rounded-[8px] border border-black/10 bg-white px-3 py-3 text-sm leading-6 text-stone-700 outline-none"
         />
 
         <div className="mt-2 flex items-center justify-between gap-3">
@@ -954,7 +952,7 @@ export function StudioAssistantPanel({
               type="button"
               onClick={() => void submitCompose("preview")}
               disabled={workingMode !== null || isPending || composerLoading}
-              className="border border-black/8 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
+              className="rounded-[6px] border border-black/10 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3] disabled:cursor-wait disabled:opacity-60"
             >
               {workingMode === "preview" ? "Sending..." : "Send"}
             </button>
@@ -962,7 +960,7 @@ export function StudioAssistantPanel({
               type="button"
               onClick={() => void submitCompose("apply")}
               disabled={workingMode !== null || isPending || composerLoading}
-              className="border border-black/8 bg-stone-900 px-3 py-2 text-sm font-medium text-white transition-smooth hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+              className="rounded-[6px] border border-black/10 bg-stone-900 px-3 py-2 text-sm font-medium text-white transition-smooth hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
             >
               {workingMode === "apply" ? "Applying..." : "Apply"}
             </button>
@@ -972,6 +970,8 @@ export function StudioAssistantPanel({
     </div>
   );
 }
+
+
 
 
 

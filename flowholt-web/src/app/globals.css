@@ -127,3 +127,14 @@ textarea {
 .studio-flow .react-flow__minimap-mask {
   fill: rgba(15, 23, 42, 0.06);
 }
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.flowholt-hairline {
+  border-color: rgba(31, 30, 29, 0.15);
+}

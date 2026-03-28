@@ -16,7 +16,7 @@ type StudioWorkspaceShellProps = {
   leftRail: ReactNode;
   leftPanel: ReactNode;
   canvas: ReactNode;
-  toolsPanel: ReactNode;
+  renderToolsPanel: (controls: { close: () => void }) => ReactNode;
   renderChatPanel: (controls: { close: () => void }) => ReactNode;
   initialLeftOpen?: boolean;
   initialRightMode?: "tools" | "chat" | null;
@@ -27,7 +27,7 @@ export function StudioWorkspaceShell({
   leftRail,
   leftPanel,
   canvas,
-  toolsPanel,
+  renderToolsPanel,
   renderChatPanel,
   initialLeftOpen = true,
   initialRightMode = null,
@@ -84,21 +84,19 @@ export function StudioWorkspaceShell({
             rightMode === "tools" ? "w-full opacity-100 lg:w-[430px]" : "w-0 border-l-0 opacity-0"
           }`}
         >
-          <div className="h-full min-h-0 overflow-hidden">{toolsPanel}</div>
+          <div className="h-full min-h-0 overflow-hidden">{renderToolsPanel({ close: () => setRightMode(null) })}</div>
         </div>
 
-        <div
-          className={`pointer-events-none absolute inset-y-0 right-0 z-40 flex justify-end transition-smooth ${
-            chatOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0"
-          }`}
-        >
-          <div className="pointer-events-auto h-full w-full max-w-[430px] border-l border-[#e8e7e4] bg-white shadow-[-20px_0_48px_rgba(15,23,42,0.08)]">
-            {renderChatPanel({ close: () => setChatOpen(false) })}
+        {chatOpen ? (
+          <div className="absolute inset-y-0 right-0 z-50 flex justify-end">
+            <div className="h-full w-full max-w-[430px] border-l border-[#e8e7e4] bg-white shadow-[-20px_0_48px_rgba(15,23,42,0.08)]">
+              {renderChatPanel({ close: () => setChatOpen(false) })}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
-      <div className="absolute bottom-[52px] right-4 z-30 flex flex-col items-end gap-2">
+      <div className="absolute bottom-[52px] right-4 z-[70] flex flex-col items-end gap-2">
         <button
           type="button"
           onClick={() => setChatOpen((value) => !value)}

@@ -11,6 +11,7 @@ type StudioSidebarTabsProps = {
   models: ReactNode;
   resources: ReactNode;
   initialTab?: SidebarTab;
+  onClose?: () => void;
 };
 
 const tabs: Array<{ key: SidebarTab; label: string; icon: typeof IconWorkflows }> = [
@@ -24,6 +25,7 @@ export function StudioSidebarTabs({
   models,
   resources,
   initialTab = "workflow",
+  onClose,
 }: StudioSidebarTabsProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>(initialTab);
 
@@ -53,9 +55,14 @@ export function StudioSidebarTabs({
             </button>
           );
         })}
-        <div className="ml-auto pb-[11px] text-stone-400">
-          <IconChevronDown className="h-4 w-4" />
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto inline-flex h-8 w-8 items-center justify-center text-stone-400 transition-smooth hover:bg-[#f6f5f2] hover:text-stone-700"
+          aria-label="Close tools sidebar"
+        >
+          <IconChevronDown className="h-4 w-4 -rotate-90" />
+        </button>
       </div>
 
       <div className="studio-sidepanel-scroll">

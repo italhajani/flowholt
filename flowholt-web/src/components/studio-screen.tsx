@@ -129,14 +129,15 @@ export function StudioScreen({
       initialRightMode={initialRightMode}
       canvas={centerContent}
       renderChatPanel={({ close }) => <StudioAssistantPanel {...assistantSidebarProps} onClose={close} />}
-      toolsPanel={
+      renderToolsPanel={({ close }) => (
         <StudioSidebarTabs
           initialTab={initialRightTab}
           workflow={workflowSidebar}
           models={modelsSidebar}
           resources={resourcesSidebar}
+          onClose={close}
         />
-      }
+      )}
     />
   );
 }

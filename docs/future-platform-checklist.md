@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 97%**
+- Frontend/UI progress: **about 98%**
 - Production hardening progress: **about 96%**
 - Agent/tool architecture groundwork: **about 98%**
 
@@ -74,10 +74,10 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Before full UI redesign
 
 - [x] Design-system token groundwork and in-app survey board
-- [ ] Pause for your design survey before visual redesign starts
-- [ ] Define final color system, spacing, typography, and editor shell rules
-- [ ] Redesign Studio layout to premium multi-panel editor inspired by modern workflow tools
-- [ ] Redesign dashboard, runs, integrations, and workflow library into one consistent product system
+- [x] Pause for your design survey before visual redesign starts
+- [x] Define final color system, spacing, typography, and editor shell rules
+- [x] Redesign Studio layout to premium multi-panel editor inspired by modern workflow tools
+- [ ] Finish redesigning runs, integrations, workflow library, and the remaining app surfaces into one consistent product system
 
 ## Frontend to unlock premium experience
 
@@ -151,9 +151,10 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 
 ## Definition of "finalized platform" (what done means)
 
-- [ ] Non-technical user can type a task and get a clear, editable flow
+- [x] Non-technical user can type a task and get a clear, editable flow
 - [ ] User can run, monitor, pause, and retry without touching JSON
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers
 - [ ] Agent can understand available tools, choose the right tool shape, and explain that choice in a human-readable way
+

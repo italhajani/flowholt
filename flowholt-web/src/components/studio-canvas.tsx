@@ -289,17 +289,17 @@ function toFlowEdges(graph: WorkflowGraph): Edge<WorkflowEdgeData>[] {
     animated: false,
     label: edgeDisplayLabel(edge),
     labelStyle: {
-      fill: "#cbd5e1",
+      fill: "#5f554d",
       fontSize: 12,
       fontWeight: 600,
     },
     labelBgPadding: [8, 4],
     labelBgBorderRadius: 999,
     labelBgStyle: {
-      fill: "rgba(15, 23, 42, 0.82)",
+      fill: "rgba(255, 252, 247, 0.94)",
     },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#95a3b8" },
-    style: { stroke: "#95a3b8", strokeWidth: 2.2 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#b9ab9c" },
+    style: { stroke: "#ccbfb2", strokeWidth: 2.2 },
     data: {
       branch: edge.branch ?? "",
     },
@@ -441,17 +441,17 @@ function CanvasInner({
           type: "smoothstep",
           label: branch ? branch.toUpperCase() : "",
           labelStyle: {
-            fill: "#cbd5e1",
+            fill: "#5f554d",
             fontSize: 12,
             fontWeight: 600,
           },
           labelBgPadding: [8, 4],
           labelBgBorderRadius: 999,
           labelBgStyle: {
-            fill: "rgba(15, 23, 42, 0.82)",
+            fill: "rgba(255, 252, 247, 0.94)",
           },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#95a3b8" },
-          style: { stroke: "#95a3b8", strokeWidth: 2.2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#b9ab9c" },
+          style: { stroke: "#ccbfb2", strokeWidth: 2.2 },
           data: {
             branch,
           },
@@ -665,9 +665,9 @@ function CanvasInner({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className={`${mobilePaneClasses(mobilePane, "canvas")} rounded-[28px] border border-stone-900/10 bg-[#202226] p-3 shadow-[0_24px_80px_rgba(15,23,42,0.20)] sm:rounded-[34px] sm:p-4`}>
+        <div className={`${mobilePaneClasses(mobilePane, "canvas")} rounded-[28px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,239,232,0.92))] p-3 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:rounded-[34px] sm:p-4`}>
           <div className="grid h-[560px] gap-4 sm:h-[640px] lg:grid-cols-[84px_minmax(0,1fr)] xl:h-[720px]">
-            <div className="order-2 rounded-[24px] border border-white/8 bg-[#1a1c20] p-3 lg:order-1 lg:rounded-[28px]">
+            <div className="order-2 rounded-[24px] border border-stone-900/10 bg-white/82 p-3 shadow-[var(--fh-shadow-soft)] lg:order-1 lg:rounded-[28px]">
               <div className="flex h-full flex-col gap-3 lg:items-center lg:justify-between">
                 <div className="grid auto-cols-max grid-flow-col gap-2 overflow-x-auto lg:grid-flow-row lg:auto-cols-auto">
                   {([
@@ -682,20 +682,20 @@ function CanvasInner({
                       key={nodeType}
                       type="button"
                       onClick={() => addNode(nodeType)}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-200 transition hover:bg-white/10"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-stone-900/10 bg-[#fbf8f3] text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-700 transition hover:bg-white"
                       title={`Add ${nodeTypeLabels[nodeType]}`}
                     >
                       {nodeTypeIcons[nodeType]}
                     </button>
                   ))}
                 </div>
-                <div className="hidden rounded-2xl border border-white/8 bg-white/5 px-2 py-3 text-center text-[10px] uppercase tracking-[0.2em] text-stone-400 lg:block">
+                <div className="hidden rounded-2xl border border-stone-900/10 bg-[#fbf8f3] px-2 py-3 text-center text-[10px] uppercase tracking-[0.2em] text-stone-500 lg:block">
                   Studio
                 </div>
               </div>
             </div>
 
-            <div className="order-1 overflow-hidden rounded-[24px] border border-white/10 bg-[#24272c] lg:order-2 lg:rounded-[28px]">
+            <div className="order-1 overflow-hidden rounded-[24px] border border-stone-900/10 bg-[#fdfaf6] lg:order-2 lg:rounded-[28px]">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -722,25 +722,25 @@ function CanvasInner({
                 }}
                 fitView
                 minZoom={0.35}
-                className="studio-flow bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),rgba(36,39,44,0.96))]"
+                className="studio-flow flowholt-grid-dots bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(252,249,244,0.98))]"
                 proOptions={{ hideAttribution: true }}
               >
                 <Panel position="top-left" className="!m-3 sm:!m-4">
-                  <div className="rounded-full border border-white/10 bg-black/25 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-300 backdrop-blur sm:px-4">
+                  <div className="rounded-full border border-stone-900/10 bg-white/88 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500 backdrop-blur sm:px-4">
                     Canvas
                   </div>
                 </Panel>
                 <Panel position="top-right" className="!m-3 hidden sm:!m-4 sm:!block">
-                  <div className="flex gap-2 rounded-full border border-white/10 bg-black/25 px-2 py-2 backdrop-blur">
+                  <div className="flex gap-2 rounded-full border border-stone-900/10 bg-white/88 px-2 py-2 backdrop-blur">
                     <button
                       type="button"
-                      className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-stone-700"
+                      className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white"
                     >
                       Present
                     </button>
                     <button
                       type="button"
-                      className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-stone-200"
+                      className="rounded-full border border-stone-900/10 px-3 py-1.5 text-xs font-medium text-stone-700"
                     >
                       Share
                     </button>
@@ -749,12 +749,12 @@ function CanvasInner({
                 <MiniMap
                   pannable
                   zoomable
-                  className="!m-4 !hidden !rounded-2xl !border !border-white/10 !bg-black/25 sm:!block"
-                  maskColor="rgba(14,15,18,0.45)"
-                  nodeColor="#e7ebf2"
+                  className="!m-4 !hidden !rounded-2xl !border !border-stone-900/10 !bg-white/90 sm:!block"
+                  maskColor="rgba(73, 62, 52, 0.10)"
+                  nodeColor="#eadfd4"
                 />
                 <Controls className="studio-controls" showInteractive={false} />
-                <Background gap={22} size={1.2} color="rgba(255,255,255,0.12)" />
+                <Background gap={22} size={1.2} color="rgba(84,72,62,0.14)" />
               </ReactFlow>
             </div>
           </div>
@@ -952,6 +952,7 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
+
 
 
 

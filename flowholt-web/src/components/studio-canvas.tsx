@@ -149,35 +149,34 @@ function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>)
 
   return (
     <div
-      className={`min-w-[228px] border bg-white px-4 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] ${selected ? "ring-1 ring-[#ef6a3a]/30" : ""}`}
-      style={{ borderColor: selected ? style.accent : "rgba(15,23,42,0.08)" }}
+      className={`w-[170px] rounded-[8px] border bg-white px-[14px] py-3 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${selected ? "shadow-[0_0_0_2px_rgba(212,80,10,0.12)]" : ""}`}
+      style={{ borderColor: selected ? style.accent : "#e8e7e4" }}
     >
-      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border !border-white !bg-stone-400" />
-      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border !border-white !bg-stone-400" />
-      <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center border" style={{ borderColor: style.accent, color: style.accent }}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className={`inline-flex px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${style.chip}`}>
-            {nodeTypeLabels[nodeType]}
-          </span>
-          <p className="mt-2 truncate text-sm font-semibold text-stone-900">{data.label}</p>
-          <p className="mt-1 text-xs leading-5 text-stone-500">
-            {nodeType === "agent"
-              ? "Reason and decide the next step."
-              : nodeType === "tool"
-                ? "Run an external action or app call."
-                : nodeType === "trigger"
-                  ? "Start the workflow."
-                  : nodeType === "condition"
-                    ? "Route the flow to another branch."
-                    : nodeType === "output"
-                      ? "Return the final result."
-                      : "Reusable workflow block."}
-          </p>
-        </div>
+      <Handle type="target" position={Position.Left} className="!h-[7px] !w-[7px] !border-[1.5px] !border-[#c9c6be] !bg-white" />
+      <Handle type="source" position={Position.Right} className="!h-[7px] !w-[7px] !border-[1.5px] !border-[#c9c6be] !bg-white" />
+      <div className="mb-[7px] flex items-center gap-[5px]">
+        <span className="h-[6px] w-[6px] rounded-full" style={{ backgroundColor: style.accent }} />
+        <span className={`inline-flex rounded-full px-2 py-[3px] text-[9px] font-semibold uppercase tracking-[0.08em] ${style.chip}`}>
+          {nodeTypeLabels[nodeType]}
+        </span>
       </div>
+      <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-[6px]" style={{ backgroundColor: style.chip.includes("bg-[#e8f4ef]") ? "#e8f4ef" : style.chip.includes("bg-[#eef1fb]") ? "#eef1fb" : style.chip.includes("bg-[#f5f0fb]") ? "#f5f0fb" : style.chip.includes("bg-[#fff8ed]") ? "#fff8ed" : style.chip.includes("bg-[#f5f5f5]") ? "#f5f5f5" : "#fafaf9", color: style.accent }}>
+        <Icon className="h-[14px] w-[14px]" />
+      </div>
+      <p className="text-[12.5px] font-semibold text-[#1a1917]">{data.label}</p>
+      <p className="mt-0.5 truncate text-[11px] text-[#a09d97]">
+        {nodeType === "agent"
+          ? "Reason and decide the next step."
+          : nodeType === "tool"
+            ? "Run an external action or app call."
+            : nodeType === "trigger"
+              ? "Start the workflow."
+              : nodeType === "condition"
+                ? "Route the flow to another branch."
+                : nodeType === "output"
+                  ? "Return the final result."
+                  : "Reusable workflow block."}
+      </p>
     </div>
   );
 }
@@ -333,10 +332,10 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-[#f7f7f6]">
       <input type="hidden" name="graph" value={graphJson} readOnly />
 
-      <div className="flex-1 overflow-hidden border border-black/8 bg-[#f8f8f6]">
+      <div className="min-h-0 flex-1 overflow-hidden bg-[#f7f7f6]">
         <div className="relative h-full min-h-0">
           <ReactFlow
             nodes={nodes}
@@ -345,29 +344,18 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-
-
             fitView
             minZoom={0.35}
-            className="studio-flow flowholt-grid-dots"
+            className="studio-flow"
             proOptions={{ hideAttribution: true }}
           >
             <Controls showInteractive={false} />
-            <Background gap={22} size={1.1} color="rgba(107,114,128,0.16)" />
+            <Background gap={24} size={1} color="#ccc9c0" />
           </ReactFlow>
-
-          <div className="pointer-events-none absolute left-4 top-4 z-30 flex items-center gap-2">
-            <span className="pointer-events-auto border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-600 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-              Canvas editor
-            </span>
-            <span className="pointer-events-auto border border-black/8 bg-white px-3 py-2 text-xs text-stone-500 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-              {nodes.length} steps
-            </span>
-          </div>
 
           <div className="absolute bottom-4 right-4 z-40 flex flex-col items-end gap-2">
             {showAddMenu ? (
-              <div className="flex flex-col gap-2 border border-black/8 bg-white p-2 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+              <div className="flex flex-col gap-1 rounded-[5px] border border-[#e8e7e4] bg-white p-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                 {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => {
                   const Icon = nodeTypeIcons[nodeType];
                   return (
@@ -375,7 +363,7 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
                       key={nodeType}
                       type="button"
                       onClick={() => addNode(nodeType)}
-                      className="flex h-9 w-9 items-center justify-center border border-black/8 bg-[#faf9f7] text-stone-600 transition-smooth hover:bg-white hover:text-stone-950"
+                      className="flex h-[30px] w-[30px] items-center justify-center rounded-[5px] text-[#6b6760] transition-smooth hover:bg-[#f7f7f6] hover:text-[#1a1917]"
                       title={`Add ${nodeTypeLabels[nodeType]}`}
                     >
                       <Icon className="h-4 w-4" />
@@ -388,7 +376,7 @@ function CanvasInner({ initialGraph }: StudioCanvasProps) {
               type="button"
               onClick={() => setShowAddMenu((value) => !value)}
               aria-label="Open add node menu"
-              className="flex h-9 w-9 items-center justify-center border border-black/8 bg-white text-stone-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-smooth hover:bg-[#f7f6f3]"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-[5px] border border-[#e8e7e4] bg-white text-[#6b6760] shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-smooth hover:bg-[#f7f7f6]"
             >
               {showAddMenu ? <IconX className="h-4 w-4" /> : <IconPlus className="h-4 w-4" />}
             </button>

@@ -130,38 +130,40 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const initialRightTab = openPanel === "models" || openPanel === "resources" ? openPanel : "workflow";
 
   const header = (
-    <div className="flex min-w-0 items-center justify-between gap-4">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 text-xs text-stone-400">
-          <Link href="/app/workflows">Workflows</Link>
-          <span>/</span>
-          <span className="truncate text-stone-900">{workflow.name}</span>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-          <h1 className="text-lg font-semibold text-stone-950">{workflow.name}</h1>
-          <span className="border border-black/8 bg-[#f6f5f2] px-2.5 py-1 text-xs text-stone-600">{graph.nodes.length} nodes</span>
-          <span className="border border-[#bfe7c7] bg-[#eef8f1] px-2.5 py-1 text-xs text-[#1b7d4d]">Ready to test</span>
-          <span className="border border-black/8 bg-[#f6f5f2] px-2.5 py-1 text-xs text-stone-500">Autosaved 2m ago</span>
-        </div>
+    <div className="flex h-full min-w-0 items-center gap-0">
+      <div className="flex h-full shrink-0 items-center gap-2 border-r border-[#e8e7e4] px-5 text-[12px] text-[#a09d97]">
+        <Link href="/app/workflows" className="hover:text-[#6b6760]">Workflows</Link>
+        <span>/</span>
+        <span className="truncate text-[#6b6760]">{workflow.name}</span>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <button type="submit" form="workflow-save-form" className="inline-flex items-center gap-2 border border-black/8 bg-white px-3.5 py-2 text-sm font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]">
-          <IconSave className="h-4 w-4" />
-          <span>Save</span>
-        </button>
-        <Link href="/app/runs" className="inline-flex items-center gap-2 border border-black/8 bg-white px-3.5 py-2 text-sm font-medium text-stone-700 transition-smooth hover:bg-[#f7f6f3]">
-          <IconRuns className="h-4 w-4" />
-          <span>Executions</span>
-        </Link>
-        {workflow.id !== "demo-workflow" ? (
-          <form action={runWorkflow}>
-            <input type="hidden" name="workflowId" value={workflow.id} />
-            <button type="submit" className="inline-flex items-center gap-2 border border-black/8 bg-white px-3.5 py-2 text-sm font-medium text-stone-900 transition-smooth hover:bg-[#f7f6f3]">
-              <IconPlay className="h-4 w-4" />
-              <span>Run flow</span>
-            </button>
-          </form>
-        ) : null}
+      <div className="flex min-w-0 flex-1 items-center gap-4 px-5">
+        <div className="min-w-0">
+          <p className="truncate text-[13.5px] font-semibold text-[#1a1917]">{workflow.name}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#f0efec] px-[7px] py-[2px] text-[10.5px] font-medium text-[#6b6760]">{graph.nodes.length} nodes</span>
+            <span className="rounded-full border border-[#c0e5d5] bg-[#edf7f3] px-[7px] py-[2px] text-[10.5px] font-medium text-[#2d8a5e]">Ready to test</span>
+            <span className="text-[10.5px] text-[#a09d97]">Autosaved 2m ago</span>
+          </div>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button type="submit" form="workflow-save-form" className="inline-flex h-8 items-center gap-[5px] rounded-[5px] border border-[#e8e7e4] bg-white px-[14px] text-[12px] font-medium text-[#1a1917] transition-smooth hover:bg-[#f7f7f6]">
+            <IconSave className="h-4 w-4" />
+            <span>Save</span>
+          </button>
+          <Link href="/app/runs" className="inline-flex h-8 items-center gap-[5px] rounded-[5px] border border-[#e8e7e4] bg-white px-[14px] text-[12px] font-medium text-[#1a1917] transition-smooth hover:bg-[#f7f7f6]">
+            <IconRuns className="h-4 w-4" />
+            <span>Executions</span>
+          </Link>
+          {workflow.id !== "demo-workflow" ? (
+            <form action={runWorkflow}>
+              <input type="hidden" name="workflowId" value={workflow.id} />
+              <button type="submit" className="inline-flex h-8 items-center gap-[5px] rounded-[5px] border border-[#1a1917] bg-[#1a1917] px-[14px] text-[12px] font-medium text-white transition-smooth hover:bg-[#2d2c2a]">
+                <IconPlay className="h-4 w-4" />
+                <span>Run flow</span>
+              </button>
+            </form>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -176,21 +178,18 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   ];
 
   const leftRail = (
-    <div className="flex h-full flex-col items-center gap-2 py-3">
-      <Link href="/app/workflows" className="flex h-9 w-9 items-center justify-center bg-[#ef6a3a] text-xs font-semibold text-white shadow-[0_8px_20px_rgba(239,106,58,0.24)]">
-        FH
-      </Link>
-      <div className="mt-2 flex flex-col gap-1.5">
+    <div className="flex h-full flex-col items-center gap-1 px-0 py-3">
+      <div className="mt-1 flex flex-col gap-1">
         {railItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex h-9 w-9 items-center justify-center border transition-smooth ${
+              className={`relative flex h-9 w-9 items-center justify-center rounded-[5px] transition-smooth ${
                 item.active
-                  ? "border-[#ffd2c2] bg-[#fff5f1] text-[#ef6a3a]"
-                  : "border-transparent bg-transparent text-stone-400 hover:border-black/8 hover:bg-white hover:text-stone-700"
+                  ? "bg-[#fef3ed] text-[#d4500a]"
+                  : "text-[#a09d97] hover:bg-[#f7f7f6] hover:text-[#6b6760]"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -198,16 +197,23 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           );
         })}
       </div>
-      <div className="mt-auto mb-1 flex h-8 w-8 items-center justify-center border border-[#ffd2c2] bg-[#fff5f1] text-[11px] font-medium text-[#ef6a3a]">
+      <div className="my-1 h-px w-6 bg-[#e8e7e4]" />
+      <div className="mt-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full border border-[#e8e7e4] bg-white text-[11px] font-medium text-[#6b6760]">
         N
       </div>
     </div>
   );
 
   const canvasContent = (
-    <div className="flex h-full flex-col overflow-hidden bg-[#f3f3f1] p-3">
-      {message ? <div className="mb-3 border border-[#cce8d4] bg-[#eef8f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
-      {error ? <div className="mb-3 border border-[#f6d2c3] bg-[#fff4ef] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
+    <div className="flex h-full flex-col overflow-hidden bg-[#f7f7f6]">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-[#e8e7e4] bg-white px-4">
+        <button type="button" className="rounded-[5px] bg-[#f7f7f6] px-3 py-[5px] text-[12px] font-semibold text-[#1a1917]">Editor</button>
+        <button type="button" className="px-3 py-[5px] text-[12px] font-medium text-[#6b6760]">Canvas</button>
+        <div className="h-[18px] w-px bg-[#e8e7e4]" />
+        <span className="text-[11.5px] text-[#a09d97]">Drag, connect, refine</span>
+      </div>
+      {message ? <div className="mx-4 mt-3 border border-[#cce8d4] bg-[#eef8f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
+      {error ? <div className="mx-4 mt-3 border border-[#f6d2c3] bg-[#fff4ef] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
       <div className="min-h-0 flex-1 overflow-hidden">
         <form id="workflow-save-form" action={saveWorkflow} className="h-full">
           <input type="hidden" name="workflowId" value={workflow.id} />
@@ -401,8 +407,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   );
 
   return (
-    <main className="h-screen overflow-hidden bg-[#f3f3f1] text-stone-950">
-      <div className="mx-auto flex h-full max-w-[1720px] gap-3 px-3 py-3">
+    <main className="h-screen overflow-hidden bg-[#f7f7f6] text-[#1a1917]">
+      <div className="flex h-full px-3 py-3">
         <StudioScreen
           workflowName={workflow.name}
           header={header}

@@ -78,16 +78,16 @@ export function StudioScreen({
             : settingsContent;
 
   const leftPanel = (
-    <div className="px-3 py-3">
-      <div className="border-b border-black/8 pb-3">
-        <p className="text-sm font-medium text-stone-900">Studio</p>
-        <p className="mt-1 truncate text-xs text-stone-500">{workflowName}</p>
+    <div className="h-full bg-white">
+      <div className="border-b border-[#f0efec] px-[14px] pb-[10px] pt-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#a09d97]">Studio</p>
+        <p className="mt-2 truncate text-[12px] text-[#6b6760]">{workflowName}</p>
       </div>
 
-      {["Create", "Monitor", "Config"].map((section) => (
-        <div key={section} className="pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">{section}</p>
-          <div className="mt-2 space-y-1">
+      {(["Create", "Monitor", "Config"] as const).map((section) => (
+        <div key={section}>
+          <p className="px-[14px] pb-[6px] pt-[14px] text-[9.5px] font-semibold uppercase tracking-[0.07em] text-[#a09d97]">{section}</p>
+          <div>
             {centerTabs
               .filter((item) => item.section === section)
               .map((item) => {
@@ -98,13 +98,14 @@ export function StudioScreen({
                     key={item.key}
                     type="button"
                     onClick={() => setActiveMode(item.key)}
-                    className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-smooth ${
+                    className={`relative flex w-full items-center gap-[9px] px-[14px] py-[7px] text-left text-[12.5px] transition-smooth ${
                       active
-                        ? "border-r-2 border-[#ef6a3a] bg-[#fff5f1] font-medium text-[#ef6a3a]"
-                        : "text-stone-600 hover:bg-white"
+                        ? "bg-[#fef3ed] text-[#d4500a]"
+                        : "text-[#6b6760] hover:bg-[#f7f7f6]"
                     }`}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    {active ? <span className="absolute left-0 top-0 h-full w-[2px] rounded-r-[2px] bg-[#d4500a]" /> : null}
+                    <Icon className="h-[14px] w-[14px] shrink-0" />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -120,7 +121,7 @@ export function StudioScreen({
       header={header}
       leftRail={leftRail}
       leftPanel={leftPanel}
-      initialLeftOpen={false}
+      initialLeftOpen={true}
       initialRightMode={initialRightMode}
       canvas={centerContent}
       chatPanel={assistantSidebar}

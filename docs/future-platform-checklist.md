@@ -85,7 +85,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Composer controls in Studio: Preview, Apply, Undo
 - [x] Revisions panel with one-click restore and compare view
 - [x] Workspace switcher with active workspace state
-- [x] Live run monitor page with streamed logs/status
+- [x] Live run monitor page with streamed logs/status`r`n- [x] Retry and rerun controls from runs UI and live run page
 - [x] Live node timeline with duration and token estimates
 - [x] Schedule builder UI (no API manual calls)
 - [x] Schedule builder presets (interval, daily, weekdays)
@@ -152,7 +152,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Definition of "finalized platform" (what done means)
 
 - [x] Non-technical user can type a task and get a clear, editable flow
-- [ ] User can run, monitor, pause, and retry without touching JSON
+- [ ] User can run, monitor, cancel, and retry without touching JSON
 - [ ] User can schedule automations and trust reliability/recovery behavior
 - [ ] User can view reasoning, history, and restore prior versions instantly
 - [ ] Team can operate safely in production with metrics, alerts, RBAC, usage controls, audit history, abuse protection, and idempotent triggers

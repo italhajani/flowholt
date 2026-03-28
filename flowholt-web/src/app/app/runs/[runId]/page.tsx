@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { cancelRun, retryRun } from "@/app/app/runs/actions";
 import { AppShell } from "@/components/app-shell";
 import { RunLiveMonitor } from "@/components/run-live-monitor";
 import { SurfaceCard } from "@/components/surface-card";
@@ -7,11 +8,19 @@ import { createClient } from "@/lib/supabase/server";
 
 type RunLivePageProps = {
   params: Promise<{ runId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function RunLivePage({ params }: RunLivePageProps) {
+function readMessage(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : "";
+}
+
+export default async function RunLivePage({ params, searchParams }: RunLivePageProps) {
   const { runId } = await params;
   const supabase = await createClient();
+  const query = searchParams ? await searchParams : {};
+  const message = readMessage(query.message);
+  const errorMessage = readMessage(query.error);
 
   const {
     data: { user },
@@ -39,6 +48,9 @@ export default async function RunLivePage({ params }: RunLivePageProps) {
     );
   }
 
+  const canCancel = runRow.status === "queued" || runRow.status === "running";
+  const canRetry = ["failed", "cancelled", "succeeded"].includes(runRow.status);
+
   return (
     <AppShell
       eyebrow="Runs"
@@ -46,6 +58,13 @@ export default async function RunLivePage({ params }: RunLivePageProps) {
       description="Watch status and logs stream in real time while the run executes."
     >
       <div className="space-y-5">
+        {message ? (
+          <div className="rounded-[1.5rem] bg-[#eef5ef] px-5 py-4 text-sm text-emerald-900">{message}</div>
+        ) : null}
+        {errorMessage ? (
+          <div className="rounded-[1.5rem] bg-[#f8eee4] px-5 py-4 text-sm text-amber-950">{errorMessage}</div>
+        ) : null}
+
         <div className="flowholt-window overflow-hidden">
           <div className="flowholt-window-bar">
             <div>
@@ -80,6 +99,41 @@ export default async function RunLivePage({ params }: RunLivePageProps) {
                     {runRow.request_correlation_id || "No correlation id recorded."}
                   </p>
                 </div>
+                <SurfaceCard
+                  title="Run operations"
+                  description="Use clean retry and cancel controls without going back to Studio."
+                  tone="default"
+                >
+                  <div className="grid gap-3 text-sm text-stone-800">
+                    {canCancel ? (
+                      <form action={cancelRun}>
+                        <input type="hidden" name="runId" value={runRow.id} />
+                        <input type="hidden" name="returnTo" value={`/app/runs/${runRow.id}`} />
+                        <button
+                          type="submit"
+                          className="w-full rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 transition hover:bg-red-100"
+                        >
+                          Cancel run
+                        </button>
+                      </form>
+                    ) : null}
+                    {canRetry ? (
+                      <form action={retryRun}>
+                        <input type="hidden" name="runId" value={runRow.id} />
+                        <input type="hidden" name="returnTo" value={`/app/runs/${runRow.id}`} />
+                        <button
+                          type="submit"
+                          className="w-full rounded-[1.2rem] border border-stone-900/10 bg-white px-4 py-3 text-sm font-medium text-stone-900 transition hover:bg-stone-50"
+                        >
+                          {runRow.status === "succeeded" ? "Run again" : "Retry run"}
+                        </button>
+                      </form>
+                    ) : null}
+                    <Link href={`/app/studio/${runRow.workflow_id}`} className="rounded-[1.2rem] border border-stone-900/10 bg-white px-4 py-3 transition hover:bg-stone-50">
+                      Open workflow in Studio
+                    </Link>
+                  </div>
+                </SurfaceCard>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { cancelRun } from "@/app/app/runs/actions";
+import { cancelRun, retryRun } from "@/app/app/runs/actions";
 import { AppShell } from "@/components/app-shell";
 import { SurfaceCard } from "@/components/surface-card";
 import { getRunsSnapshot } from "@/lib/flowholt/data";
@@ -128,6 +128,7 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
                         {run.status === "queued" || run.status === "running" ? (
                           <form action={cancelRun}>
                             <input type="hidden" name="runId" value={run.id} />
+                            <input type="hidden" name="returnTo" value="/app/runs" />
                             <button
                               type="submit"
                               className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-medium text-red-700 transition hover:bg-red-100"
@@ -135,7 +136,18 @@ export default async function RunsPage({ searchParams }: RunsPageProps) {
                               Cancel
                             </button>
                           </form>
-                        ) : null}
+                        ) : (
+                          <form action={retryRun}>
+                            <input type="hidden" name="runId" value={run.id} />
+                            <input type="hidden" name="returnTo" value="/app/runs" />
+                            <button
+                              type="submit"
+                              className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-900 transition hover:bg-stone-50"
+                            >
+                              {run.status === "succeeded" ? "Run again" : "Retry"}
+                            </button>
+                          </form>
+                        )}
                       </div>
                     </div>
 

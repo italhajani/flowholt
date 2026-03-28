@@ -716,7 +716,7 @@ export async function getIntegrationsSnapshot(): Promise<IntegrationsSnapshot> {
   const { data, error } = await workspaceState.supabase
     .from("integration_connections")
     .select(
-      "id, workspace_id, created_by_user_id, provider, label, description, status, config, secrets, created_at, updated_at",
+      "id, workspace_id, created_by_user_id, provider, label, description, status, config, secrets, secret_version, last_secret_rotation_at, last_test_status, last_test_message, last_test_details, last_tested_at, created_at, updated_at",
     )
     .eq("workspace_id", workspaceState.activeWorkspace.id)
     .order("updated_at", { ascending: false });

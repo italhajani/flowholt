@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+type IntegrationTestResult = {
+  ok: boolean;
+  status: "passed" | "warn" | "failed" | "unknown";
+  message: string;
+  checked_at?: string;
+};
+
 type IntegrationTestResponse = {
   test?: {
     ok: boolean;
@@ -14,11 +21,12 @@ type IntegrationTestResponse = {
 
 type IntegrationTestButtonProps = {
   connectionId: string;
+  initialResult?: IntegrationTestResult | null;
 };
 
-export function IntegrationTestButton({ connectionId }: IntegrationTestButtonProps) {
+export function IntegrationTestButton({ connectionId, initialResult = null }: IntegrationTestButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<IntegrationTestResponse["test"] | null>(null);
+  const [result, setResult] = useState<IntegrationTestResult | null>(initialResult);
   const [error, setError] = useState("");
 
   async function handleClick() {
@@ -32,14 +40,12 @@ export function IntegrationTestButton({ connectionId }: IntegrationTestButtonPro
       const payload = (await response.json().catch(() => ({}))) as IntegrationTestResponse;
 
       if (!response.ok) {
-        setResult(null);
         setError(payload.error || "Connection test failed.");
         return;
       }
 
       setResult(payload.test ?? null);
     } catch (requestError) {
-      setResult(null);
       setError(requestError instanceof Error ? requestError.message : "Connection test failed.");
     } finally {
       setLoading(false);
@@ -48,10 +54,12 @@ export function IntegrationTestButton({ connectionId }: IntegrationTestButtonPro
 
   const toneClass =
     result?.status === "passed"
-      ? "bg-[#eef4ef] text-emerald-900"
+      ? "bg-[#eef5ef] text-emerald-900"
       : result?.status === "warn"
         ? "bg-[#fff3df] text-amber-950"
-        : "bg-[#f7ede2] text-amber-950";
+        : result?.status === "failed"
+          ? "bg-[#f7ede2] text-amber-950"
+          : "bg-stone-100 text-stone-700";
 
   return (
     <div className="space-y-2">

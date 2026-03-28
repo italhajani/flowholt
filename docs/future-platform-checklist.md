@@ -21,7 +21,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Platform readiness checks (env + backend health)
 - [x] Graph validation module + validation endpoint
 - [x] Draft/saved workflow simulation endpoint
-- [x] Connection test endpoint per provider
+- [x] Connection test endpoint per provider`r`n- [x] Persistent integration health state (last test status, message, checked time)
 - [x] Run streaming endpoint for live monitoring
 - [x] Durable run job queue table + worker endpoint
 - [x] Node-level execution metrics storage
@@ -52,7 +52,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 - [x] Batch scheduler claiming with stronger lease renewal
 - [x] Webhook idempotency key support
 - [x] Draft run simulation endpoint (no external calls, dry-run validation)
-- [x] Connection test endpoint per provider
+- [x] Connection test endpoint per provider`r`n- [x] Persistent integration health state (last test status, message, checked time)
 - [x] Audit log table for sensitive actions (restore, delete, secret update)
 - [x] External event bus trigger foundation
 - [x] Remaining advanced trigger types (email intake)

@@ -119,6 +119,32 @@ function secretKeys(secrets: Record<string, unknown>) {
   });
 }
 
+function healthLabel(status: string | null | undefined) {
+  if (status === "passed") {
+    return "Healthy";
+  }
+  if (status === "warn") {
+    return "Needs attention";
+  }
+  if (status === "failed") {
+    return "Failing";
+  }
+  return "Untested";
+}
+
+function healthTone(status: string | null | undefined) {
+  if (status === "passed") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+  if (status === "warn") {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+  if (status === "failed") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  return "border-stone-200 bg-stone-100 text-stone-700";
+}
+
 export default async function IntegrationsPage({ searchParams }: IntegrationsPageProps) {
   const snapshot = await getIntegrationsSnapshot();
   const params = searchParams ? await searchParams : {};
@@ -129,6 +155,12 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
     groq: snapshot.integrations.filter((item) => item.provider === "groq").length,
     http: snapshot.integrations.filter((item) => item.provider === "http").length,
     webhook: snapshot.integrations.filter((item) => item.provider === "webhook").length,
+  };
+  const healthCounts = {
+    passed: snapshot.integrations.filter((item) => item.last_test_status === "passed").length,
+    warn: snapshot.integrations.filter((item) => item.last_test_status === "warn").length,
+    failed: snapshot.integrations.filter((item) => item.last_test_status === "failed").length,
+    untested: snapshot.integrations.filter((item) => !item.last_test_status || item.last_test_status === "unknown").length,
   };
   const marketplaceCategories = buildToolMarketplace(snapshot.integrations);
   const marketplaceSummary = buildToolMarketplaceSummary(marketplaceCategories);
@@ -161,10 +193,10 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
 
           <div className="grid gap-0 xl:grid-cols-[minmax(0,1.06fr)_420px]">
             <div className="border-b border-stone-900/8 p-5 xl:border-b-0 xl:border-r xl:p-6">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <SurfaceCard title={String(providerCounts.groq)} description="Groq" />
                 <SurfaceCard title={String(providerCounts.http)} description="HTTP" tone="mint" />
-                <SurfaceCard title={String(providerCounts.webhook)} description="Webhook" tone="sand" />
+                <SurfaceCard title={String(providerCounts.webhook)} description="Webhook" tone="sand" />`r`n                <SurfaceCard title={String(healthCounts.passed)} description="Healthy" tone="mint" />
               </div>
 
               {!snapshot.schemaReady ? (
@@ -201,11 +233,14 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
                               <span className="rounded-full border border-stone-900/10 bg-stone-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-600">
                                 {integration.status}
                               </span>
+                              <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${healthTone(integration.last_test_status)}`}>
+                                {healthLabel(integration.last_test_status)}
+                              </span>
                             </div>
                             <p className="mt-2 text-sm text-stone-600">{integration.description || "No description"}</p>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            <IntegrationTestButton connectionId={integration.id} />
+                            <IntegrationTestButton connectionId={integration.id} initialResult={{ status: integration.last_test_status ?? "unknown", ok: integration.last_test_status === "passed", message: integration.last_test_message || "Connection has not been tested yet.", checked_at: integration.last_tested_at ?? undefined }} />
                             <form action={deleteIntegrationConnection}>
                               <input type="hidden" name="connectionId" value={integration.id} />
                               <button
@@ -226,10 +261,15 @@ export default async function IntegrationsPage({ searchParams }: IntegrationsPag
                             </pre>
                           </div>
                           <div className="rounded-[1.25rem] bg-[#fbf8f3] px-4 py-3 text-sm text-stone-700">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Secrets stored</p>
-                            <p className="mt-2">{savedSecretKeys.length ? savedSecretKeys.join(", ") : "No secret fields filled yet"}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Connection health</p>
+                            <p className="mt-2 font-medium text-stone-900">{integration.last_test_message || "Connection has not been tested yet."}</p>
+                            <p className="mt-2 text-xs leading-5 text-stone-500">
+                              {integration.last_tested_at
+                                ? `Last checked ${new Date(integration.last_tested_at).toLocaleString()}`
+                                : "Run a test once to save a health signal for this connection."}
+                            </p>
                             <p className="mt-3 text-xs leading-5 text-stone-500">
-                              Secret values stay hidden. Use rotate below when you need to replace them.
+                              Secret fields stored: {savedSecretKeys.length ? savedSecretKeys.join(", ") : "No secret fields filled yet"}
                             </p>
                           </div>
                         </div>

@@ -194,6 +194,10 @@ export type IntegrationConnectionRecord = {
   secrets: Record<string, unknown>;
   secret_version?: number;
   last_secret_rotation_at?: string | null;
+  last_test_status?: "unknown" | "passed" | "warn" | "failed";
+  last_test_message?: string;
+  last_test_details?: Record<string, unknown>;
+  last_tested_at?: string | null;
   created_at: string;
   updated_at: string;
 };

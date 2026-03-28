@@ -45,6 +45,16 @@ export async function POST(_: Request, context: RouteContext) {
 
   const test = await testIntegrationConnection(connection);
 
+  await supabase
+    .from("integration_connections")
+    .update({
+      last_test_status: test.status,
+      last_test_message: test.message,
+      last_test_details: test.details,
+      last_tested_at: test.checked_at,
+    })
+    .eq("id", connection.id);
+
   return NextResponse.json({
     connection: {
       id: connection.id,

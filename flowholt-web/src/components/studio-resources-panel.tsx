@@ -28,6 +28,8 @@ type StudioResourcesPanelProps = {
     label: string;
     description?: string;
     config?: Record<string, unknown>;
+    last_test_status?: "unknown" | "passed" | "warn" | "failed";
+    last_test_message?: string;
   }>;
   resourceSuggestions?: ResourceSuggestion[];
 };
@@ -119,6 +121,25 @@ export function StudioResourcesPanel({
     [resourceSuggestions],
   );
 
+  const healthSummary = useMemo(() => {
+    return integrations.reduce(
+      (accumulator, connection) => {
+        const status = connection.last_test_status ?? "unknown";
+        if (status === "passed") {
+          accumulator.healthy += 1;
+        } else if (status === "warn") {
+          accumulator.warn += 1;
+        } else if (status === "failed") {
+          accumulator.failed += 1;
+        } else {
+          accumulator.untested += 1;
+        }
+        return accumulator;
+      },
+      { healthy: 0, warn: 0, failed: 0, untested: 0 },
+    );
+  }, [integrations]);
+
   const packsToRender =
     activeTab === "workflow"
       ? workflowPacks
@@ -132,7 +153,7 @@ export function StudioResourcesPanel({
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-[12.5px] font-medium text-stone-950">Resources</p>
-            <p className="mt-1 text-[11px] leading-5 text-stone-500">Workspace packs, setup status, and quick launch ideas.</p>
+            <p className="mt-1 text-[11px] leading-5 text-stone-500">Workspace packs, connection health, and launch ideas.</p>
           </div>
           <span className="studio-sidepanel-pill">{summary.totalKits} total</span>
         </div>
@@ -159,6 +180,16 @@ export function StudioResourcesPanel({
             <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Ready {summary.readyKits}</span>
             <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Partial {summary.partialKits}</span>
             <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-stone-400" />Missing {summary.missingKits}</span>
+          </div>
+        </div>
+
+        <div className="mt-3 border border-black/8 bg-white px-3 py-3">
+          <p className="text-[10.5px] font-medium uppercase tracking-[0.05em] text-stone-400">Connection health</p>
+          <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-stone-600">
+            <span>Healthy {healthSummary.healthy}</span>
+            <span>Warn {healthSummary.warn}</span>
+            <span>Failing {healthSummary.failed}</span>
+            <span>Untested {healthSummary.untested}</span>
           </div>
         </div>
       </div>
@@ -202,6 +233,11 @@ export function StudioResourcesPanel({
         {packsToRender.map((kit) => {
           const suggestion = suggestionByKit.get(kit.key);
           const isActive = activeKitKey === kit.key;
+          const matchingConnections = integrations.filter((connection) =>
+            kit.matchingConnections.some((match) => match.id === connection.id),
+          );
+          const failedConnections = matchingConnections.filter((connection) => connection.last_test_status === "failed");
+          const warnConnections = matchingConnections.filter((connection) => connection.last_test_status === "warn");
           return (
             <ResourceSection
               key={kit.key}
@@ -235,6 +271,18 @@ export function StudioResourcesPanel({
                         : "No matching connection saved yet."}
                     </p>
                   </div>
+                  {matchingConnections.length ? (
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">Health</p>
+                      <p className="mt-1 text-[11.5px] leading-5 text-stone-600">
+                        {failedConnections.length
+                          ? `${failedConnections.length} connection${failedConnections.length === 1 ? " is" : "s are"} failing.`
+                          : warnConnections.length
+                            ? `${warnConnections.length} connection${warnConnections.length === 1 ? " needs" : " need"} attention.`
+                            : "Matching connections look healthy or ready to test."}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
                 {suggestion ? (
                   <div className="flex flex-wrap gap-2">
@@ -258,4 +306,3 @@ export function StudioResourcesPanel({
     </div>
   );
 }
-

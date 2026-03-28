@@ -6,6 +6,8 @@ export type MarketplaceConnection = {
   label: string;
   description?: string;
   config?: Record<string, unknown>;
+  last_test_status?: "unknown" | "passed" | "warn" | "failed";
+  last_test_message?: string;
 };
 
 export type ToolMarketplaceReadiness = "ready" | "partial" | "missing";

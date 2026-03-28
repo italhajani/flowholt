@@ -14,7 +14,6 @@ import {
   IconStudio,
   IconWorkflows,
 } from "@/components/icons";
-import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { StudioResourcesPanel } from "@/components/studio-resources-panel";
 import { StudioScreen } from "@/components/studio-screen";
@@ -104,7 +103,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const supabase = await createClient();
   const { data: integrationRows } = await supabase
     .from("integration_connections")
-    .select("id, provider, label, description, config, status")
+    .select("id, provider, label, description, config, status, last_test_status, last_test_message")
     .eq("workspace_id", workflow.workspace_id)
     .eq("status", "active")
     .order("updated_at", { ascending: false });
@@ -115,9 +114,27 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     label: String(row.label),
     description: typeof row.description === "string" ? row.description : "",
     config: row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {},
+    last_test_status: row.last_test_status === "passed" || row.last_test_status === "warn" || row.last_test_status === "failed" || row.last_test_status === "unknown" ? row.last_test_status : "unknown",
+    last_test_message: typeof row.last_test_message === "string" ? row.last_test_message : "",
   }));
   const resourceSuggestions = buildToolMarketplaceComposerSuggestions(integrationOptions);
   const clearAutoPreviewUrl = `/app/studio/${workflow.id}`;
+  const assistantSidebarProps = {
+    workflowId: workflow.id,
+    workflowName: workflow.name,
+    initialPrompt: originalPrompt,
+    prefillMessage: assistantPrefill,
+    autoSubmitMessage: autoSend,
+    autoPreviewResourceKitKey: previewPack ? activePackKey : "",
+    clearAutoPreviewUrl,
+    resourceSuggestions,
+  };
+  const modelProviderStatuses = [
+    { name: "OpenAI", available: Boolean(process.env.OPENAI_API_KEY), detail: process.env.OPENAI_API_KEY ? "API key detected" : "Missing API key" },
+    { name: "Groq", available: Boolean(process.env.GROQ_API_KEY), detail: process.env.GROQ_API_KEY ? "API key detected" : "Missing API key" },
+    { name: "Anthropic", available: Boolean(process.env.ANTHROPIC_API_KEY), detail: process.env.ANTHROPIC_API_KEY ? "API key detected" : "Missing API key" },
+    { name: "Google", available: Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY), detail: process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY ? "API key detected" : "Missing API key" },
+  ];
 
   const initialRightMode = autoSend || Boolean(assistantPrefill)
     ? "chat"
@@ -367,6 +384,21 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
 
   const modelsSidebar = (
     <div>
+      <div className="border-b border-black/8 pb-4">
+        <p className="pb-2 text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">Provider availability</p>
+        <div className="space-y-2">
+          {modelProviderStatuses.map((provider) => (
+            <div key={provider.name} className="flex items-center justify-between gap-3 px-1 py-1.5 text-[12px]">
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${provider.available ? "bg-emerald-500" : "bg-stone-300"}`} />
+                <span className="font-medium text-stone-900">{provider.name}</span>
+              </div>
+              <span className="text-[11px] text-stone-500">{provider.detail}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="pt-4">
       {modelGroups.map((group, groupIndex) => (
         <div key={group.title} className={`pb-3 ${groupIndex === 0 ? "" : "border-t border-black/8 pt-4"}`}>
           <p className="pb-2 text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">{group.title}</p>
@@ -390,6 +422,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
         </div>
       ))}
 
+      </div>
       <div className="border-t border-black/8 pt-4">
         <p className="pb-2 text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">Runtime health</p>
         <div className="space-y-2 text-[11.5px] text-stone-600">
@@ -421,19 +454,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           runsContent={runsContent}
           integrationsContent={integrationsContent}
           settingsContent={settingsContent}
-          renderAssistantSidebar={({ close }) => (
-            <StudioAssistantPanel
-              workflowId={workflow.id}
-              workflowName={workflow.name}
-              initialPrompt={originalPrompt}
-              prefillMessage={assistantPrefill}
-              autoSubmitMessage={autoSend}
-              autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
-              clearAutoPreviewUrl={clearAutoPreviewUrl}
-              resourceSuggestions={resourceSuggestions}
-              onClose={close}
-            />
-          )}
+          assistantSidebarProps={assistantSidebarProps}
           workflowSidebar={workflowSidebar}
           modelsSidebar={modelsSidebar}
           resourcesSidebar={<StudioResourcesPanel workflowId={workflow.id} activeKitKey={activePackKey} integrations={integrationOptions} resourceSuggestions={resourceSuggestions} />}

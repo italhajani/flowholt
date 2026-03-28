@@ -9,6 +9,10 @@ import {
   IconSettings,
   IconStudio,
 } from "@/components/icons";
+import {
+  StudioAssistantPanel,
+  type StudioAssistantPanelProps,
+} from "@/components/studio-assistant-panel";
 import { StudioSidebarTabs } from "@/components/studio-sidebar-tabs";
 import { StudioWorkspaceShell } from "@/components/studio-workspace-shell";
 
@@ -24,7 +28,7 @@ type StudioScreenProps = {
   runsContent: ReactNode;
   integrationsContent: ReactNode;
   settingsContent: ReactNode;
-  renderAssistantSidebar: (controls: { close: () => void }) => ReactNode;
+  assistantSidebarProps: Omit<StudioAssistantPanelProps, "onClose">;
   workflowSidebar: ReactNode;
   modelsSidebar: ReactNode;
   resourcesSidebar: ReactNode;
@@ -55,7 +59,7 @@ export function StudioScreen({
   runsContent,
   integrationsContent,
   settingsContent,
-  renderAssistantSidebar,
+  assistantSidebarProps,
   workflowSidebar,
   modelsSidebar,
   resourcesSidebar,
@@ -124,7 +128,7 @@ export function StudioScreen({
       initialLeftOpen={true}
       initialRightMode={initialRightMode}
       canvas={centerContent}
-      renderChatPanel={renderAssistantSidebar}
+      renderChatPanel={({ close }) => <StudioAssistantPanel {...assistantSidebarProps} onClose={close} />}
       toolsPanel={
         <StudioSidebarTabs
           initialTab={initialRightTab}

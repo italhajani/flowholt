@@ -87,7 +87,7 @@ type ResourceSuggestion = {
   profiles: string[];
 };
 
-type StudioAssistantPanelProps = {
+export type StudioAssistantPanelProps = {
   workflowId: string;
   workflowName: string;
   initialPrompt?: string;

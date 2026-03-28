@@ -4,8 +4,7 @@ import { runWorkflow, saveWorkflow } from "@/app/app/studio/actions";
 import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
 import { StudioCanvas } from "@/components/studio-canvas";
 import { StudioResourcesPanel } from "@/components/studio-resources-panel";
-import { StudioSidebarTabs } from "@/components/studio-sidebar-tabs";
-import { StudioWorkspaceShell } from "@/components/studio-workspace-shell";
+import { StudioScreen } from "@/components/studio-screen";
 import { WorkflowSchedulePanel } from "@/components/workflow-schedule-panel";
 import { getDemoWorkflow, getRunsSnapshot, getWorkflowForStudio, getWorkflowSchedules } from "@/lib/flowholt/data";
 import { validateWorkflowGraph } from "@/lib/flowholt/graph-validator";
@@ -50,6 +49,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   const openPanel = readMessage(paramsState.openPanel) || "assistant";
   const autoSend = readMessage(paramsState.autoSend) === "1";
   const previewPack = readMessage(paramsState.previewPack) === "1";
+  const centerMode = readMessage(paramsState.center) || (autoSend ? "canvas" : "canvas");
   const settings = workflow.settings as Record<string, unknown>;
   const generation = settings?.generation as { provider?: string; model?: string } | undefined;
   const originalPrompt = typeof settings?.originalPrompt === "string" ? settings.originalPrompt : "";
@@ -74,6 +74,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     config: row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {},
   }));
   const resourceSuggestions = buildToolMarketplaceComposerSuggestions(integrationOptions);
+  const clearAutoPreviewUrl = `/app/studio/${workflow.id}`;
 
   const header = (
     <>
@@ -90,7 +91,7 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           <span className="rounded-[10px] bg-[#f5f5f5] px-3 py-1 text-xs font-medium text-stone-500">Autosaved 2m ago</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="rounded-[12px] border border-black/8 bg-white px-4 py-2 text-sm font-medium text-stone-700">Share</button>
+          <button type="submit" form="workflow-save-form" className="rounded-[12px] border border-black/8 bg-white px-4 py-2 text-sm font-medium text-stone-700">Save</button>
           <Link href="/app/runs" className="rounded-[12px] border border-black/8 bg-white px-4 py-2 text-sm font-medium text-stone-700">Executions</Link>
           {workflow.id !== "demo-workflow" ? (
             <form action={runWorkflow}>
@@ -117,38 +118,110 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </div>
   );
 
-  const leftPanel = (
-    <div className="px-4 py-4">
-      <div className="border-b border-black/6 pb-4">
-        <p className="text-sm font-medium text-stone-900">Studio - {workflow.name}</p>
-      </div>
+  const canvasContent = (
+    <div className="h-full bg-[#fcfcfb] p-4 xl:p-5">
+      {message ? <div className="mb-4 rounded-[16px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
+      {error ? <div className="mb-4 rounded-[16px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
+      <form id="workflow-save-form" action={saveWorkflow} className="h-full">
+        <input type="hidden" name="workflowId" value={workflow.id} />
+        <StudioCanvas initialGraph={graph} originalPrompt={originalPrompt} latestRunOutput={latestRunOutput} integrationOptions={integrationOptions} />
+      </form>
+    </div>
+  );
 
-      <div className="pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Create</p>
-        <div className="mt-2 space-y-1">
-          <Link href="/app/create" className="block rounded-[12px] px-3 py-2.5 text-sm text-stone-600 hover:bg-white">Create new</Link>
-          <Link href={`/app/studio/${workflow.id}`} className="block rounded-[12px] border-r-2 border-[#ea6f49] bg-[#fff3ef] px-3 py-2.5 text-sm font-medium text-[#ea6f49]">Canvas editor</Link>
-        </div>
-      </div>
-
-      <div className="pt-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Monitor</p>
-        <div className="mt-2 space-y-1">
-          <Link href="/app/runs" className="block rounded-[12px] px-3 py-2.5 text-sm text-stone-600 hover:bg-white">Runs</Link>
-        </div>
-      </div>
-
-      <div className="pt-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Config</p>
-        <div className="mt-2 space-y-1">
-          <Link href="/app/integrations" className="block rounded-[12px] px-3 py-2.5 text-sm text-stone-600 hover:bg-white">Integrations</Link>
-          <Link href="/app/settings" className="block rounded-[12px] px-3 py-2.5 text-sm text-stone-600 hover:bg-white">Settings</Link>
+  const createContent = (
+    <div className="h-full bg-[#fcfcfb] p-6 xl:p-8">
+      <div className="mx-auto flex h-full max-w-[760px] flex-col items-center justify-center text-center">
+        <h1 className="text-[2.1rem] font-semibold tracking-tight text-stone-950">What will you automate?</h1>
+        <p className="mt-3 max-w-[560px] text-base leading-7 text-stone-400">Describe your workflow in plain English. FlowHolt builds the canvas.</p>
+        <div className="mt-8 w-full rounded-[22px] border border-black/8 bg-white px-5 py-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+          <div className="min-h-[180px] rounded-[16px] border border-black/6 bg-[#fcfcfb] px-5 py-5 text-left text-[15px] leading-8 text-stone-400">
+            {assistantPrefill || originalPrompt || "Example: When a new lead fills the form, research their company, draft a personalised email, and log everything in the CRM..."}
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/6 pt-4">
+            <div className="flex gap-2 text-xs">
+              <span className="rounded-[10px] bg-[#f5f5f5] px-3 py-2 text-stone-500">Trigger first</span>
+              <span className="rounded-[10px] bg-[#f5f5f5] px-3 py-2 text-stone-500">From template</span>
+            </div>
+            <Link href={`/app/create?prompt=${encodeURIComponent(originalPrompt || assistantPrefill)}`} className="rounded-[14px] border border-black/8 bg-white px-6 py-3 text-sm font-medium text-stone-900 shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
+              Edit prompt
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 
-  const workflowPanel = (
+  const runsContent = (
+    <div className="h-full bg-[#fcfcfb] p-6">
+      <div className="mx-auto max-w-[920px] space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Runs</p>
+          <h2 className="mt-2 text-[1.7rem] font-semibold text-stone-950">Workflow runs</h2>
+        </div>
+        {recentRuns.length ? recentRuns.map((run) => (
+          <div key={run.id} className="rounded-[18px] border border-black/6 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-stone-900">{run.status}</p>
+                <p className="mt-1 text-xs text-stone-500">{run.trigger_source} | {formatDateLabel(run.created_at)}</p>
+              </div>
+              <Link href={`/app/runs/${run.id}`} className="rounded-[12px] border border-black/8 bg-white px-4 py-2 text-sm font-medium text-stone-700">Open</Link>
+            </div>
+          </div>
+        )) : <div className="rounded-[18px] border border-black/6 bg-white px-5 py-5 text-sm text-stone-500">No runs yet.</div>}
+      </div>
+    </div>
+  );
+
+  const integrationsContent = (
+    <div className="h-full bg-[#fcfcfb] p-6">
+      <div className="mx-auto max-w-[920px] space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Integrations</p>
+          <h2 className="mt-2 text-[1.7rem] font-semibold text-stone-950">Connected resources</h2>
+        </div>
+        {integrationOptions.length ? integrationOptions.map((item) => (
+          <div key={item.id} className="rounded-[18px] border border-black/6 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <p className="text-sm font-medium text-stone-900">{item.label}</p>
+            <p className="mt-1 text-xs text-stone-500">{item.provider}</p>
+            <p className="mt-2 text-sm text-stone-600">{item.description || "Reusable workspace connection."}</p>
+          </div>
+        )) : <div className="rounded-[18px] border border-black/6 bg-white px-5 py-5 text-sm text-stone-500">No active connections yet.</div>}
+      </div>
+    </div>
+  );
+
+  const settingsContent = (
+    <div className="h-full bg-[#fcfcfb] p-6">
+      <div className="mx-auto max-w-[920px] space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Settings</p>
+          <h2 className="mt-2 text-[1.7rem] font-semibold text-stone-950">Workflow settings</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-[18px] border border-black/6 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Validation</p>
+            <p className="mt-3 text-2xl font-semibold text-stone-950">{validation.score}/100</p>
+          </div>
+          <div className="rounded-[18px] border border-black/6 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Paths</p>
+            <p className="mt-3 text-2xl font-semibold text-stone-950">{simulation.possible_path_count}</p>
+          </div>
+          <div className="rounded-[18px] border border-black/6 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Provider</p>
+            <p className="mt-3 text-sm font-medium text-stone-900">{generation?.provider ?? "local"}</p>
+          </div>
+          <div className="rounded-[18px] border border-black/6 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Model</p>
+            <p className="mt-3 text-sm font-medium text-stone-900">{generation?.model ?? "not set"}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const workflowSidebar = (
     <div className="space-y-4">
       <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Workflow</p>
@@ -172,25 +245,10 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
           <WorkflowSchedulePanel workflowId={workflow.id} workflowName={workflow.name} initialSchedules={workflowSchedules} />
         </div>
       </div>
-
-      <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Recent runs</p>
-        <div className="mt-4 space-y-3">
-          {recentRuns.length ? recentRuns.map((run) => (
-            <Link key={run.id} href={`/app/runs/${run.id}`} className="block rounded-[14px] bg-[#fafafa] px-4 py-3 transition hover:bg-[#f5f5f5]">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-stone-900">{run.status}</p>
-                <span className="text-xs text-stone-400">{formatDateLabel(run.created_at)}</span>
-              </div>
-              <p className="mt-1 text-xs text-stone-500">{run.trigger_source}</p>
-            </Link>
-          )) : <div className="rounded-[14px] bg-[#fafafa] px-4 py-3 text-sm text-stone-500">No runs yet.</div>}
-        </div>
-      </div>
     </div>
   );
 
-  const modelsPanel = (
+  const modelsSidebar = (
     <div className="space-y-4">
       <div className="rounded-[18px] border border-black/6 bg-white px-4 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">Active model</p>
@@ -209,41 +267,33 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   return (
     <main className="min-h-screen bg-[#f4f4f2] text-stone-950">
       <div className="mx-auto flex min-h-screen max-w-[1680px] gap-5 px-4 py-4">
-        <StudioWorkspaceShell
+        <StudioScreen
+          workflowName={workflow.name}
           header={header}
           leftRail={leftRail}
-          leftPanel={leftPanel}
+          initialMode={(centerMode as "create" | "canvas" | "runs" | "integrations" | "settings") || "canvas"}
+          initialRightTab={(openPanel as "assistant" | "workflow" | "models" | "resources") || "assistant"}
           initialRightOpen={openPanel === "assistant" || autoSend || Boolean(assistantPrefill)}
-          canvas={
-            <div className="h-full bg-[#fcfcfb] p-4 xl:p-5">
-              {message ? <div className="mb-4 rounded-[16px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
-              {error ? <div className="mb-4 rounded-[16px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
-              <form id="workflow-save-form" action={saveWorkflow} className="h-full">
-                <input type="hidden" name="workflowId" value={workflow.id} />
-                <StudioCanvas initialGraph={graph} originalPrompt={originalPrompt} latestRunOutput={latestRunOutput} integrationOptions={integrationOptions} />
-              </form>
-            </div>
-          }
-          rightPanel={
-            <StudioSidebarTabs
-              initialTab={openPanel === "workflow" || openPanel === "resources" || openPanel === "models" ? openPanel : "assistant"}
-              assistant={
-                <StudioAssistantPanel
-                  workflowId={workflow.id}
-                  workflowName={workflow.name}
-                  initialPrompt={originalPrompt}
-                  prefillMessage={assistantPrefill}
-                  autoSubmitMessage={autoSend}
-                  autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
-                  clearAutoPreviewUrl={`/app/studio/${workflow.id}`}
-                  resourceSuggestions={resourceSuggestions}
-                />
-              }
-              workflow={workflowPanel}
-              models={modelsPanel}
-              resources={<StudioResourcesPanel workflowId={workflow.id} activeKitKey={activePackKey} integrations={integrationOptions} resourceSuggestions={resourceSuggestions} />}
+          createContent={createContent}
+          canvasContent={canvasContent}
+          runsContent={runsContent}
+          integrationsContent={integrationsContent}
+          settingsContent={settingsContent}
+          assistantSidebar={
+            <StudioAssistantPanel
+              workflowId={workflow.id}
+              workflowName={workflow.name}
+              initialPrompt={originalPrompt}
+              prefillMessage={assistantPrefill}
+              autoSubmitMessage={autoSend}
+              autoPreviewResourceKitKey={previewPack ? activePackKey : ""}
+              clearAutoPreviewUrl={clearAutoPreviewUrl}
+              resourceSuggestions={resourceSuggestions}
             />
           }
+          workflowSidebar={workflowSidebar}
+          modelsSidebar={modelsSidebar}
+          resourcesSidebar={<StudioResourcesPanel workflowId={workflow.id} activeKitKey={activePackKey} integrations={integrationOptions} resourceSuggestions={resourceSuggestions} />}
         />
       </div>
     </main>

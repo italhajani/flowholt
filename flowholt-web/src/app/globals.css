@@ -2,27 +2,29 @@
 @import "@xyflow/react/dist/style.css";
 
 :root {
-  --background: #f6f4ef;
-  --foreground: #171412;
-  --fh-bg: #f6f4ef;
-  --fh-sidebar: #fbfaf7;
-  --fh-topbar: rgba(255, 255, 255, 0.88);
+  --background: #f4f4f2;
+  --foreground: #151515;
+  --fh-bg: #f4f4f2;
+  --fh-sidebar: #ffffff;
+  --fh-topbar: rgba(255, 255, 255, 0.92);
   --fh-panel: #ffffff;
-  --fh-panel-muted: #faf8f4;
-  --fh-border: rgba(32, 24, 18, 0.08);
-  --fh-border-strong: rgba(32, 24, 18, 0.14);
-  --fh-text: #171412;
-  --fh-muted: #6f685f;
-  --fh-accent: #ef7243;
-  --fh-accent-strong: #de6235;
-  --fh-accent-soft: rgba(239, 114, 67, 0.12);
-  --fh-mint: #eff5f1;
-  --fh-sand: #fbefe3;
+  --fh-panel-muted: #f7f7f5;
+  --fh-border: rgba(15, 23, 42, 0.08);
+  --fh-border-strong: rgba(15, 23, 42, 0.14);
+  --fh-text: #151515;
+  --fh-muted: #6b7280;
+  --fh-accent: #7c68f5;
+  --fh-accent-strong: #6d58ef;
+  --fh-accent-soft: rgba(124, 104, 245, 0.12);
+  --fh-warm: #ff7a59;
+  --fh-warm-strong: #f26d4a;
+  --fh-mint: #eff7f3;
+  --fh-sand: #f8f2ea;
   --fh-radius-lg: 1rem;
-  --fh-radius-xl: 1.25rem;
-  --fh-radius-2xl: 1.5rem;
-  --fh-shadow-card: 0 8px 24px rgba(20, 18, 16, 0.04);
-  --fh-shadow-shell: 0 18px 50px rgba(20, 18, 16, 0.05);
+  --fh-radius-xl: 1.35rem;
+  --fh-radius-2xl: 1.8rem;
+  --fh-shadow-card: 0 10px 30px rgba(15, 23, 42, 0.05);
+  --fh-shadow-shell: 0 18px 50px rgba(15, 23, 42, 0.06);
 }
 
 @theme inline {
@@ -41,7 +43,7 @@ html {
 }
 
 body {
-  background: linear-gradient(180deg, #faf8f4 0%, #f6f4ef 100%);
+  background: var(--fh-bg);
   color: var(--fh-text);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
@@ -52,7 +54,7 @@ a {
 }
 
 ::selection {
-  background: rgba(239, 114, 67, 0.18);
+  background: rgba(124, 104, 245, 0.18);
 }
 
 .flowholt-shell {
@@ -73,7 +75,7 @@ a {
 
 .flowholt-surface {
   border: 1px solid var(--fh-border);
-  border-radius: var(--fh-radius-xl);
+  border-radius: 1.5rem;
   box-shadow: var(--fh-shadow-card);
 }
 
@@ -96,7 +98,7 @@ a {
   border: 1px solid var(--fh-border);
   border-radius: 9999px;
   background: #fff;
-  padding: 0.4rem 0.75rem;
+  padding: 0.42rem 0.8rem;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -104,15 +106,20 @@ a {
   color: var(--fh-muted);
 }
 
+.flowholt-display {
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
 .flowholt-primary-button {
   border-radius: 9999px;
-  background: var(--fh-accent);
+  background: var(--fh-warm);
   color: white;
   transition: background 160ms ease;
 }
 
 .flowholt-primary-button:hover {
-  background: var(--fh-accent-strong);
+  background: var(--fh-warm-strong);
 }
 
 .flowholt-secondary-button {
@@ -130,8 +137,8 @@ a {
 
 .flowholt-window {
   border: 1px solid var(--fh-border);
-  border-radius: var(--fh-radius-2xl);
-  background: rgba(255, 255, 255, 0.92);
+  border-radius: 1.9rem;
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--fh-shadow-shell);
 }
 
@@ -141,7 +148,7 @@ a {
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--fh-border);
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
 }
 
 .flowholt-window-dots {
@@ -151,14 +158,14 @@ a {
 }
 
 .flowholt-window-dots span {
-  height: 0.65rem;
-  width: 0.65rem;
+  height: 0.62rem;
+  width: 0.62rem;
   border-radius: 9999px;
 }
 
 .flowholt-grid-dots {
-  background-image: radial-gradient(rgba(84, 74, 63, 0.12) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: radial-gradient(rgba(107, 114, 128, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .studio-flow .react-flow__pane {
@@ -170,29 +177,29 @@ a {
 }
 
 .studio-flow .react-flow__edge-path {
-  filter: drop-shadow(0 2px 6px rgba(20, 18, 16, 0.05));
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.06));
 }
 
 .studio-flow .react-flow__controls {
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--fh-border);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 10px 28px rgba(20, 18, 16, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 .studio-flow .react-flow__controls-button {
-  height: 38px;
-  width: 38px;
+  height: 36px;
+  width: 36px;
   border-bottom-color: var(--fh-border);
   background: transparent;
-  color: #51483f;
+  color: #5f6368;
 }
 
 .studio-flow .react-flow__controls-button:hover {
-  background: rgba(20, 18, 16, 0.04);
+  background: rgba(15, 23, 42, 0.04);
 }
 
 .studio-flow .react-flow__minimap-mask {
-  fill: rgba(43, 38, 34, 0.08);
+  fill: rgba(15, 23, 42, 0.08);
 }

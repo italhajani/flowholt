@@ -6,14 +6,9 @@ export type AppNavItem = {
 
 export const appNavigation: AppNavItem[] = [
   {
-    label: "Dashboard",
-    href: "/app/dashboard",
-    description: "Overview",
-  },
-  {
-    label: "Create",
-    href: "/app/create",
-    description: "New workflow",
+    label: "Workflows",
+    href: "/app/workflows",
+    description: "All flows",
   },
   {
     label: "Studio",
@@ -21,9 +16,9 @@ export const appNavigation: AppNavItem[] = [
     description: "Editor",
   },
   {
-    label: "Workflows",
-    href: "/app/workflows",
-    description: "Library",
+    label: "Create Flow",
+    href: "/app/create",
+    description: "New",
   },
   {
     label: "Runs",
@@ -36,13 +31,18 @@ export const appNavigation: AppNavItem[] = [
     description: "Connections",
   },
   {
+    label: "Agents",
+    href: "/app/agents",
+    description: "Library",
+  },
+  {
+    label: "Data",
+    href: "/app/data",
+    description: "Resources",
+  },
+  {
     label: "Settings",
     href: "/app/settings",
     description: "Workspace",
-  },
-  {
-    label: "Monitoring",
-    href: "/app/monitoring",
-    description: "Operations",
   },
 ];

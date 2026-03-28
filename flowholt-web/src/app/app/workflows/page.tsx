@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
-import { SurfaceCard } from "@/components/surface-card";
 import { createBlankWorkflow, importWorkflowPackage } from "@/app/app/workflows/actions";
 import { getWorkflowLibrarySnapshot } from "@/lib/flowholt/data";
+import type { WorkflowRecord } from "@/lib/flowholt/types";
 
 type WorkflowsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -13,12 +13,47 @@ function readMessage(value: string | string[] | undefined) {
   return typeof value === "string" ? value : "";
 }
 
-const templateIdeas = [
-  "Lead intake autopilot",
-  "Support ticket triage",
-  "Client reporting assembly line",
-  "Content scheduling and approval",
-];
+function getWorkflowKind(workflow: WorkflowRecord) {
+  const triggerNode = workflow.graph.nodes.find((node) => node.type === "trigger");
+  const config = triggerNode?.config as Record<string, unknown> | undefined;
+  const mode = typeof config?.mode === "string" ? config.mode : "manual";
+
+  if (mode === "schedule" || mode === "event" || mode === "email") {
+    return "Automation";
+  }
+
+  if (mode === "webhook") {
+    return "Inbound";
+  }
+
+  return "Outbound";
+}
+
+function formatDateLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "--";
+  }
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function statusView(status: string) {
+  if (status === "active") {
+    return {
+      label: "Enabled",
+      className: "bg-[#e8f7ec] text-emerald-700",
+    };
+  }
+
+  return {
+    label: "Disabled",
+    className: "bg-[#fff0ec] text-[#df6b48]",
+  };
+}
 
 export default async function WorkflowsPage({ searchParams }: WorkflowsPageProps) {
   const snapshot = await getWorkflowLibrarySnapshot();
@@ -28,147 +63,113 @@ export default async function WorkflowsPage({ searchParams }: WorkflowsPageProps
 
   return (
     <AppShell
-      eyebrow="Workflows"
-      title="Workflow library"
-      description="A cleaner portfolio view of saved flows, imported packages, and starting points for what the workspace should automate next."
+      eyebrow="Workspace"
+      title="Workflow"
+      description="Open, create, and manage the flows in your workspace from one calm table view."
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         {message ? (
-          <div className="rounded-[1.5rem] bg-[#eef5ef] px-5 py-4 text-sm text-emerald-900">{message}</div>
+          <div className="rounded-[18px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div>
         ) : null}
         {error ? (
-          <div className="rounded-[1.5rem] bg-[#f8eee4] px-5 py-4 text-sm text-amber-950">{error}</div>
+          <div className="rounded-[18px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div>
         ) : null}
 
-        <div className="flowholt-window overflow-hidden">
-          <div className="flowholt-window-bar">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">Library</p>
-              <p className="mt-1 text-sm font-medium text-stone-900">Saved automations and reusable packages</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/app/create" className="flowholt-primary-button px-4 py-2 text-sm font-medium">
-                Create from chat
-              </Link>
-              <Link href="/app/studio/demo-workflow" className="flowholt-secondary-button px-4 py-2 text-sm font-medium">
-                Open Studio
-              </Link>
-            </div>
+        <div className="overflow-hidden rounded-[24px] border border-black/6 bg-white shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
+          <div className="grid grid-cols-[minmax(0,1.7fr)_1fr_1fr_1fr] gap-4 border-b border-black/6 px-5 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">
+            <span>Name</span>
+            <span>Type</span>
+            <span>Created</span>
+            <span>Status</span>
           </div>
 
-          <div className="grid gap-0 xl:grid-cols-[minmax(0,1.12fr)_390px]">
-            <div className="border-b border-stone-900/8 p-5 xl:border-b-0 xl:border-r xl:p-6">
-              <div className="space-y-4">
-                {snapshot.workflows.length ? (
-                  snapshot.workflows.map((workflow) => (
-                    <div
-                      key={workflow.id}
-                      className="rounded-[1.7rem] border border-stone-900/10 bg-white px-4 py-4 shadow-[var(--fh-shadow-soft)]"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-stone-900">{workflow.name}</p>
-                            <span className="rounded-full border border-stone-900/10 bg-stone-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-600">
-                              {workflow.status}
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-stone-600">
-                            {workflow.description || "No description yet"}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/app/studio/${workflow.id}`}
-                            className="flowholt-primary-button px-4 py-2 text-xs font-medium"
-                          >
-                            Open Studio
-                          </Link>
-                          <a
-                            href={`/api/workflows/${workflow.id}/package`}
-                            className="flowholt-secondary-button px-4 py-2 text-xs font-medium"
-                          >
-                            Export package
-                          </a>
-                        </div>
-                      </div>
+          {snapshot.workflows.length ? (
+            snapshot.workflows.map((workflow) => {
+              const status = statusView(workflow.status);
+              return (
+                <Link
+                  key={workflow.id}
+                  href={`/app/studio/${workflow.id}`}
+                  className="grid grid-cols-[minmax(0,1.7fr)_1fr_1fr_1fr] gap-4 border-b border-black/6 px-5 py-4 text-sm text-stone-700 transition hover:bg-[#fafafa] last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f2efff] text-[11px] font-semibold text-[#7c68f5]">
+                        AI
+                      </span>
+                      <span className="truncate font-medium text-stone-950">{workflow.name}</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-[1.6rem] border border-dashed border-stone-900/15 bg-white/75 px-4 py-6 text-sm text-stone-500">
-                    {snapshot.schemaReady
-                      ? "No workflows yet. Start from chat or create a blank one from the right panel."
-                      : "Run the Supabase migration first so the workflow library can read real tables."}
+                    <p className="mt-1 truncate text-xs text-stone-500">{workflow.description || "No description yet"}</p>
                   </div>
-                )}
+                  <span>{getWorkflowKind(workflow)}</span>
+                  <span>{formatDateLabel(workflow.created_at)}</span>
+                  <span>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}>
+                      {status.label}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="px-5 py-8 text-sm text-stone-500">
+              {snapshot.schemaReady
+                ? "No workflows yet. Use Create Flow to start your first one."
+                : "Run the Supabase migration first so the workspace can read workflow tables."}
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="rounded-[24px] border border-black/6 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Import package</p>
+            <p className="mt-2 text-sm leading-6 text-stone-500">
+              Paste a FlowHolt package JSON and turn it into a new workflow.
+            </p>
+            {snapshot.activeWorkspace ? (
+              <form action={importWorkflowPackage} className="mt-4 space-y-3">
+                <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace.id} />
+                <textarea
+                  name="packageJson"
+                  rows={8}
+                  placeholder="Paste exported package JSON here"
+                  className="w-full rounded-[18px] border border-black/8 bg-[#fafafa] px-4 py-3 font-mono text-xs leading-6 outline-none"
+                />
+                <button type="submit" className="flowholt-secondary-button w-full px-4 py-3 text-sm font-medium">
+                  Import workflow package
+                </button>
+              </form>
+            ) : (
+              <p className="mt-4 text-sm text-stone-500">Create a workspace first before importing packages.</p>
+            )}
+          </div>
+
+          <div className="rounded-[24px] border border-black/6 bg-white px-5 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-400">Quick start</p>
+                <p className="mt-2 text-sm leading-6 text-stone-500">
+                  Start from a blank workflow or jump into the demo editor to shape the canvas.
+                </p>
               </div>
+              <Link href="/app/studio/demo-workflow" className="flowholt-secondary-button px-4 py-2 text-sm font-medium">
+                Open demo studio
+              </Link>
             </div>
 
-            <div className="bg-[#f8f4ee] p-5 xl:p-6">
-              <div className="space-y-5">
-                <SurfaceCard
-                  title="Create workflow"
-                  description="Start from a clean workflow record, then shape it in Studio."
-                  tone="mint"
-                >
-                  {snapshot.activeWorkspace ? (
-                    <form action={createBlankWorkflow}>
-                      <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace.id} />
-                      <button type="submit" className="flowholt-primary-button w-full px-5 py-3 text-sm font-medium">
-                        Create blank workflow
-                      </button>
-                    </form>
-                  ) : (
-                    <p className="text-sm leading-6 text-stone-600">
-                      Create a workspace first from the dashboard before adding workflows.
-                    </p>
-                  )}
-                </SurfaceCard>
-
-                <SurfaceCard
-                  title="Import package"
-                  description="Paste a FlowHolt package JSON here and create a new imported workflow."
-                  tone="sand"
-                >
-                  {snapshot.activeWorkspace ? (
-                    <form action={importWorkflowPackage} className="space-y-3">
-                      <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace.id} />
-                      <textarea
-                        name="packageJson"
-                        rows={12}
-                        placeholder="Paste exported package JSON here"
-                        className="w-full rounded-[1.25rem] border border-stone-900/10 bg-white px-4 py-3 font-mono text-xs leading-6 outline-none"
-                      />
-                      <button type="submit" className="flowholt-secondary-button w-full px-5 py-3 text-sm font-medium">
-                        Import workflow package
-                      </button>
-                    </form>
-                  ) : (
-                    <p className="text-sm leading-6 text-stone-600">
-                      Create a workspace first before importing packages.
-                    </p>
-                  )}
-                </SurfaceCard>
-
-                <SurfaceCard
-                  title="Template ideas"
-                  description="Starter automation directions the user can turn into a real workflow from chat."
-                  tone="default"
-                >
-                  <div className="space-y-3 text-sm leading-6 text-stone-700">
-                    {templateIdeas.map((idea) => (
-                      <Link
-                        key={idea}
-                        href={`/app/create?prompt=${encodeURIComponent(idea)}`}
-                        className="block rounded-[1.2rem] border border-stone-900/10 bg-white px-4 py-3 transition hover:bg-stone-50"
-                      >
-                        {idea}
-                      </Link>
-                    ))}
-                  </div>
-                </SurfaceCard>
-              </div>
-            </div>
+            {snapshot.activeWorkspace ? (
+              <form action={createBlankWorkflow} className="mt-4 flex flex-wrap gap-3">
+                <input type="hidden" name="workspaceId" value={snapshot.activeWorkspace.id} />
+                <button type="submit" className="flowholt-primary-button px-5 py-3 text-sm font-medium">
+                  Create blank workflow
+                </button>
+                <Link href="/app/create" className="flowholt-secondary-button px-5 py-3 text-sm font-medium">
+                  Create from chat
+                </Link>
+              </form>
+            ) : (
+              <p className="mt-4 text-sm text-stone-500">Create a workspace first before creating workflows.</p>
+            )}
           </div>
         </div>
       </div>

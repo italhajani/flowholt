@@ -11,7 +11,6 @@ import {
   EdgeChange,
   Handle,
   MarkerType,
-  MiniMap,
   Node,
   NodeChange,
   NodeProps,
@@ -22,10 +21,10 @@ import {
 } from "@xyflow/react";
 import { useMemo, useRef, useState } from "react";
 
-import type { WorkflowEdge, WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
 import { StudioNodeConfigForm } from "@/components/studio-node-config-form";
 import { expectedConnectionProviderForNode, requiresConnectionForNode } from "@/lib/flowholt/integration-runtime";
 import { getDefaultToolConfig } from "@/lib/flowholt/tool-registry";
+import type { WorkflowEdge, WorkflowGraph, WorkflowNodeType } from "@/lib/flowholt/types";
 
 type StudioCanvasProps = {
   initialGraph: WorkflowGraph;
@@ -48,7 +47,7 @@ type WorkflowEdgeData = {
   branch: string;
 };
 
-type MobileStudioPane = "canvas" | "step" | "connection" | "data" | "json";
+type InspectorPane = "step" | "connection" | "data" | "json";
 
 const nodeTypeLabels: Record<WorkflowNodeType, string> = {
   trigger: "Trigger",
@@ -62,67 +61,56 @@ const nodeTypeLabels: Record<WorkflowNodeType, string> = {
 };
 
 const nodeTypeIcons: Record<WorkflowNodeType, string> = {
-  trigger: "TZ",
+  trigger: "TR",
   agent: "AI",
-  tool: "TX",
+  tool: "AP",
   condition: "IF",
   loop: "LP",
   memory: "KB",
   retriever: "RG",
-  output: "OUT",
+  output: "OT",
 };
 
-const nodeTypeStyles: Record<
-  WorkflowNodeType,
-  { badge: string; icon: string; border: string; glow: string }
-> = {
+const nodeTypeStyles: Record<WorkflowNodeType, { badge: string; icon: string; border: string }> = {
   trigger: {
-    badge: "bg-amber-100 text-amber-800",
-    icon: "bg-amber-200 text-amber-900",
-    border: "border-amber-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(251,191,36,0.20)]",
+    badge: "bg-emerald-50 text-emerald-700",
+    icon: "bg-emerald-100 text-emerald-700",
+    border: "border-emerald-200",
   },
   agent: {
-    badge: "bg-violet-100 text-violet-800",
-    icon: "bg-violet-200 text-violet-900",
-    border: "border-violet-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(167,139,250,0.20)]",
+    badge: "bg-violet-50 text-violet-700",
+    icon: "bg-violet-100 text-violet-700",
+    border: "border-violet-200",
   },
   tool: {
-    badge: "bg-sky-100 text-sky-800",
-    icon: "bg-sky-200 text-sky-900",
-    border: "border-sky-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(125,211,252,0.20)]",
+    badge: "bg-sky-50 text-sky-700",
+    icon: "bg-sky-100 text-sky-700",
+    border: "border-sky-200",
   },
   condition: {
-    badge: "bg-rose-100 text-rose-800",
-    icon: "bg-rose-200 text-rose-900",
-    border: "border-rose-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(253,164,175,0.22)]",
+    badge: "bg-rose-50 text-rose-700",
+    icon: "bg-rose-100 text-rose-700",
+    border: "border-rose-200",
   },
   loop: {
-    badge: "bg-cyan-100 text-cyan-800",
-    icon: "bg-cyan-200 text-cyan-900",
-    border: "border-cyan-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(103,232,249,0.20)]",
+    badge: "bg-cyan-50 text-cyan-700",
+    icon: "bg-cyan-100 text-cyan-700",
+    border: "border-cyan-200",
   },
   memory: {
-    badge: "bg-emerald-100 text-emerald-800",
-    icon: "bg-emerald-200 text-emerald-900",
-    border: "border-emerald-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(110,231,183,0.20)]",
+    badge: "bg-amber-50 text-amber-700",
+    icon: "bg-amber-100 text-amber-700",
+    border: "border-amber-200",
   },
   retriever: {
-    badge: "bg-lime-100 text-lime-800",
-    icon: "bg-lime-200 text-lime-900",
-    border: "border-lime-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(190,242,100,0.20)]",
+    badge: "bg-lime-50 text-lime-700",
+    icon: "bg-lime-100 text-lime-700",
+    border: "border-lime-200",
   },
   output: {
-    badge: "bg-orange-100 text-orange-800",
-    icon: "bg-orange-200 text-orange-900",
-    border: "border-orange-300/70",
-    glow: "shadow-[0_0_0_1px_rgba(253,186,116,0.20)]",
+    badge: "bg-orange-50 text-orange-700",
+    icon: "bg-orange-100 text-orange-700",
+    border: "border-orange-200",
   },
 };
 
@@ -160,12 +148,10 @@ function defaultNodeConfig(nodeType: WorkflowNodeType): Record<string, unknown> 
   }
 }
 
-function providerForNodeType(
-  nodeType: WorkflowNodeType,
-  config?: Record<string, unknown>,
-): string | null {
+function providerForNodeType(nodeType: WorkflowNodeType, config?: Record<string, unknown>) {
   return expectedConnectionProviderForNode(nodeType, config ?? {});
 }
+
 function edgeDisplayLabel(edge: Pick<WorkflowEdge, "label" | "branch">) {
   return edge.label || edge.branch || "";
 }
@@ -201,62 +187,39 @@ function formatPreviewValue(value: unknown) {
   }
 }
 
-function mobilePaneClasses(activePane: MobileStudioPane, targetPane: MobileStudioPane) {
-  return activePane === targetPane ? "block lg:block" : "hidden lg:block";
-}
-
 function WorkflowNodeCard({ data, selected }: NodeProps<Node<WorkflowNodeData>>) {
   const nodeType = data.nodeType ?? "agent";
   const style = nodeTypeStyles[nodeType];
 
   return (
     <div
-      className={`min-w-[228px] rounded-[28px] border bg-white/97 p-4 text-stone-900 shadow-[0_18px_48px_rgba(15,23,42,0.12)] backdrop-blur ${style.border} ${style.glow} ${selected ? "ring-2 ring-violet-400/60" : ""}`}
+      className={`min-w-[210px] rounded-[18px] border bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] ${style.border} ${selected ? "ring-2 ring-[#7c68f5]/30" : ""}`}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!h-3 !w-3 !border-2 !border-white !bg-stone-500"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-white !bg-stone-500"
-      />
+      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !border-white !bg-stone-400" />
+      <Handle type="source" position={Position.Right} className="!h-3 !w-3 !border-2 !border-white !bg-stone-400" />
       <div className="flex items-start gap-3">
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-2xl text-[11px] font-bold tracking-[0.12em] ${style.icon}`}
-        >
+        <div className={`flex h-10 w-10 items-center justify-center rounded-[12px] text-[11px] font-semibold ${style.icon}`}>
           {nodeTypeIcons[nodeType]}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <span
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${style.badge}`}
-            >
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${style.badge}`}>
               {nodeTypeLabels[nodeType]}
             </span>
-            <span className="text-[11px] uppercase tracking-[0.18em] text-stone-400">
-              FlowHolt
-            </span>
           </div>
-          <p className="mt-3 text-[15px] font-semibold leading-5 text-stone-900">
-            {data.label}
-          </p>
-          <p className="mt-2 text-xs leading-5 text-stone-500">
+          <p className="mt-3 truncate text-sm font-semibold text-stone-900">{data.label}</p>
+          <p className="mt-1 text-xs leading-5 text-stone-500">
             {nodeType === "agent"
-              ? "Thinks through a task and produces structured output."
-              : nodeType === "condition"
-                ? "Routes the workflow based on a decision."
-                : nodeType === "tool"
-                  ? "Connects an app, API, or action step."
-                  : nodeType === "trigger"
-                    ? "Starts the workflow from a click, webhook, event, email, or schedule."
-                    : nodeType === "memory"
-                      ? "Keeps context and saved knowledge in the flow."
-                      : nodeType === "output"
-                        ? "Final result, handoff, or completion step."
-                        : "A reusable workflow step."}
+              ? "Reason and produce the next step."
+              : nodeType === "tool"
+                ? "Call an app or API action."
+                : nodeType === "trigger"
+                  ? "Start the workflow."
+                  : nodeType === "condition"
+                    ? "Route to different branches."
+                    : nodeType === "output"
+                      ? "Finish and return the result."
+                      : "Reusable workflow block."}
           </p>
         </div>
       </div>
@@ -269,8 +232,8 @@ function toFlowNodes(graph: WorkflowGraph): Node<WorkflowNodeData>[] {
     id: node.id,
     type: "workflow",
     position: node.position ?? {
-      x: 120 + (index % 3) * 280,
-      y: 120 + Math.floor(index / 3) * 180,
+      x: 140 + (index % 3) * 270,
+      y: 120 + Math.floor(index / 3) * 170,
     },
     data: {
       label: node.label,
@@ -289,17 +252,17 @@ function toFlowEdges(graph: WorkflowGraph): Edge<WorkflowEdgeData>[] {
     animated: false,
     label: edgeDisplayLabel(edge),
     labelStyle: {
-      fill: "#5f554d",
-      fontSize: 12,
+      fill: "#6b7280",
+      fontSize: 11,
       fontWeight: 600,
     },
     labelBgPadding: [8, 4],
     labelBgBorderRadius: 999,
     labelBgStyle: {
-      fill: "rgba(255, 252, 247, 0.94)",
+      fill: "rgba(255, 255, 255, 0.96)",
     },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#b9ab9c" },
-    style: { stroke: "#ccbfb2", strokeWidth: 2.2 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#c7ccd4" },
+    style: { stroke: "#c7ccd4", strokeWidth: 2 },
     data: {
       branch: edge.branch ?? "",
     },
@@ -334,7 +297,7 @@ function CanvasInner({
   const [edges, setEdges] = useState<Edge<WorkflowEdgeData>[]>(() => toFlowEdges(initialGraph));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialGraph.nodes[0]?.id ?? null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [mobilePane, setMobilePane] = useState<MobileStudioPane>("canvas");
+  const [inspectorPane, setInspectorPane] = useState<InspectorPane>("step");
   const [configError, setConfigError] = useState("");
   const nodeCounter = useRef(initialGraph.nodes.length + 1);
 
@@ -347,6 +310,7 @@ function CanvasInner({
     () => edges.find((edge) => edge.id === selectedEdgeId) ?? null,
     [edges, selectedEdgeId],
   );
+
   const selectedNodeProvider = selectedNode
     ? providerForNodeType(selectedNode.data?.nodeType ?? "agent", selectedNode.data?.config ?? {})
     : null;
@@ -357,6 +321,7 @@ function CanvasInner({
   const selectedNodeRequiresConnection = selectedNode
     ? requiresConnectionForNode(selectedNode.data?.nodeType ?? "agent", selectedNode.data?.config ?? {})
     : false;
+
   const providerConnectionOptions = useMemo(() => {
     if (!selectedNodeProvider) {
       return [];
@@ -365,10 +330,7 @@ function CanvasInner({
     return integrationOptions.filter((option) => option.provider === selectedNodeProvider);
   }, [integrationOptions, selectedNodeProvider]);
 
-  const graphJson = useMemo(
-    () => JSON.stringify(toWorkflowGraph(nodes, edges), null, 2),
-    [nodes, edges],
-  );
+  const graphJson = useMemo(() => JSON.stringify(toWorkflowGraph(nodes, edges), null, 2), [nodes, edges]);
 
   const latestNodeOutputs = useMemo(() => {
     if (
@@ -441,17 +403,17 @@ function CanvasInner({
           type: "smoothstep",
           label: branch ? branch.toUpperCase() : "",
           labelStyle: {
-            fill: "#5f554d",
-            fontSize: 12,
+            fill: "#6b7280",
+            fontSize: 11,
             fontWeight: 600,
           },
           labelBgPadding: [8, 4],
           labelBgBorderRadius: 999,
           labelBgStyle: {
-            fill: "rgba(255, 252, 247, 0.94)",
+            fill: "rgba(255,255,255,0.96)",
           },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#b9ab9c" },
-          style: { stroke: "#ccbfb2", strokeWidth: 2.2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "#c7ccd4" },
+          style: { stroke: "#c7ccd4", strokeWidth: 2 },
           data: {
             branch,
           },
@@ -461,7 +423,7 @@ function CanvasInner({
     );
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
-    setMobilePane("canvas");
+    setInspectorPane("connection");
   }
 
   function addNode(nodeType: WorkflowNodeType) {
@@ -472,8 +434,8 @@ function CanvasInner({
       id: `${nodeType}-${nextIndex}`,
       type: "workflow",
       position: {
-        x: 180 + (nodes.length % 3) * 280,
-        y: 140 + Math.floor(nodes.length / 3) * 180,
+        x: 180 + (nodes.length % 3) * 270,
+        y: 130 + Math.floor(nodes.length / 3) * 170,
       },
       data: {
         label: `${nodeTypeLabels[nodeType]} ${nextIndex}`,
@@ -486,7 +448,7 @@ function CanvasInner({
     setConfigError("");
     setSelectedEdgeId(null);
     setSelectedNodeId(newNode.id);
-    setMobilePane("step");
+    setInspectorPane("step");
   }
 
   function updateSelectedNodeLabel(label: string) {
@@ -504,11 +466,13 @@ function CanvasInner({
           return node;
         }
 
-        const nextConfig = defaultNodeConfig(nodeType);
-
         return {
           ...node,
-          data: { ...node.data, nodeType, config: nextConfig },
+          data: {
+            ...node.data,
+            nodeType,
+            config: defaultNodeConfig(nodeType),
+          },
         };
       }),
     );
@@ -591,14 +555,10 @@ function CanvasInner({
     }
 
     setNodes((current) => current.filter((node) => node.id !== selectedNodeId));
-    setEdges((current) =>
-      current.filter(
-        (edge) => edge.source !== selectedNodeId && edge.target !== selectedNodeId,
-      ),
-    );
+    setEdges((current) => current.filter((edge) => edge.source !== selectedNodeId && edge.target !== selectedNodeId));
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
-    setMobilePane("canvas");
+    setInspectorPane("step");
   }
 
   function removeSelectedEdge() {
@@ -608,215 +568,170 @@ function CanvasInner({
 
     setEdges((current) => current.filter((edge) => edge.id !== selectedEdgeId));
     setSelectedEdgeId(null);
-    setMobilePane("canvas");
+    setInspectorPane("connection");
   }
 
+  const inspectorButtons: Array<{ key: InspectorPane; label: string }> = [
+    { key: "step", label: "Step" },
+    { key: "connection", label: "Link" },
+    { key: "data", label: "Data" },
+    { key: "json", label: "JSON" },
+  ];
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <input type="hidden" name="graph" value={graphJson} readOnly />
 
-      <div className="rounded-[24px] border border-stone-900/10 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.08)] sm:rounded-[30px]">
-        <div className="flex flex-col gap-3 rounded-[20px] border border-stone-900/8 bg-stone-50/90 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:rounded-[22px]">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="rounded-full bg-stone-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white">
-              Editor
-            </div>
-            <div className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-              Runs
-            </div>
-            <div className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-              Tests
+      <div className="overflow-hidden rounded-[26px] border border-black/6 bg-[#fafafa] shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/6 bg-white px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-[10px] bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">Editor</span>
+            <span className="rounded-[10px] border border-black/8 bg-white px-3 py-1.5 text-xs font-medium text-stone-500">
+              Canvas
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[#effaf2] px-3 py-1 text-[11px] font-medium text-emerald-700">Ready to test</span>
+            <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-[11px] font-medium text-stone-500">{nodes.length} nodes</span>
+          </div>
+        </div>
+
+        <div className="grid h-[720px] lg:grid-cols-[84px_minmax(0,1fr)]">
+          <div className="border-b border-black/6 bg-white p-3 lg:border-b-0 lg:border-r">
+            <div className="grid auto-cols-max grid-flow-col gap-2 overflow-x-auto lg:grid-flow-row lg:auto-cols-auto">
+              {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => (
+                <button
+                  key={nodeType}
+                  type="button"
+                  onClick={() => addNode(nodeType)}
+                  className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-black/8 bg-[#fafafa] text-[11px] font-semibold text-stone-600 transition hover:bg-white"
+                  title={`Add ${nodeTypeLabels[nodeType]}`}
+                >
+                  {nodeTypeIcons[nodeType]}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-              Draft ready
-            </span>
-            <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-              {nodes.length} steps
-            </span>
+
+          <div className="relative overflow-hidden bg-[#fcfcfb]">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={(_, node) => {
+                setConfigError("");
+                setSelectedEdgeId(null);
+                setSelectedNodeId(node.id);
+                setInspectorPane("step");
+              }}
+              onEdgeClick={(_, edge) => {
+                setConfigError("");
+                setSelectedNodeId(null);
+                setSelectedEdgeId(edge.id);
+                setInspectorPane("connection");
+              }}
+              onPaneClick={() => {
+                setSelectedNodeId(null);
+                setSelectedEdgeId(null);
+              }}
+              fitView
+              minZoom={0.35}
+              className="studio-flow flowholt-grid-dots bg-[#fcfcfb]"
+              proOptions={{ hideAttribution: true }}
+            >
+              <Panel position="top-left" className="!m-4">
+                <div className="rounded-full border border-black/8 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  Drag, connect, refine
+                </div>
+              </Panel>
+              <Panel position="top-right" className="!m-4 hidden sm:!block">
+                <div className="flex gap-2 rounded-full border border-black/8 bg-white px-2 py-2">
+                  <button type="button" className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
+                    Present
+                  </button>
+                  <button type="button" className="rounded-full border border-black/8 px-3 py-1.5 text-xs font-medium text-stone-700">
+                    Share
+                  </button>
+                </div>
+              </Panel>
+              <Controls showInteractive={false} />
+              <Background gap={24} size={1.2} color="rgba(107,114,128,0.16)" />
+            </ReactFlow>
           </div>
         </div>
       </div>
 
-      <div className="rounded-[24px] border border-stone-900/10 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.08)] lg:hidden">
-        <div className="flex gap-2 overflow-x-auto">
-          {([
-            { key: "canvas", label: "Canvas" },
-            { key: "step", label: selectedNode ? "Step" : "Step" },
-            { key: "connection", label: selectedEdge ? "Link" : "Link" },
-            { key: "data", label: "Data" },
-            { key: "json", label: "JSON" },
-          ] as Array<{ key: MobileStudioPane; label: string }>).map((pane) => (
+      <div className="overflow-hidden rounded-[22px] border border-black/6 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+        <div className="flex flex-wrap gap-2 border-b border-black/6 px-4 py-3">
+          {inspectorButtons.map((pane) => (
             <button
               key={pane.key}
               type="button"
-              onClick={() => setMobilePane(pane.key)}
-              className={`rounded-full px-3 py-2 text-xs font-medium transition ${
-                mobilePane === pane.key
+              onClick={() => setInspectorPane(pane.key)}
+              className={`rounded-[12px] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                inspectorPane === pane.key
                   ? "bg-stone-900 text-white"
-                  : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
+                  : "border border-black/8 bg-white text-stone-500 hover:bg-[#f7f7f5]"
               }`}
             >
               {pane.label}
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="grid gap-5">
-        <div className={`${mobilePaneClasses(mobilePane, "canvas")} rounded-[28px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,239,232,0.92))] p-3 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:rounded-[34px] sm:p-4`}>
-          <div className="grid h-[560px] gap-4 sm:h-[640px] lg:grid-cols-[84px_minmax(0,1fr)] xl:h-[720px]">
-            <div className="order-2 rounded-[24px] border border-stone-900/10 bg-white/82 p-3 shadow-[var(--fh-shadow-soft)] lg:order-1 lg:rounded-[28px]">
-              <div className="flex h-full flex-col gap-3 lg:items-center lg:justify-between">
-                <div className="grid auto-cols-max grid-flow-col gap-2 overflow-x-auto lg:grid-flow-row lg:auto-cols-auto">
-                  {([
-                    "trigger",
-                    "agent",
-                    "tool",
-                    "condition",
-                    "memory",
-                    "output",
-                  ] as WorkflowNodeType[]).map((nodeType) => (
-                    <button
-                      key={nodeType}
-                      type="button"
-                      onClick={() => addNode(nodeType)}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-stone-900/10 bg-[#fbf8f3] text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-700 transition hover:bg-white"
-                      title={`Add ${nodeTypeLabels[nodeType]}`}
-                    >
-                      {nodeTypeIcons[nodeType]}
-                    </button>
-                  ))}
-                </div>
-                <div className="hidden rounded-2xl border border-stone-900/10 bg-[#fbf8f3] px-2 py-3 text-center text-[10px] uppercase tracking-[0.2em] text-stone-500 lg:block">
-                  Studio
-                </div>
-              </div>
-            </div>
-
-            <div className="order-1 overflow-hidden rounded-[24px] border border-stone-900/10 bg-[#fdfaf6] lg:order-2 lg:rounded-[28px]">
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onNodeClick={(_, node) => {
-                  setConfigError("");
-                  setSelectedEdgeId(null);
-                  setSelectedNodeId(node.id);
-                  setMobilePane("step");
-                }}
-                onEdgeClick={(_, edge) => {
-                  setConfigError("");
-                  setSelectedNodeId(null);
-                  setSelectedEdgeId(edge.id);
-                  setMobilePane("connection");
-                }}
-                onPaneClick={() => {
-                  setSelectedNodeId(null);
-                  setSelectedEdgeId(null);
-                  setMobilePane("canvas");
-                }}
-                fitView
-                minZoom={0.35}
-                className="studio-flow flowholt-grid-dots bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(252,249,244,0.98))]"
-                proOptions={{ hideAttribution: true }}
-              >
-                <Panel position="top-left" className="!m-3 sm:!m-4">
-                  <div className="rounded-full border border-stone-900/10 bg-white/88 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500 backdrop-blur sm:px-4">
-                    Canvas
+        <div className="p-5">
+          {inspectorPane === "step" ? (
+            selectedNode ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-900">Selected step</p>
+                    <p className="mt-1 text-sm text-stone-500">Edit the selected node and its runtime settings.</p>
                   </div>
-                </Panel>
-                <Panel position="top-right" className="!m-3 hidden sm:!m-4 sm:!block">
-                  <div className="flex gap-2 rounded-full border border-stone-900/10 bg-white/88 px-2 py-2 backdrop-blur">
-                    <button
-                      type="button"
-                      className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white"
-                    >
-                      Present
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-full border border-stone-900/10 px-3 py-1.5 text-xs font-medium text-stone-700"
-                    >
-                      Share
-                    </button>
-                  </div>
-                </Panel>
-                <MiniMap
-                  pannable
-                  zoomable
-                  className="!m-4 !hidden !rounded-2xl !border !border-stone-900/10 !bg-white/90 sm:!block"
-                  maskColor="rgba(73, 62, 52, 0.10)"
-                  nodeColor="#eadfd4"
-                />
-                <Controls className="studio-controls" showInteractive={false} />
-                <Background gap={22} size={1.2} color="rgba(84,72,62,0.14)" />
-              </ReactFlow>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div id="studio-selected-step" className={`${mobilePaneClasses(mobilePane, "step")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-stone-900">Selected step</p>
-                <p className="mt-1 text-sm text-stone-500">
-                  Edit the current step and its runtime settings.
-                </p>
-              </div>
-              {selectedNode ? (
-                <button
-                  type="button"
-                  onClick={removeSelectedNode}
-                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-                >
-                  Remove
-                </button>
-              ) : null}
-            </div>
-
-            {selectedNode ? (
-              <div className="mt-5 space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Label
-                  </label>
-                  <input
-                    value={String(selectedNode.data?.label ?? "")}
-                    onChange={(event) => updateSelectedNodeLabel(event.target.value)}
-                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Type
-                  </label>
-                  <select
-                    value={String(selectedNode.data?.nodeType ?? "agent")}
-                    onChange={(event) => updateSelectedNodeType(event.target.value as WorkflowNodeType)}
-                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                  <button
+                    type="button"
+                    onClick={removeSelectedNode}
+                    className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
                   >
-                    {Object.entries(nodeTypeLabels).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                    Remove
+                  </button>
                 </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-stone-700">Label</label>
+                    <input
+                      value={String(selectedNode.data?.label ?? "")}
+                      onChange={(event) => updateSelectedNodeLabel(event.target.value)}
+                      className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-stone-700">Type</label>
+                    <select
+                      value={String(selectedNode.data?.nodeType ?? "agent")}
+                      onChange={(event) => updateSelectedNodeType(event.target.value as WorkflowNodeType)}
+                      className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
+                    >
+                      {Object.entries(nodeTypeLabels).map(([key, label]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 {selectedNodeProvider ? (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-stone-700">
-                      Connection
-                    </label>
+                    <label className="mb-2 block text-sm font-medium text-stone-700">Connection</label>
                     <select
                       value={selectedNodeConnectionId}
                       onChange={(event) => updateSelectedNodeConnection(event.target.value)}
-                      className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                      className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
                     >
                       <option value="">No connection</option>
                       {providerConnectionOptions.map((option) => (
@@ -827,13 +742,14 @@ function CanvasInner({
                     </select>
                     <p className="mt-2 text-xs leading-5 text-stone-500">
                       {providerConnectionOptions.length
-                        ? `Using active ${selectedNodeProvider} connections from Integrations.` 
+                        ? `Using active ${selectedNodeProvider} connections from Integrations.`
                         : selectedNodeRequiresConnection
-                          ? `This step needs an active ${selectedNodeProvider} connection before it can run.` 
-                          : `No active ${selectedNodeProvider} connections found. Add one in Integrations if you want a reusable connection.`}
+                          ? `This step needs an active ${selectedNodeProvider} connection before it can run.`
+                          : `No active ${selectedNodeProvider} connections found.`}
                     </p>
                   </div>
                 ) : null}
+
                 <StudioNodeConfigForm
                   nodeType={selectedNode.data?.nodeType ?? "agent"}
                   config={selectedNode.data?.config ?? {}}
@@ -843,102 +759,85 @@ function CanvasInner({
                 />
               </div>
             ) : (
-              <p className="mt-5 text-sm leading-6 text-stone-500">
-                Click a step in the canvas to edit its label, type, or settings.
-              </p>
-            )}
-          </div>
-
-          <div id="studio-selected-connection" className={`${mobilePaneClasses(mobilePane, "connection")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-stone-900">Selected connection</p>
-                <p className="mt-1 text-sm text-stone-500">
-                  Name branches like true and false so conditions route explicitly.
-                </p>
+              <div className="rounded-[16px] bg-[#fafafa] px-4 py-4 text-sm text-stone-500">
+                Select a node on the canvas to edit its settings.
               </div>
-              {selectedEdge ? (
-                <button
-                  type="button"
-                  onClick={removeSelectedEdge}
-                  className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-                >
-                  Remove
-                </button>
-              ) : null}
-            </div>
+            )
+          ) : null}
 
-            {selectedEdge ? (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-2xl bg-stone-50 px-4 py-3 text-sm text-stone-600">
+          {inspectorPane === "connection" ? (
+            selectedEdge ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-900">Selected link</p>
+                    <p className="mt-1 text-sm text-stone-500">Label the connection and branch behavior.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeSelectedEdge}
+                    className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="rounded-[16px] bg-[#fafafa] px-4 py-3 text-sm text-stone-600">
                   {selectedEdge.source} to {selectedEdge.target}
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Branch key
-                  </label>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">Branch key</label>
                   <input
                     value={selectedEdge.data?.branch ?? ""}
                     onChange={(event) => updateSelectedEdgeBranch(event.target.value)}
-                    placeholder="true, false, retry, approved"
-                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                    placeholder="true, false, retry"
+                    className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">
-                    Visual label
-                  </label>
+                  <label className="mb-2 block text-sm font-medium text-stone-700">Visual label</label>
                   <input
                     value={typeof selectedEdge.label === "string" ? selectedEdge.label : ""}
                     onChange={(event) => updateSelectedEdgeLabel(event.target.value)}
                     placeholder="Shown on the canvas"
-                    className="w-full rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-sm outline-none"
+                    className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
                   />
                 </div>
               </div>
             ) : (
-              <p className="mt-5 text-sm leading-6 text-stone-500">
-                Click a connection in the canvas to edit its branch name and label.
-              </p>
-            )}
-          </div>
+              <div className="rounded-[16px] bg-[#fafafa] px-4 py-4 text-sm text-stone-500">
+                Select a connection on the canvas to edit its branch and label.
+              </div>
+            )
+          ) : null}
 
-          <div id="studio-runtime-data" className={`${mobilePaneClasses(mobilePane, "data")} rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]`}>
+          {inspectorPane === "data" ? (
             <div>
               <p className="text-sm font-semibold text-stone-900">Runtime data preview</p>
-              <p className="mt-1 text-sm text-stone-500">
-                These are the template keys the engine can resolve while running your workflow.
-              </p>
+              <p className="mt-1 text-sm text-stone-500">Template keys the engine can resolve while running this workflow.</p>
+              <div className="mt-4 grid gap-3">
+                {previewEntries.map((entry) => (
+                  <div key={entry.key} className="rounded-[16px] bg-[#fafafa] px-4 py-3">
+                    <p className="font-mono text-xs text-stone-900">{entry.key}</p>
+                    <p className="mt-2 text-xs leading-6 text-stone-600">{formatPreviewValue(entry.value)}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="mt-5 space-y-3">
-              {previewEntries.map((entry) => (
-                <div key={entry.key} className="rounded-2xl bg-stone-50 px-4 py-3">
-                  <p className="font-mono text-xs text-stone-900">{entry.key}</p>
-                  <p className="mt-2 text-xs leading-6 text-stone-600">{formatPreviewValue(entry.value)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          ) : null}
 
-          <div id="studio-graph-json" className={`${mobilePaneClasses(mobilePane, "json")} rounded-[30px] border border-stone-900/10 bg-[#111317] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.12)]`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-stone-100">Graph JSON</p>
-                <p className="mt-1 text-sm text-stone-400">
-                  Still available for transparency, but no longer the main editing surface.
-                </p>
-              </div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-300">
-                Live sync
-              </div>
+          {inspectorPane === "json" ? (
+            <div>
+              <p className="text-sm font-semibold text-stone-900">Graph JSON</p>
+              <p className="mt-1 text-sm text-stone-500">Still available for transparency, but not the main editing surface.</p>
+              <textarea
+                value={graphJson}
+                readOnly
+                rows={14}
+                className="mt-4 w-full rounded-[18px] border border-black/8 bg-[#fafafa] p-4 font-mono text-xs leading-6 text-stone-700 outline-none"
+              />
             </div>
-            <textarea
-              value={graphJson}
-              readOnly
-              rows={12}
-              className="mt-4 w-full rounded-[22px] border border-white/8 bg-black/20 p-4 font-mono text-xs leading-6 text-stone-300 outline-none"
-            />
-          </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -952,11 +851,3 @@ export function StudioCanvas(props: StudioCanvasProps) {
     </ReactFlowProvider>
   );
 }
-
-
-
-
-
-
-
-

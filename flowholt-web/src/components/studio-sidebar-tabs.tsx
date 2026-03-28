@@ -38,12 +38,12 @@ export function StudioSidebarTabs({
           : resources;
 
   return (
-    <aside className="flex min-h-0 flex-col bg-[#fbfbfa]">
-      <div className="border-b border-black/6 px-4 py-4">
-        <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.14em] text-stone-400">
+    <aside className="flex h-full min-h-0 flex-col bg-[#fbfbfa]">
+      <div className="shrink-0 border-b border-black/6 px-4 py-3">
+        <div className="flex flex-wrap gap-3 text-[11px] uppercase tracking-[0.14em] text-stone-400">
           <span className="font-semibold text-[#ea6f49]">{tabLabels[activeTab]}</span>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {(["assistant", "workflow", "models", "resources"] as SidebarTab[]).map((tab) => (
             <button
               key={tab}
@@ -61,7 +61,7 @@ export function StudioSidebarTabs({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{content}</div>
+      <div className="min-h-0 flex-1 overflow-hidden px-3 py-3">{content}</div>
     </aside>
   );
 }

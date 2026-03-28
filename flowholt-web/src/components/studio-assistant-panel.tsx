@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
+import { ReactNode, useEffect, useEffectEvent, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type ProposalSummary = {
@@ -242,6 +242,50 @@ function metadataBadges(metadata: Record<string, unknown>) {
   }
 
   return badges.slice(0, 3);
+}
+
+type AssistantSectionProps = {
+  title: string;
+  subtitle: string;
+  badge?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+};
+
+function AssistantSection({
+  title,
+  subtitle,
+  badge,
+  defaultOpen = false,
+  children,
+}: AssistantSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section className="overflow-hidden rounded-[20px] border border-black/6 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left transition hover:bg-[#f7f7f5]"
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-stone-900">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-stone-500">{subtitle}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {badge ? (
+            <span className="rounded-full bg-[#f4f4f2] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              {badge}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-black/8 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+            {open ? "Hide" : "Show"}
+          </span>
+        </div>
+      </button>
+      {open ? <div className="border-t border-black/6 px-3 py-3">{children}</div> : null}
+    </section>
+  );
 }
 
 export function StudioAssistantPanel({
@@ -658,490 +702,371 @@ export function StudioAssistantPanel({
   }, [threads]);
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-[30px] border border-stone-900/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,241,234,0.94))] p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="shrink-0 rounded-[22px] border border-black/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,241,234,0.94))] p-4 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-stone-900">Assistant sidebar</p>
-            <p className="mt-1 text-sm leading-6 text-stone-500">
-              Talk naturally, preview the plan, then apply the change when it looks right.
-            </p>
+            <p className="text-sm font-semibold text-stone-900">Assistant</p>
+            <p className="mt-1 text-xs leading-5 text-stone-500">Describe the change, preview it, then apply when it looks right.</p>
           </div>
           {latestRevisionId ? (
             <button
               type="button"
               onClick={() => void restoreRevision(latestRevisionId, "undo")}
               disabled={workingMode !== null || isPending}
-              className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
+              className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
             >
-              {workingMode === "undo" ? "Undoing..." : "Undo last change"}
+              {workingMode === "undo" ? "Undoing..." : "Undo"}
             </button>
           ) : null}
         </div>
 
-        <div className="mt-4 rounded-[26px] border border-white/70 bg-white/80 p-4">
-          <textarea
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            rows={5}
-            placeholder="Example: add a reviewer step, make the false branch clearer, and show a better final summary."
-            className="w-full rounded-[22px] border border-stone-900/10 bg-stone-50 px-4 py-4 text-sm leading-6 text-stone-700 outline-none"
-          />
+        <textarea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          rows={4}
+          placeholder="Example: add a reviewer step before publish and make the success path clearer."
+          className="mt-3 w-full rounded-[18px] border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-stone-700 outline-none transition focus:border-[#ea6f49]"
+        />
 
-          {resourceSuggestions.length ? (
-            <div className="mt-4 rounded-[22px] border border-stone-900/10 bg-white/70 px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Suggested from your resources</p>
-                  <p className="mt-1 text-sm leading-6 text-stone-500">One click can turn a ready pack into a previewed workflow draft.</p>
-                </div>
-              </div>
-              <div className="mt-3 grid gap-3">
-                {resourceSuggestions.map((suggestion) => (
-                  <div key={suggestion.id} className="rounded-2xl border border-stone-900/10 bg-stone-50 px-4 py-3">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
-                        <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
-                      </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-600">
-                        {suggestion.readiness}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                      <span className="rounded-full bg-white px-3 py-1">{suggestion.strategy}</span>
-                      {suggestion.profiles.slice(0, 2).map((profile) => (
-                        <span key={`${suggestion.id}-${profile}`} className="rounded-full bg-white px-3 py-1">
-                          {profile}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMessage(suggestion.prompt);
-                          setErrorMessage("");
-                          setSuccessMessage("");
-                        }}
-                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100"
-                      >
-                        Use idea
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void previewResourceSuggestion(suggestion)}
-                        disabled={workingMode !== null || isPending || composerLoading}
-                        className="rounded-full bg-stone-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
-                      >
-                        Preview from pack
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+          <span className="rounded-full bg-white px-3 py-1">{threadSummary}</span>
+          {threadId ? <span className="rounded-full bg-white px-3 py-1">Active thread</span> : null}
+          {proposal ? <span className="rounded-full bg-white px-3 py-1">{proposal.summary.node_count} nodes planned</span> : null}
+        </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-stone-400">
-              <span className="rounded-full bg-stone-100 px-3 py-1 font-semibold text-stone-500">
-                {threadSummary}
-              </span>
-              {threadId ? (
-                <span className="rounded-full bg-stone-100 px-3 py-1 font-semibold text-stone-500">
-                  Active thread
-                </span>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => void submitCompose("preview")}
-                disabled={workingMode !== null || isPending || composerLoading}
-                className="rounded-full border border-stone-900/10 bg-white px-5 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
-              >
-                {workingMode === "preview" ? "Preparing preview..." : "Preview proposal"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void submitCompose("apply")}
-                disabled={workingMode !== null || isPending || composerLoading}
-                className="rounded-full bg-[#ff7f5f] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#f26f4d] disabled:cursor-wait disabled:opacity-60"
-              >
-                {workingMode === "apply" ? "Applying..." : "Apply to workflow"}
-              </button>
-            </div>
-          </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void submitCompose("preview")}
+            disabled={workingMode !== null || isPending || composerLoading}
+            className="rounded-[12px] border border-black/8 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-wait disabled:opacity-60"
+          >
+            {workingMode === "preview" ? "Preparing..." : "Preview"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void submitCompose("apply")}
+            disabled={workingMode !== null || isPending || composerLoading}
+            className="rounded-[12px] bg-[#ff7f5f] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#f26f4d] disabled:cursor-wait disabled:opacity-60"
+          >
+            {workingMode === "apply" ? "Applying..." : "Apply change"}
+          </button>
         </div>
 
         {errorMessage ? (
-          <div className="mt-4 rounded-2xl bg-[#f7ede2] px-4 py-3 text-sm text-amber-950">{errorMessage}</div>
+          <div className="mt-3 rounded-[14px] bg-[#f7ede2] px-3 py-2 text-sm text-amber-950">{errorMessage}</div>
         ) : null}
         {successMessage ? (
-          <div className="mt-4 rounded-2xl bg-[#eef4ef] px-4 py-3 text-sm text-emerald-900">{successMessage}</div>
+          <div className="mt-3 rounded-[14px] bg-[#eef4ef] px-3 py-2 text-sm text-emerald-900">{successMessage}</div>
         ) : null}
       </div>
 
-      <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-stone-900">Conversation</p>
-            <p className="mt-1 text-sm leading-6 text-stone-500">
-              Your plain-English requests and the assistant responses are stored here.
-            </p>
-          </div>
-          {threadsLoading ? (
-            <span className="text-xs uppercase tracking-[0.16em] text-stone-400">Loading...</span>
-          ) : null}
-        </div>
-
-        {threads.length ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {threads.slice(0, 6).map((thread) => (
-              <button
-                key={thread.id}
-                type="button"
-                onClick={() => {
-                  setThreadId(thread.id);
-                  void loadMessages(thread.id);
-                }}
-                className={`rounded-full px-3 py-2 text-xs font-medium transition ${
-                  thread.id === threadId
-                    ? "bg-stone-900 text-white"
-                    : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
-                }`}
-              >
-                {thread.title} | {formatDateTime(thread.last_message_at || thread.updated_at)}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="mt-4 space-y-3">
-          {messagesLoading ? (
-            <p className="text-sm text-stone-500">Loading conversation...</p>
-          ) : messages.length ? (
-            messages.slice(-8).map((item) => {
-              const badges = metadataBadges(item.metadata);
-              return (
-                <div key={item.id} className={`rounded-[24px] border px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] ${messageTone(item.role)}`}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                      {messageLabel(item.role)}
-                    </p>
-                    <p className="text-xs text-stone-400">{formatDateTime(item.created_at)}</p>
-                  </div>
-                  {badges.length ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {badges.map((badge) => (
-                        <span
-                          key={`${item.id}-${badge}`}
-                          className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500"
-                        >
-                          {badge}
-                        </span>
-                      ))}
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        {resourceSuggestions.length ? (
+          <AssistantSection
+            title="Suggested from your resources"
+            subtitle="Ready packs that can start a cleaner workflow draft."
+            badge={`${resourceSuggestions.length} ideas`}
+          >
+            <div className="space-y-2">
+              {resourceSuggestions.slice(0, 4).map((suggestion) => (
+                <div key={suggestion.id} className="rounded-[16px] border border-black/6 bg-[#f8f7f4] px-3 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-stone-900">{suggestion.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">{suggestion.why}</p>
                     </div>
-                  ) : null}
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-stone-700">{item.message}</p>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      {suggestion.readiness}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMessage(suggestion.prompt);
+                        setErrorMessage("");
+                        setSuccessMessage("");
+                      }}
+                      className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100"
+                    >
+                      Use idea
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void previewResourceSuggestion(suggestion)}
+                      disabled={workingMode !== null || isPending || composerLoading}
+                      className="rounded-[10px] bg-stone-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      Preview pack
+                    </button>
+                  </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="rounded-2xl bg-stone-50 px-4 py-4 text-sm leading-6 text-stone-500">
-              No assistant conversation yet. Write a request above and click `Preview proposal`.
+              ))}
             </div>
-          )}
-        </div>
-      </div>
+          </AssistantSection>
+        ) : null}
 
-      <div className={`rounded-[30px] border p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)] ${proposalTone}`}>
-        <div>
-          <p className="text-sm font-semibold text-stone-900">Reasoning timeline</p>
-          <p className="mt-1 text-sm leading-6 text-stone-500">
-            This is the assistant thinking path and the exact changes it plans to make.
-          </p>
-        </div>
-
-        {proposal ? (
-          <div className="mt-4 space-y-4 text-sm text-stone-700">
-            <div className="rounded-2xl bg-white/80 px-4 py-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-stone-900">{proposal.name}</p>
-                  <p className="mt-2">{proposal.description}</p>
-                </div>
-                <div className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  {proposal.generation.provider} | {proposal.generation.model}
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                <span className="rounded-full bg-stone-100 px-3 py-1">{proposal.summary.node_count} nodes</span>
-                <span className="rounded-full bg-stone-100 px-3 py-1">{proposal.summary.edge_count} edges</span>
-                <span className="rounded-full bg-stone-100 px-3 py-1">{proposal.summary.tool_count} tools</span>
-              </div>
+        <AssistantSection
+          title="Conversation"
+          subtitle="Keep the latest request and assistant replies in one place."
+          badge={threadsLoading ? "Loading" : threadSummary}
+          defaultOpen
+        >
+          {threads.length ? (
+            <div className="flex flex-wrap gap-2">
+              {threads.slice(0, 4).map((thread) => (
+                <button
+                  key={thread.id}
+                  type="button"
+                  onClick={() => {
+                    setThreadId(thread.id);
+                    void loadMessages(thread.id);
+                  }}
+                  className={`rounded-full px-3 py-2 text-xs font-medium transition ${
+                    thread.id === threadId
+                      ? "bg-stone-900 text-white"
+                      : "border border-stone-900/10 bg-white text-stone-600 hover:bg-stone-50"
+                  }`}
+                >
+                  {thread.title}
+                </button>
+              ))}
             </div>
+          ) : null}
 
-            {validation ? (
-              <div className="rounded-2xl bg-white/80 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-medium text-stone-900">
-                    {validation.valid ? "This proposal looks valid." : "This proposal still needs fixes."}
-                  </p>
-                  <span className="rounded-full bg-stone-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                    Score {validation.score}/100
+          <div className="mt-3 max-h-[320px] space-y-2 overflow-y-auto pr-1">
+            {messagesLoading ? (
+              <p className="text-sm text-stone-500">Loading conversation...</p>
+            ) : messages.length ? (
+              messages.slice(-8).map((item) => {
+                const badges = metadataBadges(item.metadata);
+                return (
+                  <div key={item.id} className={`rounded-[16px] border px-3 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] ${messageTone(item.role)}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+                        {messageLabel(item.role)}
+                      </p>
+                      <p className="text-[11px] text-stone-400">{formatDateTime(item.created_at)}</p>
+                    </div>
+                    {badges.length ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {badges.map((badge) => (
+                          <span
+                            key={`${item.id}-${badge}`}
+                            className="rounded-full bg-white/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700">{item.message}</p>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-[14px] bg-stone-50 px-3 py-3 text-sm leading-6 text-stone-500">
+                No assistant conversation yet. Write a request above and click Preview.
+              </div>
+            )}
+          </div>
+        </AssistantSection>
+
+        <AssistantSection
+          title="Reasoning"
+          subtitle="Preview summary, validation, and the planned node changes."
+          badge={proposal ? `${proposal.summary.node_count} nodes` : "Empty"}
+          defaultOpen={Boolean(proposal)}
+        >
+          {proposal ? (
+            <div className="max-h-[340px] space-y-3 overflow-y-auto pr-1 text-sm text-stone-700">
+              <div className={`rounded-[16px] border px-3 py-3 ${proposalTone}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-stone-900">{proposal.name}</p>
+                    <p className="mt-1 text-sm text-stone-600">{proposal.description}</p>
+                  </div>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    {proposal.generation.provider} | {proposal.generation.model}
                   </span>
                 </div>
-                {validation.issues.length ? (
-                  <div className="mt-3 space-y-2">
+                <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  <span className="rounded-full bg-white px-2.5 py-1">{proposal.summary.edge_count} edges</span>
+                  <span className="rounded-full bg-white px-2.5 py-1">{proposal.summary.tool_count} tools</span>
+                  {validation ? <span className="rounded-full bg-white px-2.5 py-1">Score {validation.score}</span> : null}
+                </div>
+              </div>
+
+              {validation?.issues.length ? (
+                <div className="rounded-[16px] bg-white px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Validation</p>
+                  <div className="mt-2 space-y-2">
                     {validation.issues.slice(0, 3).map((issue, index) => (
                       <p key={`${issue.code}-${index}`} className="text-sm text-stone-600">
                         <span className="font-medium uppercase text-stone-900">{issue.severity}</span>: {issue.message}
                       </p>
                     ))}
                   </div>
-                ) : null}
-              </div>
-            ) : null}
+                </div>
+              ) : null}
 
-            <div className="rounded-2xl bg-white/80 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Reasoning steps</p>
-              <div className="mt-3 space-y-3">
-                {proposal.reasoning.length ? (
-                  proposal.reasoning.map((item, index) => (
-                    <div key={`${item}-${index}`} className="flex gap-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-stone-900 text-xs font-semibold text-white">
-                        {index + 1}
+              <div className="rounded-[16px] bg-white px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Reasoning steps</p>
+                <div className="mt-2 space-y-2">
+                  {proposal.reasoning.length ? (
+                    proposal.reasoning.slice(0, 5).map((item, index) => (
+                      <div key={`${item}-${index}`} className="flex gap-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-900 text-[11px] font-semibold text-white">
+                          {index + 1}
+                        </div>
+                        <p className="pt-0.5 leading-6 text-stone-700">{item}</p>
                       </div>
-                      <p className="pt-0.5 leading-6 text-stone-700">{item}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p>No reasoning yet. Generate a preview to see the plan.</p>
-                )}
+                    ))
+                  ) : (
+                    <p className="text-sm text-stone-500">No reasoning yet.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-[16px] bg-white px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-400">Planned changes</p>
+                <div className="mt-2 space-y-2">
+                  {proposal.changes.length ? (
+                    proposal.changes.slice(0, 5).map((change, index) => (
+                      <div key={`${change.node_id}-${index}`} className="rounded-[14px] bg-stone-50 px-3 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium text-stone-900">{change.label}</p>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                            {change.kind} | {change.node_type}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-stone-600">{change.reason}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-stone-500">No planned changes yet.</p>
+                  )}
+                </div>
               </div>
             </div>
+          ) : (
+            <p className="text-sm leading-6 text-stone-500">No proposal yet. Use Preview to see the plan.</p>
+          )}
+        </AssistantSection>
 
-            <div className="rounded-2xl bg-white/80 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Planned changes</p>
-              <div className="mt-3 space-y-3">
-                {proposal.changes.length ? (
-                  proposal.changes.slice(0, 8).map((change, index) => (
-                    <div key={`${change.node_id}-${index}`} className="rounded-2xl bg-stone-50 px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-medium text-stone-900">{change.label}</p>
-                        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                          {change.kind} | {change.node_type}
-                        </span>
+        <AssistantSection
+          title="Revision history"
+          subtitle="Compare or restore recent workflow versions without leaving Studio."
+          badge={revisions.length ? `${revisions.length} recent` : "Empty"}
+        >
+          <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
+            {revisionsLoading ? (
+              <p className="text-sm text-stone-500">Loading revisions...</p>
+            ) : revisions.length ? (
+              revisions.map((revision) => {
+                const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
+                const comparison = isCompareOpen ? compareData?.comparison : null;
+                const compareSummary = isCompareOpen ? compareData?.change_summary : undefined;
+
+                return (
+                  <div key={revision.id} className="rounded-[16px] bg-stone-50 px-3 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
+                        <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-stone-400">
+                          {revision.source} | {new Date(revision.created_at).toLocaleString()}
+                        </p>
+                        <p className="mt-2 text-sm text-stone-600">
+                          {revision.before_name} to {revision.after_name}
+                        </p>
                       </div>
-                      <p className="mt-2 leading-6 text-stone-600">{change.reason}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void loadRevisionCompare(revision.id)}
+                          disabled={(compareLoading && compareRevisionId === revision.id) || workingMode !== null || isPending}
+                          className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {compareLoading && compareRevisionId === revision.id
+                            ? "Comparing..."
+                            : isCompareOpen
+                              ? "Hide"
+                              : "Compare"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void restoreRevision(revision.id, "restore")}
+                          disabled={workingMode !== null || isPending}
+                          className="rounded-[10px] border border-black/8 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
+                        >
+                          {workingMode === "restore" ? "Restoring..." : "Restore"}
+                        </button>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <p>No planned changes yet.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm leading-6 text-stone-500">
-            No proposal yet. Use `Preview proposal` to see the assistant reasoning and plan.
-          </p>
-        )}
-      </div>
 
-      <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-        <div>
-          <p className="text-sm font-semibold text-stone-900">Revision history</p>
-          <p className="mt-1 text-sm leading-6 text-stone-500">
-            Compare what changed, then restore any recent workflow version with confidence.
-          </p>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {revisionsLoading ? (
-            <p className="text-sm text-stone-500">Loading revisions...</p>
-          ) : revisions.length ? (
-            revisions.map((revision) => {
-              const isCompareOpen = compareRevisionId === revision.id && compareData?.revision.id === revision.id;
-              const comparison = isCompareOpen ? compareData?.comparison : null;
-              const compareSummary = isCompareOpen ? compareData?.change_summary : undefined;
-
-              return (
-                <div key={revision.id} className="rounded-2xl bg-stone-50 px-4 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-stone-900">{revision.message || revision.after_name}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-400">
-                        {revision.source} | {new Date(revision.created_at).toLocaleString()}
-                      </p>
-                      <p className="mt-2 text-sm text-stone-600">
-                        {revision.before_name} to {revision.after_name}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void loadRevisionCompare(revision.id)}
-                        disabled={(compareLoading && compareRevisionId === revision.id) || workingMode !== null || isPending}
-                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
-                      >
-                        {compareLoading && compareRevisionId === revision.id
-                          ? "Comparing..."
-                          : isCompareOpen
-                            ? "Hide compare"
-                            : "Compare"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void restoreRevision(revision.id, "restore")}
-                        disabled={workingMode !== null || isPending}
-                        className="rounded-full border border-stone-900/10 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-wait disabled:opacity-60"
-                      >
-                        {workingMode === "restore" ? "Restoring..." : "Restore"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isCompareOpen && comparison ? (
-                    <div className="mt-4 rounded-[24px] border border-stone-900/10 bg-white/85 p-4">
-                      <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                        <span className="rounded-full bg-stone-100 px-3 py-1">
-                          {comparison.before.node_count} nodes before
-                        </span>
-                        <span className="rounded-full bg-stone-100 px-3 py-1">
-                          {comparison.after.node_count} nodes after
-                        </span>
-                        <span className="rounded-full bg-stone-100 px-3 py-1">
-                          {comparison.before.edge_count} edges before
-                        </span>
-                        <span className="rounded-full bg-stone-100 px-3 py-1">
-                          {comparison.after.edge_count} edges after
-                        </span>
-                      </div>
-
-                      <div className="mt-4 space-y-2 text-sm leading-6 text-stone-700">
-                        {comparison.summary_lines.map((line, index) => (
-                          <p key={`${revision.id}-summary-${index}`}>{line}</p>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
-                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Added nodes</p>
-                          <div className="mt-3 space-y-2 text-sm text-stone-600">
-                            {comparison.added_nodes.length ? (
-                              comparison.added_nodes.slice(0, 6).map((node) => (
-                                <p key={`${revision.id}-added-${node.id}`}>
-                                  {node.label} | {node.type}
-                                </p>
-                              ))
-                            ) : (
-                              <p>No new nodes.</p>
-                            )}
-                          </div>
+                    {isCompareOpen && comparison ? (
+                      <div className="mt-3 rounded-[14px] border border-black/6 bg-white px-3 py-3">
+                        <div className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                          <span className="rounded-full bg-stone-100 px-2.5 py-1">{comparison.before.node_count} before</span>
+                          <span className="rounded-full bg-stone-100 px-2.5 py-1">{comparison.after.node_count} after</span>
+                          <span className="rounded-full bg-stone-100 px-2.5 py-1">{comparison.added_edges.length} links added</span>
                         </div>
-
-                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Updated nodes</p>
-                          <div className="mt-3 space-y-2 text-sm text-stone-600">
-                            {comparison.changed_nodes.length ? (
-                              comparison.changed_nodes.slice(0, 6).map((node) => (
-                                <p key={`${revision.id}-changed-${node.id}`}>
-                                  {node.before_label} to {node.after_label}
-                                  {node.config_changed ? " | settings changed" : ""}
-                                </p>
-                              ))
-                            ) : (
-                              <p>No existing nodes were updated.</p>
-                            )}
-                          </div>
+                        <div className="mt-3 space-y-2 text-sm leading-6 text-stone-700">
+                          {comparison.summary_lines.map((line, index) => (
+                            <p key={`${revision.id}-summary-${index}`}>{line}</p>
+                          ))}
                         </div>
-
-                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Removed nodes</p>
-                          <div className="mt-3 space-y-2 text-sm text-stone-600">
-                            {comparison.removed_nodes.length ? (
-                              comparison.removed_nodes.slice(0, 6).map((node) => (
-                                <p key={`${revision.id}-removed-${node.id}`}>
-                                  {node.label} | {node.type}
-                                </p>
-                              ))
-                            ) : (
-                              <p>No nodes were removed.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl bg-stone-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Connection changes</p>
-                          <div className="mt-3 space-y-2 text-sm text-stone-600">
-                            <p>Added: {comparison.added_edges.length}</p>
-                            <p>Removed: {comparison.removed_edges.length}</p>
-                            {comparison.flags.name_changed ? <p>Name updated.</p> : null}
-                            {comparison.flags.description_changed ? <p>Description updated.</p> : null}
-                          </div>
-                        </div>
-                      </div>
-
-                      {compareSummary?.reasoning?.length ? (
-                        <div className="mt-4 rounded-2xl bg-[#f6f1ea] px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Assistant reasoning</p>
-                          <div className="mt-3 space-y-2 text-sm text-stone-600">
-                            {compareSummary.reasoning.slice(0, 4).map((item, index) => (
+                        {compareSummary?.reasoning?.length ? (
+                          <div className="mt-3 rounded-[12px] bg-[#f6f1ea] px-3 py-3 text-sm text-stone-600">
+                            {compareSummary.reasoning.slice(0, 3).map((item, index) => (
                               <p key={`${revision.id}-reasoning-${index}`}>{item}</p>
                             ))}
                           </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-sm text-stone-500">No revisions yet. Applying assistant changes will start filling this history.</p>
-          )}
-        </div>
-      </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-stone-500">No revisions yet.</p>
+            )}
+          </div>
+        </AssistantSection>
 
-      <div className="rounded-[30px] border border-stone-900/10 bg-white/90 p-5 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-        <div>
-          <p className="text-sm font-semibold text-stone-900">Assistant activity</p>
-          <p className="mt-1 text-sm leading-6 text-stone-500">
-            Recent preview and apply requests made for this workflow.
-          </p>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {composerLoading ? (
-            <p className="text-sm text-stone-500">Loading assistant history...</p>
-          ) : history.length ? (
-            history.slice().reverse().slice(0, 6).map((item, index) => (
-              <div key={`${item.at}-${index}`} className="rounded-2xl bg-stone-50 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-stone-900">{item.message}</p>
-                  <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
-                    {item.mode}
-                  </span>
+        <AssistantSection
+          title="Assistant activity"
+          subtitle="Recent preview and apply requests for this workflow."
+          badge={history.length ? `${history.length} events` : "Empty"}
+        >
+          <div className="space-y-2">
+            {composerLoading ? (
+              <p className="text-sm text-stone-500">Loading assistant history...</p>
+            ) : history.length ? (
+              history.slice().reverse().slice(0, 6).map((item, index) => (
+                <div key={`${item.at}-${index}`} className="rounded-[14px] bg-stone-50 px-3 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-stone-900">{item.message}</p>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      {item.mode}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-stone-400">
+                    {new Date(item.at).toLocaleString()}
+                  </p>
+                  <p className="mt-2 text-sm text-stone-600">
+                    {item.proposal.name} | {item.proposal.node_count} nodes | {item.proposal.provider}
+                  </p>
                 </div>
-                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-stone-400">
-                  {new Date(item.at).toLocaleString()}
-                </p>
-                <p className="mt-2 text-sm text-stone-600">
-                  {item.proposal.name} | {item.proposal.node_count} nodes | {item.proposal.provider}
-                </p>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-stone-500">No assistant activity yet.</p>
-          )}
-        </div>
+              ))
+            ) : (
+              <p className="text-sm text-stone-500">No assistant activity yet.</p>
+            )}
+          </div>
+        </AssistantSection>
       </div>
     </div>
   );
 }
-
-
-

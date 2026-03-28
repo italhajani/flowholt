@@ -119,13 +119,17 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   );
 
   const canvasContent = (
-    <div className="h-full bg-[#fcfcfb] p-4 xl:p-5">
-      {message ? <div className="mb-4 rounded-[16px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
-      {error ? <div className="mb-4 rounded-[16px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
-      <form id="workflow-save-form" action={saveWorkflow} className="h-full">
-        <input type="hidden" name="workflowId" value={workflow.id} />
-        <StudioCanvas initialGraph={graph} originalPrompt={originalPrompt} latestRunOutput={latestRunOutput} integrationOptions={integrationOptions} />
-      </form>
+    <div className="flex h-full flex-col overflow-hidden bg-[#f4f4f2]">
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="p-4 sm:p-5 lg:p-6">
+          {message ? <div className="mb-4 rounded-[14px] bg-[#eef7f1] px-4 py-3 text-sm text-emerald-900">{message}</div> : null}
+          {error ? <div className="mb-4 rounded-[14px] bg-[#fff1eb] px-4 py-3 text-sm text-[#b45309]">{error}</div> : null}
+          <form id="workflow-save-form" action={saveWorkflow} className="h-full">
+            <input type="hidden" name="workflowId" value={workflow.id} />
+            <StudioCanvas initialGraph={graph} originalPrompt={originalPrompt} latestRunOutput={latestRunOutput} integrationOptions={integrationOptions} />
+          </form>
+        </div>
+      </div>
     </div>
   );
 
@@ -265,8 +269,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   );
 
   return (
-    <main className="min-h-screen bg-[#f4f4f2] text-stone-950">
-      <div className="mx-auto flex min-h-screen max-w-[1680px] gap-5 px-4 py-4">
+    <main className="h-screen overflow-hidden bg-[#f4f4f2] text-stone-950">
+      <div className="mx-auto flex h-full max-w-[1680px] gap-5 px-4 py-4">
         <StudioScreen
           workflowName={workflow.name}
           header={header}

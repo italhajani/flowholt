@@ -580,267 +580,265 @@ function CanvasInner({
   const inspectorVisible = Boolean(selectedNode || selectedEdge);
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col space-y-0">
       <input type="hidden" name="graph" value={graphJson} readOnly />
 
-      <div className="overflow-hidden rounded-[26px] border border-black/6 bg-[#fafafa] shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/6 bg-white px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-[10px] bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">Editor</span>
-            <span className="rounded-[10px] border border-black/8 bg-white px-3 py-1.5 text-xs font-medium text-stone-500">
-              Canvas
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-[#effaf2] px-3 py-1 text-[11px] font-medium text-emerald-700">Ready to test</span>
-            <span className="rounded-full bg-[#f5f5f5] px-3 py-1 text-[11px] font-medium text-stone-500">{nodes.length} nodes</span>
-          </div>
-        </div>
-
-        <div className="grid h-[720px] lg:grid-cols-[84px_minmax(0,1fr)]">
-          <div className="border-b border-black/6 bg-white p-3 lg:border-b-0 lg:border-r">
-            <div className="grid auto-cols-max grid-flow-col gap-2 overflow-x-auto lg:grid-flow-row lg:auto-cols-auto">
-              {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => (
-                <button
-                  key={nodeType}
-                  type="button"
-                  onClick={() => addNode(nodeType)}
-                  className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-black/8 bg-[#fafafa] text-[11px] font-semibold text-stone-600 transition hover:bg-white"
-                  title={`Add ${nodeTypeLabels[nodeType]}`}
-                >
-                  {nodeTypeIcons[nodeType]}
-                </button>
-              ))}
+      <div className="flex-1 overflow-hidden rounded-[20px] border border-black/6 bg-[#fafafa] shadow-[0_12px_34px_rgba(15,23,42,0.04)]">
+        <div className="flex h-full flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/6 bg-white px-5 py-3.5 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button type="button" className="rounded-[10px] bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white">
+                Editor
+              </button>
+              <button type="button" className="rounded-[10px] border border-black/8 bg-white px-3 py-1.5 text-xs font-medium text-stone-500 transition hover:bg-[#f7f7f5]">
+                Canvas
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <span className="inline-flex rounded-full bg-[#eef9f2] px-3 py-1 text-[11px] font-semibold text-emerald-700">Ready to test</span>
+              <span className="inline-flex rounded-full bg-[#f5f5f5] px-3 py-1 text-[11px] font-semibold text-stone-500">{nodes.length} nodes</span>
             </div>
           </div>
 
-          <div className="relative overflow-hidden bg-[#fcfcfb]">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={(_, node) => {
-                setConfigError("");
-                setSelectedEdgeId(null);
-                setSelectedNodeId(node.id);
-                setInspectorPane("step");
-              }}
-              onEdgeClick={(_, edge) => {
-                setConfigError("");
-                setSelectedNodeId(null);
-                setSelectedEdgeId(edge.id);
-                setInspectorPane("connection");
-              }}
-              onPaneClick={() => {
-                setSelectedNodeId(null);
-                setSelectedEdgeId(null);
-              }}
-              fitView
-              minZoom={0.35}
-              className="studio-flow flowholt-grid-dots bg-[#fcfcfb]"
-              proOptions={{ hideAttribution: true }}
-            >
-              <Panel position="top-left" className="!m-4">
-                <div className="rounded-full border border-black/8 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  Drag, connect, refine
-                </div>
-              </Panel>
-              <Panel position="top-right" className="!m-4 hidden sm:!block">
-                <div className="flex gap-2 rounded-full border border-black/8 bg-white px-2 py-2">
-                  <button type="button" className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
-                    Present
+          <div className="flex flex-1 min-h-0 gap-0">
+            <div className="hidden lg:block w-[84px] border-r border-black/6 bg-white p-3">
+              <div className="grid auto-rows-max gap-2">
+                {(["trigger", "agent", "tool", "condition", "memory", "output"] as WorkflowNodeType[]).map((nodeType) => (
+                  <button
+                    key={nodeType}
+                    type="button"
+                    onClick={() => addNode(nodeType)}
+                    className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-black/8 bg-[#fafafa] text-[11px] font-semibold text-stone-600 transition hover:bg-white hover:border-black/12"
+                    title={`Add ${nodeTypeLabels[nodeType]}`}
+                  >
+                    {nodeTypeIcons[nodeType]}
                   </button>
-                  <button type="button" className="rounded-full border border-black/8 px-3 py-1.5 text-xs font-medium text-stone-700">
-                    Share
-                  </button>
-                </div>
-              </Panel>
-              <Controls showInteractive={false} />
-              <Background gap={24} size={1.2} color="rgba(107,114,128,0.16)" />
-            </ReactFlow>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative flex-1 overflow-hidden bg-[#fcfcfb]">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={(_, node) => {
+                  setConfigError("");
+                  setSelectedEdgeId(null);
+                  setSelectedNodeId(node.id);
+                  setInspectorPane("step");
+                }}
+                onEdgeClick={(_, edge) => {
+                  setConfigError("");
+                  setSelectedNodeId(null);
+                  setSelectedEdgeId(edge.id);
+                  setInspectorPane("connection");
+                }}
+                onPaneClick={() => {
+                  setSelectedNodeId(null);
+                  setSelectedEdgeId(null);
+                }}
+                fitView
+                minZoom={0.35}
+                className="studio-flow flowholt-grid-dots bg-[#fcfcfb]"
+                proOptions={{ hideAttribution: true }}
+              >
+                <Panel position="top-left" className="!m-4">
+                  <div className="rounded-full border border-black/8 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 shadow-sm">
+                    Drag to connect
+                  </div>
+                </Panel>
+                <Controls showInteractive={false} />
+                <Background gap={24} size={1.2} color="rgba(107,114,128,0.16)" />
+              </ReactFlow>
+            </div>
           </div>
         </div>
       </div>
 
       {inspectorVisible ? (
-        <div className="overflow-hidden rounded-[22px] border border-black/6 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-wrap gap-2 border-b border-black/6 px-4 py-3">
-          {inspectorButtons.map((pane) => (
-            <button
-              key={pane.key}
-              type="button"
-              onClick={() => setInspectorPane(pane.key)}
-              className={`rounded-[12px] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                inspectorPane === pane.key
-                  ? "bg-stone-900 text-white"
-                  : "border border-black/8 bg-white text-stone-500 hover:bg-[#f7f7f5]"
-              }`}
-            >
-              {pane.label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-4 overflow-hidden rounded-[20px] border border-black/6 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+          <div className="flex flex-wrap gap-1.5 border-b border-black/6 bg-white px-4 py-3 sm:gap-2">
+            {inspectorButtons.map((pane) => (
+              <button
+                key={pane.key}
+                type="button"
+                onClick={() => setInspectorPane(pane.key)}
+                className={`rounded-[10px] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                  inspectorPane === pane.key
+                    ? "bg-stone-900 text-white"
+                    : "border border-black/8 bg-white text-stone-500 hover:bg-[#f7f7f5]"
+                }`}
+              >
+                {pane.label}
+              </button>
+            ))}
+          </div>
 
-        <div className="p-5">
-          {inspectorPane === "step" ? (
-            selectedNode ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-stone-900">Selected step</p>
-                    <p className="mt-1 text-sm text-stone-500">Edit the selected node and its runtime settings.</p>
+          <div className="max-h-[340px] overflow-y-auto p-5">
+            {inspectorPane === "step" ? (
+              selectedNode ? (
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">Selected step</p>
+                      <p className="mt-0.5 text-xs text-stone-500">Edit the selected node and its runtime settings.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeSelectedNode}
+                      className="shrink-0 rounded-[10px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={removeSelectedNode}
-                    className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-                  >
-                    Remove
-                  </button>
-                </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold text-stone-700">Label</label>
+                      <input
+                        value={String(selectedNode.data?.label ?? "")}
+                        onChange={(event) => updateSelectedNodeLabel(event.target.value)}
+                        className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold text-stone-700">Type</label>
+                      <select
+                        value={String(selectedNode.data?.nodeType ?? "agent")}
+                        onChange={(event) => updateSelectedNodeType(event.target.value as WorkflowNodeType)}
+                        className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                      >
+                        {Object.entries(nodeTypeLabels).map(([key, label]) => (
+                          <option key={key} value={key}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedNodeProvider ? (
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold text-stone-700">Connection</label>
+                      <select
+                        value={selectedNodeConnectionId}
+                        onChange={(event) => updateSelectedNodeConnection(event.target.value)}
+                        className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                      >
+                        <option value="">No connection</option>
+                        {providerConnectionOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1.5 text-xs leading-5 text-stone-500">
+                        {providerConnectionOptions.length
+                          ? `Using active ${selectedNodeProvider} connections.`
+                          : selectedNodeRequiresConnection
+                            ? `This step needs an active ${selectedNodeProvider} connection before it can run.`
+                            : `No active ${selectedNodeProvider} connections found.`}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <StudioNodeConfigForm
+                    nodeType={selectedNode.data?.nodeType ?? "agent"}
+                    config={selectedNode.data?.config ?? {}}
+                    configError={configError}
+                    onConfigChange={updateSelectedNodeConfig}
+                    onDraftJsonChange={handleConfigDraftChange}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-[12px] bg-[#fafafa] px-3 py-3 text-xs text-stone-500">
+                  Select a node on the canvas to edit its settings.
+                </div>
+              )
+            ) : null}
+
+            {inspectorPane === "connection" ? (
+              selectedEdge ? (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">Selected link</p>
+                      <p className="mt-0.5 text-xs text-stone-500">Label the connection and branch behavior.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeSelectedEdge}
+                      className="shrink-0 rounded-[10px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="rounded-[12px] bg-[#fafafa] px-3 py-2 text-xs text-stone-600 font-mono">
+                    {selectedEdge.source} â†’ {selectedEdge.target}
+                  </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-stone-700">Label</label>
+                    <label className="mb-2 block text-xs font-semibold text-stone-700">Branch key</label>
                     <input
-                      value={String(selectedNode.data?.label ?? "")}
-                      onChange={(event) => updateSelectedNodeLabel(event.target.value)}
-                      className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
+                      value={selectedEdge.data?.branch ?? ""}
+                      onChange={(event) => updateSelectedEdgeBranch(event.target.value)}
+                      placeholder="true, false, retry"
+                      className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-stone-700">Type</label>
-                    <select
-                      value={String(selectedNode.data?.nodeType ?? "agent")}
-                      onChange={(event) => updateSelectedNodeType(event.target.value as WorkflowNodeType)}
-                      className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
-                    >
-                      {Object.entries(nodeTypeLabels).map(([key, label]) => (
-                        <option key={key} value={key}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                    <label className="mb-2 block text-xs font-semibold text-stone-700">Visual label</label>
+                    <input
+                      value={typeof selectedEdge.label === "string" ? selectedEdge.label : ""}
+                      onChange={(event) => updateSelectedEdgeLabel(event.target.value)}
+                      placeholder="Shown on the canvas"
+                      className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] px-3 py-2 text-sm outline-none transition hover:border-black/12 focus:border-black/16"
+                    />
                   </div>
                 </div>
+              ) : (
+                <div className="rounded-[12px] bg-[#fafafa] px-3 py-3 text-xs text-stone-500">
+                  Select a connection on the canvas to edit its branch and label.
+                </div>
+              )
+            ) : null}
 
-                {selectedNodeProvider ? (
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-stone-700">Connection</label>
-                    <select
-                      value={selectedNodeConnectionId}
-                      onChange={(event) => updateSelectedNodeConnection(event.target.value)}
-                      className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
-                    >
-                      <option value="">No connection</option>
-                      {providerConnectionOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-2 text-xs leading-5 text-stone-500">
-                      {providerConnectionOptions.length
-                        ? `Using active ${selectedNodeProvider} connections from Integrations.`
-                        : selectedNodeRequiresConnection
-                          ? `This step needs an active ${selectedNodeProvider} connection before it can run.`
-                          : `No active ${selectedNodeProvider} connections found.`}
-                    </p>
-                  </div>
-                ) : null}
+            {inspectorPane === "data" ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">Runtime data</p>
+                  <p className="mt-0.5 text-xs text-stone-500">Template keys the engine can resolve while running.</p>
+                </div>
+                <div className="grid gap-2">
+                  {previewEntries.slice(0, 5).map((entry) => (
+                    <div key={entry.key} className="rounded-[12px] bg-[#fafafa] px-3 py-2.5 text-xs">
+                      <p className="font-mono text-stone-600">{entry.key}</p>
+                      <p className="mt-1 leading-5 text-stone-500 break-words">{formatPreviewValue(entry.value)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
-                <StudioNodeConfigForm
-                  nodeType={selectedNode.data?.nodeType ?? "agent"}
-                  config={selectedNode.data?.config ?? {}}
-                  configError={configError}
-                  onConfigChange={updateSelectedNodeConfig}
-                  onDraftJsonChange={handleConfigDraftChange}
+            {inspectorPane === "json" ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">Graph JSON</p>
+                  <p className="mt-0.5 text-xs text-stone-500">Export format for versioning and sharing.</p>
+                </div>
+                <textarea
+                  value={graphJson}
+                  readOnly
+                  rows={10}
+                  className="w-full rounded-[12px] border border-black/8 bg-[#fafafa] p-3 font-mono text-xs leading-5 text-stone-600 outline-none"
                 />
               </div>
-            ) : (
-              <div className="rounded-[16px] bg-[#fafafa] px-4 py-4 text-sm text-stone-500">
-                Select a node on the canvas to edit its settings.
-              </div>
-            )
-          ) : null}
-
-          {inspectorPane === "connection" ? (
-            selectedEdge ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-stone-900">Selected link</p>
-                    <p className="mt-1 text-sm text-stone-500">Label the connection and branch behavior.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={removeSelectedEdge}
-                    className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <div className="rounded-[16px] bg-[#fafafa] px-4 py-3 text-sm text-stone-600">
-                  {selectedEdge.source} to {selectedEdge.target}
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">Branch key</label>
-                  <input
-                    value={selectedEdge.data?.branch ?? ""}
-                    onChange={(event) => updateSelectedEdgeBranch(event.target.value)}
-                    placeholder="true, false, retry"
-                    className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-stone-700">Visual label</label>
-                  <input
-                    value={typeof selectedEdge.label === "string" ? selectedEdge.label : ""}
-                    onChange={(event) => updateSelectedEdgeLabel(event.target.value)}
-                    placeholder="Shown on the canvas"
-                    className="w-full rounded-[16px] border border-black/8 bg-[#fafafa] px-4 py-3 text-sm outline-none"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-[16px] bg-[#fafafa] px-4 py-4 text-sm text-stone-500">
-                Select a connection on the canvas to edit its branch and label.
-              </div>
-            )
-          ) : null}
-
-          {inspectorPane === "data" ? (
-            <div>
-              <p className="text-sm font-semibold text-stone-900">Runtime data preview</p>
-              <p className="mt-1 text-sm text-stone-500">Template keys the engine can resolve while running this workflow.</p>
-              <div className="mt-4 grid gap-3">
-                {previewEntries.map((entry) => (
-                  <div key={entry.key} className="rounded-[16px] bg-[#fafafa] px-4 py-3">
-                    <p className="font-mono text-xs text-stone-900">{entry.key}</p>
-                    <p className="mt-2 text-xs leading-6 text-stone-600">{formatPreviewValue(entry.value)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {inspectorPane === "json" ? (
-            <div>
-              <p className="text-sm font-semibold text-stone-900">Graph JSON</p>
-              <p className="mt-1 text-sm text-stone-500">Still available for transparency, but not the main editing surface.</p>
-              <textarea
-                value={graphJson}
-                readOnly
-                rows={14}
-                className="mt-4 w-full rounded-[18px] border border-black/8 bg-[#fafafa] p-4 font-mono text-xs leading-6 text-stone-700 outline-none"
-              />
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

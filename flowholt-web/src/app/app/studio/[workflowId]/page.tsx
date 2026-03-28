@@ -11,9 +11,7 @@ import {
   IconRuns,
   IconSave,
   IconSettings,
-  IconSparkles,
   IconStudio,
-  IconTool,
   IconWorkflows,
 } from "@/components/icons";
 import { StudioAssistantPanel } from "@/components/studio-assistant-panel";
@@ -64,20 +62,18 @@ function CompactSection({
   children: ReactNode;
 }) {
   return (
-    <details open={defaultOpen} className="border-b border-black/8 py-3 last:border-b-0">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] bg-[#f5f4ed] text-stone-500">
-            {icon}
-          </div>
+    <details open={defaultOpen} className="studio-sidepanel-section">
+      <summary className="studio-sidepanel-summary">
+        <div className="studio-sidepanel-summary-left">
+          <div className="studio-sidepanel-icon">{icon}</div>
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-stone-950">{title}</p>
-            {meta ? <p className="mt-0.5 truncate text-xs text-stone-500">{meta}</p> : null}
+            <p className="studio-sidepanel-title truncate">{title}</p>
+            {meta ? <p className="studio-sidepanel-subtitle truncate">{meta}</p> : null}
           </div>
         </div>
-        <IconChevronDown className="h-4 w-4 shrink-0 text-stone-400" />
+        <IconChevronDown className="studio-sidepanel-chevron h-4 w-4" />
       </summary>
-      <div className="pt-3">{children}</div>
+      <div className="studio-sidepanel-body pl-[38px]">{children}</div>
     </details>
   );
 }
@@ -319,19 +315,19 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
   );
 
   const workflowSidebar = (
-    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
+    <div>
       <CompactSection title="Workflow" meta="Name and description" icon={<IconStudio className="h-4 w-4" />} defaultOpen>
         <form action={saveWorkflow} className="space-y-3">
           <input type="hidden" name="workflowId" value={workflow.id} />
-          <div>
-            <label className="mb-2 block text-xs font-semibold text-stone-700" htmlFor="workflow-name">Name</label>
-            <input id="workflow-name" name="name" defaultValue={workflow.name} className="w-full rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-sm outline-none" />
+          <div className="studio-sidepanel-field">
+            <label className="studio-sidepanel-label" htmlFor="workflow-name">Name</label>
+            <input id="workflow-name" name="name" defaultValue={workflow.name} className="studio-sidepanel-input" />
           </div>
-          <div>
-            <label className="mb-2 block text-xs font-semibold text-stone-700" htmlFor="workflow-description">Description</label>
-            <textarea id="workflow-description" name="description" defaultValue={workflow.description} rows={3} className="w-full rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-sm outline-none" />
+          <div className="studio-sidepanel-field">
+            <label className="studio-sidepanel-label" htmlFor="workflow-description">Description</label>
+            <textarea id="workflow-description" name="description" defaultValue={workflow.description} rows={3} className="studio-sidepanel-textarea" />
           </div>
-          <button type="submit" className="w-full rounded-[6px] border border-black/10 bg-white px-3 py-2.5 text-sm font-medium text-stone-900 transition-smooth hover:bg-[#f7f6f3]">Save workflow</button>
+          <button type="submit" className="studio-sidepanel-button w-full">Save workflow</button>
         </form>
       </CompactSection>
 
@@ -343,27 +339,64 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </div>
   );
 
-  const modelsSidebar = (
-    <div className="flex h-full min-h-0 flex-col gap-2 overflow-hidden">
-      <CompactSection title="Active model" meta="Provider and runtime" icon={<IconSparkles className="h-4 w-4" />} defaultOpen>
-        <div className="rounded-[6px] border border-black/10 bg-white px-3 py-3">
-          <p className="text-sm font-medium text-stone-900">{generation?.model ?? "GPT-4o-mini"}</p>
-          <p className="mt-1 text-xs text-stone-500">Provider: {generation?.provider ?? "OpenAI"}</p>
-        </div>
-      </CompactSection>
+  const selectedModel = generation?.model ?? "GPT-4o-mini";
+  const selectedProvider = generation?.provider ?? "OpenAI";
+  const modelGroups = [
+    {
+      title: "Reasoning",
+      items: [
+        { name: "GPT-4o", provider: "OpenAI", speed: "Fast" },
+        { name: "Claude Sonnet 4", provider: "Anthropic", speed: "Fast" },
+        { name: "Gemini 2.5 Pro", provider: "Google", speed: "Balanced" },
+      ],
+    },
+    {
+      title: "Lightweight",
+      items: [
+        { name: "GPT-4o-mini", provider: "OpenAI", speed: "Fastest" },
+        { name: "Claude Haiku 3.5", provider: "Anthropic", speed: "Fastest" },
+      ],
+    },
+  ];
 
-      <CompactSection title="Runtime health" meta="Validation and paths" icon={<IconTool className="h-4 w-4" />}>
-        <div className="space-y-2 text-sm leading-6 text-stone-600">
-          <div className="rounded-[6px] border border-black/10 bg-white px-3 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Validation</p>
-            <p className="mt-2 text-xl font-semibold text-stone-950">{validation.score}/100</p>
-          </div>
-          <div className="rounded-[6px] border border-black/10 bg-white px-3 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">Paths</p>
-            <p className="mt-2 text-xl font-semibold text-stone-950">{simulation.possible_path_count}</p>
+  const modelsSidebar = (
+    <div>
+      {modelGroups.map((group, groupIndex) => (
+        <div key={group.title} className={`pb-3 ${groupIndex === 0 ? "" : "border-t border-black/8 pt-4"}`}>
+          <p className="pb-2 text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">{group.title}</p>
+          <div>
+            {group.items.map((item) => {
+              const active = item.name === selectedModel || `${item.name} | ${item.provider}` === `${selectedModel} | ${selectedProvider}`;
+              return (
+                <div key={`${group.title}-${item.name}`} className={`flex items-center justify-between gap-3 px-1 py-2.5 ${active ? "bg-[#fafaf9]" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`h-2 w-2 rounded-full border ${active ? "border-stone-900 bg-stone-900" : "border-black/12 bg-transparent"}`} />
+                    <div>
+                      <p className="text-[12.5px] font-medium text-stone-950">{item.name}</p>
+                      <p className="mt-0.5 text-[11px] text-stone-500">{item.provider}</p>
+                    </div>
+                  </div>
+                  <span className="studio-sidepanel-pill">{item.speed}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </CompactSection>
+      ))}
+
+      <div className="border-t border-black/8 pt-4">
+        <p className="pb-2 text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">Runtime health</p>
+        <div className="space-y-2 text-[11.5px] text-stone-600">
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">Validation</p>
+            <p className="mt-1">{validation.score}/100</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.05em] text-stone-400">Paths</p>
+            <p className="mt-1">{simulation.possible_path_count}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -402,4 +435,8 @@ export default async function StudioPage({ params, searchParams }: StudioPagePro
     </main>
   );
 }
+
+
+
+
 

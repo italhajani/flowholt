@@ -34,27 +34,42 @@ export default async function MonitoringPage() {
     { label: "Stuck jobs", value: String(snapshot.stuckJobs) },
     { label: "Run success 24h", value: `${snapshot.runSuccessRate24h}%` },
     { label: "Failed runs 24h", value: String(snapshot.failedRuns24h) },
-    { label: "Avg run duration 24h", value: formatDuration(snapshot.avgRunDurationMs24h) },
-    { label: "Avg node duration 24h", value: formatDuration(snapshot.avgNodeDurationMs24h) },
+    { label: "Avg run duration", value: formatDuration(snapshot.avgRunDurationMs24h) },
+    { label: "Avg node duration", value: formatDuration(snapshot.avgNodeDurationMs24h) },
   ];
 
   return (
     <AppShell
       eyebrow="Monitoring"
       title="Operations monitor"
-      description="A first production view for queue health, failure trends, request pressure, and workspace reliability."
+      description="A cleaner production view for queue health, failures, request pressure, and security posture across the workspace."
     >
-      <div className="grid gap-5">
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <SurfaceCard key={stat.label} title={stat.value} description={stat.label} tone="default" />
-          ))}
+      <div className="space-y-5">
+        <div className="flowholt-window overflow-hidden">
+          <div className="flowholt-window-bar">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">Operations</p>
+              <p className="mt-1 text-sm font-medium text-stone-900">Health and reliability overview</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="flowholt-chip">{snapshot.runSuccessRate24h}% success</span>
+              <span className="flowholt-chip">{snapshot.queueDepth} queued</span>
+            </div>
+          </div>
+
+          <div className="p-5 xl:p-6">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {stats.map((stat) => (
+                <SurfaceCard key={stat.label} title={stat.value} description={stat.label} tone="default" />
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+        <div className="grid gap-5 xl:grid-cols-[1.22fr_0.78fr]">
           <SurfaceCard
             title="Security posture"
-            description="FlowHolt checks your protected endpoint keys and deploy-time secrets for risky config patterns."
+            description="Protected endpoints and deploy-time safety checks in one cleaner status wall."
             tone="mint"
           >
             <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.16em]">
@@ -70,7 +85,7 @@ export default async function MonitoringPage() {
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {snapshot.securityChecks.map((item) => (
-                <div key={item.key} className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${securityTone(item.status)}`}>
+                <div key={item.key} className={`rounded-[1.3rem] border px-4 py-3 text-sm leading-6 ${securityTone(item.status)}`}>
                   <p className="font-medium">{item.label}</p>
                   <p className="mt-1 text-sm">{item.detail}</p>
                 </div>
@@ -86,13 +101,13 @@ export default async function MonitoringPage() {
             <div className="space-y-3 text-sm leading-6 text-stone-700">
               {snapshot.rateLimitEvents24h.length ? (
                 snapshot.rateLimitEvents24h.map((item: (typeof snapshot.rateLimitEvents24h)[number]) => (
-                  <div key={item.scope} className="rounded-2xl bg-white/80 px-4 py-3">
+                  <div key={item.scope} className="rounded-[1.25rem] bg-white/88 px-4 py-3">
                     <p className="font-medium text-stone-900">{item.scope}</p>
                     <p className="mt-1">Requests counted: {item.requestCount}</p>
                   </div>
                 ))
               ) : (
-                <p className="rounded-2xl bg-white/80 px-4 py-3">No recent rate-limit activity yet.</p>
+                <p className="rounded-[1.25rem] bg-white/88 px-4 py-3">No recent rate-limit activity yet.</p>
               )}
             </div>
           </SurfaceCard>
@@ -107,13 +122,13 @@ export default async function MonitoringPage() {
             <div className="space-y-3 text-sm leading-6 text-stone-700">
               {snapshot.topFailingNodes7d.length ? (
                 snapshot.topFailingNodes7d.map((item: (typeof snapshot.topFailingNodes7d)[number]) => (
-                  <div key={item.nodeLabel} className="rounded-2xl bg-white/80 px-4 py-3">
+                  <div key={item.nodeLabel} className="rounded-[1.25rem] bg-white/88 px-4 py-3">
                     <p className="font-medium text-stone-900">{item.nodeLabel}</p>
                     <p className="mt-1">Failures: {item.failures}</p>
                   </div>
                 ))
               ) : (
-                <p className="rounded-2xl bg-white/80 px-4 py-3">No failed nodes recorded in the last 7 days.</p>
+                <p className="rounded-[1.25rem] bg-white/88 px-4 py-3">No failed nodes recorded in the last 7 days.</p>
               )}
             </div>
           </SurfaceCard>
@@ -126,13 +141,13 @@ export default async function MonitoringPage() {
             <div className="space-y-3 text-sm leading-6 text-stone-700">
               {snapshot.recentAuditActions7d.length ? (
                 snapshot.recentAuditActions7d.map((item: (typeof snapshot.recentAuditActions7d)[number]) => (
-                  <div key={item.action} className="rounded-2xl bg-stone-50 px-4 py-3">
+                  <div key={item.action} className="rounded-[1.25rem] bg-[#fbf8f3] px-4 py-3">
                     <p className="font-medium text-stone-900">{item.action}</p>
                     <p className="mt-1">Count: {item.count}</p>
                   </div>
                 ))
               ) : (
-                <p className="rounded-2xl bg-stone-50 px-4 py-3">No audit events recorded yet.</p>
+                <p className="rounded-[1.25rem] bg-[#fbf8f3] px-4 py-3">No audit events recorded yet.</p>
               )}
             </div>
           </SurfaceCard>

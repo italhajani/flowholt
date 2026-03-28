@@ -118,7 +118,7 @@ export default async function Home() {
                 <div className="mt-4 rounded-[1.4rem] border border-stone-900/8 bg-white px-4 py-4 shadow-[var(--fh-shadow-soft)]">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Assistant</p>
                   <p className="mt-2 text-sm leading-6 text-stone-700">
-                    “I’ll draft a strategist, content agent, analytics step, and publishing branch.”
+                    &quot;I&#39;ll draft a strategist, content agent, analytics step, and publishing branch.&quot;
                   </p>
                 </div>
               </div>

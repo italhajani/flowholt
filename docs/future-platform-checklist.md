@@ -5,7 +5,7 @@ This is the living checklist to reach the finalized premium FlowHolt platform.
 ## Current status snapshot
 
 - Backend core progress: **about 99%**
-- Frontend/UI progress: **about 98%**
+- Frontend/UI progress: **about 99%**
 - Production hardening progress: **about 96%**
 - Agent/tool architecture groundwork: **about 98%**
 

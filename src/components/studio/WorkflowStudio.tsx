@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Sparkles } from "lucide-react";
 import TopBar from "./TopBar";
 import IconSidebar from "./IconSidebar";
 import NodesPanel from "./NodesPanel";

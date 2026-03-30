@@ -17,7 +17,7 @@ const tools = [
 
 const ToolsSidebar: React.FC<ToolsSidebarProps> = ({ activeTool, onToolChange, nodesOpen, onToggleNodes }) => {
   return (
-    <div className="w-9 bg-studio-sidebar flex flex-col items-center py-2 gap-0.5 shrink-0">
+    <div className="w-9 bg-studio-sidebar flex flex-col items-center justify-center gap-0.5 shrink-0">
       {/* Nodes toggle */}
       <Tooltip content="Nodes Library" position="right">
         <button

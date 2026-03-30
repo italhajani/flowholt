@@ -7,6 +7,7 @@ import ToolsSidebar from "./ToolsSidebar";
 import WorkflowCanvas from "./WorkflowCanvas";
 import NodeDetailsPanel from "./NodeDetailsPanel";
 import ChatPanel from "./ChatPanel";
+import StatusBar from "./StatusBar";
 import Tooltip from "./Tooltip";
 
 const WorkflowStudio: React.FC = () => {
@@ -21,44 +22,38 @@ const WorkflowStudio: React.FC = () => {
       <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex min-h-0">
-        {/* Icon sidebar - always visible, leftmost */}
         <IconSidebar nodesOpen={nodesOpen} onToggleNodes={() => setNodesOpen(!nodesOpen)} />
 
-        {/* Main content area - relative for chat overlay */}
-        <div className="flex-1 flex min-h-0 relative">
-          {/* Chat panel overlays nodes panel area */}
-          <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex min-h-0 relative">
+            <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
+            <NodesPanel open={nodesOpen && !chatOpen} onClose={() => setNodesOpen(false)} />
 
-          {/* Nodes panel */}
-          <NodesPanel open={nodesOpen && !chatOpen} onClose={() => setNodesOpen(false)} />
+            {(nodesOpen || chatOpen) && <div className="w-px bg-studio-divider/30 shrink-0" />}
 
-          {/* Thin divider instead of heavy border */}
-          {(nodesOpen || chatOpen) && <div className="w-px bg-studio-divider/40 shrink-0" />}
+            <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
+            <div className="w-px bg-studio-divider/30 shrink-0" />
 
-          {/* Tools sidebar */}
-          <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
+            <WorkflowCanvas onNodeSelect={setSelectedNode} />
 
-          <div className="w-px bg-studio-divider/40 shrink-0" />
+            <NodeDetailsPanel nodeId={selectedNode} onClose={() => setSelectedNode(null)} />
+          </div>
 
-          {/* Canvas */}
-          <WorkflowCanvas onNodeSelect={setSelectedNode} />
-
-          {/* Node details */}
-          <NodeDetailsPanel nodeId={selectedNode} onClose={() => setSelectedNode(null)} />
+          <StatusBar nodeCount={5} zoom={1} />
         </div>
-
-        {/* Floating AI button */}
-        {!chatOpen && (
-          <Tooltip content="AI Assistant" position="top">
-            <button
-              onClick={() => setChatOpen(true)}
-              className="fixed bottom-4 left-14 z-50 w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:shadow-lg hover:scale-105 transition-all duration-200"
-            >
-              <Sparkles size={16} />
-            </button>
-          </Tooltip>
-        )}
       </div>
+
+      {/* Floating AI button */}
+      {!chatOpen && (
+        <Tooltip content="AI Assistant (⌘K)" position="top">
+          <button
+            onClick={() => setChatOpen(true)}
+            className="fixed bottom-10 left-14 z-50 w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:shadow-lg hover:scale-105 transition-all duration-200"
+          >
+            <Sparkles size={14} />
+          </button>
+        </Tooltip>
+      )}
     </div>
   );
 };

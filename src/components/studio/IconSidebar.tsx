@@ -14,7 +14,6 @@ import {
   FileBarChart,
   Code2,
   Settings,
-  } from "lucide-react";
 } from "lucide-react";
 
 interface IconSidebarProps {}

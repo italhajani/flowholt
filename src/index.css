@@ -159,6 +159,49 @@
   .studio-node.selected {
     box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3), 0 4px 12px -2px rgba(0,0,0,0.08);
   }
+
+  .config-label {
+    @apply text-[10px] font-medium uppercase tracking-wider;
+    color: hsl(var(--studio-text-tertiary));
+  }
+
+  .config-field {
+    @apply mt-1 h-7 flex items-center px-2.5 rounded-lg text-[11px];
+    background: hsl(var(--studio-bg));
+    color: hsl(var(--studio-text-primary));
+  }
+
+  .config-textarea {
+    @apply w-full rounded-lg px-2.5 py-2 text-[10px] outline-none resize-none leading-relaxed;
+    background: hsl(var(--studio-bg));
+    color: hsl(var(--studio-text-primary));
+  }
+
+  .config-textarea::placeholder {
+    color: hsl(var(--studio-text-tertiary));
+  }
+
+  .config-textarea:focus {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
 }
 
 /* React Flow overrides for soft look */

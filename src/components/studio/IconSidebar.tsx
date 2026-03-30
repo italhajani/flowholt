@@ -39,7 +39,7 @@ const bottomItems = [
   { icon: Settings, label: "Settings" },
 ];
 
-const IconSidebar: React.FC<IconSidebarProps> = ({ onToggleNodes, nodesOpen }) => {
+const IconSidebar: React.FC<IconSidebarProps> = () => {
   const [hovered, setHovered] = useState(false);
   const [activeItem, setActiveItem] = useState("Workflows");
 
@@ -53,20 +53,6 @@ const IconSidebar: React.FC<IconSidebarProps> = ({ onToggleNodes, nodesOpen }) =
     >
       {/* Main nav */}
       <div className="flex-1 flex flex-col py-2 gap-0.5 overflow-hidden">
-        {/* Nodes button */}
-        <button
-          onClick={onToggleNodes}
-          className={`flex items-center gap-2.5 px-3 py-2 mx-1 rounded-lg text-xs font-medium transition-all duration-200 ${
-            nodesOpen
-              ? "bg-primary/10 text-primary"
-              : "text-studio-text-secondary hover:bg-studio-surface-hover hover:text-studio-text-primary"
-          }`}
-        >
-          <Blocks size={16} className="shrink-0" />
-          {hovered && <span className="truncate whitespace-nowrap">Nodes</span>}
-        </button>
-
-        <div className="h-px bg-studio-divider/20 mx-2 my-1" />
 
         {mainItems.map((item) => (
           <button

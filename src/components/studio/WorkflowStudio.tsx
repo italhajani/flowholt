@@ -21,7 +21,7 @@ const WorkflowStudio: React.FC = () => {
       <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex-1 flex min-h-0">
-        <IconSidebar nodesOpen={nodesOpen} onToggleNodes={() => setNodesOpen(!nodesOpen)} />
+        <IconSidebar />
 
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 flex min-h-0 relative">
@@ -30,7 +30,7 @@ const WorkflowStudio: React.FC = () => {
 
             {(nodesOpen || chatOpen) && <div className="w-px bg-studio-divider/30 shrink-0" />}
 
-            <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
+            <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} nodesOpen={nodesOpen} onToggleNodes={() => setNodesOpen(!nodesOpen)} />
             <div className="w-px bg-studio-divider/30 shrink-0" />
 
             <WorkflowCanvas onNodeSelect={setSelectedNode} onOpenChat={() => setChatOpen(true)} />

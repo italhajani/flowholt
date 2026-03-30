@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Sparkles } from "lucide-react";
 import TopBar from "./TopBar";
 import IconSidebar from "./IconSidebar";
 import NodesPanel from "./NodesPanel";
@@ -34,7 +33,7 @@ const WorkflowStudio: React.FC = () => {
             <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
             <div className="w-px bg-studio-divider/30 shrink-0" />
 
-            <WorkflowCanvas onNodeSelect={setSelectedNode} />
+            <WorkflowCanvas onNodeSelect={setSelectedNode} onOpenChat={() => setChatOpen(true)} />
 
             <NodeDetailsPanel nodeId={selectedNode} onClose={() => setSelectedNode(null)} />
           </div>
@@ -43,17 +42,7 @@ const WorkflowStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating AI button */}
-      {!chatOpen && (
-        <Tooltip content="AI Assistant (⌘K)" position="top">
-          <button
-            onClick={() => setChatOpen(true)}
-            className="fixed bottom-10 left-14 z-50 w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:shadow-lg hover:scale-105 transition-all duration-200"
-          >
-            <Sparkles size={14} />
-          </button>
-        </Tooltip>
-      )}
+      {/* AI button is now inside WorkflowCanvas */}
     </div>
   );
 };

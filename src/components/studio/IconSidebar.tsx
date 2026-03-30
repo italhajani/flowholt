@@ -17,10 +17,7 @@ import {
   Blocks,
 } from "lucide-react";
 
-interface IconSidebarProps {
-  onToggleNodes: () => void;
-  nodesOpen: boolean;
-}
+interface IconSidebarProps {}
 
 const mainItems = [
   { icon: Home, label: "Home" },

@@ -1,36 +1,109 @@
-import React from "react";
-import { Zap, Brain, GitFork, CodeXml, FileText, PanelLeftOpen } from "lucide-react";
-import Tooltip from "./Tooltip";
+import React, { useState } from "react";
+import {
+  Home,
+  GitBranch,
+  KeyRound,
+  Database,
+  BarChart3,
+  MessageSquare,
+  Link2,
+  ScrollText,
+  Rocket,
+  FlaskConical,
+  BriefcaseBusiness,
+  FileBarChart,
+  Code2,
+  Settings,
+  Blocks,
+} from "lucide-react";
 
 interface IconSidebarProps {
   onToggleNodes: () => void;
   nodesOpen: boolean;
 }
 
-const items = [
-  { icon: Zap, label: "Triggers", color: "text-studio-success" },
-  { icon: Brain, label: "AI Models", color: "text-studio-orange" },
-  { icon: GitFork, label: "Logic", color: "text-studio-warning" },
-  { icon: CodeXml, label: "Actions", color: "text-primary" },
-  { icon: FileText, label: "Output", color: "text-studio-success" },
+const mainItems = [
+  { icon: Home, label: "Home" },
+  { icon: GitBranch, label: "Workflows" },
+  { icon: MessageSquare, label: "Prompts" },
+  { icon: Database, label: "Data" },
+  { icon: Link2, label: "Connections" },
+  { icon: KeyRound, label: "Credentials" },
+  { icon: ScrollText, label: "Logs" },
+  { icon: Rocket, label: "Deployments" },
+  { icon: FlaskConical, label: "Tests" },
+  { icon: BriefcaseBusiness, label: "Jobs" },
+];
+
+const bottomItems = [
+  { icon: FileBarChart, label: "Reports" },
+  { icon: BarChart3, label: "Analytics" },
+  { icon: Code2, label: "API Playground" },
+  { icon: Settings, label: "Settings" },
 ];
 
 const IconSidebar: React.FC<IconSidebarProps> = ({ onToggleNodes, nodesOpen }) => {
-  return (
-    <div className="w-10 bg-studio-sidebar flex flex-col items-center py-2 gap-0.5 shrink-0">
-      <Tooltip content={nodesOpen ? "Collapse panel" : "Expand panel"} position="right">
-        <button className="studio-icon-btn w-7 h-7 mb-1" onClick={onToggleNodes}>
-          <PanelLeftOpen size={14} className={`transition-transform duration-200 ${nodesOpen ? "rotate-180" : ""}`} />
-        </button>
-      </Tooltip>
+  const [hovered, setHovered] = useState(false);
+  const [activeItem, setActiveItem] = useState("Workflows");
 
-      {items.map((item) => (
-        <Tooltip key={item.label} content={item.label} position="right">
-          <button className={`studio-icon-btn w-7 h-7 ${item.color}`}>
-            <item.icon size={14} />
+  return (
+    <div
+      className={`bg-studio-sidebar flex flex-col shrink-0 transition-all duration-300 ease-out border-r border-studio-divider/20 ${
+        hovered ? "w-48" : "w-11"
+      }`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Main nav */}
+      <div className="flex-1 flex flex-col py-2 gap-0.5 overflow-hidden">
+        {/* Nodes button */}
+        <button
+          onClick={onToggleNodes}
+          className={`flex items-center gap-2.5 px-3 py-2 mx-1 rounded-lg text-xs font-medium transition-all duration-200 ${
+            nodesOpen
+              ? "bg-primary/10 text-primary"
+              : "text-studio-text-secondary hover:bg-studio-surface-hover hover:text-studio-text-primary"
+          }`}
+        >
+          <Blocks size={16} className="shrink-0" />
+          {hovered && <span className="truncate whitespace-nowrap">Nodes</span>}
+        </button>
+
+        <div className="h-px bg-studio-divider/20 mx-2 my-1" />
+
+        {mainItems.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => setActiveItem(item.label)}
+            className={`flex items-center gap-2.5 px-3 py-2 mx-1 rounded-lg text-xs transition-all duration-200 ${
+              activeItem === item.label
+                ? "bg-studio-surface text-studio-text-primary font-medium"
+                : "text-studio-text-secondary hover:bg-studio-surface-hover hover:text-studio-text-primary"
+            }`}
+          >
+            <item.icon size={16} className="shrink-0" />
+            {hovered && <span className="truncate whitespace-nowrap">{item.label}</span>}
           </button>
-        </Tooltip>
-      ))}
+        ))}
+      </div>
+
+      {/* Bottom nav */}
+      <div className="flex flex-col py-2 gap-0.5 border-t border-studio-divider/15">
+        {bottomItems.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => setActiveItem(item.label)}
+            className={`flex items-center gap-2.5 px-3 py-2 mx-1 rounded-lg text-xs transition-all duration-200 ${
+              activeItem === item.label
+                ? "bg-studio-surface text-studio-text-primary font-medium"
+                : "text-studio-text-secondary hover:bg-studio-surface-hover hover:text-studio-text-primary"
+            }`}
+          >
+            <item.icon size={16} className="shrink-0" />
+            {hovered && <span className="truncate whitespace-nowrap">{item.label}</span>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

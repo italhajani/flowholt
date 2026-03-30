@@ -11,7 +11,7 @@ import Tooltip from "./Tooltip";
 
 const WorkflowStudio: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"editor" | "executions">("editor");
-  const [nodesOpen, setNodesOpen] = useState(true);
+  const [nodesOpen, setNodesOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("select");
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);

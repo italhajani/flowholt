@@ -34,7 +34,7 @@ const WorkflowStudio: React.FC = () => {
             <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} />
             <div className="w-px bg-studio-divider/30 shrink-0" />
 
-            <WorkflowCanvas onNodeSelect={setSelectedNode} />
+            <WorkflowCanvas onNodeSelect={setSelectedNode} onOpenChat={() => setChatOpen(true)} />
 
             <NodeDetailsPanel nodeId={selectedNode} onClose={() => setSelectedNode(null)} />
           </div>

@@ -38,7 +38,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ open, onClose }) => {
   if (!open) return null;
 
   return (
-    <div className="absolute top-0 bottom-0 left-0 w-80 z-40 bg-studio-surface flex flex-col animate-slide-in-left shadow-lg border-r border-studio-divider/30">
+    <div className="absolute top-0 bottom-0 left-0 w-80 z-40 bg-studio-surface flex flex-col animate-slide-in-left border-r border-studio-divider/30">
       <div className="h-9 flex items-center justify-between px-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-lg bg-primary/10 flex items-center justify-center">

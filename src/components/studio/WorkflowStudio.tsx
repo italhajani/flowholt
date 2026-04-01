@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import TopBar from "./TopBar";
-import IconSidebar from "./IconSidebar";
 import NodesPanel from "./NodesPanel";
 import ToolsSidebar from "./ToolsSidebar";
 import WorkflowCanvas from "./WorkflowCanvas";
 import NodeDetailsPanel from "./NodeDetailsPanel";
 import ChatPanel from "./ChatPanel";
 import StatusBar from "./StatusBar";
-import Tooltip from "./Tooltip";
 
 const WorkflowStudio: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"editor" | "executions">("editor");
@@ -18,11 +16,9 @@ const WorkflowStudio: React.FC = () => {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-studio-bg">
-      <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopBar activeTab={activeTab} onTabChange={setActiveTab} onOpenChat={() => setChatOpen(true)} />
 
       <div className="flex-1 flex min-h-0">
-        <IconSidebar />
-
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 flex min-h-0 relative">
             <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
@@ -33,7 +29,7 @@ const WorkflowStudio: React.FC = () => {
             <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} nodesOpen={nodesOpen} onToggleNodes={() => setNodesOpen(!nodesOpen)} />
             <div className="w-px bg-studio-divider/30 shrink-0" />
 
-            <WorkflowCanvas onNodeSelect={setSelectedNode} onOpenChat={() => setChatOpen(true)} />
+            <WorkflowCanvas onNodeSelect={setSelectedNode} />
 
             <NodeDetailsPanel nodeId={selectedNode} onClose={() => setSelectedNode(null)} />
           </div>
@@ -41,8 +37,6 @@ const WorkflowStudio: React.FC = () => {
           <StatusBar nodeCount={5} zoom={1} />
         </div>
       </div>
-
-      {/* AI button is now inside WorkflowCanvas */}
     </div>
   );
 };

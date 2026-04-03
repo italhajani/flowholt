@@ -1,26 +1,38 @@
 import React, { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
-  Search,
-  PanelLeftClose,
-  Zap,
-  Brain,
-  GitFork,
-  CodeXml,
-  FileText,
-  Webhook,
-  Timer,
+  ArrowLeft,
+  Blocks,
+  BookOpen,
+  Bot,
+  Braces,
+  ChevronRight,
+  Database,
+  FlaskConical,
+  FolderGit2,
+  GitBranch,
+  Globe,
+  HelpCircle,
+  Library,
   Mail,
   MessageSquare,
-  Database,
-  Globe,
-  FileJson,
-  ArrowRightLeft,
-  Repeat,
+  Plus,
+  Search,
+  Settings2,
+  Sparkles,
+  Timer,
+  Wand2,
+  Webhook,
+  Wrench,
+  Zap,
 } from "lucide-react";
+import Tooltip from "./Tooltip";
 
 interface NodesPanelProps {
   open: boolean;
-  onClose: () => void;
+  onToggle: () => void;
+  activeTool: string;
+  onToolChange: (tool: string) => void;
 }
 
 const categories = [
@@ -30,51 +42,83 @@ const categories = [
     items: [
       { name: "Webhook", meta: "HTTP endpoint", icon: Webhook },
       { name: "Schedule", meta: "Timed runs", icon: Timer },
-      { name: "Manual", meta: "Run on demand", icon: Zap },
+      { name: "Manual trigger", meta: "Run on demand", icon: Zap },
     ],
   },
   {
-    name: "AI Models",
-    icon: Brain,
-    items: [
-      { name: "GPT-4", meta: "OpenAI", icon: Brain },
-      { name: "Claude", meta: "Anthropic", icon: Brain },
-      { name: "Gemini", meta: "Google", icon: Brain },
-      { name: "Custom LLM", meta: "External endpoint", icon: Brain },
-    ],
-  },
-  {
-    name: "Logic",
-    icon: GitFork,
-    items: [
-      { name: "If / Else", meta: "Conditional branch", icon: GitFork },
-      { name: "Switch", meta: "Route by value", icon: ArrowRightLeft },
-      { name: "Loop", meta: "Iterate items", icon: Repeat },
-    ],
-  },
-  {
-    name: "Actions",
-    icon: CodeXml,
+    name: "Action",
+    icon: Blocks,
     items: [
       { name: "HTTP Request", meta: "Call any API", icon: Globe },
-      { name: "Send Email", meta: "Deliver notifications", icon: Mail },
-      { name: "Slack", meta: "Post updates", icon: MessageSquare },
-      { name: "Database", meta: "Query records", icon: Database },
-      { name: "Transform", meta: "Map payloads", icon: FileJson },
+      { name: "Email", meta: "Send workflow emails", icon: Mail },
+      { name: "Slack", meta: "Post channel alerts", icon: MessageSquare },
     ],
   },
   {
-    name: "Output",
-    icon: FileText,
+    name: "Notification",
+    icon: MessageSquare,
     items: [
-      { name: "Response", meta: "Return data", icon: FileText },
-      { name: "Log", meta: "Track runtime output", icon: FileText },
+      { name: "Slack alert", meta: "Send alerts or notifications", icon: MessageSquare },
+      { name: "Email notice", meta: "Route workflow updates", icon: Mail },
+    ],
+  },
+  {
+    name: "Conditional",
+    icon: GitBranch,
+    items: [
+      { name: "Router", meta: "Branch the workflow", icon: GitBranch },
+      { name: "Decision", meta: "Evaluate conditions", icon: GitBranch },
+    ],
+  },
+  {
+    name: "Delay",
+    icon: Timer,
+    items: [
+      { name: "Wait", meta: "Pause the workflow", icon: Timer },
+      { name: "Schedule hold", meta: "Delay until a target time", icon: Timer },
+    ],
+  },
+  {
+    name: "User Task",
+    icon: BookOpen,
+    items: [
+      { name: "Approval", meta: "Assign task to a teammate", icon: BookOpen },
+      { name: "Review", meta: "Collect structured feedback", icon: BookOpen },
+    ],
+  },
+  {
+    name: "AI Insight",
+    icon: Bot,
+    items: [
+      { name: "Anthropic", meta: "Custom LLM step", icon: Bot },
+      { name: "GPT-4.1", meta: "Reasoning and generation", icon: Bot },
+      { name: "Custom node", meta: "Build a studio-specific step", icon: Wand2 },
     ],
   },
 ];
 
-const NodesPanel: React.FC<NodesPanelProps> = ({ open, onClose }) => {
+const studioTools = [
+  { id: "nodes", label: "Nodes", icon: Blocks },
+  { id: "connections", label: "Connections", icon: Database },
+  { id: "knowledge", label: "Knowledge", icon: BookOpen },
+  { id: "tests", label: "Tests", icon: FlaskConical },
+  { id: "versions", label: "Versions", icon: FolderGit2 },
+  { id: "code", label: "Code", icon: Braces },
+  { id: "settings", label: "Studio settings", icon: Settings2 },
+  { id: "help", label: "Help", icon: HelpCircle },
+];
+
+const quickActions = [
+  { id: "add", label: "Add node", icon: Plus },
+  { id: "branch", label: "Branch", icon: GitBranch },
+  { id: "assist", label: "AI assist", icon: Sparkles },
+  { id: "custom", label: "Custom node", icon: Bot },
+];
+
+const NodesPanel: React.FC<NodesPanelProps> = ({ open, onToggle, activeTool, onToolChange }) => {
   const [search, setSearch] = useState("");
+  const [hovered, setHovered] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -86,65 +130,151 @@ const NodesPanel: React.FC<NodesPanelProps> = ({ open, onClose }) => {
     return categories
       .map((category) => ({
         ...category,
-        items: category.items.filter((item) => {
-          const haystack = `${item.name} ${item.meta}`.toLowerCase();
-          return haystack.includes(query);
-        }),
+        items: category.items.filter((item) => `${item.name} ${item.meta}`.toLowerCase().includes(query)),
       }))
       .filter((category) => category.items.length > 0);
   }, [search]);
+  const selectedCategory = filteredCategories.find((category) => category.name === activeCategory) ?? null;
 
   return (
-    <div
-      className={`bg-studio-sidebar flex flex-col shrink-0 overflow-hidden transition-all duration-200 ${
-        open ? "w-64 opacity-100" : "w-0 opacity-0"
-      }`}
-    >
-      <div className="h-11 flex items-center justify-between px-4 shrink-0 border-b border-studio-divider/30">
-        <span className="text-[12px] font-semibold text-studio-text-primary">Nodes</span>
-        <button className="studio-icon-btn w-7 h-7" onClick={onClose}>
-          <PanelLeftClose size={14} />
-        </button>
-      </div>
-
-      <div className="px-4 py-3 border-b border-studio-divider/30">
-        <div className="flex items-center gap-2 rounded-lg border border-studio-divider/40 px-3 h-9">
-          <Search size={14} className="text-studio-text-tertiary shrink-0" />
-          <input
-            type="text"
-            placeholder="Search nodes"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-[12px] text-studio-text-primary placeholder:text-studio-text-tertiary"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-2 py-2">
-        {filteredCategories.map((category) => (
-          <section key={category.name} className="mb-4 last:mb-0">
-            <div className="flex items-center gap-2 px-2 py-2">
-              <category.icon size={14} className="text-studio-text-secondary" />
-              <span className="text-[11px] font-medium text-studio-text-secondary">{category.name}</span>
-            </div>
-
-            <div>
-              {category.items.map((item) => (
+    <div className="h-full flex shrink-0 relative">
+      <aside
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className={`h-full bg-white border-r border-slate-200 transition-[width] duration-200 ease-out ${
+          hovered ? "w-[168px]" : "w-[68px]"
+        }`}
+      >
+        <div className="h-full flex flex-col overflow-hidden">
+          <div className="flex-1 py-4 space-y-1">
+            {studioTools.map((tool) => (
+              <Tooltip key={tool.id} content={!hovered ? tool.label : ""} position="right">
                 <button
-                  key={item.name}
-                  className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg text-left hover:bg-studio-surface-hover transition-colors"
+                  onClick={() => {
+                    onToolChange(tool.id);
+                    if (tool.id === "nodes" && !open) onToggle();
+                    if (tool.id !== "nodes" && open) onToggle();
+                  }}
+                  className={cn(
+                    "mx-3 w-[calc(100%-24px)] h-10 rounded-xl flex items-center px-3 transition-colors",
+                    activeTool === tool.id
+                      ? "bg-[#eef2ff] text-[#4f46e5]"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                  )}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-studio-bg flex items-center justify-center shrink-0">
-                    <item.icon size={14} className="text-studio-text-secondary" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[12px] font-medium text-studio-text-primary truncate">{item.name}</div>
-                    <div className="text-[11px] text-studio-text-tertiary truncate">{item.meta}</div>
-                  </div>
+                  <tool.icon size={16} className="shrink-0" />
+                  {hovered && <span className="ml-3 text-[12px] font-medium truncate">{tool.label}</span>}
                 </button>
-              ))}
+              </Tooltip>
+            ))}
+          </div>
+
+          <div className="px-3 py-4">
+            <div className="w-[calc(100%-0px)] h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 text-[12px]">
+              {hovered ? "Studio settings" : <Wrench size={15} />}
             </div>
-          </section>
+          </div>
+        </div>
+      </aside>
+
+      {open && activeTool === "nodes" && (
+        <div className="w-[272px] h-full bg-white border-r border-slate-200 overflow-hidden">
+          <div className="h-full flex flex-col overflow-hidden">
+            <div className="h-16 px-4 border-b border-slate-200 flex items-center">
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 h-10 w-full">
+                <Search size={14} className="text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-[12px] text-slate-700 placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden">
+              <div
+                className="h-full flex transition-transform duration-300"
+                style={{ width: "544px", transform: `translateX(${selectedCategory ? "-272px" : "0px"})`, transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+              >
+                <div className="w-[272px] h-full overflow-y-auto px-3 py-4">
+                  {filteredCategories.map((category) => (
+                    <button
+                      key={category.name}
+                      onClick={() => setActiveCategory(category.name)}
+                      className="w-full mb-3 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-left hover:border-slate-300 hover:bg-slate-50 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-[12px] border border-slate-200 bg-slate-50 flex items-center justify-center text-[#5670ff] shrink-0">
+                          <category.icon size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] font-semibold text-slate-900">{category.name}</div>
+                          <div className="text-[11px] text-slate-500 mt-1">
+                            {category.items[0]?.meta || "Browse nodes"}
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-slate-400 shrink-0" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="w-[272px] h-full overflow-y-auto px-3 py-4">
+                  <div className="flex items-center gap-2 px-1 mb-3">
+                    <button
+                      onClick={() => setActiveCategory(null)}
+                      className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+                    >
+                      <ArrowLeft size={14} />
+                    </button>
+                    <div className="text-[13px] font-semibold text-slate-900">
+                      {selectedCategory?.name || "Nodes library"}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {selectedCategory?.items.map((item) => (
+                      <button
+                        key={item.name}
+                        className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-left hover:border-slate-300 hover:bg-slate-50 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-[11px] border border-slate-200 bg-slate-50 flex items-center justify-center text-[#5670ff] shrink-0">
+                            <item.icon size={15} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[12px] font-semibold text-slate-900 truncate">{item.name}</div>
+                            <div className="text-[10px] text-slate-500 mt-1 truncate">{item.meta}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-20 flex flex-col gap-2">
+        {quickActions.map((action, index) => (
+          <Tooltip key={action.id} content={action.label} position="right">
+            <button
+              onClick={() => {
+                onToolChange("nodes");
+                if (!open) onToggle();
+              }}
+              className={cn(
+                "w-10 h-10 rounded-2xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors",
+                index === 0 && "text-[#4f46e5]",
+              )}
+            >
+              <action.icon size={16} />
+            </button>
+          </Tooltip>
         ))}
       </div>
     </div>

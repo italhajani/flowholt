@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Undo2, Redo2, Save, Play, Square, Sparkles } from "lucide-react";
-import Tooltip from "./Tooltip";
+import { Bell, Share2, Sparkles } from "lucide-react";
 
 interface TopBarProps {
   activeTab: "editor" | "executions";
@@ -9,84 +8,67 @@ interface TopBarProps {
   onOpenChat: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ activeTab, onTabChange, onOpenChat }) => {
+const teamAvatars = ["AL", "TS", "BK", "RM"];
+
+const TopBar: React.FC<TopBarProps> = ({ onOpenChat }) => {
   const navigate = useNavigate();
-  const [isRunning, setIsRunning] = useState(false);
 
   return (
-    <header className="h-11 flex items-center justify-between bg-studio-surface px-4 shrink-0 z-50 border-b border-studio-divider/40">
-      <div className="flex items-center gap-2">
-        <Tooltip content="Back to dashboard">
-          <button className="studio-icon-btn w-7 h-7" onClick={() => navigate("/dashboard/workflows")}>
-            <ChevronLeft size={15} />
-          </button>
-        </Tooltip>
+    <header className="h-16 flex items-center justify-between px-5 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex items-center gap-4 min-w-0">
+        <button
+          onClick={() => navigate("/dashboard/workflows")}
+          className="w-8 h-8 rounded-xl bg-[#4f46e5] text-white flex items-center justify-center text-[13px] font-semibold shrink-0"
+        >
+          FH
+        </button>
 
-        <div className="ml-1">
-          <div className="text-[12px] font-semibold text-studio-text-primary">Support Ticket Classifier</div>
+        <div className="hidden md:flex items-center gap-2 text-[12px] text-slate-500">
+          <span>Team_Lab</span>
+          <span>/</span>
+          <span>Project</span>
+          <span>/</span>
+          <span className="text-slate-700 font-medium">Workflow</span>
+          <span>/</span>
+          <span>New</span>
+          <span className="ml-2 px-2 py-1 rounded-lg bg-slate-100 text-[11px] text-slate-500">Draft</span>
         </div>
-
-        <div className="w-px h-4 bg-studio-divider/40 mx-1" />
-
-        <Tooltip content="Undo">
-          <button className="studio-icon-btn w-6 h-6">
-            <Undo2 size={13} />
-          </button>
-        </Tooltip>
-        <Tooltip content="Redo">
-          <button className="studio-icon-btn w-6 h-6">
-            <Redo2 size={13} />
-          </button>
-        </Tooltip>
-      </div>
-
-      <div className="flex items-center bg-studio-bg rounded-lg p-0.5">
-        {(["editor", "executions"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            className={`px-3 py-1 text-[11px] font-medium rounded-md transition-all duration-200 ${
-              activeTab === tab
-                ? "bg-studio-surface text-studio-text-primary"
-                : "text-studio-text-secondary hover:text-studio-text-primary"
-            }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
       </div>
 
       <div className="flex items-center gap-2">
         <button
           onClick={onOpenChat}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-studio-divider/40 text-[11px] font-medium text-studio-text-secondary hover:text-studio-text-primary hover:bg-studio-surface-hover transition-colors"
+          className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-[12px] font-medium text-slate-600 inline-flex items-center gap-2 hover:bg-slate-50 transition-colors"
         >
-          <Sparkles size={12} />
-          AI
+          <Sparkles size={13} />
+          Assist
         </button>
 
-        <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-studio-divider/40 text-[11px] font-medium text-studio-text-secondary hover:text-studio-text-primary hover:bg-studio-surface-hover transition-colors">
-          <Save size={12} />
-          Save
+        <button className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-[12px] font-medium text-slate-600 inline-flex items-center gap-2 hover:bg-slate-50 transition-colors">
+          <Share2 size={13} />
+          Share
         </button>
 
-        {isRunning ? (
-          <button
-            onClick={() => setIsRunning(false)}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-semibold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-          >
-            <Square size={9} fill="currentColor" />
-            Stop
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsRunning(true)}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-semibold bg-primary text-primary-foreground hover:brightness-110 transition-colors"
-          >
-            <Play size={9} fill="currentColor" />
-            Run
-          </button>
-        )}
+        <div className="hidden md:flex items-center -space-x-2 px-1">
+          {teamAvatars.map((avatar, index) => (
+            <div
+              key={avatar}
+              className={`w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-semibold ${
+                index % 2 === 0 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {avatar}
+            </div>
+          ))}
+        </div>
+
+        <button className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:bg-slate-50">
+          <Bell size={14} />
+        </button>
+
+        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-[12px] font-semibold text-slate-700">
+          GA
+        </div>
       </div>
     </header>
   );

@@ -1,40 +1,39 @@
 import React, { useState } from "react";
 import TopBar from "./TopBar";
 import NodesPanel from "./NodesPanel";
-import ToolsSidebar from "./ToolsSidebar";
 import WorkflowCanvas from "./WorkflowCanvas";
-import NodeDetailsPanel from "./NodeDetailsPanel";
+import NodeDetailsPanel from "./NodeDetailsPanelV2";
 import ChatPanel from "./ChatPanel";
-import StatusBar from "./StatusBar";
 
 const WorkflowStudio: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"editor" | "executions">("editor");
-  const [nodesOpen, setNodesOpen] = useState(false);
-  const [activeTool, setActiveTool] = useState("select");
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [nodesOpen, setNodesOpen] = useState(true);
+  const [activeTool, setActiveTool] = useState("nodes");
+  const [selectedNode, setSelectedNode] = useState<string | null>("ai-1");
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-studio-bg">
-      <TopBar activeTab={activeTab} onTabChange={setActiveTab} onOpenChat={() => setChatOpen(true)} />
+    <div className="h-screen w-screen bg-[#dbe5ff]">
+      <div className="h-full w-full bg-white overflow-hidden">
+        <div className="h-full flex flex-col">
+          <TopBar activeTab={activeTab} onTabChange={setActiveTab} onOpenChat={() => setChatOpen(true)} />
 
-      <div className="flex-1 flex min-h-0">
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 flex min-h-0 relative">
+          <div className="flex-1 flex min-h-0 bg-[#f8faff]">
             <ChatPanel open={chatOpen} onClose={() => setChatOpen(false)} />
-            <NodesPanel open={nodesOpen && !chatOpen} onClose={() => setNodesOpen(false)} />
 
-            {(nodesOpen || chatOpen) && <div className="w-px bg-studio-divider/30 shrink-0" />}
+            <NodesPanel
+              open={nodesOpen && !chatOpen}
+              onToggle={() => setNodesOpen((open) => !open)}
+              activeTool={activeTool}
+              onToolChange={setActiveTool}
+            />
 
-            <ToolsSidebar activeTool={activeTool} onToolChange={setActiveTool} nodesOpen={nodesOpen} onToggleNodes={() => setNodesOpen(!nodesOpen)} />
-            <div className="w-px bg-studio-divider/30 shrink-0" />
-
-            <WorkflowCanvas onNodeSelect={setSelectedNode} />
+            <div className="flex-1 min-h-0 relative border-r border-slate-200">
+              <WorkflowCanvas onNodeSelect={setSelectedNode} />
+            </div>
 
             <NodeDetailsPanel nodeId={selectedNode} onClose={() => setSelectedNode(null)} />
           </div>
-
-          <StatusBar nodeCount={5} zoom={1} />
         </div>
       </div>
     </div>

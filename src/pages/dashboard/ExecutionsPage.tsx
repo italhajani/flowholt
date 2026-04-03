@@ -83,6 +83,16 @@ const ExecutionsPage: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    setExecutions((current) => {
+      if (current.length > 0) return current;
+      return mockExecutions.map((item) => ({
+        ...item,
+        duration: item.duration === "â€”" ? "—" : item.duration,
+      }));
+    });
+  }, []);
+
   const filtered = executions.filter((ex) => {
     const matchesSearch = ex.workflowName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || ex.status === statusFilter;

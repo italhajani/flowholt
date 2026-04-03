@@ -14,6 +14,29 @@ def list_templates() -> list[dict[str, Any]]:
     return [_normalize_template(row_to_dict(row)) for row in rows]
 
 
+def get_template(template_id: str) -> dict[str, Any] | None:
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM templates WHERE id = ?", (template_id,)).fetchone()
+    if row is None:
+        return None
+    item = row_to_dict(row)
+    return {
+        "id": item["id"],
+        "name": item["name"],
+        "description": item["description"],
+        "category": item["category"],
+        "trigger_type": item["trigger_type"],
+        "estimated_time": item["estimated_time"],
+        "complexity": item["complexity"],
+        "color": item["color"],
+        "owner": item["owner"],
+        "installs": item["installs"],
+        "outcome": item["outcome"],
+        "tags": item["tags_json"],
+        "definition": item["definition_json"],
+    }
+
+
 def list_workflows() -> list[dict[str, Any]]:
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM workflows ORDER BY created_at DESC").fetchall()

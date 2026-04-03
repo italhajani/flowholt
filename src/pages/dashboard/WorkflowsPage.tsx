@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import StatCard from "@/components/dashboard/StatCard";
 import WorkflowTable, { type WorkflowItem } from "@/components/dashboard/WorkflowTable";
 import { api, type ApiWorkflow } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 type StatusFilter = "all" | "active" | "draft" | "paused" | "error";
 
@@ -11,9 +12,12 @@ const WorkflowsPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [activeTab, setActiveTab] = useState<"workflows" | "templates">("workflows");
+  const [prompt, setPrompt] = useState("");
   const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
@@ -50,6 +54,71 @@ const WorkflowsPage: React.FC = () => {
     issues: workflows.filter((w) => w.status === "paused").length,
   }), [workflows]);
 
+  const refreshWorkflows = () => {
+    setLoading(true);
+    api
+      .listWorkflows()
+      .then((data) => {
+        setWorkflows(data.map(mapWorkflow));
+        setError(null);
+      })
+      .catch(() => setError("Could not load workflows"))
+      .finally(() => setLoading(false));
+  };
+
+  const handleCreateBlank = async () => {
+    try {
+      setActionLoading(true);
+      const workflow = await api.createWorkflow({
+        name: "Blank Workflow",
+        trigger_type: "manual",
+        category: "Custom",
+        status: "draft",
+        definition: {
+          steps: [
+            { id: "trigger-1", type: "trigger", name: "Manual trigger", config: {} },
+            { id: "output-1", type: "output", name: "Finish", config: { channel: "default" } },
+          ],
+        },
+      });
+      refreshWorkflows();
+      navigate(`/studio/${workflow.id}`);
+    } catch {
+      setError("Could not create blank workflow");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      setError("Enter a short workflow idea first");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      const workflow = await api.generateWorkflow(prompt.trim());
+      refreshWorkflows();
+      navigate(`/studio/${workflow.id}`);
+    } catch {
+      setError("Could not generate workflow");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRunWorkflow = async (workflowId: string) => {
+    try {
+      setActionLoading(true);
+      await api.runWorkflow(workflowId, { source: "dashboard-run" });
+      navigate("/dashboard/executions");
+    } catch {
+      setError("Could not run workflow");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto animate-fade-in pb-24">
       <div className="mb-10 text-center max-w-4xl mx-auto mt-2">
@@ -57,14 +126,20 @@ const WorkflowsPage: React.FC = () => {
         <p className="text-[14px] text-slate-500 mb-6">Describe the flow you want to build and FlowHolt can help structure the first draft.</p>
 
         <div className="rounded-[28px] border border-slate-200 bg-slate-50 px-6 py-5 text-left">
-          <div className="text-[15px] text-slate-500 mb-6">Ask anything</div>
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Ask anything"
+            className="w-full bg-transparent outline-none text-[15px] text-slate-700 placeholder:text-slate-400 mb-6"
+          />
           <div className="flex items-center justify-between">
-            <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-100 transition-colors">
+            <button onClick={handleCreateBlank} className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-100 transition-colors">
               <Plus size={18} />
             </button>
-            <button className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors inline-flex items-center gap-2">
+            <button onClick={handleGenerate} disabled={actionLoading} className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors inline-flex items-center gap-2 disabled:opacity-60">
               <Sparkles size={14} />
-              Generate flow
+              {actionLoading ? "Working..." : "Generate flow"}
             </button>
           </div>
         </div>
@@ -74,7 +149,7 @@ const WorkflowsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-center mt-4">
-          <button className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-2">
+          <button onClick={handleCreateBlank} disabled={actionLoading} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-2 disabled:opacity-60">
             <Plus size={14} />
             Create a blank workflow
           </button>
@@ -149,7 +224,7 @@ const WorkflowsPage: React.FC = () => {
         ) : loading ? (
           <div className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center text-[13px] text-slate-500">Loading workflows...</div>
         ) : (
-          <WorkflowTable workflows={filtered} />
+          <WorkflowTable workflows={filtered} onRun={handleRunWorkflow} />
         )}
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
   Star,
 } from "lucide-react";
 import { api, type ApiTemplate } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 type LibraryView = "discover" | "starter-kits" | "team-picks";
 
@@ -43,6 +44,8 @@ const TemplatesPage: React.FC = () => {
   const [templates, setTemplates] = useState<RichTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
@@ -88,6 +91,18 @@ const TemplatesPage: React.FC = () => {
 
   const selectedTemplate = selectedId ? templates.find((item) => item.id === selectedId) ?? filtered[0] ?? templates[0] ?? null : null;
 
+  const handleCreateFromTemplate = async (templateId: string, templateName?: string) => {
+    try {
+      setActionLoading(true);
+      const workflow = await api.createWorkflowFromTemplate(templateId, templateName ? `${templateName} Workflow` : undefined);
+      navigate(`/studio/${workflow.id}`);
+    } catch {
+      setError("Could not create workflow from template");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="p-8 max-w-[1440px] mx-auto animate-fade-in pb-24">
       <div className="flex items-start justify-between gap-6 mb-8">
@@ -108,7 +123,14 @@ const TemplatesPage: React.FC = () => {
           <button className="h-10 px-4 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors">
             Submit template
           </button>
-          <button className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors">
+          <button
+            onClick={() => {
+              const firstTemplate = filtered[0];
+              if (firstTemplate) handleCreateFromTemplate(firstTemplate.id, firstTemplate.name);
+            }}
+            disabled={actionLoading || filtered.length === 0}
+            className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-60"
+          >
             Create starter flow
           </button>
         </div>
@@ -293,10 +315,14 @@ const TemplatesPage: React.FC = () => {
               </div>
             </div>
 
-            <button className="w-full h-11 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors inline-flex items-center justify-center gap-2">
+            <button
+              onClick={() => handleCreateFromTemplate(selectedTemplate.id, selectedTemplate.name)}
+              disabled={actionLoading}
+              className="w-full h-11 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-60"
+            >
               Use template <ArrowUpRight size={14} />
             </button>
-            <button className="w-full h-11 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors mt-3">
+            <button onClick={() => navigate(`/studio/${selectedTemplate.id}`)} className="w-full h-11 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors mt-3">
               Preview in studio
             </button>
           </aside>

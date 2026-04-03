@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -21,6 +23,10 @@ class TemplateSummary(BaseModel):
     installs: str
     outcome: str
     tags: list[str]
+
+
+class TemplateDetail(TemplateSummary):
+    definition: "WorkflowDefinition"
 
 
 class WorkflowSummary(BaseModel):
@@ -53,6 +59,16 @@ class WorkflowCreate(BaseModel):
     status: WorkflowStatus = "draft"
     template_id: str | None = None
     definition: WorkflowDefinition
+
+
+class WorkflowFromTemplateRequest(BaseModel):
+    template_id: str
+    name: str | None = None
+
+
+class WorkflowGenerateRequest(BaseModel):
+    prompt: str
+    name: str | None = None
 
 
 class ExecutionStepResult(BaseModel):

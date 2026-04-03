@@ -20,12 +20,13 @@ export interface WorkflowItem {
 
 interface WorkflowTableProps {
   workflows: WorkflowItem[];
+  onRun?: (workflowId: string) => void;
 }
 
 const triggerIcons = { webhook: Webhook, schedule: CalendarClock, manual: MousePointerClick, event: Zap };
 const triggerLabels = { webhook: "Webhook", schedule: "Scheduled", manual: "Manual", event: "Event" };
 
-const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows }) => {
+const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows, onRun }) => {
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
 
@@ -127,6 +128,7 @@ const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows }) => {
                     {[
                       { icon: Pencil, label: "Edit Workflow", action: () => navigate(`/studio/${wf.id}`) },
                       { icon: Copy, label: "Duplicate" },
+                      { icon: Play, label: "Run now", action: () => onRun?.(wf.id) },
                       { icon: wf.status === "active" ? Pause : Play, label: wf.status === "active" ? "Pause Workflow" : "Activate Workflow" },
                       { divider: true },
                       { icon: Trash2, label: "Delete", danger: true },

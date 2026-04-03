@@ -15,6 +15,17 @@ export interface ApiTemplate {
   tags: string[];
 }
 
+export interface ApiTemplateDetail extends ApiTemplate {
+  definition: {
+    steps: Array<{
+      id: string;
+      type: "trigger" | "transform" | "condition" | "llm" | "output";
+      name: string;
+      config: Record<string, unknown>;
+    }>;
+  };
+}
+
 export interface ApiWorkflow {
   id: string;
   name: string;
@@ -47,6 +58,22 @@ export interface ApiExecution {
   steps: ApiExecutionStep[];
 }
 
+export interface ApiWorkflowCreatePayload {
+  name: string;
+  trigger_type?: "webhook" | "schedule" | "manual" | "event";
+  category?: string;
+  status?: "active" | "draft" | "paused";
+  template_id?: string | null;
+  definition: {
+    steps: Array<{
+      id: string;
+      type: "trigger" | "transform" | "condition" | "llm" | "output";
+      name: string;
+      config: Record<string, unknown>;
+    }>;
+  };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
@@ -65,6 +92,24 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listTemplates: () => request<ApiTemplate[]>("/api/templates"),
+  getTemplate: (templateId: string) => request<ApiTemplateDetail>(`/api/templates/${templateId}`),
   listWorkflows: () => request<ApiWorkflow[]>("/api/workflows"),
+  createWorkflow: (payload: ApiWorkflowCreatePayload) =>
+    request<ApiWorkflow>("/api/workflows", { method: "POST", body: JSON.stringify(payload) }),
+  createWorkflowFromTemplate: (templateId: string, name?: string) =>
+    request<ApiWorkflow>("/api/workflows/from-template", {
+      method: "POST",
+      body: JSON.stringify({ template_id: templateId, name }),
+    }),
+  generateWorkflow: (prompt: string, name?: string) =>
+    request<ApiWorkflow>("/api/workflows/generate", {
+      method: "POST",
+      body: JSON.stringify({ prompt, name }),
+    }),
   listExecutions: () => request<ApiExecution[]>("/api/executions"),
+  runWorkflow: (workflowId: string, payload: Record<string, unknown> = {}) =>
+    request<ApiExecution>(`/api/workflows/${workflowId}/run`, {
+      method: "POST",
+      body: JSON.stringify({ payload }),
+    }),
 };

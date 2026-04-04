@@ -3,6 +3,7 @@ import { Search, Sparkles, Filter, GitBranch, CheckCircle2, FileEdit, AlertTrian
 import { cn } from "@/lib/utils";
 import StatCard from "@/components/dashboard/StatCard";
 import WorkflowTable, { type WorkflowItem } from "@/components/dashboard/WorkflowTable";
+import { WorkflowsLoader } from "@/components/dashboard/DashboardRouteLoader";
 import { api, type ApiWorkflow } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
@@ -76,8 +77,26 @@ const WorkflowsPage: React.FC = () => {
         status: "draft",
         definition: {
           steps: [
-            { id: "trigger-1", type: "trigger", name: "Manual trigger", config: {} },
-            { id: "output-1", type: "output", name: "Finish", config: { channel: "default" } },
+            { id: "trigger-1", type: "trigger", name: "Manual trigger", config: { ui_position: { x: 96, y: 120 } } },
+            {
+              id: "llm-1",
+              type: "llm",
+              name: "Draft response",
+              config: {
+                prompt: "Review the input and propose the next best workflow action.",
+                ui_position: { x: 430, y: 120 },
+              },
+            },
+            {
+              id: "output-1",
+              type: "output",
+              name: "Finish",
+              config: { channel: "default", ui_position: { x: 790, y: 120 } },
+            },
+          ],
+          edges: [
+            { id: "edge-trigger-llm", source: "trigger-1", target: "llm-1" },
+            { id: "edge-llm-output", source: "llm-1", target: "output-1" },
           ],
         },
       });
@@ -120,6 +139,9 @@ const WorkflowsPage: React.FC = () => {
   };
 
   return (
+    loading ? (
+      <WorkflowsLoader />
+    ) : (
     <div className="p-8 max-w-[1400px] mx-auto animate-fade-in pb-24">
       <div className="mb-10 text-center max-w-4xl mx-auto mt-2">
         <h1 className="text-[28px] font-bold text-slate-900 tracking-tight mb-2">Hi Muhammad, what would you automate?</h1>
@@ -221,13 +243,12 @@ const WorkflowsPage: React.FC = () => {
 
         {error ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-700">{error}</div>
-        ) : loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center text-[13px] text-slate-500">Loading workflows...</div>
         ) : (
           <WorkflowTable workflows={filtered} onRun={handleRunWorkflow} />
         )}
       </div>
     </div>
+    )
   );
 };
 

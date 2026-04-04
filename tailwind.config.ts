@@ -75,6 +75,19 @@ export default {
           teal: "hsl(var(--studio-teal))",
           navy: "hsl(var(--studio-navy))",
         },
+        white: "rgb(250 247 247 / 74%)",
+        blue: {
+          500: "#29d47c",
+        },
+        slate: {
+          "100": "#cccccc30",
+        },
+        teal: {
+          400: "#29d47c",
+        },
+        accent2: "rgb(55 55 55)",
+        primary2: "#34d394",
+        "gray-2": "#373737",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -115,7 +128,18 @@ export default {
         "slide-in-left": "slide-in-left 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
       },
+      boxShadow: {
+        "inset-teal": "inset 2px 0 0 #29d47c",
+      },
+      backgroundImage: {
+        "gradient-text": "linear-gradient(to right, #373737 8%, #373737 13%, #29cd89 77%)",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
+
+// linear-gradient(to right, #29cd89 8%, #373737 50%, 67% #29cd89 82%)
+
+// linear-gradient(to right, #373737 8%, #373737 13% 2%, #29cd89 77%)

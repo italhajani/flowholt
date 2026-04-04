@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api, type ApiTemplate } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
+import { TemplatesLoader } from "@/components/dashboard/DashboardRouteLoader";
 
 type LibraryView = "discover" | "starter-kits" | "team-picks";
 
@@ -104,6 +105,9 @@ const TemplatesPage: React.FC = () => {
   };
 
   return (
+    loading ? (
+      <TemplatesLoader />
+    ) : (
     <div className="p-8 max-w-[1440px] mx-auto animate-fade-in pb-24">
       <div className="flex items-start justify-between gap-6 mb-8">
         <div className="max-w-[760px]">
@@ -210,8 +214,6 @@ const TemplatesPage: React.FC = () => {
 
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 mt-5 text-[13px] text-red-700">{error}</div>
-          ) : loading ? (
-            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-12 mt-5 text-center text-[13px] text-slate-500">Loading templates...</div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
               {filtered.map((template) => (
@@ -329,6 +331,7 @@ const TemplatesPage: React.FC = () => {
         </div>
       )}
     </div>
+    )
   );
 };
 

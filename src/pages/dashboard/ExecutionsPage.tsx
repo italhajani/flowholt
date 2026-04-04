@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Search, CheckCircle2, XCircle, Play, Clock, ChevronRight, Webhook, CalendarClock, MousePointerClick, Activity, AlertTriangle, Workflow } from "lucide-react";
 import { api, type ApiExecution } from "@/lib/api";
+import { TableLoader } from "@/components/dashboard/DashboardRouteLoader";
 
 interface Execution {
   id: string;
@@ -107,6 +108,9 @@ const ExecutionsPage: React.FC = () => {
   }), [executions]);
 
   return (
+    loading ? (
+      <TableLoader titleWidth="220px" />
+    ) : (
     <div className="p-8 max-w-[1400px] mx-auto animate-fade-in pb-24">
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -187,8 +191,6 @@ const ExecutionsPage: React.FC = () => {
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-700">{error}</div>
-      ) : loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center text-[13px] text-slate-500">Loading executions...</div>
       ) : (
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="grid grid-cols-[3fr_120px_100px_160px_160px] gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50 sticky top-0">
@@ -279,6 +281,7 @@ const ExecutionsPage: React.FC = () => {
       </div>
       )}
     </div>
+    )
   );
 };
 

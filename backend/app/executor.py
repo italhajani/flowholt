@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from .config import get_settings
+from .integration_registry import execute_integration_operation, normalize_integration_config
 
 
 VAULT_TOKEN_PATTERN = re.compile(r"\{\{\s*vault\.(variable|credential|connection)\.([A-Za-z0-9_\- ]+?)(?:\.([A-Za-z0-9_\-]+))?\s*\}\}")
@@ -81,9 +82,11 @@ def run_workflow_definition(
         try:
             step_type = step["type"]
             config = _resolve_runtime_value(step.get("config", {}), vault_context or {})
+            config = _enrich_config_with_bindings(step_type, config, vault_context or {})
+            config = normalize_integration_config(step_type, config)
 
             if step_type == "trigger":
-                output = {"received": True}
+                output = execute_integration_operation(step_type, config, payload=payload, context=context) or {"received": True}
             elif step_type == "transform":
                 output = {"message": _render_template(config.get("template", ""), payload)}
                 context.update(output)
@@ -97,12 +100,13 @@ def run_workflow_definition(
                 context.update(output)
             elif step_type == "llm":
                 prompt = config.get("prompt", "Summarize the payload")
-                output = {"text": _run_llm(prompt=prompt, payload=payload)}
-                priority = "high" if "urgent" in output["text"].lower() or "high" in output["text"].lower() else "normal"
+                llm_text = _run_llm(prompt=prompt, payload=payload)
+                output = execute_integration_operation(step_type, config, payload=payload, context=context, llm_text=llm_text) or {"text": llm_text}
+                priority = "high" if str(output.get("text") or "").lower().find("urgent") != -1 or str(output.get("text") or "").lower().find("high") != -1 else "normal"
                 output["priority"] = priority
                 context.update(output)
             elif step_type == "output":
-                output = {
+                output = execute_integration_operation(step_type, config, payload=payload, context=context) or {
                     "channel": config.get("channel", "default"),
                     "message": context.get("message") or context.get("text") or "Workflow completed",
                 }
@@ -127,13 +131,13 @@ def run_workflow_definition(
                 }
                 status = "paused"
             elif step_type == "callback":
-                output = {
+                output = execute_integration_operation(step_type, config, payload=payload, context=context) or {
                     "wait_type": "callback",
                     "instructions": config.get("instructions") or "Waiting for external callback payload.",
                     "expected_fields": config.get("expected_fields") or [],
                     "mode": config.get("mode") or "payload",
                 }
-                if config.get("choices"):
+                if config.get("choices") and "choices" not in output:
                     output["choices"] = config.get("choices")
                 status = "paused"
             else:
@@ -146,6 +150,8 @@ def run_workflow_definition(
         duration_ms = int((time.perf_counter() - started) * 1000)
         step_results.append(
             {
+                "step_id": step["id"],
+                "step_type": step["type"],
                 "name": step["name"],
                 "status": status,
                 "duration_ms": duration_ms,
@@ -282,3 +288,45 @@ def _lookup_vault_token(match: re.Match[str], vault_context: dict[str, dict[str,
     if field_name:
         return connection.get(field_name)
     return connection
+
+
+def _enrich_config_with_bindings(
+    step_type: str,
+    config: dict[str, Any],
+    vault_context: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    enriched = dict(config)
+    connection_name = enriched.get("connection_name")
+    credential_name = enriched.get("credential_name")
+    model_variable_name = enriched.get("model_variable_name")
+    webhook_variable_name = enriched.get("webhook_variable_name")
+
+    if isinstance(connection_name, str) and connection_name:
+        connection = dict(vault_context.get("connections", {}).get(connection_name) or {})
+        if connection:
+            enriched.setdefault("connection", connection)
+            for key in ("channel", "webhook_url", "base_url", "model", "workspace", "api_key", "bot_token"):
+                if key not in enriched and key in connection:
+                    enriched[key] = connection[key]
+
+    if isinstance(credential_name, str) and credential_name:
+        credential = dict(vault_context.get("credentials", {}).get(credential_name) or {})
+        if credential:
+            enriched.setdefault("credential", credential)
+            for key, value in credential.items():
+                enriched.setdefault(key, value)
+
+    if isinstance(model_variable_name, str) and model_variable_name:
+        model_value = vault_context.get("variables", {}).get(model_variable_name)
+        if model_value:
+            enriched["model"] = model_value
+
+    if isinstance(webhook_variable_name, str) and webhook_variable_name:
+        webhook_value = vault_context.get("variables", {}).get(webhook_variable_name)
+        if webhook_value:
+            enriched["webhook_url"] = webhook_value
+
+    if step_type == "llm" and "provider" in enriched and isinstance(enriched["provider"], str):
+        enriched["provider"] = enriched["provider"].lower()
+
+    return enriched

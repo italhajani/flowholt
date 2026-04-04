@@ -16,8 +16,10 @@ const DashboardLayout: React.FC = () => {
         style={zoomStyle}
       >
         <DashboardHeader />
-        <main className="flex-1 overflow-y-auto w-full relative">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto w-full relative bg-white">
+          <div className="min-h-full animate-fade-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

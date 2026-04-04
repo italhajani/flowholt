@@ -11,6 +11,7 @@
 - Vector search: start with none, add local Qdrant only when retrieval is truly needed
 - Scheduling: in-process scheduler first, dedicated worker later
 - Webhooks: FastAPI endpoints
+- Secrets and variables: SQLite-backed Vault records first, dedicated secret manager later
 - Observability: structured logs + execution history in SQLite
 
 ## Why this is realistic
@@ -24,5 +25,6 @@
 
 1. Start local with SQLite and local models.
 2. Move auth and Postgres to Supabase free tier.
-3. Add Redis or Postgres-backed queue when background volume grows.
-4. Move from local Ollama to hosted models only after usage justifies spend.
+3. Move Vault secret storage to a stronger encrypted store when the team or compliance surface grows.
+4. Add Redis or Postgres-backed queue when background volume grows.
+5. Move from local Ollama to hosted models only after usage justifies spend.

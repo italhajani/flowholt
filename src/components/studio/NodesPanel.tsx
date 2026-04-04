@@ -33,6 +33,11 @@ interface NodesPanelProps {
   onToggle: () => void;
   activeTool: string;
   onToolChange: (tool: string) => void;
+  onAddStep: (step: {
+    type: "trigger" | "transform" | "condition" | "llm" | "output" | "delay" | "human" | "callback";
+    name: string;
+    config: Record<string, unknown>;
+  }) => void;
 }
 
 const categories = [
@@ -40,59 +45,60 @@ const categories = [
     name: "Triggers",
     icon: Zap,
     items: [
-      { name: "Webhook", meta: "HTTP endpoint", icon: Webhook },
-      { name: "Schedule", meta: "Timed runs", icon: Timer },
-      { name: "Manual trigger", meta: "Run on demand", icon: Zap },
+      { name: "Webhook", meta: "HTTP endpoint", icon: Webhook, stepType: "trigger", config: { source: "webhook", method: "POST" } },
+      { name: "Schedule", meta: "Timed runs", icon: Timer, stepType: "trigger", config: { source: "schedule", frequency: "hourly" } },
+      { name: "Manual trigger", meta: "Run on demand", icon: Zap, stepType: "trigger", config: { source: "manual" } },
     ],
   },
   {
     name: "Action",
     icon: Blocks,
     items: [
-      { name: "HTTP Request", meta: "Call any API", icon: Globe },
-      { name: "Email", meta: "Send workflow emails", icon: Mail },
-      { name: "Slack", meta: "Post channel alerts", icon: MessageSquare },
+      { name: "HTTP Request", meta: "Call any API", icon: Globe, stepType: "transform", config: { destination: "https://api.example.com", method: "POST" } },
+      { name: "Email", meta: "Send workflow emails", icon: Mail, stepType: "output", config: { destination: "ops@flowholt.com", template: "Workflow update" } },
+      { name: "Slack", meta: "Post channel alerts", icon: MessageSquare, stepType: "output", config: { channel: "#ops-alerts", template: "Send workflow update" } },
     ],
   },
   {
     name: "Notification",
     icon: MessageSquare,
     items: [
-      { name: "Slack alert", meta: "Send alerts or notifications", icon: MessageSquare },
-      { name: "Email notice", meta: "Route workflow updates", icon: Mail },
+      { name: "Slack alert", meta: "Send alerts or notifications", icon: MessageSquare, stepType: "output", config: { channel: "#support-alerts", template: "Notify team" } },
+      { name: "Email notice", meta: "Route workflow updates", icon: Mail, stepType: "output", config: { destination: "team@flowholt.com", template: "Share workflow result" } },
     ],
   },
   {
     name: "Conditional",
     icon: GitBranch,
     items: [
-      { name: "Router", meta: "Branch the workflow", icon: GitBranch },
-      { name: "Decision", meta: "Evaluate conditions", icon: GitBranch },
+      { name: "Router", meta: "Branch the workflow", icon: GitBranch, stepType: "condition", config: { field: "priority", equals: "high" } },
+      { name: "Decision", meta: "Evaluate conditions", icon: GitBranch, stepType: "condition", config: { field: "sentiment", equals: "negative" } },
     ],
   },
   {
     name: "Delay",
     icon: Timer,
     items: [
-      { name: "Wait", meta: "Pause the workflow", icon: Timer },
-      { name: "Schedule hold", meta: "Delay until a target time", icon: Timer },
+      { name: "Wait", meta: "Pause the workflow", icon: Timer, stepType: "delay", config: { minutes: 15 } },
+      { name: "Schedule hold", meta: "Delay until a target time", icon: Timer, stepType: "delay", config: { hours: 1 } },
     ],
   },
   {
     name: "User Task",
     icon: BookOpen,
     items: [
-      { name: "Approval", meta: "Assign task to a teammate", icon: BookOpen },
-      { name: "Review", meta: "Collect structured feedback", icon: BookOpen },
+      { name: "Approval", meta: "Assign task to a teammate", icon: BookOpen, stepType: "human", config: { title: "Approval required", instructions: "Approve or reject this request", choices: ["approved", "rejected"], assignee_role: "admin" } },
+      { name: "Review", meta: "Collect structured feedback", icon: BookOpen, stepType: "human", config: { title: "Review output", instructions: "Review the response and choose a path", choices: ["approved", "needs_changes"], assignee_role: "builder" } },
     ],
   },
   {
     name: "AI Insight",
     icon: Bot,
     items: [
-      { name: "Anthropic", meta: "Custom LLM step", icon: Bot },
-      { name: "GPT-4.1", meta: "Reasoning and generation", icon: Bot },
-      { name: "Custom node", meta: "Build a studio-specific step", icon: Wand2 },
+      { name: "Anthropic", meta: "Custom LLM step", icon: Bot, stepType: "llm", config: { provider: "Anthropic", model: "Claude Opus 4.1", prompt: "Summarize the input and draft the next action." } },
+      { name: "GPT-4.1", meta: "Reasoning and generation", icon: Bot, stepType: "llm", config: { provider: "OpenAI", model: "GPT-4.1", prompt: "Classify the request and suggest the next step." } },
+      { name: "Custom node", meta: "Build a studio-specific step", icon: Wand2, stepType: "llm", config: { provider: "Custom", model: "Local model", prompt: "Describe what this custom step should do." } },
+      { name: "Callback wait", meta: "Wait for an external system", icon: Globe, stepType: "callback", config: { instructions: "Resume when the external system sends the callback payload.", expected_fields: ["status"], mode: "payload" } },
     ],
   },
 ];
@@ -115,7 +121,7 @@ const quickActions = [
   { id: "custom", label: "Custom node", icon: Bot },
 ];
 
-const NodesPanel: React.FC<NodesPanelProps> = ({ open, onToggle, activeTool, onToolChange }) => {
+const NodesPanel: React.FC<NodesPanelProps> = ({ open, onToggle, activeTool, onToolChange, onAddStep }) => {
   const [search, setSearch] = useState("");
   const [hovered, setHovered] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -238,6 +244,13 @@ const NodesPanel: React.FC<NodesPanelProps> = ({ open, onToggle, activeTool, onT
                     {selectedCategory?.items.map((item) => (
                       <button
                         key={item.name}
+                        onClick={() => {
+                          onAddStep({
+                            type: item.stepType,
+                            name: item.name,
+                            config: item.config,
+                          });
+                        }}
                         className="w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-left hover:border-slate-300 hover:bg-slate-50 transition-all"
                       >
                         <div className="flex items-center gap-3">

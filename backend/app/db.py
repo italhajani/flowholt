@@ -56,6 +56,16 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
     public_base_url TEXT,
     require_webhook_signature INTEGER NOT NULL DEFAULT 0,
     webhook_signing_secret TEXT,
+    staging_min_role TEXT NOT NULL DEFAULT 'builder',
+    publish_min_role TEXT NOT NULL DEFAULT 'builder',
+    run_min_role TEXT NOT NULL DEFAULT 'builder',
+    production_asset_min_role TEXT NOT NULL DEFAULT 'admin',
+    allow_public_webhooks INTEGER NOT NULL DEFAULT 1,
+    require_staging_before_production INTEGER NOT NULL DEFAULT 0,
+    require_staging_approval INTEGER NOT NULL DEFAULT 0,
+    require_production_approval INTEGER NOT NULL DEFAULT 0,
+    deployment_approval_min_role TEXT NOT NULL DEFAULT 'admin',
+    allow_self_approval INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
 );
@@ -84,6 +94,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     workspace_id TEXT,
     created_by_user_id TEXT,
     current_version_number INTEGER NOT NULL DEFAULT 0,
+    staging_version_id TEXT,
     published_version_id TEXT,
     name TEXT NOT NULL,
     status TEXT NOT NULL,
@@ -115,11 +126,52 @@ CREATE TABLE IF NOT EXISTS workflow_versions (
     FOREIGN KEY(created_by_user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS workflow_deployments (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    workspace_id TEXT NOT NULL,
+    created_by_user_id TEXT,
+    environment TEXT NOT NULL,
+    action TEXT NOT NULL,
+    from_version_id TEXT,
+    to_version_id TEXT NOT NULL,
+    notes TEXT,
+    metadata_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id),
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
+    FOREIGN KEY(created_by_user_id) REFERENCES users(id),
+    FOREIGN KEY(from_version_id) REFERENCES workflow_versions(id),
+    FOREIGN KEY(to_version_id) REFERENCES workflow_versions(id)
+);
+
+CREATE TABLE IF NOT EXISTS workflow_deployment_reviews (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    workspace_id TEXT NOT NULL,
+    requested_by_user_id TEXT NOT NULL,
+    reviewed_by_user_id TEXT,
+    target_environment TEXT NOT NULL,
+    target_version_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    notes TEXT,
+    review_comment TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    reviewed_at TEXT,
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id),
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
+    FOREIGN KEY(requested_by_user_id) REFERENCES users(id),
+    FOREIGN KEY(reviewed_by_user_id) REFERENCES users(id),
+    FOREIGN KEY(target_version_id) REFERENCES workflow_versions(id)
+);
+
 CREATE TABLE IF NOT EXISTS executions (
     id TEXT PRIMARY KEY,
     workspace_id TEXT,
     initiated_by_user_id TEXT,
     workflow_version_id TEXT,
+    environment TEXT NOT NULL DEFAULT 'draft',
     workflow_id TEXT NOT NULL,
     workflow_name TEXT NOT NULL,
     status TEXT NOT NULL,
@@ -143,6 +195,7 @@ CREATE TABLE IF NOT EXISTS workflow_jobs (
     workflow_id TEXT NOT NULL,
     workflow_version_id TEXT,
     initiated_by_user_id TEXT,
+    environment TEXT NOT NULL DEFAULT 'draft',
     trigger_type TEXT NOT NULL,
     status TEXT NOT NULL,
     payload_json TEXT NOT NULL,
@@ -261,10 +314,30 @@ CREATE TABLE IF NOT EXISTS human_tasks (
     FOREIGN KEY(assigned_to_user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS execution_artifacts (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    workflow_id TEXT NOT NULL,
+    execution_id TEXT NOT NULL,
+    step_id TEXT,
+    step_name TEXT,
+    artifact_type TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    data_json TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id),
+    FOREIGN KEY(execution_id) REFERENCES executions(id)
+);
+
 CREATE TABLE IF NOT EXISTS vault_assets (
     id TEXT PRIMARY KEY,
     workspace_id TEXT,
     created_by_user_id TEXT,
+    visibility TEXT NOT NULL DEFAULT 'workspace',
+    allowed_roles_json TEXT NOT NULL DEFAULT '[]',
+    allowed_user_ids_json TEXT NOT NULL DEFAULT '[]',
     kind TEXT NOT NULL,
     name TEXT NOT NULL,
     app TEXT,
@@ -371,17 +444,34 @@ def init_db() -> None:
         _ensure_column(conn, "workflows", "workspace_id", "TEXT DEFAULT 'ws-flowholt'")
         _ensure_column(conn, "workflows", "created_by_user_id", "TEXT DEFAULT 'u-ital-hajani'")
         _ensure_column(conn, "workflows", "current_version_number", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workflows", "staging_version_id", "TEXT")
         _ensure_column(conn, "workflows", "published_version_id", "TEXT")
         _ensure_column(conn, "executions", "workspace_id", "TEXT DEFAULT 'ws-flowholt'")
         _ensure_column(conn, "executions", "initiated_by_user_id", "TEXT")
         _ensure_column(conn, "executions", "workflow_version_id", "TEXT")
+        _ensure_column(conn, "executions", "environment", "TEXT NOT NULL DEFAULT 'draft'")
+        _ensure_column(conn, "workflow_jobs", "environment", "TEXT NOT NULL DEFAULT 'draft'")
         _ensure_column(conn, "vault_assets", "workspace_id", "TEXT DEFAULT 'ws-flowholt'")
         _ensure_column(conn, "vault_assets", "created_by_user_id", "TEXT DEFAULT 'u-ital-hajani'")
+        _ensure_column(conn, "vault_assets", "visibility", "TEXT NOT NULL DEFAULT 'workspace'")
+        _ensure_column(conn, "vault_assets", "allowed_roles_json", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "vault_assets", "allowed_user_ids_json", "TEXT NOT NULL DEFAULT '[]'")
+        _ensure_column(conn, "workspace_settings", "staging_min_role", "TEXT NOT NULL DEFAULT 'builder'")
+        _ensure_column(conn, "workspace_settings", "publish_min_role", "TEXT NOT NULL DEFAULT 'builder'")
+        _ensure_column(conn, "workspace_settings", "run_min_role", "TEXT NOT NULL DEFAULT 'builder'")
+        _ensure_column(conn, "workspace_settings", "production_asset_min_role", "TEXT NOT NULL DEFAULT 'admin'")
+        _ensure_column(conn, "workspace_settings", "allow_public_webhooks", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "workspace_settings", "require_staging_before_production", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "require_staging_approval", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "require_production_approval", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "deployment_approval_min_role", "TEXT NOT NULL DEFAULT 'admin'")
+        _ensure_column(conn, "workspace_settings", "allow_self_approval", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workflow_deployments", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
 
 
 def row_to_dict(row: Any) -> dict[str, Any]:
     item = dict(row)
-    for key in ("tags_json", "definition_json", "payload_json", "steps_json", "result_json", "secret_json", "details_json", "state_json", "metadata_json", "data_json", "choices_json", "response_payload_json"):
+    for key in ("tags_json", "definition_json", "payload_json", "steps_json", "result_json", "secret_json", "details_json", "state_json", "metadata_json", "data_json", "choices_json", "response_payload_json", "allowed_roles_json", "allowed_user_ids_json"):
         if key in item and item[key]:
             item[key] = json.loads(item[key])
     return item

@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Webbsidehämtare"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Webbsidehämtare låter dig ladda ner och spara hela webbsidor, inklusive länkade resurser, för offlinevisning."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Webbsidehämtare"
+   }
+}

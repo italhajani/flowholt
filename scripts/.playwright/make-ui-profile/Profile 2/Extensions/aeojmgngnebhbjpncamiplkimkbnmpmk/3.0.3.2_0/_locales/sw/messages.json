@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Kipakua Ukurasa wa Wavuti"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Kipakua Ukurasa wa Wavuti hukuruhusu kupakua na kuhifadhi kurasa nzima za wavuti, pamoja na rasilimali zilizounganishwa, kwa kutazamwa nje ya mtandao."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Kipakua Ukurasa wa Wavuti"
+   }
+}

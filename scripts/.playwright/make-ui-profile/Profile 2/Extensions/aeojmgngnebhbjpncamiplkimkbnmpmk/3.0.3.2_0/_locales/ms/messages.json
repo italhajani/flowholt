@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Pemuat Turun Halaman Web"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Pemuat Turun Halaman Web membolehkan anda memuat turun dan menyimpan keseluruhan halaman web, termasuk sumber yang dipautkan, untuk tontonan luar talian."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Pemuat Turun Halaman Web"
+   }
+}

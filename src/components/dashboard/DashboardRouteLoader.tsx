@@ -190,6 +190,113 @@ export const OverviewLoader = () => (
   </div>
 );
 
+export const AgentsLoader = () => (
+  <div className="px-6 pt-6 pb-24 max-w-[1440px] mx-auto">
+    <div className="space-y-6">
+      <div className="flex items-end justify-between gap-6">
+        <div className="space-y-2">
+          <LoaderBlock className="h-6 w-36 rounded-lg" />
+          <LoaderBlock className="h-4 w-[520px] max-w-full rounded-md" delay="80ms" />
+        </div>
+        <div className="flex items-center gap-3">
+          <LoaderBlock className="h-10 w-32 rounded-lg" delay="120ms" />
+          <LoaderBlock className="h-10 w-36 rounded-lg" delay="200ms" />
+        </div>
+      </div>
+
+      <div className="rounded-[20px] border border-slate-200/80 p-5">
+        <LoaderBlock className="h-4 w-32 rounded-md" />
+        <LoaderBlock className="mt-3 h-4 w-[620px] max-w-full rounded-md" delay="120ms" />
+        <div className="mt-4 flex gap-2">
+          {["132px", "124px", "112px"].map((w, i) => (
+            <LoaderBlock key={w + i} className="h-8 rounded-full" delay={shimmerDelays[i]} style={{ width: w }} />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {shimmerDelays.slice(0, 4).map((delay, i) => (
+          <div key={delay + i} className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-3">
+            <div className="flex items-start justify-between">
+              <LoaderBlock className="h-4 w-24 rounded-md" delay={delay} />
+              <LoaderBlock className="h-7 w-7 rounded-full" delay={delay} />
+            </div>
+            <LoaderBlock className="h-8 w-16 rounded-lg" delay={delay} />
+            <LoaderBlock className="h-3.5 w-28 rounded-md" delay={delay} />
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-amber-100 bg-amber-50/50 px-4 py-3">
+        <LoaderBlock className="h-4 w-48 rounded-md" />
+        <LoaderBlock className="mt-2 h-3.5 w-[420px] max-w-full rounded-md" delay="120ms" />
+      </div>
+
+      <div className="flex items-center justify-between gap-6 border-b border-slate-200 pb-0">
+        <div className="flex gap-6">
+          {["72px", "56px", "128px", "56px"].map((w, i) => (
+            <LoaderBlock key={w + i} className="h-4 rounded-md" delay={shimmerDelays[i]} style={{ width: w }} />
+          ))}
+        </div>
+        <div className="flex items-center gap-3 pb-3">
+          <LoaderBlock className="h-10 w-80 rounded-lg" delay="120ms" />
+          <LoaderBlock className="h-4 w-28 rounded-md" delay="240ms" />
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+        <div className="grid grid-cols-[2.2fr_180px_220px_200px_210px_170px] gap-4 border-b border-slate-100 bg-slate-50 px-5 py-3">
+          {["Agent", "State", "Topology", "Workflow", "Model", "Actions"].map((label, i) => (
+            <LoaderBlock
+              key={label + i}
+              className="h-3.5 rounded-md"
+              delay={shimmerDelays[i % shimmerDelays.length]}
+              style={{ width: label === "Agent" ? "64px" : "72px" }}
+            />
+          ))}
+        </div>
+        <div className="divide-y divide-slate-100">
+          {shimmerDelays.map((delay, i) => (
+            <div key={delay + i} className="grid grid-cols-[2.2fr_180px_220px_200px_210px_170px] gap-4 px-5 py-4 items-start">
+              <div className="flex gap-3">
+                <LoaderBlock className="h-10 w-10 rounded-xl" delay={delay} />
+                <div className="flex-1 space-y-2">
+                  <LoaderBlock className="h-4 w-48 rounded-md" delay={delay} />
+                  <LoaderBlock className="h-3 w-full rounded-md" delay={delay} />
+                  <LoaderBlock className="h-3 w-3/4 rounded-md" delay={delay} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <LoaderBlock className="h-6 w-24 rounded-full" delay={delay} />
+                <LoaderBlock className="h-3 w-28 rounded-md" delay={delay} />
+              </div>
+              <div className="space-y-2">
+                <LoaderBlock className="h-3.5 w-28 rounded-md" delay={delay} />
+                <div className="flex gap-2">
+                  <LoaderBlock className="h-5 w-16 rounded-full" delay={delay} />
+                  <LoaderBlock className="h-5 w-14 rounded-full" delay={delay} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <LoaderBlock className="h-3.5 w-32 rounded-md" delay={delay} />
+                <LoaderBlock className="h-3 w-24 rounded-md" delay={delay} />
+              </div>
+              <div className="space-y-2">
+                <LoaderBlock className="h-3.5 w-36 rounded-md" delay={delay} />
+                <LoaderBlock className="h-3 w-28 rounded-md" delay={delay} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <LoaderBlock className="h-9 w-20 rounded-lg" delay={delay} />
+                <LoaderBlock className="h-9 w-16 rounded-lg" delay={delay} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const DashboardRouteLoader: React.FC<{ pathname: string }> = ({ pathname }) => {
   if (pathname.includes("/dashboard/workflows")) {
     return <WorkflowsLoader />;
@@ -197,6 +304,10 @@ const DashboardRouteLoader: React.FC<{ pathname: string }> = ({ pathname }) => {
 
   if (pathname.includes("/dashboard/templates")) {
     return <TemplatesLoader />;
+  }
+
+  if (pathname.includes("/dashboard/ai-agents")) {
+    return <AgentsLoader />;
   }
 
   if (pathname.includes("/dashboard/settings") || pathname.includes("/dashboard/credentials")) {

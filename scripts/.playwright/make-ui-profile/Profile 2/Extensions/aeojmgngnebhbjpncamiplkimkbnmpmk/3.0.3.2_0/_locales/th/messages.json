@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "ตัวดาวน์โหลดหน้าเว็บ"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "ตัวดาวน์โหลดหน้าเว็บ ช่วยให้คุณสามารถดาวน์โหลดและบันทึกหน้าเว็บทั้งหมด รวมถึงทรัพยากรที่เชื่อมโยง สำหรับการดูแบบออฟไลน์"
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "ตัวดาวน์โหลดหน้าเว็บ"
+   }
+}

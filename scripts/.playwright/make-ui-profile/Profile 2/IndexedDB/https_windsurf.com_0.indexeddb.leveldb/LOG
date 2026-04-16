@@ -1,0 +1,14 @@
+2026/04/13-16:37:56.098 2e8c Reusing MANIFEST C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_windsurf.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/13-16:37:56.099 2e8c Recovering log #29
+2026/04/13-16:37:56.102 2e8c Reusing old log C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_windsurf.com_0.indexeddb.leveldb/000029.log 
+2026/04/13-16:37:56.104 2e8c Delete type=2 #28
+2026/04/13-16:37:56.206 474 Level-0 table #34: started
+2026/04/13-16:37:56.216 474 Level-0 table #34: 5681 bytes OK
+2026/04/13-16:37:56.223 474 Delete type=0 #29
+2026/04/13-16:37:56.223 1c38 Manual compaction at level-0 from '\x00\x0e\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0f\x00\x00\x00' @ 0 : 0; will stop at '\x00\x0e\x00\x00\x05' @ 1539 : 1
+2026/04/13-16:37:56.224 1c38 Compacting 1@0 + 1@1 files
+2026/04/13-16:37:56.229 1c38 Generated table #35@0: 125 keys, 3784 bytes
+2026/04/13-16:37:56.229 1c38 Compacted 1@0 + 1@1 files => 3784 bytes
+2026/04/13-16:37:56.235 1c38 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/13-16:37:56.235 1c38 Delete type=2 #34
+2026/04/13-16:37:56.236 1c38 Manual compaction at level-0 from '\x00\x0e\x00\x00\x05' @ 1539 : 1 .. '\x00\x0f\x00\x00\x00' @ 0 : 0; will stop at (end)

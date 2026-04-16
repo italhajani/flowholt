@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import threading
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
+    password_hash TEXT,
     avatar_initials TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
@@ -61,11 +63,27 @@ CREATE TABLE IF NOT EXISTS workspace_settings (
     run_min_role TEXT NOT NULL DEFAULT 'builder',
     production_asset_min_role TEXT NOT NULL DEFAULT 'admin',
     allow_public_webhooks INTEGER NOT NULL DEFAULT 1,
+    allow_public_chat_triggers INTEGER NOT NULL DEFAULT 1,
     require_staging_before_production INTEGER NOT NULL DEFAULT 0,
     require_staging_approval INTEGER NOT NULL DEFAULT 0,
     require_production_approval INTEGER NOT NULL DEFAULT 0,
     deployment_approval_min_role TEXT NOT NULL DEFAULT 'admin',
     allow_self_approval INTEGER NOT NULL DEFAULT 0,
+    timezone TEXT NOT NULL DEFAULT 'UTC',
+    execution_timeout_seconds INTEGER NOT NULL DEFAULT 3600,
+    save_execution_data INTEGER NOT NULL DEFAULT 1,
+    save_failed_executions TEXT NOT NULL DEFAULT 'all',
+    save_successful_executions TEXT NOT NULL DEFAULT 'all',
+    save_manual_executions INTEGER NOT NULL DEFAULT 1,
+    execution_data_retention_days INTEGER NOT NULL DEFAULT 14,
+    save_execution_progress INTEGER NOT NULL DEFAULT 0,
+    redact_execution_payloads INTEGER NOT NULL DEFAULT 0,
+    max_concurrent_executions INTEGER NOT NULL DEFAULT 10,
+    log_level TEXT NOT NULL DEFAULT 'info',
+    email_notifications_enabled INTEGER NOT NULL DEFAULT 0,
+    notify_on_failure INTEGER NOT NULL DEFAULT 1,
+    notify_on_success INTEGER NOT NULL DEFAULT 0,
+    notify_on_approval_requests INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
 );
@@ -356,12 +374,111 @@ CREATE TABLE IF NOT EXISTS vault_assets (
     FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
     FOREIGN KEY(created_by_user_id) REFERENCES users(id)
 );
+
+-- Performance indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_workflows_workspace ON workflows(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workflows_status ON workflows(status);
+CREATE INDEX IF NOT EXISTS idx_workflows_trigger ON workflows(trigger_type);
+CREATE INDEX IF NOT EXISTS idx_workflows_workspace_trigger ON workflows(workspace_id, trigger_type, status);
+
+CREATE INDEX IF NOT EXISTS idx_executions_workflow ON executions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_executions_workspace ON executions(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_executions_status ON executions(status);
+CREATE INDEX IF NOT EXISTS idx_executions_started ON executions(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_executions_workflow_status ON executions(workflow_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_jobs_status ON workflow_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_workflow_jobs_available ON workflow_jobs(status, available_at, leased_until);
+CREATE INDEX IF NOT EXISTS idx_workflow_jobs_workspace ON workflow_jobs(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_jobs_workflow ON workflow_jobs(workflow_id);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_versions_workflow ON workflow_versions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_versions_status ON workflow_versions(workflow_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_audit_events_workspace ON audit_events(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_created ON audit_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_action ON audit_events(action);
+
+CREATE INDEX IF NOT EXISTS idx_execution_events_execution ON execution_events(execution_id);
+CREATE INDEX IF NOT EXISTS idx_execution_events_workflow ON execution_events(workflow_id);
+
+CREATE INDEX IF NOT EXISTS idx_execution_pauses_execution ON execution_pauses(execution_id);
+CREATE INDEX IF NOT EXISTS idx_execution_pauses_status ON execution_pauses(status);
+
+CREATE INDEX IF NOT EXISTS idx_human_tasks_workspace ON human_tasks(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_human_tasks_status ON human_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_human_tasks_assigned ON human_tasks(assigned_to_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_trigger_events_workflow ON trigger_events(workspace_id, workflow_id);
+
+CREATE INDEX IF NOT EXISTS idx_execution_artifacts_execution ON execution_artifacts(execution_id);
+CREATE INDEX IF NOT EXISTS idx_execution_artifacts_created ON execution_artifacts(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_vault_assets_workspace ON vault_assets(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_vault_assets_kind ON vault_assets(workspace_id, kind);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_memberships_user ON workspace_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_memberships_workspace ON workspace_memberships(workspace_id);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_deployments_workflow ON workflow_deployments(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_deployment_reviews_workflow ON workflow_deployment_reviews(workflow_id);
+
+CREATE TABLE IF NOT EXISTS chat_threads (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    model TEXT NOT NULL DEFAULT '',
+    pinned INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    model_used TEXT,
+    actions_json TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(thread_id) REFERENCES chat_threads(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_attachments (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    thread_id TEXT,
+    message_id TEXT,
+    file_name TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    storage_path TEXT NOT NULL,
+    preview_text TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(thread_id) REFERENCES chat_threads(id) ON DELETE CASCADE,
+    FOREIGN KEY(message_id) REFERENCES chat_messages(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_threads_workspace_user ON chat_threads(workspace_id, user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_attachments_thread ON chat_attachments(thread_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_attachments_message ON chat_attachments(message_id, created_at);
 """
 
 
 class CompatCursor:
     def __init__(self, cursor: Any):
         self._cursor = cursor
+
+    @property
+    def rowcount(self) -> int:
+        return int(getattr(self._cursor, "rowcount", -1))
 
     def fetchone(self) -> Any:
         return self._cursor.fetchone()
@@ -406,20 +523,75 @@ def get_database_backend() -> str:
     return "sqlite"
 
 
-def _connect() -> Any:
+_pg_pool: Any = None  # psycopg_pool.ConnectionPool singleton
+_pg_thread_local = threading.local()
+
+
+def _get_pg_pool() -> Any:
+    """Return a shared connection pool for Postgres. Created once on first call."""
+    global _pg_pool
+    if _pg_pool is not None:
+        return _pg_pool
+
     settings = get_settings()
+    try:
+        from psycopg_pool import ConnectionPool
+        from psycopg.rows import dict_row
+    except ImportError:
+        # Fall back to non-pooled connections
+        return None
+
+    min_size = int(getattr(settings, "db_pool_min", 2))
+    max_size = int(getattr(settings, "db_pool_max", 10))
+    _pg_pool = ConnectionPool(
+        conninfo=settings.database_url,
+        min_size=min_size,
+        max_size=max_size,
+        kwargs={"row_factory": dict_row},
+    )
+    return _pg_pool
+
+
+def _connect_postgres() -> Any:
+    settings = get_settings()
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ImportError as exc:
+        raise RuntimeError(
+            "DATABASE_URL points to Postgres, but psycopg is not installed. "
+            "Install backend requirements before using hosted Postgres."
+        ) from exc
+
+    return psycopg.connect(settings.database_url, row_factory=dict_row)
+
+
+def _get_thread_local_pg_conn() -> Any:
+    conn = getattr(_pg_thread_local, "conn", None)
+    if conn is not None and not getattr(conn, "closed", False):
+        return conn
+
+    conn = _connect_postgres()
+    _pg_thread_local.conn = conn
+    return conn
+
+
+def _reset_thread_local_pg_conn() -> None:
+    conn = getattr(_pg_thread_local, "conn", None)
+    if conn is None:
+        return
+    try:
+        conn.close()
+    except Exception:
+        pass
+    _pg_thread_local.conn = None
+
+
+def _connect() -> Any:
     if get_database_backend() == "postgres":
-        try:
-            import psycopg
-            from psycopg.rows import dict_row
-        except ImportError as exc:
-            raise RuntimeError(
-                "DATABASE_URL points to Postgres, but psycopg is not installed. "
-                "Install backend requirements before using hosted Postgres."
-            ) from exc
+        return PostgresCompatConnection(_connect_postgres())
 
-        return PostgresCompatConnection(psycopg.connect(settings.database_url, row_factory=dict_row))
-
+    settings = get_settings()
     db_path = Path(settings.database_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
@@ -429,10 +601,38 @@ def _connect() -> Any:
 
 @contextmanager
 def get_db() -> Iterator[Any]:
+    # Use connection pool for Postgres if available
+    if get_database_backend() == "postgres":
+        pool = _get_pg_pool()
+        if pool is not None:
+            with pool.connection() as conn:
+                try:
+                    yield PostgresCompatConnection(conn)
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+            return
+
+        conn = _get_thread_local_pg_conn()
+        try:
+            yield PostgresCompatConnection(conn)
+            conn.commit()
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                _reset_thread_local_pg_conn()
+            raise
+        return
+
     conn = _connect()
     try:
         yield conn
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -440,6 +640,7 @@ def get_db() -> Iterator[Any]:
 def init_db() -> None:
     with get_db() as conn:
         conn.executescript(SCHEMA_SQL)
+        _ensure_column(conn, "users", "password_hash", "TEXT")
         _ensure_column(conn, "templates", "workspace_id", "TEXT DEFAULT 'ws-flowholt'")
         _ensure_column(conn, "workflows", "workspace_id", "TEXT DEFAULT 'ws-flowholt'")
         _ensure_column(conn, "workflows", "created_by_user_id", "TEXT DEFAULT 'u-ital-hajani'")
@@ -461,19 +662,53 @@ def init_db() -> None:
         _ensure_column(conn, "workspace_settings", "run_min_role", "TEXT NOT NULL DEFAULT 'builder'")
         _ensure_column(conn, "workspace_settings", "production_asset_min_role", "TEXT NOT NULL DEFAULT 'admin'")
         _ensure_column(conn, "workspace_settings", "allow_public_webhooks", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "workspace_settings", "allow_public_chat_triggers", "INTEGER NOT NULL DEFAULT 1")
         _ensure_column(conn, "workspace_settings", "require_staging_before_production", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "workspace_settings", "require_staging_approval", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "workspace_settings", "require_production_approval", "INTEGER NOT NULL DEFAULT 0")
         _ensure_column(conn, "workspace_settings", "deployment_approval_min_role", "TEXT NOT NULL DEFAULT 'admin'")
         _ensure_column(conn, "workspace_settings", "allow_self_approval", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "timezone", "TEXT NOT NULL DEFAULT 'UTC'")
+        _ensure_column(conn, "workspace_settings", "execution_timeout_seconds", "INTEGER NOT NULL DEFAULT 3600")
+        _ensure_column(conn, "workspace_settings", "save_execution_data", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "workspace_settings", "save_failed_executions", "TEXT NOT NULL DEFAULT 'all'")
+        _ensure_column(conn, "workspace_settings", "save_successful_executions", "TEXT NOT NULL DEFAULT 'all'")
+        _ensure_column(conn, "workspace_settings", "save_manual_executions", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "workspace_settings", "execution_data_retention_days", "INTEGER NOT NULL DEFAULT 14")
+        _ensure_column(conn, "workspace_settings", "save_execution_progress", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "redact_execution_payloads", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "max_concurrent_executions", "INTEGER NOT NULL DEFAULT 10")
+        _ensure_column(conn, "workspace_settings", "log_level", "TEXT NOT NULL DEFAULT 'info'")
+        _ensure_column(conn, "workspace_settings", "email_notifications_enabled", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "notify_on_failure", "INTEGER NOT NULL DEFAULT 1")
+        _ensure_column(conn, "workspace_settings", "notify_on_success", "INTEGER NOT NULL DEFAULT 0")
+        _ensure_column(conn, "workspace_settings", "notify_on_approval_requests", "INTEGER NOT NULL DEFAULT 1")
         _ensure_column(conn, "workflow_deployments", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
+        _ensure_column(conn, "chat_messages", "actions_json", "TEXT")
 
 
 def row_to_dict(row: Any) -> dict[str, Any]:
     item = dict(row)
-    for key in ("tags_json", "definition_json", "payload_json", "steps_json", "result_json", "secret_json", "details_json", "state_json", "metadata_json", "data_json", "choices_json", "response_payload_json", "allowed_roles_json", "allowed_user_ids_json"):
+    for key in ("tags_json", "definition_json", "payload_json", "steps_json", "result_json", "details_json", "state_json", "metadata_json", "data_json", "choices_json", "response_payload_json", "allowed_roles_json", "allowed_user_ids_json", "actions_json"):
         if key in item and item[key]:
             item[key] = json.loads(item[key])
+    # Handle secret_json separately — may be encrypted
+    if "secret_json" in item and item["secret_json"]:
+        raw = item["secret_json"]
+        try:
+            item["secret_json"] = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            # Value is encrypted — decrypt first, then parse
+            try:
+                from .encryption import decrypt_secret
+                decrypted = decrypt_secret(raw)
+                item["secret_json"] = json.loads(decrypted)
+            except Exception:  # noqa: BLE001
+                import logging
+                logging.getLogger("flowholt.db").warning(
+                    "Failed to decrypt secret_json for row — returning empty dict"
+                )
+                item["secret_json"] = {}
     return item
 
 

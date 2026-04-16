@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "வலைப்பக்கப் பதிவிறக்கி"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "இணைக்கப்பட்ட வளங்கள் உட்பட முழு வலைப்பக்கங்களையும் ஆஃப்லைனில் பார்க்க பதிவிறக்கம் செய்து சேமிக்க வலைப்பக்கப் பதிவிறக்கி உங்களை அனுமதிக்கிறது."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "வலைப்பக்கப் பதிவிறக்கி"
+   }
+}

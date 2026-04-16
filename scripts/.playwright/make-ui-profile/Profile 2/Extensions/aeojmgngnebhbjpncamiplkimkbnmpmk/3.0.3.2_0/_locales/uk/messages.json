@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Завантажувач веб-сторінок"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Завантажувач веб-сторінок дозволяє завантажувати та зберігати цілі веб-сторінки, включаючи пов'язані ресурси, для перегляду в режимі офлайн."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Завантажувач веб-сторінок"
+   }
+}

@@ -1,6 +1,5 @@
 import React from "react";
 import { 
-  Bell, 
   Sparkles, 
   ChevronRight, 
   BookOpen, 
@@ -8,9 +7,13 @@ import {
   ChevronDown
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import NotificationBell from "./NotificationBell";
+import GlobalSearch from "./GlobalSearch";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardHeader() {
   const location = useLocation();
+  const { workspace } = useAuth();
   
   // Format pathname into breadcrumbs. 
   // e.g., /dashboard/overview simply maps to specific semantic titles
@@ -30,9 +33,14 @@ export default function DashboardHeader() {
         
         <div className="w-px h-5 bg-slate-200" />
 
+        {/* Global Search */}
+        <GlobalSearch />
+        
+        <div className="w-px h-5 bg-slate-200" />
+
         {/* Clean Breadcrumb Hierarchy */}
         <div className="flex items-center gap-2 text-[13px] font-bold tracking-wide">
-           <span className="text-slate-400 cursor-pointer hover:text-slate-600 transition-colors">FlowHolt Workspace</span>
+           <span className="text-slate-400 cursor-pointer hover:text-slate-600 transition-colors">{workspace?.name ?? "Workspace"}</span>
            <ChevronRight size={14} className="text-slate-300" />
            <span className="text-slate-900">{capitalPath}</span>
         </div>
@@ -59,10 +67,7 @@ export default function DashboardHeader() {
         </button>
 
         {/* Active Notifications Bell */}
-        <button className="relative w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-all border border-transparent hover:border-slate-200">
-          <Bell size={18} strokeWidth={2.5} />
-          <span className="absolute top-[8px] right-[8px] w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-        </button>
+        <NotificationBell />
 
       </div>
     </header>

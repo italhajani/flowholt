@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Preuzimatelj web stranica"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Preuzimatelj web stranica omogućuje vam preuzimanje i spremanje cijelih web stranica, uključujući povezane resurse, za izvanmrežno pregledavanje."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Preuzimatelj web stranica"
+   }
+}

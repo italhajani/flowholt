@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Web Page Downloader"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Web Page Downloader allows you to download and save entire web pages, including linked resources, for offline viewing."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Web Page Downloader"
+   }
+}

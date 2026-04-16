@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Webpagina Downloader"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Met Webpagina Downloader kunt u volledige webpagina's downloaden en opslaan, inclusief gekoppelde bronnen, voor offline weergave."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Webpagina Downloader"
+   }
+}

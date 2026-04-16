@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        display: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -75,7 +76,6 @@ export default {
           teal: "hsl(var(--studio-teal))",
           navy: "hsl(var(--studio-navy))",
         },
-        white: "rgb(250 247 247 / 74%)",
         blue: {
           500: "#29d47c",
         },

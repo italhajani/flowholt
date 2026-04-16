@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
 from typing import Any
 
@@ -13,6 +14,48 @@ from .config import get_settings
 
 
 _JWKS_CACHE: dict[str, tuple[float, str]] = {}
+_SCRYPT_PREFIX = "scrypt"
+_SCRYPT_N = 8192
+_SCRYPT_R = 8
+_SCRYPT_P = 1
+_LEGACY_SCRYPT_N = 16384
+
+
+# ---------------------------------------------------------------------------
+# Password hashing (hashlib.scrypt — no extra dependencies)
+# ---------------------------------------------------------------------------
+
+def hash_password(password: str) -> str:
+    """Hash a password using scrypt with embedded parameters for future upgrades."""
+    salt = os.urandom(16)
+    derived = hashlib.scrypt(password.encode(), salt=salt, n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P, dklen=32)
+    return f"{_SCRYPT_PREFIX}${_SCRYPT_N}${_SCRYPT_R}${_SCRYPT_P}${salt.hex()}${derived.hex()}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    """Verify both current and legacy scrypt password hashes."""
+    try:
+        parts = stored.split("$")
+        if len(parts) == 6 and parts[0] == _SCRYPT_PREFIX:
+            _, n_value, r_value, p_value, salt_hex, hash_hex = parts
+            salt = bytes.fromhex(salt_hex)
+            derived = hashlib.scrypt(
+                password.encode(),
+                salt=salt,
+                n=int(n_value),
+                r=int(r_value),
+                p=int(p_value),
+                dklen=32,
+            )
+        elif len(parts) == 2:
+            salt_hex, hash_hex = parts
+            salt = bytes.fromhex(salt_hex)
+            derived = hashlib.scrypt(password.encode(), salt=salt, n=_LEGACY_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P, dklen=32)
+        else:
+            return False
+        return hmac.compare_digest(derived.hex(), hash_hex)
+    except (ValueError, AttributeError):
+        return False
 
 
 def create_session_token(*, user_id: str, workspace_id: str, role: str) -> tuple[str, int]:

@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Scaricatore di pagine Web"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Scaricatore di pagine Web ti consente di scaricare e salvare intere pagine web, comprese le risorse collegate, per la visualizzazione offline."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Scaricatore di pagine Web"
+   }
+}

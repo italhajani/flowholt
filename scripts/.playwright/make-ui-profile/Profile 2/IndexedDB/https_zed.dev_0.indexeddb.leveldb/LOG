@@ -1,0 +1,6 @@
+2026/04/13-13:15:08.113 2e8c Creating DB C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_zed.dev_0.indexeddb.leveldb since it was missing.
+2026/04/13-13:15:08.134 2e8c Reusing MANIFEST C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_zed.dev_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/13-13:52:13.034 2e8c Level-0 table #5: started
+2026/04/13-13:52:13.041 2e8c Level-0 table #5: 7472 bytes OK
+2026/04/13-13:52:13.048 2e8c Delete type=0 #3
+2026/04/13-13:52:13.049 2e8c Manual compaction at level-0 from (begin) .. (end); will stop at (end)

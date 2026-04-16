@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "מוריד דפי אינטרנט"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "מוריד דפי אינטרנט מאפשר לך להוריד ולשמור דפי אינטרנט שלמים, כולל משאבים מקושרים, לצפייה במצב לא מקוון."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "מוריד דפי אינטרנט"
+   }
+}

@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Webseiten-Downloader"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Der Webseiten-Downloader ermöglicht es Ihnen, ganze Webseiten einschließlich verknüpfter Ressourcen für die Offline-Ansicht herunterzuladen und zu speichern."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Webseiten-Downloader"
+   }
+}

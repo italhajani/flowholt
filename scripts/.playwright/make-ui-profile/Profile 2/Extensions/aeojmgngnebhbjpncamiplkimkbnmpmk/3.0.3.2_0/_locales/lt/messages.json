@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Tinklalapių atsiuntimo programa"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Tinklalapių atsiuntimo programa leidžia atsisiųsti ir išsaugoti visus tinklalapius, įskaitant susietus išteklius, kad galėtumėte juos peržiūrėti neprisijungę."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Tinklalapių atsiuntimo programa"
+   }
+}

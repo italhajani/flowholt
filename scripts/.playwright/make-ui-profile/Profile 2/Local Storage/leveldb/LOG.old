@@ -1,0 +1,6 @@
+2026/04/14-11:52:33.714 1968 Reusing MANIFEST C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\Local Storage\leveldb/MANIFEST-000001
+2026/04/14-11:52:33.721 1968 Recovering log #3555
+2026/04/14-11:52:33.728 1968 Reusing old log C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\Local Storage\leveldb/003555.log 
+2026/04/14-11:59:27.940 5424 Level-0 table #3562: started
+2026/04/14-11:59:27.965 5424 Level-0 table #3562: 16244 bytes OK
+2026/04/14-11:59:27.976 5424 Delete type=0 #3555

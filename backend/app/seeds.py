@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .auth import hash_password
 from .db import get_db, row_to_dict, utc_now
 
 
@@ -192,6 +193,84 @@ TEMPLATES: list[dict[str, Any]] = [
             "edges": [
                 {"id": "edge-trigger-transform-revenue", "source": "trigger-1", "target": "transform-1"},
                 {"id": "edge-transform-output-revenue", "source": "transform-1", "target": "output-1"},
+            ],
+        },
+    },
+    {
+        "id": "t-slack-standup-bot",
+        "workspace_id": "ws-flowholt",
+        "name": "AI Standup Collector",
+        "description": "Prompt team members for daily standup updates via Slack, summarize responses with AI, and post a digest to a shared channel.",
+        "category": "Communication",
+        "trigger_type": "schedule",
+        "estimated_time": "8 min",
+        "complexity": "Simple",
+        "color": "hsl(210,80%,56%)",
+        "owner": "Engineering Ops",
+        "installs": "940",
+        "outcome": "Replaces manual standups with async AI-digested summaries.",
+        "tags": ["Slack", "Standup", "Team sync"],
+        "definition": {
+            "steps": [
+                {"id": "trigger-1", "type": "trigger", "name": "Morning schedule", "config": {"frequency": "daily", "time": "09:30"}},
+                {"id": "llm-1", "type": "llm", "name": "Summarize updates", "config": {"prompt": "Compile standup updates from team and generate a brief digest."}},
+                {"id": "output-1", "type": "output", "name": "Post to Slack channel", "config": {"channel": "standup-digest"}},
+            ],
+            "edges": [
+                {"id": "edge-trigger-llm-standup", "source": "trigger-1", "target": "llm-1"},
+                {"id": "edge-llm-output-standup", "source": "llm-1", "target": "output-1"},
+            ],
+        },
+    },
+    {
+        "id": "t-invoice-processor",
+        "workspace_id": "ws-flowholt",
+        "name": "Invoice Data Extractor",
+        "description": "Parse incoming invoice PDFs with AI, extract line items and totals, then sync structured data to your accounting system.",
+        "category": "Finance",
+        "trigger_type": "webhook",
+        "estimated_time": "10 min",
+        "complexity": "Standard",
+        "color": "hsl(160,60%,45%)",
+        "owner": "Finance Ops",
+        "installs": "670",
+        "outcome": "Eliminates manual invoice entry and reduces processing errors.",
+        "tags": ["Invoice", "OCR", "Accounting"],
+        "definition": {
+            "steps": [
+                {"id": "trigger-1", "type": "trigger", "name": "Invoice received", "config": {}},
+                {"id": "llm-1", "type": "llm", "name": "Extract invoice fields", "config": {"prompt": "Extract vendor name, date, line items, subtotal, tax, and total from the invoice document."}},
+                {"id": "output-1", "type": "output", "name": "Sync to accounting", "config": {"channel": "accounting-queue"}},
+            ],
+            "edges": [
+                {"id": "edge-trigger-llm-invoice", "source": "trigger-1", "target": "llm-1"},
+                {"id": "edge-llm-output-invoice", "source": "llm-1", "target": "output-1"},
+            ],
+        },
+    },
+    {
+        "id": "t-content-repurposer",
+        "workspace_id": "ws-flowholt",
+        "name": "Content Repurposer",
+        "description": "Take a long-form blog post or document and generate social media posts, email snippets, and thread hooks using AI.",
+        "category": "Marketing",
+        "trigger_type": "manual",
+        "estimated_time": "6 min",
+        "complexity": "Simple",
+        "color": "hsl(330,75%,55%)",
+        "owner": "Growth Team",
+        "installs": "1.5k",
+        "outcome": "Turns one piece of content into multi-channel assets instantly.",
+        "tags": ["Content", "Social media", "AI writing"],
+        "definition": {
+            "steps": [
+                {"id": "trigger-1", "type": "trigger", "name": "Manual trigger", "config": {}},
+                {"id": "llm-1", "type": "llm", "name": "Generate variants", "config": {"prompt": "Given the following content, create a Twitter thread, a LinkedIn post, and an email subject line with preview text."}},
+                {"id": "output-1", "type": "output", "name": "Store drafts", "config": {"channel": "content-queue"}},
+            ],
+            "edges": [
+                {"id": "edge-trigger-llm-content", "source": "trigger-1", "target": "llm-1"},
+                {"id": "edge-llm-output-content", "source": "llm-1", "target": "output-1"},
             ],
         },
     },
@@ -423,16 +502,18 @@ def seed_data() -> None:
     with get_db() as conn:
         users_count = _count_rows(conn, "users")
         if users_count == 0:
+            default_pw_hash = hash_password("password123")
             for user in USERS:
                 conn.execute(
                     """
-                    INSERT INTO users (id, name, email, avatar_initials, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO users (id, name, email, password_hash, avatar_initials, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     (
                         user["id"],
                         user["name"],
                         user["email"],
+                        default_pw_hash,
                         user["avatar_initials"],
                         now,
                     ),

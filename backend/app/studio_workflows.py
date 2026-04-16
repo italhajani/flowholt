@@ -195,7 +195,7 @@ def test_step_in_definition(
     vault_context: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     subset = build_execution_path_definition(definition, target_step_id)
-    outcome = run_workflow_definition(subset, payload, vault_context=vault_context or {})
+    outcome = run_workflow_definition(subset, payload, vault_context=vault_context or {}, use_pinned_data=True)
     results = outcome.get("step_results") or []
     target_result = next((step for step in results if step.get("step_id") == target_step_id), None)
     warnings: list[str] = []

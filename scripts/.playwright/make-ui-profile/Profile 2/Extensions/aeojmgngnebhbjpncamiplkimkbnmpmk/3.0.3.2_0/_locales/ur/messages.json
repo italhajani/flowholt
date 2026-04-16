@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "ویب پیج ڈاؤنلوڈر"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "ویب پیج ڈاؤنلوڈر آپ کو آف لائن دیکھنے کے لیے منسلک وسائل سمیت ، پورے ویب صفحات ڈاؤن لوڈ اور محفوظ کرنے کی اجازت دیتا ہے۔"
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "ویب پیج ڈاؤنلوڈر"
+   }
+}

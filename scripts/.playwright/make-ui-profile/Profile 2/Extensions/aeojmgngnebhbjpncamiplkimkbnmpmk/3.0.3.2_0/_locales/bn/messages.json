@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "ওয়েব পেজ ডাউনলোডার"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "ওয়েব পেজ ডাউনলোডার আপনাকে অফলাইনে দেখার জন্য সংযুক্ত বা লিঙ্কযুক্ত রিসোর্স সহ সম্পূর্ণ ওয়েব পেজ ডাউনলোড এবং সংরক্ষণ করতে দেয়।"
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "ওয়েব পেজ ডাউনলোডার"
+   }
+}

@@ -1,10 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles, Filter, GitBranch, CheckCircle2, FileEdit, AlertTriangle, Plus } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Search, Sparkles, Filter, GitBranch, CheckCircle2, FileEdit, AlertTriangle, Plus, MessageSquare } from "lucide-react";
+import AssistantComposer, { pickPreferredModelId } from "@/components/chat/AssistantComposer";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import StatCard from "@/components/dashboard/StatCard";
 import WorkflowTable, { type WorkflowItem } from "@/components/dashboard/WorkflowTable";
 import { WorkflowsLoader } from "@/components/dashboard/DashboardRouteLoader";
-import { api, type ApiWorkflow } from "@/lib/api";
+import { api, type ApiChatAttachment, type ApiLLMProviderInfo, type ApiWorkflow } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 
 type StatusFilter = "all" | "active" | "draft" | "paused" | "error";
@@ -14,33 +17,37 @@ const WorkflowsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [activeTab, setActiveTab] = useState<"workflows" | "templates">("workflows");
   const [prompt, setPrompt] = useState("");
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [chatRouting, setChatRouting] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<ApiChatAttachment[]>([]);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [models, setModels] = useState<ApiLLMProviderInfo[]>([]);
+  const [selectedModel, setSelectedModel] = useState("");
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const defaultModelId = useMemo(() => pickPreferredModelId(models), [models]);
+
+  const { data: workflows = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["workflows"],
+    queryFn: () => api.listWorkflows().then((data) => data.map(mapWorkflow)),
+  });
+  const error = queryError ? "Could not load workflows" : null;
 
   useEffect(() => {
-    let active = true;
-    api
-      .listWorkflows()
-      .then((data) => {
-        if (!active) return;
-        setWorkflows(data.map(mapWorkflow));
-        setError(null);
-      })
-      .catch(() => {
-        if (!active) return;
-        setError("Could not load workflows");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+    api.listChatModels().then(setModels).catch(() => {
+      toast({
+        title: "Could not load chat models",
+        description: "The workflow prompt will use the platform default model.",
       });
-
-    return () => {
-      active = false;
-    };
+    });
   }, []);
+
+  useEffect(() => {
+    if (!selectedModel && defaultModelId) {
+      setSelectedModel(defaultModelId);
+    }
+  }, [defaultModelId, selectedModel]);
 
   const filtered = workflows.filter((wf) => {
     const matchesSearch = wf.name.toLowerCase().includes(search.toLowerCase());
@@ -56,15 +63,7 @@ const WorkflowsPage: React.FC = () => {
   }), [workflows]);
 
   const refreshWorkflows = () => {
-    setLoading(true);
-    api
-      .listWorkflows()
-      .then((data) => {
-        setWorkflows(data.map(mapWorkflow));
-        setError(null);
-      })
-      .catch(() => setError("Could not load workflows"))
-      .finally(() => setLoading(false));
+    queryClient.invalidateQueries({ queryKey: ["workflows"] });
   };
 
   const handleCreateBlank = async () => {
@@ -126,6 +125,60 @@ const WorkflowsPage: React.FC = () => {
     }
   };
 
+  const handleAskAI = () => {
+    if (!prompt.trim()) {
+      return;
+    }
+    const modelId = selectedModel || defaultModelId;
+    setChatRouting(true);
+    const params = new URLSearchParams({ message: prompt.trim() });
+    if (modelId) {
+      params.set("model", modelId);
+    }
+    if (pendingAttachments.length) {
+      params.set("attachment_ids", pendingAttachments.map((attachment) => attachment.id).join(","));
+      setPendingAttachments([]);
+    }
+    navigate(`/dashboard/chat?${params.toString()}`);
+  };
+
+  const handleLockedModelSelect = (model: ApiLLMProviderInfo) => {
+    toast({
+      title: `${model.name} requires credentials`,
+      description: "Add the API key in Credentials before selecting this model.",
+    });
+    navigate(`/dashboard/credentials?tab=credentials&provider=${encodeURIComponent(model.id)}&create=1`);
+  };
+
+  const handleAttachClick = () => {
+    attachmentInputRef.current?.click();
+  };
+
+  const handleAttachmentSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    try {
+      setUploadingAttachments(true);
+      const response = await api.uploadChatAttachments(selectedFiles);
+      setPendingAttachments((current) => current.concat(response.attachments));
+    } catch (error) {
+      toast({
+        title: "Attachment upload failed",
+        description: error instanceof Error ? error.message : "Could not upload those files.",
+      });
+    } finally {
+      setUploadingAttachments(false);
+    }
+  };
+
+  const handleRemovePendingAttachment = (attachmentId: string) => {
+    setPendingAttachments((current) => current.filter((attachment) => attachment.id !== attachmentId));
+  };
+
   const handleRunWorkflow = async (workflowId: string) => {
     try {
       setActionLoading(true);
@@ -133,6 +186,30 @@ const WorkflowsPage: React.FC = () => {
       navigate("/dashboard/executions");
     } catch {
       setError("Could not run workflow");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteWorkflow = async (workflowId: string) => {
+    try {
+      setActionLoading(true);
+      await api.deleteWorkflow(workflowId);
+      refreshWorkflows();
+    } catch {
+      setError("Could not delete workflow");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkDeleteWorkflows = async (ids: string[]) => {
+    try {
+      setActionLoading(true);
+      await api.bulkDeleteWorkflows(ids);
+      refreshWorkflows();
+    } catch {
+      setError("Could not delete workflows");
     } finally {
       setActionLoading(false);
     }
@@ -147,30 +224,37 @@ const WorkflowsPage: React.FC = () => {
         <h1 className="text-[28px] font-bold text-slate-900 tracking-tight mb-2">Hi Muhammad, what would you automate?</h1>
         <p className="text-[14px] text-slate-500 mb-6">Describe the flow you want to build and FlowHolt can help structure the first draft.</p>
 
-        <div className="rounded-[28px] border border-slate-200 bg-slate-50 px-6 py-5 text-left">
-          <input
-            type="text"
+        <div className="mx-auto max-w-3xl text-left">
+          <AssistantComposer
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Ask anything"
-            className="w-full bg-transparent outline-none text-[15px] text-slate-700 placeholder:text-slate-400 mb-6"
+            onValueChange={setPrompt}
+            onSubmit={handleAskAI}
+            submitting={chatRouting}
+            attaching={uploadingAttachments}
+            placeholder="Ask anything about the workflow you want to build"
+            models={models}
+            selectedModel={selectedModel}
+            onModelSelect={setSelectedModel}
+            onLockedModelSelect={handleLockedModelSelect}
+            onAttachClick={handleAttachClick}
+            attachments={pendingAttachments}
+            onRemoveAttachment={handleRemovePendingAttachment}
           />
-          <div className="flex items-center justify-between">
-            <button onClick={handleCreateBlank} className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-100 transition-colors">
-              <Plus size={18} />
-            </button>
-            <button onClick={handleGenerate} disabled={actionLoading} className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors inline-flex items-center gap-2 disabled:opacity-60">
-              <Sparkles size={14} />
-              {actionLoading ? "Working..." : "Generate flow"}
-            </button>
-          </div>
+          <input
+            ref={attachmentInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(event) => void handleAttachmentSelection(event)}
+          />
         </div>
 
-        <div className="flex items-center justify-center gap-3 mt-6">
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button onClick={handleGenerate} disabled={actionLoading || !prompt.trim()} className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[13px] font-semibold hover:bg-slate-800 transition-colors inline-flex items-center gap-2 disabled:opacity-60">
+            <Sparkles size={14} />
+            {actionLoading ? "Working..." : "Generate flow"}
+          </button>
           <span className="text-[12px] font-medium text-slate-400">or</span>
-        </div>
-
-        <div className="flex items-center justify-center mt-4">
           <button onClick={handleCreateBlank} disabled={actionLoading} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors inline-flex items-center gap-2 disabled:opacity-60">
             <Plus size={14} />
             Create a blank workflow
@@ -244,7 +328,7 @@ const WorkflowsPage: React.FC = () => {
         {error ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-700">{error}</div>
         ) : (
-          <WorkflowTable workflows={filtered} onRun={handleRunWorkflow} />
+          <WorkflowTable workflows={filtered} onRun={handleRunWorkflow} onDelete={handleDeleteWorkflow} onBulkDelete={handleBulkDeleteWorkflows} />
         )}
       </div>
     </div>

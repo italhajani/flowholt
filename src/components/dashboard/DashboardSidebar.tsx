@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, GitBranch, LayoutTemplate, Play, KeyRound,
-  Puzzle, Code2, Settings, HelpCircle,
-  PanelLeftClose, PanelLeftOpen, Zap, Crown
+  Code2, Settings, HelpCircle,
+  PanelLeftClose, PanelLeftOpen, Zap, Crown, Activity, Webhook,
+  Shield, Server, LogOut, MessageSquare, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Tooltip from "./Tooltip";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavItem {
   icon: React.ElementType;
@@ -17,6 +19,8 @@ interface NavItem {
 
 const overviewItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Overview", path: "/dashboard/overview" },
+  { icon: MessageSquare, label: "Chat", path: "/dashboard/chat" },
+  { icon: Bot, label: "AI Agents", path: "/dashboard/ai-agents" },
   { icon: GitBranch, label: "Workflows", path: "/dashboard/workflows" },
   { icon: LayoutTemplate, label: "Templates", path: "/dashboard/templates" },
   { icon: Play, label: "Executions", path: "/dashboard/executions", badge: "3" },
@@ -24,14 +28,17 @@ const overviewItems: NavItem[] = [
 
 const dataItems: NavItem[] = [
   { icon: KeyRound, label: "Vault", path: "/dashboard/credentials" },
+  { icon: Server, label: "Environments", path: "/dashboard/environment" },
 ];
 
 const toolItems: NavItem[] = [
-  { icon: Puzzle, label: "Integrations", path: "/dashboard/integrations" },
+  { icon: Webhook, label: "Webhooks", path: "/dashboard/webhooks" },
   { icon: Code2, label: "API Playground", path: "/dashboard/api" },
 ];
 
 const accountItems: NavItem[] = [
+  { icon: Activity, label: "System Status", path: "/dashboard/system" },
+  { icon: Shield, label: "Audit Log", path: "/dashboard/audit" },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },
   { icon: HelpCircle, label: "Help Center", path: "/dashboard/help" },
 ];
@@ -39,6 +46,13 @@ const accountItems: NavItem[] = [
 const DashboardSidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
@@ -138,13 +152,22 @@ const DashboardSidebar: React.FC = () => {
         )}
         <div className={cn("flex items-center gap-2.5 px-3 py-1 cursor-pointer hover:bg-slate-50 rounded-md mx-2 transition-colors", collapsed && "justify-center px-0 mx-0 p-1")}>
           <div className="w-7 h-7 rounded-md bg-slate-100 flex items-center justify-center text-[10px] font-extrabold text-slate-600 border border-slate-200/60 shrink-0">
-            IA
+            {user?.avatar_initials ?? "??"}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-slate-900 truncate">Ital Hajani</div>
-              <div className="text-[10px] font-bold text-slate-500 truncate mt-0.5">italhajani@gmail.com</div>
+              <div className="text-[13px] font-bold text-slate-900 truncate">{user?.name ?? "User"}</div>
+              <div className="text-[10px] font-bold text-slate-500 truncate mt-0.5">{user?.email ?? ""}</div>
             </div>
+          )}
+          {!collapsed && (
+            <button
+              onClick={handleLogout}
+              title="Log out"
+              className="p-1 rounded hover:bg-slate-200 transition-colors text-slate-500 hover:text-slate-700"
+            >
+              <LogOut size={14} />
+            </button>
           )}
         </div>
       </div>

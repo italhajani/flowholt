@@ -8,6 +8,8 @@
     "backend:dev": "python -m uvicorn backend.app.main:app --reload --port 8000",
     "backend:check": "python -m compileall backend",
     "backend:migrate-postgres": "python -m backend.scripts.migrate_sqlite_to_postgres",
+    "capture:make-ui": "node scripts/capture-make-ui.mjs",
+    "explore:make-editor": "node scripts/explore-make-editor-v2.mjs",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

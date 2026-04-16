@@ -1,0 +1,6 @@
+2026/04/12-11:02:34.939 2740 Creating DB C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_www.aljazeera.com_0.indexeddb.leveldb since it was missing.
+2026/04/12-11:02:34.966 2740 Reusing MANIFEST C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_www.aljazeera.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/12-11:02:35.066 3a48 Level-0 table #5: started
+2026/04/12-11:02:35.089 3a48 Level-0 table #5: 665 bytes OK
+2026/04/12-11:02:35.100 3a48 Delete type=0 #3
+2026/04/12-11:02:35.101 3a48 Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)

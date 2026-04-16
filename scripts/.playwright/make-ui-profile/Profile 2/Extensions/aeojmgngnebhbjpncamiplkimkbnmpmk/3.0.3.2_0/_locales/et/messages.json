@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Veebilehe Allalaadija"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Veebilehe Allalaadija võimaldab teil alla laadida ja salvestada terveid veebilehti, sealhulgas lingitud ressursse, võrguühenduseta vaatamiseks."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Veebilehe Allalaadija"
+   }
+}

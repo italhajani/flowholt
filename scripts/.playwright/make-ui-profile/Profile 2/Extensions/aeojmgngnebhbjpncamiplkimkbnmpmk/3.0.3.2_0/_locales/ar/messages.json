@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "تنزيل صفحات الويب"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "يسمح لك \"تنزيل صفحات الويب\" بتنزيل وحفظ صفحات ويب كاملة، بما في ذلك الموارد المرتبطة بها، للعرض دون اتصال بالإنترنت."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "تنزيل صفحات الويب"
+   }
+}

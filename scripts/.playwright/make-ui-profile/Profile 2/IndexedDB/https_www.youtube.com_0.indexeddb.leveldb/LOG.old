@@ -1,0 +1,12 @@
+2026/04/13-15:36:19.513 2e8c Reusing MANIFEST C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/13-15:36:19.513 2e8c Recovering log #6
+2026/04/13-15:36:19.701 2e8c Reusing old log C:\Users\Gouhar Ali\AppData\Local\Google\Chrome\User Data\Profile 2\IndexedDB\https_www.youtube.com_0.indexeddb.leveldb/000006.log 
+2026/04/13-15:50:44.617 1c38 Level-0 table #11: started
+2026/04/13-15:50:44.673 1c38 Level-0 table #11: 1600907 bytes OK
+2026/04/13-15:50:44.680 1c38 Delete type=0 #6
+2026/04/13-15:51:53.433 2e8c Compacting 1@1 + 1@2 files
+2026/04/13-15:51:53.459 2e8c Generated table #12@1: 394 keys, 40117 bytes
+2026/04/13-15:51:53.459 2e8c Compacted 1@1 + 1@2 files => 40117 bytes
+2026/04/13-15:51:53.466 2e8c compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/04/13-15:51:53.467 2e8c Delete type=2 #8
+2026/04/13-15:51:53.467 2e8c Delete type=2 #11

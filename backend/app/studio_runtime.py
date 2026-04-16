@@ -32,13 +32,31 @@ def _build_vault_context(
     credentials: list[dict[str, Any]],
     variables: list[dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
+    connection_index: dict[str, Any] = {}
+    for asset in connections:
+        secret = dict(asset.get("secret") or {})
+        for key in (str(asset.get("name") or ""), str(asset.get("id") or "")):
+            if key:
+                connection_index[key] = secret
+
+    credential_index: dict[str, Any] = {}
+    for asset in credentials:
+        secret = dict(asset.get("secret") or {})
+        for key in (str(asset.get("name") or ""), str(asset.get("id") or "")):
+            if key:
+                credential_index[key] = secret
+
+    variable_index: dict[str, Any] = {}
+    for asset in variables:
+        value = dict(asset.get("secret") or {}).get("value")
+        for key in (str(asset.get("name") or ""), str(asset.get("id") or "")):
+            if key:
+                variable_index[key] = value
+
     return {
-        "connections": {asset["name"]: dict(asset.get("secret") or {}) for asset in connections},
-        "credentials": {asset["name"]: dict(asset.get("secret") or {}) for asset in credentials},
-        "variables": {
-            asset["name"]: dict(asset.get("secret") or {}).get("value")
-            for asset in variables
-        },
+        "connections": connection_index,
+        "credentials": credential_index,
+        "variables": variable_index,
     }
 
 
@@ -249,6 +267,7 @@ def test_node_configuration(
             "warnings": [issue["message"] for issue in validation["issues"]],
             "bindings_used": validation["bindings_used"],
             "duration_ms": 0,
+            "pinned_data_used": False,
         }
 
     draft = build_node_draft(
@@ -280,6 +299,7 @@ def test_node_configuration(
         definition,
         sample_payload,
         vault_context=_build_vault_context(connections=connections, credentials=credentials, variables=variables),
+        use_pinned_data=True,
     )
     duration_ms = int((time.perf_counter() - started) * 1000)
     if outcome["status"] == "paused":
@@ -302,4 +322,5 @@ def test_node_configuration(
         "warnings": [issue["message"] for issue in validation["issues"] if issue["level"] == "warning"],
         "bindings_used": validation["bindings_used"],
         "duration_ms": duration_ms,
+        "pinned_data_used": bool((target_step or {}).get("pinned_data_used")) if outcome["status"] != "paused" else False,
     }

@@ -21,14 +21,41 @@ export interface WorkflowItem {
 interface WorkflowTableProps {
   workflows: WorkflowItem[];
   onRun?: (workflowId: string) => void;
+  onDelete?: (workflowId: string) => void;
+  onBulkDelete?: (workflowIds: string[]) => void;
 }
 
 const triggerIcons = { webhook: Webhook, schedule: CalendarClock, manual: MousePointerClick, event: Zap };
 const triggerLabels = { webhook: "Webhook", schedule: "Scheduled", manual: "Manual", event: "Event" };
 
-const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows, onRun }) => {
+const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows, onRun, onDelete, onBulkDelete }) => {
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === workflows.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(workflows.map((w) => w.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Delete ${ids.length} workflow(s)? This cannot be undone.`)) return;
+    onBulkDelete?.(ids);
+    setSelected(new Set());
+  };
 
   // Close menus on background click
   React.useEffect(() => {
@@ -39,8 +66,40 @@ const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows, onRun }) => {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* Bulk actions bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center justify-between px-5 py-2.5 bg-indigo-50 border-b border-indigo-100">
+          <span className="text-[12px] font-medium text-indigo-700">
+            {selected.size} workflow{selected.size > 1 ? "s" : ""} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-[11px] font-semibold hover:bg-red-600 transition-colors"
+            >
+              <Trash2 size={12} />
+              Delete selected
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="grid grid-cols-[3fr_120px_140px_120px_140px_50px] gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50 sticky top-0">
+      <div className="grid grid-cols-[32px_3fr_120px_140px_120px_140px_50px] gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50 sticky top-0">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            checked={selected.size === workflows.length && workflows.length > 0}
+            onChange={toggleAll}
+            className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 cursor-pointer"
+          />
+        </div>
         {["Name", "Status", "Trigger", "Last Run", "Success Rate", ""].map((h) => (
           <span key={h} className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{h}</span>
         ))}
@@ -55,12 +114,21 @@ const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows, onRun }) => {
           return (
             <div
               key={wf.id}
-              className="grid grid-cols-[3fr_120px_140px_120px_140px_50px] gap-4 px-5 py-3.5 items-center transition-colors duration-150 cursor-pointer group hover:bg-slate-50 relative"
+              className="grid grid-cols-[32px_3fr_120px_140px_120px_140px_50px] gap-4 px-5 py-3.5 items-center transition-colors duration-150 cursor-pointer group hover:bg-slate-50 relative"
               onClick={() => navigate(`/studio/${wf.id}`)}
               onMouseUp={(e) => {
                 if (isMenuOpen) e.stopPropagation();
               }}
             >
+              {/* Checkbox */}
+              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(wf.id)}
+                  onChange={() => toggleSelect(wf.id)}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 cursor-pointer"
+                />
+              </div>
               {/* Name */}
               <div className="flex items-center gap-3 min-w-0 pr-4">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 transition-opacity group-hover:bg-primary group-hover:text-white">
@@ -131,7 +199,11 @@ const WorkflowTable: React.FC<WorkflowTableProps> = ({ workflows, onRun }) => {
                       { icon: Play, label: "Run now", action: () => onRun?.(wf.id) },
                       { icon: wf.status === "active" ? Pause : Play, label: wf.status === "active" ? "Pause Workflow" : "Activate Workflow" },
                       { divider: true },
-                      { icon: Trash2, label: "Delete", danger: true },
+                      { icon: Trash2, label: "Delete", danger: true, action: () => {
+                        if (window.confirm(`Delete workflow "${wf.name}"? This cannot be undone.`)) {
+                          onDelete?.(wf.id);
+                        }
+                      } },
                     ].map((btn, i) => (
                       btn.divider ? (
                         <div key={i} className="h-px bg-slate-100 my-1 mx-2" />

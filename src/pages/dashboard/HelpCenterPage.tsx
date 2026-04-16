@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { ArrowUpRight, BookOpen, LifeBuoy, MessageSquareText, Search, ShieldQuestion } from "lucide-react";
 
 type HelpTab = "guides" | "troubleshooting" | "security" | "contact";
@@ -13,6 +15,53 @@ const tabs: { id: HelpTab; label: string }[] = [
 
 const HelpCenterPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<HelpTab>("guides");
+  const [search, setSearch] = useState("");
+
+  const { data = [], isLoading, error } = useQuery({
+    queryKey: ["help-articles", activeTab, search],
+    queryFn: () => api.listHelpArticles(activeTab, search.trim() || undefined),
+  });
+
+  const iconByTab = useMemo(() => ({
+    guides: BookOpen,
+    troubleshooting: LifeBuoy,
+    security: ShieldQuestion,
+    contact: MessageSquareText,
+  }), []);
+
+  const sectionCopy: Record<HelpTab, { title: string; description: string; empty: string }> = {
+    guides: {
+      title: "Guides",
+      description: "Start with the setup steps most teams need first.",
+      empty: "No guides matched your search.",
+    },
+    troubleshooting: {
+      title: "Troubleshooting",
+      description: "Quick answers for the issues builders hit most often.",
+      empty: "No troubleshooting articles matched your search.",
+    },
+    security: {
+      title: "Security",
+      description: "Review access, credentials, and workspace protection topics.",
+      empty: "No security articles matched your search.",
+    },
+    contact: {
+      title: "Contact",
+      description: "Reach support through the channel that matches the urgency.",
+      empty: "No contact options matched your search.",
+    },
+  };
+
+  const section = sectionCopy[activeTab];
+  const SectionIcon = iconByTab[activeTab];
+
+  const openAction = (href?: string | null) => {
+    if (!href) {
+      window.dispatchEvent(new CustomEvent("flowholt-open-support-chat"));
+      return;
+    }
+    window.open(href, href.startsWith("mailto:") ? "_self" : "_self");
+  };
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto animate-fade-in pb-24">
@@ -26,6 +75,8 @@ const HelpCenterPage: React.FC = () => {
           <input
             type="text"
             placeholder="Search help..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="flex-1 bg-transparent outline-none text-[13px] text-slate-900 placeholder:text-slate-400"
           />
         </div>
@@ -48,121 +99,42 @@ const HelpCenterPage: React.FC = () => {
         </div>
 
         <div className="pt-8">
-          {activeTab === "guides" && (
-            <>
-              <div className="pb-5 border-b border-slate-200">
-                <h2 className="text-[22px] font-bold text-slate-900">Guides</h2>
-                <p className="text-[14px] text-slate-500 mt-1">Start with the setup steps most teams need first.</p>
-              </div>
-              <div className="mt-3 max-w-[980px] divide-y divide-slate-200">
-                {[
-                  ["Connect your first app", "Set up a shared connection and test a trigger."],
-                  ["Add AI providers", "Connect GPT-4, Claude, Gemini, or custom endpoints."],
-                  ["Publish a workflow", "Move from draft to live with credentials and alerts."],
-                ].map(([title, copy]) => (
-                  <div key={title} className="py-4 flex items-center justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                      <BookOpen size={16} className="text-slate-400" />
-                      <div>
-                        <div className="text-[14px] font-semibold text-slate-900">{title}</div>
-                        <div className="text-[13px] text-slate-500 mt-1">{copy}</div>
-                      </div>
-                    </div>
-                    <button className="inline-flex items-center gap-2 text-[12px] font-medium text-[#103b71] hover:text-[#0c2a52]">
-                      Open <ArrowUpRight size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+          <>
+            <div className="pb-5 border-b border-slate-200">
+              <h2 className="text-[22px] font-bold text-slate-900">{section.title}</h2>
+              <p className="text-[14px] text-slate-500 mt-1">{section.description}</p>
+            </div>
 
-          {activeTab === "troubleshooting" && (
-            <>
-              <div className="pb-5 border-b border-slate-200">
-                <h2 className="text-[22px] font-bold text-slate-900">Troubleshooting</h2>
-                <p className="text-[14px] text-slate-500 mt-1">Quick answers for the issues builders hit most often.</p>
-              </div>
+            {isLoading ? (
+              <div className="py-12 text-center text-[14px] text-slate-400">Loading help content...</div>
+            ) : error ? (
+              <div className="py-12 text-center text-[14px] text-rose-600">{error instanceof Error ? error.message : "Failed to load help content."}</div>
+            ) : (
               <div className="mt-3 max-w-[980px] divide-y divide-slate-200">
-                {[
-                  ["Broken OAuth connection", "Reconnect the app or rotate the shared client credentials."],
-                  ["Webhook not firing", "Check endpoint status, signing secret, and trigger path."],
-                  ["Model request failed", "Review provider key, rate limits, and fallback settings."],
-                ].map(([title, copy]) => (
-                  <div key={title} className="py-4 flex items-center justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                      <LifeBuoy size={16} className="text-slate-400" />
-                      <div>
-                        <div className="text-[14px] font-semibold text-slate-900">{title}</div>
-                        <div className="text-[13px] text-slate-500 mt-1">{copy}</div>
+                {data.length === 0 ? (
+                  <div className="py-12 text-center text-[14px] text-slate-400">{section.empty}</div>
+                ) : (
+                  data.map((item) => (
+                    <div key={item.id} className="py-4 flex items-center justify-between gap-6">
+                      <div className="flex items-center gap-3">
+                        <SectionIcon size={16} className="text-slate-400" />
+                        <div>
+                          <div className="text-[14px] font-semibold text-slate-900">{item.title}</div>
+                          <div className="text-[13px] text-slate-500 mt-1">{item.summary}</div>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => openAction(item.action_href)}
+                        className="inline-flex items-center gap-2 text-[12px] font-medium text-[#103b71] hover:text-[#0c2a52]"
+                      >
+                        {item.action_label} <ArrowUpRight size={13} />
+                      </button>
                     </div>
-                    <button className="inline-flex items-center gap-2 text-[12px] font-medium text-[#103b71] hover:text-[#0c2a52]">
-                      View fix <ArrowUpRight size={13} />
-                    </button>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
-            </>
-          )}
-
-          {activeTab === "security" && (
-            <>
-              <div className="pb-5 border-b border-slate-200">
-                <h2 className="text-[22px] font-bold text-slate-900">Security</h2>
-                <p className="text-[14px] text-slate-500 mt-1">Review access, credentials, and workspace protection topics.</p>
-              </div>
-              <div className="mt-3 max-w-[980px] divide-y divide-slate-200">
-                {[
-                  ["Workspace access", "Manage 2FA, SSO, IP allowlists, and active sessions."],
-                  ["Shared credentials", "Use vault-managed auth instead of personal tokens."],
-                  ["Webhook verification", "Validate signatures before processing external events."],
-                ].map(([title, copy]) => (
-                  <div key={title} className="py-4 flex items-center justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                      <ShieldQuestion size={16} className="text-slate-400" />
-                      <div>
-                        <div className="text-[14px] font-semibold text-slate-900">{title}</div>
-                        <div className="text-[13px] text-slate-500 mt-1">{copy}</div>
-                      </div>
-                    </div>
-                    <button className="inline-flex items-center gap-2 text-[12px] font-medium text-[#103b71] hover:text-[#0c2a52]">
-                      Read <ArrowUpRight size={13} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {activeTab === "contact" && (
-            <>
-              <div className="pb-5 border-b border-slate-200">
-                <h2 className="text-[22px] font-bold text-slate-900">Contact</h2>
-                <p className="text-[14px] text-slate-500 mt-1">Reach support through the channel that matches the urgency.</p>
-              </div>
-              <div className="mt-3 max-w-[980px] divide-y divide-slate-200">
-                {[
-                  ["General support", "support@flowholt.com", "Email"],
-                  ["Workspace success", "success@flowholt.com", "Email"],
-                  ["Urgent incident", "Open priority support chat", "Chat"],
-                ].map(([title, copy, type]) => (
-                  <div key={title} className="py-4 flex items-center justify-between gap-6">
-                    <div className="flex items-center gap-3">
-                      <MessageSquareText size={16} className="text-slate-400" />
-                      <div>
-                        <div className="text-[14px] font-semibold text-slate-900">{title}</div>
-                        <div className="text-[13px] text-slate-500 mt-1">{copy}</div>
-                      </div>
-                    </div>
-                    <button className="h-8 px-3 rounded-lg border border-slate-200 text-[12px] font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-                      {type}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+            )}
+          </>
         </div>
       </div>
     </div>

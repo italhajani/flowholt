@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Téléchargeur de pages Web"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Le téléchargeur de pages Web vous permet de télécharger et d'enregistrer des pages Web entières, y compris les ressources liées, pour une consultation hors ligne."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Téléchargeur de pages Web"
+   }
+}

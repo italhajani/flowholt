@@ -1,0 +1,30 @@
+{
+   "action": {
+      "default_icon": "static/icon-128.png",
+      "default_title": "Save Page Offline. Keyboard Shortcut Alt+S."
+   },
+   "background": {
+      "service_worker": "service-worker.js"
+   },
+   "commands": {
+      "_execute_action": {
+         "suggested_key": {
+            "default": "Alt+S"
+         }
+      }
+   },
+   "description": "Save offline copy of current tab as MHTML file. Keyboard Command Alt+S.",
+   "homepage_url": "https://browsernative.com/save-webpage-offline-mhtml/",
+   "icons": {
+      "128": "static/icon-128.png",
+      "16": "static/icon-16.png",
+      "48": "static/icon-48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhcunGYFWt8vJOHbBPZ/KzosQiipcEYg6KWaAeHbxwBLrNh941FhRwFh5joxF7sMgzfEE/a6kcfRY2ghZyWskBm7G039a/0cufEahqJSpMDi2VqoPL8SxEJvWcTLBIUppgWyLV9W1q6XEz4VR5lX1m1BAdgoe6mjm7HQfO9F9RBqPQJI8RcbwMid5PRYdLqvMxv9ZmfDglGf5+BkOksJ/RDJdb/ux7rTiWb0VIGTjnJ3bss17SaG86h2t9CdnmtIJFjqAQDgJZcawsU5ahgW6lQtJvfgCmUJdVtlpUXEP+VofP7iTjQMzKsJwjl/uKhOxJbIATZ0n9y0ZugsFAkNAEQIDAQAB",
+   "manifest_version": 3,
+   "name": "Save Webpages Offline As MHTML",
+   "permissions": [ "activeTab", "pageCapture", "contextMenus", "downloads" ],
+   "short_name": "SavePage",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.2.0"
+}

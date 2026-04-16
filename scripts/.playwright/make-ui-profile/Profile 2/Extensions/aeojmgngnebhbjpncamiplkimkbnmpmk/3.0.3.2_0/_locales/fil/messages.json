@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Tagapag-download ng Web Page"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "Pinapayagan ka ng Tagapag-download ng Web Page na mag-download at mag-save ng buong mga web page, kasama ang mga naka-link na mapagkukunan, para sa panonood nang offline."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Tagapag-download ng Web Page"
+   }
+}

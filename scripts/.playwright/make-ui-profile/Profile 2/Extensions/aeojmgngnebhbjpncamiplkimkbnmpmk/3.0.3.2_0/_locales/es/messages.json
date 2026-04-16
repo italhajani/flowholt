@@ -1,0 +1,14 @@
+{
+   "extensionActionTitle": {
+      "description": "Title shown when hovering over the extension icon",
+      "message": "Descargador de Páginas Web"
+   },
+   "extensionDescription": {
+      "description": "Description of the extension",
+      "message": "El Descargador de Páginas Web le permite descargar y guardar páginas web completas, incluidos los recursos vinculados, para verlas sin conexión."
+   },
+   "extensionName": {
+      "description": "Name of the extension",
+      "message": "Descargador de Páginas Web"
+   }
+}

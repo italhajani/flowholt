@@ -1,7 +1,20 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Search, CheckCircle2, XCircle, Play, Clock, ChevronRight, Webhook, CalendarClock, MousePointerClick, Activity, AlertTriangle, Workflow } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Search, CheckCircle2, XCircle, Play, Clock, ChevronRight, Webhook, CalendarClock, MousePointerClick, Activity, AlertTriangle, Workflow, ExternalLink, Trash2 } from "lucide-react";
 import { api, type ApiExecution } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 import { TableLoader } from "@/components/dashboard/DashboardRouteLoader";
 
 interface Execution {
@@ -13,36 +26,6 @@ interface Execution {
   triggerType: "webhook" | "schedule" | "manual" | "event";
   steps?: { name: string; status: "success" | "failed" | "skipped"; duration: string }[];
 }
-
-const mockExecutions: Execution[] = [
-  {
-    id: "e1", workflowName: "Support Ticket Classifier", status: "success", duration: "1.2s", triggeredAt: "3 min ago", triggerType: "webhook",
-    steps: [
-      { name: "Webhook Receive", status: "success", duration: "12ms" },
-      { name: "Format Payload", status: "success", duration: "2ms" },
-      { name: "GPT-4 Classify Intent", status: "success", duration: "890ms" },
-      { name: "Create Jira Ticket", status: "success", duration: "320ms" }
-    ]
-  },
-  {
-    id: "e2", workflowName: "CRM Data Sync", status: "success", duration: "4.8s", triggeredAt: "15 min ago", triggerType: "schedule",
-    steps: [
-      { name: "CRON Trigger", status: "success", duration: "2ms" },
-      { name: "Salesforce Query", status: "success", duration: "2.1s" },
-      { name: "PostgreSQL Upsert", status: "success", duration: "2.2s" }
-    ]
-  },
-  {
-    id: "e3", workflowName: "Email Campaign Trigger", status: "failed", duration: "30.2s", triggeredAt: "1 hr ago", triggerType: "event",
-    steps: [
-      { name: "Stripe Sub Created", status: "success", duration: "8ms" },
-      { name: "Lookup Customer", status: "success", duration: "120ms" },
-      { name: "Sendgrid Email", status: "failed", duration: "30s" }
-    ]
-  },
-  { id: "e4", workflowName: "Slack Router", status: "success", duration: "0.8s", triggeredAt: "2 hrs ago", triggerType: "webhook" },
-  { id: "e5", workflowName: "Invoice Generator", status: "running", duration: "—", triggeredAt: "Just now", triggerType: "schedule" },
-];
 
 const statusIcons = { success: CheckCircle2, failed: XCircle, running: Play };
 const badgeStyling = {
@@ -58,41 +41,38 @@ const ExecutionsPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [executions, setExecutions] = useState<Execution[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteExecution, setPendingDeleteExecution] = useState<Execution | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: executions = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["executions"],
+    queryFn: () => api.listExecutions().then((data) => data.map(mapExecution)),
+  });
+  const error = queryError ? "Could not load executions" : null;
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    let active = true;
-    api
-      .listExecutions()
-      .then((data) => {
-        if (!active) return;
-        setExecutions(data.map(mapExecution));
-        setError(null);
-      })
-      .catch(() => {
-        if (!active) return;
-        setError("Could not load executions");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+  const handleDeleteExecution = async () => {
+    if (!pendingDeleteExecution) return;
+    try {
+      setDeletePending(true);
+      await api.deleteExecution(pendingDeleteExecution.id);
+      queryClient.invalidateQueries({ queryKey: ["executions"] });
+      setExpandedId((current) => (current === pendingDeleteExecution.id ? null : current));
+      toast({
+        title: "Execution deleted",
+        description: `${pendingDeleteExecution.workflowName} was removed from the run history.`,
       });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    setExecutions((current) => {
-      if (current.length > 0) return current;
-      return mockExecutions.map((item) => ({
-        ...item,
-        duration: item.duration === "â€”" ? "—" : item.duration,
-      }));
-    });
-  }, []);
+      setPendingDeleteExecution(null);
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "Could not delete execution.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletePending(false);
+    }
+  };
 
   const filtered = executions.filter((ex) => {
     const matchesSearch = ex.workflowName.toLowerCase().includes(search.toLowerCase());
@@ -193,8 +173,8 @@ const ExecutionsPage: React.FC = () => {
         <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-[13px] text-red-700">{error}</div>
       ) : (
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="grid grid-cols-[3fr_120px_100px_160px_160px] gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50 sticky top-0">
-          {["Execution context", "Status", "Duration", "Trigger", "Timestamp"].map(h => (
+        <div className="grid grid-cols-[3fr_120px_100px_160px_160px_50px] gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50 sticky top-0">
+          {["Execution context", "Status", "Duration", "Trigger", "Timestamp", ""].map(h => (
             <span key={h} className="text-[11px] font-semibold text-slate-500">{h}</span>
           ))}
         </div>
@@ -209,7 +189,7 @@ const ExecutionsPage: React.FC = () => {
               <div key={ex.id} className="flex flex-col">
                 <div
                   className={cn(
-                    "grid grid-cols-[3fr_120px_100px_160px_160px] gap-4 px-5 py-3.5 items-center transition-colors duration-150 cursor-pointer hover:bg-slate-50 group",
+                    "grid grid-cols-[3fr_120px_100px_160px_160px_50px] gap-4 px-5 py-3.5 items-center transition-colors duration-150 cursor-pointer hover:bg-slate-50 group",
                     isExpanded && "bg-slate-50/80 hover:bg-slate-50"
                   )}
                   onClick={() => setExpandedId(isExpanded ? null : ex.id)}
@@ -249,11 +229,33 @@ const ExecutionsPage: React.FC = () => {
                     <Clock size={11} className="text-slate-400" />
                     {ex.triggeredAt}
                   </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete execution"
+                      disabled={deletePending}
+                      onClick={() => setPendingDeleteExecution(ex)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Expanded Steps */}
                 {isExpanded && ex.steps && (
                   <div className="px-5 pb-4 pt-1 border-t border-slate-100 bg-slate-50/50">
+                    <div className="flex items-center justify-between ml-8 mb-3">
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Step timeline</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/executions/${ex.id}`); }}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-[#103b71] hover:text-[#0d2f5c] transition-colors"
+                      >
+                        <ExternalLink size={11} />
+                        Full Inspector
+                      </button>
+                    </div>
                     <div className="ml-8 border-l border-slate-200 pl-6 py-2 pb-0 space-y-4">
                       {ex.steps.map((step, si) => (
                         <div key={si} className="flex items-center gap-4 relative">
@@ -280,6 +282,33 @@ const ExecutionsPage: React.FC = () => {
         </div>
       </div>
       )}
+      <AlertDialog open={pendingDeleteExecution != null} onOpenChange={(open) => {
+        if (!open && !deletePending) setPendingDeleteExecution(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete execution record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDeleteExecution
+                ? `This will permanently remove the ${pendingDeleteExecution.workflowName} execution from history.`
+                : "This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletePending}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDeleteExecution();
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletePending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
     )
   );
@@ -292,7 +321,7 @@ function mapExecution(item: ApiExecution): Execution {
     id: item.id,
     workflowName: item.workflow_name,
     status: item.status,
-    duration: item.duration_ms == null ? "—" : `${(item.duration_ms / 1000).toFixed(1)}s`,
+    duration: item.duration_ms == null ? "â€”" : `${(item.duration_ms / 1000).toFixed(1)}s`,
     triggeredAt: formatRelativeTime(item.started_at),
     triggerType: item.trigger_type,
     steps: item.steps.map((step) => ({

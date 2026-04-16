@@ -1,0 +1,24 @@
+{
+   "action": {
+      "default_icon": {
+         "64": "icons/icon64.png",
+         "96": "icons/icon96.png"
+      },
+      "default_popup": "popup.html"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "description": "Extract a website's HTML, CSS, JS, and images, then download everything as a ZIP file.",
+   "host_permissions": [ "https://*/*", "http://*/*" ],
+   "icons": {
+      "64": "icons/icon64.png",
+      "96": "icons/icon96.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhD+Hh4dWwjq52VgtEhY4yU7OXCFJ9hbLoJG1boB1hy48C8BDRlofycWoRtStPtZnTE1ST+8xp2mIB3A3UJt10x4HRcq7gjBTG7Fi9CjZPBomrskJ4xROuKsMQWYBiH08hxPbNaCJXLK4brbX7YKcKlqoacIwkyyNQjmfAt21octU6CHMGQmz7Phubjp6rQn3ysjpo8OhLQvzcglTrgblHZc6gUTypIh7dP3knanYkWel+L3lymjgd/ZbESl7Hdw1U63Oo1I0/M6RRhYdYttaXd/bQ2g8sOOIlqsVWZzPhnP8b4Gez0ASOQwevxf4yOfiJhlywzijx76Jihe1H+XfJwIDAQAB",
+   "manifest_version": 3,
+   "name": "Website Code Extractor",
+   "permissions": [ "activeTab", "downloads", "scripting" ],
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.3"
+}

@@ -27,3 +27,25 @@ backend/.env
 backend/*.db
 backend/app/__pycache__/
 backend/**/*.pyc
+
+# Tool artifacts
+.codex-logs/
+.playwright/
+.tmp-chrome-headless/
+.windsurf/
+scripts/.playwright/
+scripts/__pycache__/
+
+# Research and large binary data
+research/
+n8n-master/
+Inter/
+"competitors videos/"
+plan-introductionToMakeUi.prompt.md
+
+# DB files
+*.db
+*.db-journal
+*.db-wal
+vault_verify*.db
+test_debug.py

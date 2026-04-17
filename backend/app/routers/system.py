@@ -1,0 +1,372 @@
+"""
+System router — health probes, LLM/system status, search, help, sandbox, audit events.
+"""
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+
+from ..config import get_settings
+from ..db import get_database_backend, get_db
+from ..deps import get_session_context, record_audit_event, require_workspace_role
+from ..help_content import list_help_articles
+from ..integration_registry import list_integration_apps
+from ..llm_router import get_llm_router
+from ..models import (
+    AuditEventSummary,
+    AuthPreflightResponse,
+    HealthResponse,
+    SetupReportResponse,
+)
+from ..plugin_loader import get_plugin_registry
+from ..repository import (
+    count_executions_by_status,
+    count_workflows_by_status,
+    get_workspace_settings,
+    list_audit_events,
+    list_executions,
+    list_vault_assets,
+    list_workflow_jobs,
+    list_workflows,
+)
+from ..auth import get_supabase_auth_mode
+from .. import runtime_state
+
+settings = get_settings()
+router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Health probes
+# ---------------------------------------------------------------------------
+
+@router.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        environment=settings.app_env,
+        llm_mode=settings.llm_mode,
+        database_backend=get_database_backend(),
+    )
+
+
+@router.get("/health/ready")
+def health_ready() -> dict[str, Any]:
+    """Readiness probe — checks DB connectivity."""
+    try:
+        with get_db() as conn:
+            conn.execute("SELECT 1").fetchone()
+        db_status = "connected"
+        db_ok = True
+    except Exception as exc:
+        db_status = f"error: {exc}"
+        db_ok = False
+
+    return JSONResponse(
+        status_code=200 if db_ok else 503,
+        content={
+            "ready": db_ok,
+            "database": db_status,
+            "environment": settings.app_env,
+        },
+    )
+
+
+@router.get(f"{settings.api_prefix}/health/deep")
+def deep_health_check() -> dict[str, Any]:
+    """Deep health check — probes database, LLM, scheduler, and worker."""
+    checks: dict[str, dict[str, Any]] = {}
+    overall = True
+
+    try:
+        with get_db() as conn:
+            conn.execute("SELECT 1").fetchone()
+        checks["database"] = {"status": "healthy", "backend": get_database_backend()}
+    except Exception as exc:
+        checks["database"] = {"status": "unhealthy", "error": str(exc)[:200]}
+        overall = False
+
+    try:
+        llm_router = get_llm_router()
+        providers = llm_router.list_available()
+        checks["llm"] = {"status": "healthy" if providers else "degraded", "providers": providers}
+        if not providers:
+            overall = False
+    except Exception as exc:
+        checks["llm"] = {"status": "unhealthy", "error": str(exc)[:200]}
+        overall = False
+
+    try:
+        reg = get_plugin_registry()
+        checks["plugins"] = {"status": "healthy", "count": len(reg._plugins)}
+    except Exception as exc:
+        checks["plugins"] = {"status": "unhealthy", "error": str(exc)[:200]}
+
+    try:
+        from ..worker import _shutdown_event
+        worker_running = _shutdown_event is not None and not _shutdown_event.is_set()
+        checks["worker"] = {"status": "healthy" if worker_running else "idle"}
+    except Exception:
+        checks["worker"] = {"status": "unknown"}
+
+    try:
+        from ..scheduler import _scheduler_shutdown_event
+        scheduler_running = _scheduler_shutdown_event is not None and not _scheduler_shutdown_event.is_set()
+        checks["scheduler"] = {"status": "healthy" if scheduler_running else "idle"}
+    except Exception:
+        checks["scheduler"] = {"status": "unknown"}
+
+    return {
+        "status": "healthy" if overall else "degraded",
+        "checks": checks,
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# LLM & system status
+# ---------------------------------------------------------------------------
+
+@router.get(f"{settings.api_prefix}/llm/status")
+def llm_status() -> dict[str, Any]:
+    llm_router = get_llm_router()
+    return {
+        "configured_provider": settings.llm_provider,
+        "available_providers": llm_router.available_providers,
+        "default_provider": llm_router._default_provider,
+        "execution_mode": settings.execution_mode,
+        "worker_active": runtime_state.worker_task is not None and not runtime_state.worker_task.done(),
+        "scheduler_active": runtime_state.scheduler_task is not None and not runtime_state.scheduler_task.done(),
+    }
+
+
+@router.get(f"{settings.api_prefix}/system/status")
+def system_status(session: dict[str, Any] = Depends(get_session_context)) -> dict[str, Any]:
+    workspace_id = str(session["workspace"]["id"])
+    llm_router = get_llm_router()
+    plugin_registry = get_plugin_registry()
+
+    jobs = list_workflow_jobs(workspace_id)
+    pending_jobs = sum(1 for j in jobs if str(j.get("status")) == "pending")
+    processing_jobs = sum(1 for j in jobs if str(j.get("status")) == "processing")
+    failed_jobs = sum(1 for j in jobs if str(j.get("status")) == "failed")
+    completed_jobs = sum(1 for j in jobs if str(j.get("status")) == "completed")
+
+    exec_counts = count_executions_by_status(workspace_id)
+    total_executions = sum(exec_counts.values())
+
+    wf_counts = count_workflows_by_status(workspace_id)
+    total_workflows = sum(wf_counts.values())
+    active_workflows = wf_counts.get("active", 0)
+
+    integration_apps = list_integration_apps()
+    plugin_count = len(plugin_registry._plugins) if plugin_registry else 0
+
+    return {
+        "platform": {
+            "version": "0.1.0",
+            "environment": settings.app_env,
+            "database_backend": get_database_backend(),
+            "execution_mode": settings.execution_mode,
+        },
+        "llm": {
+            "configured_provider": settings.llm_provider,
+            "available_providers": llm_router.available_providers,
+            "default_provider": llm_router._default_provider,
+        },
+        "worker": {
+            "active": runtime_state.worker_task is not None and not runtime_state.worker_task.done(),
+            "mode": settings.execution_mode,
+        },
+        "scheduler": {
+            "active": runtime_state.scheduler_task is not None and not runtime_state.scheduler_task.done(),
+        },
+        "jobs": {
+            "pending": pending_jobs,
+            "processing": processing_jobs,
+            "failed": failed_jobs,
+            "completed": completed_jobs,
+            "total": len(jobs),
+        },
+        "executions": {
+            "total": total_executions,
+            "success": exec_counts.get("success", 0),
+            "failed": exec_counts.get("failed", 0),
+            "running": exec_counts.get("running", 0),
+        },
+        "workflows": {
+            "total": total_workflows,
+            "active": active_workflows,
+        },
+        "integrations": {
+            "builtin_count": len(integration_apps),
+            "plugin_count": plugin_count,
+            "total": len(integration_apps) + plugin_count,
+        },
+    }
+
+
+@router.get(f"{settings.api_prefix}/system/setup-report", response_model=SetupReportResponse)
+def get_setup_report(session: dict[str, Any] = Depends(get_session_context)) -> SetupReportResponse:
+    workspace_id = str(session["workspace"]["id"])
+    workspace_settings = get_workspace_settings(workspace_id)
+    next_actions: list[str] = []
+
+    if not settings.database_url:
+        next_actions.append("Add DATABASE_URL to move from local SQLite to hosted Postgres.")
+    if not settings.supabase_url:
+        next_actions.append("Add SUPABASE_URL so the backend can verify real Supabase tokens.")
+    if settings.supabase_url and get_supabase_auth_mode() == "none":
+        next_actions.append("Configure SUPABASE_JWT_SECRET or use JWKS mode with installed backend auth dependencies.")
+    if not settings.scheduler_secret:
+        next_actions.append("Set SCHEDULER_SECRET before exposing scheduled processing online.")
+    if not (workspace_settings.get("public_base_url") or settings.public_base_url):
+        next_actions.append("Set PUBLIC_BASE_URL or workspace public_base_url before sharing webhook or chat URLs.")
+    if not workspace_settings.get("require_webhook_signature"):
+        next_actions.append("Enable require_webhook_signature in workspace settings before public webhooks.")
+    if workspace_settings.get("require_webhook_signature") and not workspace_settings.get("webhook_signing_secret"):
+        next_actions.append("Save a webhook_signing_secret in workspace settings.")
+    if not bool(workspace_settings.get("allow_public_chat_triggers", True)):
+        next_actions.append("Enable allow_public_chat_triggers in workspace settings before sharing public chat endpoints.")
+
+    return SetupReportResponse(
+        database_backend=get_database_backend(),
+        database_url_configured=bool(settings.database_url),
+        supabase_url_configured=bool(settings.supabase_url),
+        supabase_auth_mode=get_supabase_auth_mode(),
+        scheduler_secret_configured=bool(settings.scheduler_secret),
+        public_base_url_configured=bool(workspace_settings.get("public_base_url") or settings.public_base_url),
+        webhook_signature_required=bool(workspace_settings.get("require_webhook_signature")),
+        workspace_id=workspace_id,
+        next_actions=next_actions,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Search
+# ---------------------------------------------------------------------------
+
+@router.get(f"{settings.api_prefix}/search")
+def global_search(
+    q: str = "",
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    workspace_id = str(session["workspace"]["id"])
+    query = q.strip().lower()
+    if not query or len(query) < 2:
+        return {"workflows": [], "executions": [], "vault_assets": []}
+
+    all_workflows = list_workflows(workspace_id) or []
+    matched_workflows = []
+    for wf in all_workflows:
+        name = str(wf.get("name") or "").lower()
+        category = str(wf.get("category") or "").lower()
+        if query in name or query in category:
+            matched_workflows.append({
+                "id": wf["id"],
+                "name": wf.get("name"),
+                "status": wf.get("status"),
+                "category": wf.get("category"),
+                "type": "workflow",
+            })
+        if len(matched_workflows) >= 10:
+            break
+
+    all_executions = list_executions(workspace_id, limit=200) or []
+    matched_executions = []
+    for ex in all_executions:
+        wf_name = str(ex.get("workflow_name") or "").lower()
+        status = str(ex.get("status") or "").lower()
+        error_text = str(ex.get("error_text") or "").lower()
+        if query in wf_name or query in status or query in error_text:
+            matched_executions.append({
+                "id": ex["id"],
+                "workflow_name": ex.get("workflow_name"),
+                "status": ex.get("status"),
+                "started_at": ex.get("started_at"),
+                "type": "execution",
+            })
+        if len(matched_executions) >= 10:
+            break
+
+    vault_data = list_vault_assets(workspace_id=workspace_id) or []
+    matched_vault = []
+    for asset in vault_data:
+        name = str(asset.get("name") or asset.get("key") or "").lower()
+        kind = str(asset.get("kind") or "").lower()
+        if query in name or query in kind:
+            matched_vault.append({
+                "id": asset["id"],
+                "name": asset.get("name") or asset.get("key"),
+                "kind": asset.get("kind"),
+                "type": "vault_asset",
+            })
+        if len(matched_vault) >= 10:
+            break
+
+    return {
+        "workflows": matched_workflows,
+        "executions": matched_executions,
+        "vault_assets": matched_vault,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Help & sandbox
+# ---------------------------------------------------------------------------
+
+@router.get(f"{settings.api_prefix}/help/articles")
+def get_help_articles(
+    category: str | None = None,
+    q: str | None = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    _ = session
+    return list_help_articles(category=category, query=q)
+
+
+@router.post(f"{settings.api_prefix}/sandbox/execute")
+async def sandbox_execute(request: Request, session: dict[str, Any] = Depends(get_session_context)) -> dict[str, Any]:
+    require_workspace_role(session, "owner", "admin", "builder")
+    body = await request.json()
+    code = str(body.get("code", ""))
+    language = str(body.get("language", "python"))
+    input_data = body.get("input_data", {})
+    timeout = int(body.get("timeout", 30))
+
+    if not code.strip():
+        raise HTTPException(status_code=400, detail="Code must not be empty.")
+
+    from ..sandbox import execute_code
+    return await execute_code(code=code, language=language, input_data=input_data, timeout=timeout)
+
+
+# ---------------------------------------------------------------------------
+# Auth preflight
+# ---------------------------------------------------------------------------
+
+@router.get(f"{settings.api_prefix}/auth/preflight", response_model=AuthPreflightResponse)
+def get_auth_preflight() -> AuthPreflightResponse:
+    return AuthPreflightResponse(
+        local_dev_login_enabled=settings.allow_dev_login,
+        supabase_configured=bool(settings.supabase_url or settings.supabase_jwt_secret),
+        supabase_auth_mode=get_supabase_auth_mode(),
+        database_backend=get_database_backend(),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Audit events
+# ---------------------------------------------------------------------------
+
+@router.get(f"{settings.api_prefix}/audit-events", response_model=list[AuditEventSummary])
+def get_audit_events(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[AuditEventSummary]:
+    return [
+        AuditEventSummary.model_validate(item)
+        for item in list_audit_events(str(session["workspace"]["id"]))
+    ]

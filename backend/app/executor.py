@@ -9,12 +9,24 @@ from typing import Any
 import httpx
 
 from .config import get_settings
+from .errors import (
+    ExecutionError,
+    ExecutionWarning,
+    StepErrorHandler,
+    apply_error_handler,
+)
+from .expression_engine import (
+    EXPRESSION_PATTERN,
+    build_expression_scope as _build_expression_scope_new,
+    ensure_flow_items,
+    make_flow_item,
+    render_template as _render_template_new,
+)
 from .integration_registry import execute_integration_operation, normalize_integration_config
 from .llm_router import LLMProvider, get_llm_router
 
 
 VAULT_TOKEN_PATTERN = re.compile(r"\{\{\s*vault\.(variable|credential|connection)\.([A-Za-z0-9_\- ]+?)(?:\.([A-Za-z0-9_\-]+))?\s*\}\}")
-EXPRESSION_PATTERN = re.compile(r"\{\{\s*(.+?)\s*\}\}")
 
 
 def execute_workflow_definition(
@@ -141,8 +153,10 @@ def run_workflow_definition(
                 if config.get("webhook_url"):
                     output["webhook_url"] = config.get("webhook_url")
             elif step_type == "delay":
-                resume_after = _compute_resume_after(config)
+                resume_after = _compute_resume_after(config, expression_scope)
                 output = {"wait_type": "delay", "resume_after": resume_after}
+                if config.get("webhook_resume"):
+                    output["webhook_resume_enabled"] = True
                 status = "paused"
             elif step_type == "human":
                 choices = config.get("choices") or ["approved", "rejected"]
@@ -168,6 +182,126 @@ def run_workflow_definition(
                 if config.get("choices") and "choices" not in output:
                     output["choices"] = config.get("choices")
                 status = "paused"
+            elif step_type == "wait":
+                timeout_hours = config.get("timeout_hours") or 0
+                resume_after = None
+                if timeout_hours and float(timeout_hours) > 0:
+                    resume_after = (datetime.now(UTC) + timedelta(hours=float(timeout_hours))).isoformat()
+                output = {
+                    "wait_type": "webhook",
+                    "auth_mode": config.get("auth_mode") or "token",
+                    "timeout_action": config.get("timeout_action") or "fail",
+                }
+                if resume_after:
+                    output["resume_after"] = resume_after
+                status = "paused"
+            elif step_type == "wait":
+                timeout_hours = config.get("timeout_hours") or 0
+                resume_after = None
+                if timeout_hours and float(timeout_hours) > 0:
+                    resume_after = (datetime.now(UTC) + timedelta(hours=float(timeout_hours))).isoformat()
+                output = {
+                    "wait_type": "webhook",
+                    "auth_mode": config.get("auth_mode") or "token",
+                    "timeout_action": config.get("timeout_action") or "fail",
+                }
+                if resume_after:
+                    output["resume_after"] = resume_after
+                status = "paused"
+
+            # ── Execute Workflow node ────────────────────────────────
+            elif step_type == "execute_workflow":
+                from .repository import get_workflow as _get_workflow  # noqa: PLC0415
+
+                target_wf_id = str(config.get("workflow_id") or "").strip()
+                exec_mode = str(config.get("mode") or "sync")
+                on_error = str(config.get("on_error") or "fail")
+
+                if not target_wf_id:
+                    output = {"error": "execute_workflow: workflow_id is required"}
+                    status = "failed"
+                else:
+                    sub_wf = _get_workflow(target_wf_id)
+                    if sub_wf is None:
+                        output = {"error": f"execute_workflow: workflow '{target_wf_id}' not found"}
+                        status = "failed"
+                    else:
+                        # Build sub-workflow payload
+                        input_expr = config.get("input_data")
+                        sub_payload: dict[str, Any] = {}
+                        if input_expr:
+                            if isinstance(input_expr, dict):
+                                sub_payload = {
+                                    k: _render_template(str(v), expression_scope) if isinstance(v, str) else v
+                                    for k, v in input_expr.items()
+                                }
+                            elif isinstance(input_expr, str):
+                                rendered = _render_template(input_expr.strip(), expression_scope)
+                                if isinstance(rendered, dict):
+                                    sub_payload = rendered
+                                elif rendered not in (None, ""):
+                                    sub_payload = {"data": rendered}
+                        else:
+                            # Default: pass current item's data
+                            sub_payload = dict(payload)
+
+                        # Inject caller metadata
+                        sub_payload.setdefault("_caller", {
+                            "parent_workflow_id": definition.get("id"),
+                            "parent_workflow_name": definition.get("name"),
+                        })
+
+                        sub_definition = sub_wf.get("definition_json") or sub_wf.get("definition") or {}
+
+                        if exec_mode == "async":
+                            # Fire-and-forget: schedule the sub-workflow job via repository
+                            try:
+                                from .repository import create_workflow_job as _create_job  # noqa: PLC0415
+                                _create_job(
+                                    workflow_id=target_wf_id,
+                                    workspace_id=str(sub_wf.get("workspace_id") or ""),
+                                    workflow_version_id=None,
+                                    initiated_by_user_id=None,
+                                    environment="production",
+                                    trigger_type="execute_workflow",
+                                    payload=sub_payload,
+                                )
+                            except Exception:
+                                pass  # Best-effort async dispatch
+                            output = {
+                                "mode": "async",
+                                "triggered_workflow_id": target_wf_id,
+                                "triggered_workflow_name": sub_wf.get("name"),
+                            }
+                        else:
+                            # Synchronous: run inline within timeout
+                            timeout_seconds = int(config.get("timeout_seconds") or 60)
+                            try:
+                                sub_outcome = run_workflow_definition(
+                                    sub_definition,
+                                    sub_payload,
+                                    vault_context=vault_context,
+                                    workflow_timeout_seconds=timeout_seconds,
+                                )
+                                output = {
+                                    "mode": "sync",
+                                    "called_workflow_id": target_wf_id,
+                                    "called_workflow_name": sub_wf.get("name"),
+                                    "status": sub_outcome.get("status"),
+                                    "result": (sub_outcome.get("result") or {}).get("context") or sub_outcome.get("result") or {},
+                                    "step_results": sub_outcome.get("step_results", []),
+                                }
+                                if sub_outcome.get("status") not in ("completed",):
+                                    if on_error == "fail":
+                                        output["error"] = f"Sub-workflow ended with status: {sub_outcome.get('status')}"
+                                        status = "failed"
+                            except Exception as sub_exc:
+                                output = {
+                                    "error": f"Sub-workflow failed: {sub_exc}",
+                                    "called_workflow_id": target_wf_id,
+                                }
+                                if on_error == "fail":
+                                    status = "failed"
 
             # ── Loop / Iterator node ────────────────────────────────
             elif step_type == "loop":
@@ -384,8 +518,49 @@ def run_workflow_definition(
                 output = {"note": f"Unsupported step type '{step_type}' skipped."}
                 status = "skipped"
         except Exception as exc:  # noqa: BLE001
-            status = "failed"
-            output = {"error": str(exc)}
+            # Build a structured ExecutionError
+            exc_str = str(exc)
+            # Detect error type from message if possible
+            error_type = "RuntimeError"
+            for et in ("ConnectionError", "RateLimitError", "ModuleTimeoutError",
+                       "DataError", "DataSizeLimitExceededError", "CreditLimitError",
+                       "StepTimeoutError", "WorkflowValidationError", "VaultConnectionError"):
+                if et.lower() in exc_str.lower() or et in exc_str:
+                    error_type = et
+                    break
+
+            exec_error = ExecutionError(
+                error_type=error_type,
+                message=exc_str,
+                step_id=step.get("id"),
+                step_label=step.get("name"),
+                node_type=step.get("type"),
+            )
+
+            # Read per-node error handler settings from step config
+            step_config_raw = step.get("config", {})
+            handler = StepErrorHandler.from_config(step_config_raw)
+            on_error_mode = str(step_config_raw.get("_on_error") or "stop")
+
+            handler_result = apply_error_handler(handler, on_error_mode, exec_error)  # type: ignore[arg-type]
+
+            if handler_result.outcome == "continue":
+                status = "success"
+                output = handler_result.substitute_output or {"skipped": True}
+            elif handler_result.outcome == "continue_error":
+                status = "success"
+                output = handler_result.substitute_output or {"error": exec_error.to_dict()}
+            elif handler_result.outcome == "stop_success":
+                # Commit: stop cleanly with success status
+                status = "failed"  # mark step failed but override run status below
+                output = {"error": exec_error.to_dict(), "_commit_stop": True}
+            elif handler_result.outcome == "break":
+                status = "failed"
+                output = {"error": exec_error.to_dict(), "_break": True}
+            else:
+                # stop_error (default rollback)
+                status = "failed"
+                output = {"error": exc_str}
 
         duration_ms = int((time.perf_counter() - started) * 1000)
         if output is not None:
@@ -404,7 +579,26 @@ def run_workflow_definition(
         )
 
         if status == "failed":
-            raise RuntimeError(output["error"])
+            err_output = output or {}
+            # Break handler: store as incomplete and return gracefully
+            if err_output.get("_break"):
+                return {
+                    "status": "incomplete",
+                    "step_results": step_results,
+                    "context": context,
+                    "error": err_output.get("error"),
+                    "incomplete_step_id": step.get("id"),
+                }
+            # Commit handler: stop cleanly with success status
+            if err_output.get("_commit_stop"):
+                return {
+                    "status": "completed",
+                    "step_results": step_results,
+                    "result": {"summary": "Workflow committed on error.", "context": context},
+                    "context": context,
+                    "warnings": [{"type": "commit_stop", "step_id": step.get("id")}],
+                }
+            raise RuntimeError(err_output.get("error") or "Step failed")
 
         next_step = _resolve_next_step(step["id"], step_lookup, outgoing, next_label)
         if status == "paused":
@@ -461,81 +655,27 @@ def _resolve_next_step(
 
 
 def _build_expression_scope(payload: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
-    scope = {**context, **payload}
-    scope["payload"] = payload
-    scope["json"] = payload
-    scope.setdefault("steps", dict(context.get("steps") or {}))
-    return scope
+    return _build_expression_scope_new(payload, context)
 
 
 def _tokenize_expression(expression: str) -> list[str | int]:
-    tokens: list[str | int] = []
-    index = 0
-    while index < len(expression):
-        char = expression[index]
-        if char == ".":
-            index += 1
-            continue
-        if char == "[":
-            end_index = expression.find("]", index)
-            if end_index == -1:
-                break
-            segment = expression[index + 1:end_index].strip()
-            if segment.startswith(('"', "'")) and segment.endswith(('"', "'")):
-                tokens.append(segment[1:-1])
-            elif segment.isdigit():
-                tokens.append(int(segment))
-            else:
-                tokens.append(segment)
-            index = end_index + 1
-            continue
-        end_index = index
-        while end_index < len(expression) and expression[end_index] not in ".[":
-            end_index += 1
-        tokens.append(expression[index:end_index])
-        index = end_index
-    return [token for token in tokens if token not in {"", "$"}]
+    # Kept for any callers that still import this directly; delegates to engine
+    from .expression_engine import _tokenize_path
+    return _tokenize_path(expression)
 
 
 def _resolve_expression_value(expression: str, scope: dict[str, Any]) -> Any:
-    expr = expression.strip()
-    if expr.startswith("$"):
-        expr = expr[1:]
-    if expr == "json":
-        expr = "payload"
-    elif expr.startswith("json."):
-        expr = f"payload.{expr[5:]}"
-
-    tokens = _tokenize_expression(expr)
-    if not tokens:
-        return ""
-
-    current: Any = scope
-    for token in tokens:
-        if isinstance(current, dict):
-            current = current.get(token)
-        elif isinstance(current, list) and isinstance(token, int) and 0 <= token < len(current):
-            current = current[token]
-        else:
-            return ""
-    return current
+    from .expression_engine import evaluate_expression
+    return evaluate_expression(expression, scope)
 
 
 def _stringify_expression_value(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, (dict, list)):
-        return json.dumps(value)
-    return str(value)
+    from .expression_engine import _stringify_value
+    return _stringify_value(value)
 
 
-def _render_template(template: str, payload: dict[str, Any]) -> str:
-    if not isinstance(template, str) or "{{" not in template:
-        return template
-    matches = list(EXPRESSION_PATTERN.finditer(template))
-    if len(matches) == 1 and matches[0].span() == (0, len(template)):
-        return _stringify_expression_value(_resolve_expression_value(matches[0].group(1), payload))
-    return EXPRESSION_PATTERN.sub(lambda match: _stringify_expression_value(_resolve_expression_value(match.group(1), payload)), template)
+def _render_template(template: str, payload: dict[str, Any]) -> Any:
+    return _render_template_new(template, payload)
 
 
 def _run_llm(*, prompt: str, payload: dict[str, Any], config: dict[str, Any] | None = None) -> str:
@@ -605,7 +745,36 @@ def _run_llm(*, prompt: str, payload: dict[str, Any], config: dict[str, Any] | N
         return f"LLM unavailable. Fallback summary for {subject}."
 
 
-def _compute_resume_after(config: dict[str, Any]) -> str:
+def _compute_resume_after(config: dict[str, Any], expression_scope: dict[str, Any] | None = None) -> str:
+    delay_type = str(config.get("delay_type") or "fixed")
+
+    if delay_type == "until_time":
+        resume_at = str(config.get("resume_at") or "").strip()
+        if resume_at:
+            # Render expression if present
+            if "{{" in resume_at and expression_scope:
+                resume_at = str(_render_template_new(resume_at, expression_scope) or "")
+            return resume_at or (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
+        return (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
+
+    if delay_type == "expression":
+        expr = str(config.get("delay_expression") or "").strip()
+        if expr:
+            if "{{" in expr and expression_scope:
+                resolved = _render_template_new(expr, expression_scope)
+            elif expression_scope:
+                from .expression_engine import evaluate_expression
+                resolved = evaluate_expression(expr, expression_scope)
+            else:
+                resolved = None
+            try:
+                total_seconds = int(float(str(resolved or 60)))
+            except (ValueError, TypeError):
+                total_seconds = 60
+            return (datetime.now(UTC) + timedelta(seconds=max(1, total_seconds))).isoformat()
+        return (datetime.now(UTC) + timedelta(minutes=1)).isoformat()
+
+    # "fixed" (default)
     total_seconds = 0
     for key, multiplier in (("seconds", 1), ("minutes", 60), ("hours", 3600)):
         value = config.get(key)

@@ -409,6 +409,25 @@ def execute_integration_operation(
             "auth_mode": normalized.get("auth_mode", "signature"),
         }
 
+    if node_type == "trigger" and str(normalized.get("source") or "") == "error":
+        return {
+            "received": True,
+            "source": "error",
+            "failed_workflow_id": (payload.get("workflow") or {}).get("id"),
+            "failed_workflow_name": (payload.get("workflow") or {}).get("name"),
+            "error_message": ((payload.get("execution") or {}).get("error") or {}).get("message"),
+        }
+
+    if node_type == "trigger" and str(normalized.get("source") or "") == "execute_workflow":
+        caller = payload.get("_caller") or {}
+        return {
+            "received": True,
+            "source": "execute_workflow",
+            "parent_workflow_id": caller.get("parent_workflow_id"),
+            "parent_workflow_name": caller.get("parent_workflow_name"),
+            "input_data": {k: v for k, v in payload.items() if k != "_caller"},
+        }
+
     # Delegate to plugin system for dynamically loaded integrations
     if app_key and operation_key:
         try:

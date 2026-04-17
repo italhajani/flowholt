@@ -44,8 +44,57 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
                     {"value": "event", "label": "Event"},
                     {"value": "form", "label": "Form Submission"},
                     {"value": "email", "label": "Email (IMAP)"},
+                    {"value": "error", "label": "Error Trigger"},
+                    {"value": "execute_workflow", "label": "Execute Workflow Trigger"},
                 ],
                 "help": "Choose how this workflow starts.",
+            },
+            # ── Execute Workflow trigger fields ──
+            {
+                "key": "execute_workflow_source_info",
+                "label": "Execute Workflow Trigger",
+                "type": "textarea",
+                "required": False,
+                "readonly": True,
+                "default": (
+                    "This workflow runs when called by an 'Execute Workflow' step in another workflow.\n\n"
+                    "Available via $json (or $input.first().json):\n"
+                    "  parent_workflow_id     — ID of the calling workflow\n"
+                    "  parent_workflow_name   — name of the calling workflow\n"
+                    "  parent_execution_id    — execution ID of the calling run\n"
+                    "  input_data             — data passed from the Execute Workflow step\n\n"
+                    "The result returned by this workflow is passed back to the caller\n"
+                    "as the output of the Execute Workflow step."
+                ),
+                "help": "Reference the caller's data using the fields listed above.",
+                "show_when": {"field": "source", "equals": "execute_workflow"},
+            },
+            # ── Error trigger fields ──
+            {
+                "key": "error_source_info",
+                "label": "Error Trigger",
+                "type": "textarea",
+                "required": False,
+                "readonly": True,
+                "default": (
+                    "This workflow runs automatically when another workflow fails.\n\n"
+                    "Available via $json (or $input.first().json):\n"
+                    "  execution.id          — failed execution ID\n"
+                    "  execution.workflow_id — failed workflow ID\n"
+                    "  execution.workflow_name\n"
+                    "  execution.environment — draft / staging / production\n"
+                    "  execution.status      — always 'failed'\n"
+                    "  execution.duration_ms\n"
+                    "  execution.last_node_executed\n"
+                    "  execution.error.message\n"
+                    "  workflow.id / workflow.name\n"
+                    "  trigger.mode / trigger.payload\n"
+                    "  original_payload      — payload that triggered the failed run\n\n"
+                    "Configure which workflow(s) use this as their error handler in\n"
+                    "Workspace Settings → Error Handler."
+                ),
+                "help": "Reference the failed execution data using the fields listed above.",
+                "show_when": {"field": "source", "equals": "error"},
             },
             # ── Chat trigger fields ──
             {
@@ -1203,6 +1252,62 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
             },
         ],
     },
+    # ── Wait (Webhook Resume) ────────────────────────────────────
+    {
+        "type": "wait",
+        "label": "Wait",
+        "category": "Control Flow",
+        "description": "Pause execution and resume via a unique webhook URL. Optionally add a timeout fallback.",
+        "icon": "hourglass",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "resume_webhook_info",
+                "label": "Resume Webhook",
+                "type": "readonly_text",
+                "required": False,
+                "help": (
+                    "When this step is reached, execution pauses and a unique resume URL is generated. "
+                    "POST to that URL (with optional JSON body) to continue the workflow. "
+                    "The posted body is available as $json in the next step."
+                ),
+            },
+            {
+                "key": "timeout_hours",
+                "label": "Timeout (hours)",
+                "type": "number",
+                "required": False,
+                "default": 0,
+                "help": "Maximum hours to wait before the timeout action fires. 0 = wait indefinitely.",
+                "group": "Options",
+            },
+            {
+                "key": "timeout_action",
+                "label": "On Timeout",
+                "type": "select",
+                "required": False,
+                "default": "fail",
+                "options": [
+                    {"value": "fail", "label": "Fail the workflow"},
+                    {"value": "continue", "label": "Continue with empty data"},
+                ],
+                "group": "Options",
+            },
+            {
+                "key": "auth_mode",
+                "label": "Resume Auth",
+                "type": "select",
+                "required": False,
+                "default": "token",
+                "options": [
+                    {"value": "token", "label": "Token in URL (default)"},
+                    {"value": "none", "label": "No auth (public URL)"},
+                    {"value": "jwt", "label": "Require Bearer JWT"},
+                ],
+                "group": "Options",
+            },
+        ],
+    },
     # ── Loop / Iterator ─────────────────────────────────────────
     {
         "type": "loop",
@@ -1742,6 +1847,65 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "string",
                 "required": False,
                 "default": "merged",
+                "group": "Options",
+            },
+        ],
+    },
+    # ── Execute Workflow ─────────────────────────────────────────
+    {
+        "type": "execute_workflow",
+        "label": "Execute Workflow",
+        "category": "Control Flow",
+        "description": "Call another workflow and optionally wait for its result (sync) or fire-and-forget (async).",
+        "icon": "workflow",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "workflow_id",
+                "label": "Workflow",
+                "type": "string",
+                "required": True,
+                "help": "ID of the workflow to call. The target workflow must have an 'Execute Workflow Trigger' node.",
+            },
+            {
+                "key": "mode",
+                "label": "Execution Mode",
+                "type": "select",
+                "required": False,
+                "default": "sync",
+                "options": [
+                    {"value": "sync", "label": "Wait for result (synchronous)"},
+                    {"value": "async", "label": "Fire and forget (asynchronous)"},
+                ],
+                "help": "Sync mode returns the sub-workflow result as this step's output. Async mode queues it and continues immediately.",
+            },
+            {
+                "key": "input_data",
+                "label": "Input Data",
+                "type": "textarea",
+                "required": False,
+                "help": "JSON object to pass as payload to the sub-workflow. Supports expressions, e.g. {{ $json }}. Leave empty to pass the current item's data.",
+            },
+            {
+                "key": "timeout_seconds",
+                "label": "Timeout (seconds)",
+                "type": "number",
+                "required": False,
+                "default": 60,
+                "help": "Maximum seconds to wait for a sync sub-workflow to complete before failing.",
+                "show_when": {"field": "mode", "equals": "sync"},
+                "group": "Options",
+            },
+            {
+                "key": "on_error",
+                "label": "On Sub-Workflow Error",
+                "type": "select",
+                "required": False,
+                "default": "fail",
+                "options": [
+                    {"value": "fail", "label": "Fail this workflow"},
+                    {"value": "continue", "label": "Continue with error info"},
+                ],
                 "group": "Options",
             },
         ],
@@ -2679,6 +2843,98 @@ def list_node_definitions() -> list[dict[str, Any]]:
 
 def get_node_definition(node_type: str) -> dict[str, Any] | None:
     return NODE_REGISTRY.get(node_type)
+
+
+def get_node_error_settings_fields() -> list[dict[str, Any]]:
+    """
+    Return the standard per-node error-handling fields that appear in the
+    inspector Settings tab for every node (except Trigger nodes).
+    These fields map to config keys read by the executor via errors.py.
+    """
+    return [
+        {
+            "key": "_on_error",
+            "label": "On Error",
+            "type": "select",
+            "group": "Error Handling",
+            "default": "stop",
+            "options": [
+                {"value": "stop", "label": "Stop workflow"},
+                {"value": "continue", "label": "Continue (ignore error)"},
+                {"value": "continue_with_error", "label": "Continue with error data"},
+            ],
+            "help": (
+                "What happens when this step fails. "
+                "'Continue with error data' passes the error object to the next step."
+            ),
+        },
+        {
+            "key": "_error_handler",
+            "label": "Error Handler",
+            "type": "select",
+            "group": "Error Handling",
+            "default": None,
+            "options": [
+                {"value": None, "label": "None (use On Error setting)"},
+                {"value": "ignore", "label": "Ignore — skip and continue"},
+                {"value": "resume", "label": "Resume — use fallback value"},
+                {"value": "commit", "label": "Commit — save progress and stop"},
+                {"value": "rollback", "label": "Rollback — undo and stop"},
+                {"value": "break", "label": "Break — store as incomplete"},
+            ],
+            "help": "Override On Error with a specific Make-style error handler.",
+        },
+        {
+            "key": "_retry_on_fail",
+            "label": "Retry on Fail",
+            "type": "boolean",
+            "group": "Error Handling",
+            "default": False,
+        },
+        {
+            "key": "_retry_count",
+            "label": "Retry Count",
+            "type": "number",
+            "group": "Error Handling",
+            "default": 3,
+            "min": 1,
+            "max": 10,
+            "show_when": {"field": "_retry_on_fail", "equals": True},
+        },
+        {
+            "key": "_retry_wait_ms",
+            "label": "Retry Wait (ms)",
+            "type": "number",
+            "group": "Error Handling",
+            "default": 1000,
+            "min": 100,
+            "max": 60000,
+            "show_when": {"field": "_retry_on_fail", "equals": True},
+        },
+        {
+            "key": "_retry_backoff",
+            "label": "Retry Backoff",
+            "type": "select",
+            "group": "Error Handling",
+            "default": "fixed",
+            "options": [
+                {"value": "fixed", "label": "Fixed"},
+                {"value": "exponential", "label": "Exponential"},
+                {"value": "exponential_jitter", "label": "Exponential + Jitter"},
+            ],
+            "show_when": {"field": "_retry_on_fail", "equals": True},
+        },
+        {
+            "key": "_timeout_seconds",
+            "label": "Timeout (seconds)",
+            "type": "number",
+            "group": "Error Handling",
+            "default": None,
+            "min": 1,
+            "max": 3600,
+            "help": "Maximum time this step may run before a StepTimeoutError is raised.",
+        },
+    ]
 
 
 def normalize_workflow_settings(settings: dict[str, Any] | None) -> dict[str, Any]:

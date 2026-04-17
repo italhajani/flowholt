@@ -1623,3 +1623,16 @@ class HealthResponse(BaseModel):
     environment: str
     llm_mode: str
     database_backend: str
+
+
+class TestStepRequest(BaseModel):
+    step_id: str
+    payload: dict[str, Any] | None = None
+    pinned_data: dict[str, Any] | None = None
+
+
+class TestStepResponse(BaseModel):
+    status: str
+    output: dict[str, Any] | None = None
+    error: str | None = None
+    duration_ms: int

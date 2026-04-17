@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     execution_mode: str = "sync"
     worker_lease_seconds: int = 60
     execution_artifact_retention_days: int = 14
+    exec_max_count: int = 10000          # max execution records per workspace before pruning
+    exec_delete_buffer_hours: int = 1    # safety buffer before hard delete
+    exec_analytics_retain_days: int = 90  # keep execution summaries longer for analytics
     chat_attachment_dir: str = str(Path(__file__).resolve().parents[1] / "storage" / "chat-attachments")
     chat_attachment_max_bytes: int = 5 * 1024 * 1024
     chat_attachment_text_preview_chars: int = 8000

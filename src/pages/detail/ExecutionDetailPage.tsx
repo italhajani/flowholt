@@ -320,6 +320,8 @@ export function ExecutionDetailPage() {
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [ioTab, setIoTab] = useState<"input" | "output" | "meta">("output");
   const [copied, setCopied] = useState(false);
+  const [retryingStep, setRetryingStep] = useState<number | null>(null);
+  const [retryConfirm, setRetryConfirm] = useState<number | null>(null);
 
   const copyJson = (data: unknown) => {
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
@@ -439,6 +441,33 @@ export function ExecutionDetailPage() {
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <AlertTriangle size={11} className="text-red-500" />
                           <span className="text-[11px] font-semibold text-red-700">Error</span>
+                          <div className="ml-auto flex items-center gap-1.5">
+                            {retryingStep === i ? (
+                              <span className="flex items-center gap-1 text-[10px] text-blue-600">
+                                <RefreshCw size={10} className="animate-spin" /> Retrying…
+                              </span>
+                            ) : retryConfirm === i ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-zinc-500">Re-execute from this node?</span>
+                                <button
+                                  onClick={() => {
+                                    setRetryConfirm(null);
+                                    setRetryingStep(i);
+                                    setTimeout(() => setRetryingStep(null), 2000);
+                                  }}
+                                  className="rounded bg-red-600 px-2 py-0.5 text-[9px] font-medium text-white hover:bg-red-700 transition-colors"
+                                >Retry</button>
+                                <button onClick={() => setRetryConfirm(null)} className="rounded px-1.5 py-0.5 text-[9px] text-zinc-400 hover:bg-zinc-100">Cancel</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setRetryConfirm(i)}
+                                className="flex items-center gap-1 rounded-md border border-red-200 bg-white px-2 py-0.5 text-[10px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <RefreshCw size={9} /> Retry from here
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-[11px] text-red-600 font-mono">{step.error.message}</p>
                         <pre className="text-[10px] text-red-400 font-mono mt-1.5 whitespace-pre-wrap max-h-[120px] overflow-y-auto">{step.error.stack}</pre>

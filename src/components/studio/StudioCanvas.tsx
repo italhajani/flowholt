@@ -150,6 +150,8 @@ function CanvasNode({
   searchMatch,
   showOverlay,
   isPinned,
+  comment,
+  onCommentClick,
   onClick,
   onContextMenu,
   onMouseEnter,
@@ -164,6 +166,8 @@ function CanvasNode({
   searchMatch: boolean;
   showOverlay: boolean;
   isPinned: boolean;
+  comment?: string;
+  onCommentClick?: () => void;
   onClick: (e?: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
@@ -213,6 +217,17 @@ function CanvasNode({
         <span className="absolute -right-[5px] top-[72%] h-[7px] w-[7px] rounded-full border-2 border-red-400 bg-red-50 z-10" title="Error output" />
       )}
 
+      {/* Comment badge */}
+      {comment && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onCommentClick?.(); }}
+          className="absolute -top-2 -right-2 flex items-center gap-0.5 rounded-full bg-blue-500 px-1.5 py-0.5 text-[8px] text-white shadow-sm hover:bg-blue-600 transition-colors z-10"
+          title={comment}
+        >
+          <MessageSquare size={7} />
+        </button>
+      )}
+
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-2">
           <span className={cn("h-2 w-2 rounded-full flex-shrink-0", colors.dot)} />
@@ -249,6 +264,7 @@ const nodeContextItems: CtxMenuItem[] = [
   { label: "Duplicate",            icon: Clipboard,          shortcut: "Ctrl+D" },
   null,
   { label: "Pin output",           icon: Pin,                shortcut: "P" },
+  { label: "Add comment",          icon: MessageSquare },
   { label: "Rename",               icon: Edit2,              shortcut: "F2" },
   { label: "Copy node ID",         icon: Fingerprint },
   null,
@@ -374,6 +390,79 @@ const stickyColors = [
   { name: "Purple", bg: "#ede9fe", border: "#c4b5fd", text: "#5b21b6" },
   { name: "Orange", bg: "#ffedd5", border: "#fdba74", text: "#9a3412" },
 ];
+
+/* ── Replace node picker ─── */
+
+const replaceOptions: { name: string; subtitle: string; family: CanvasNodeData["family"] }[] = [
+  { name: "HTTP Request", subtitle: "Make any HTTP call", family: "integration" },
+  { name: "Set", subtitle: "Assign & transform data", family: "logic" },
+  { name: "IF / Switch", subtitle: "Branch on conditions", family: "logic" },
+  { name: "Code", subtitle: "Run JavaScript/Python", family: "logic" },
+  { name: "Webhook", subtitle: "Listen for HTTP calls", family: "trigger" },
+  { name: "Schedule Trigger", subtitle: "Run on a cron", family: "trigger" },
+  { name: "OpenAI", subtitle: "GPT completions", family: "ai" },
+  { name: "Slack", subtitle: "Send messages", family: "integration" },
+  { name: "Gmail", subtitle: "Read & send email", family: "integration" },
+  { name: "Postgres", subtitle: "Query database", family: "integration" },
+  { name: "Merge", subtitle: "Combine branches", family: "logic" },
+  { name: "Wait", subtitle: "Delay or pause", family: "logic" },
+];
+
+function ReplaceNodePicker({ node, zoom, pan, onReplace, onClose }: {
+  node: CanvasNodeData; zoom: number; pan: { x: number; y: number };
+  onReplace: (name: string, family: CanvasNodeData["family"], subtitle: string) => void;
+  onClose: () => void;
+}) {
+  const [filter, setFilter] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handle(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [onClose]);
+
+  const filtered = replaceOptions.filter(o =>
+    o.name !== node.name && o.name.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  const top = node.top * zoom + pan.y + 60;
+  const left = node.left * zoom + pan.x;
+
+  return (
+    <div ref={ref} className="absolute z-50 w-56 rounded-lg border border-zinc-200 bg-white shadow-lg overflow-hidden" style={{ top, left }}>
+      <div className="p-2 border-b border-zinc-100">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-zinc-50 border border-zinc-200">
+          <Search size={11} className="text-zinc-400" />
+          <input
+            autoFocus
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Replace with…"
+            className="flex-1 bg-transparent text-[11px] outline-none text-zinc-700 placeholder:text-zinc-400"
+          />
+        </div>
+        <p className="text-[9px] text-zinc-400 mt-1 px-1">Replacing <span className="font-semibold">{node.name}</span> — connections preserved</p>
+      </div>
+      <div className="max-h-48 overflow-y-auto py-1">
+        {filtered.length === 0 && <p className="text-center text-[11px] text-zinc-400 py-3">No matches</p>}
+        {filtered.map((opt) => {
+          const c = familyColors[opt.family];
+          return (
+            <button
+              key={opt.name}
+              onClick={() => onReplace(opt.name, opt.family, opt.subtitle)}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-zinc-50 transition-colors"
+            >
+              <span className={cn("h-2 w-2 rounded-full flex-shrink-0", c.dot)} />
+              <span className="flex-1 text-[11px] text-zinc-700 font-medium truncate">{opt.name}</span>
+              <span className="text-[9px] text-zinc-400 truncate max-w-[80px]">{opt.subtitle}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function CanvasStickyNote({ note, onUpdate, onDelete }: {
   note: StickyNoteData; onUpdate: (patch: Partial<StickyNoteData>) => void; onDelete: () => void;
@@ -800,6 +889,9 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const [aiChatInput, setAiChatInput] = useState("");
   const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [replacePickerNode, setReplacePickerNode] = useState<string | null>(null);
+  const [nodeComments, setNodeComments] = useState<Record<string, string>>({ n2: "Check scoring threshold", n4: "Consider retry logic" });
+  const [editingComment, setEditingComment] = useState<string | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [alignGuides, setAlignGuides] = useState<{ x?: number; y?: number }>({});
 
@@ -878,7 +970,13 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         onCanvasClick();
       }
       if (label === "Pin output") {
-        setExecStates(prev => ({ ...prev, [nodeId]: prev[nodeId] === "success" ? "idle" : "success" }));
+        store.togglePin(nodeId);
+      }
+      if (label === "Replace node") {
+        setReplacePickerNode(nodeId);
+      }
+      if (label === "Add comment") {
+        setEditingComment(nodeId);
       }
     } else {
       // Canvas background actions
@@ -1338,6 +1436,8 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           searchMatch={searchQuery ? searchResults.some(r => r.id === node.id) : false}
           showOverlay={showOverlay}
           isPinned={store.pinnedNodes.has(node.id)}
+          comment={nodeComments[node.id]}
+          onCommentClick={() => setEditingComment(editingComment === node.id ? null : node.id)}
           onClick={(e?: React.MouseEvent) => {
             if (e?.shiftKey) {
               setSelectedNodeIds(prev => {
@@ -1394,6 +1494,61 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           onClose={() => setContextMenu(null)}
         />
       )}
+
+      {/* Replace node picker */}
+      {replacePickerNode && nodeMap[replacePickerNode] && (
+        <ReplaceNodePicker
+          node={nodeMap[replacePickerNode]}
+          zoom={zoom}
+          pan={pan}
+          onReplace={(newName, newFamily, newSubtitle) => {
+            setNodes(prev => prev.map(n => n.id === replacePickerNode ? { ...n, name: newName, family: newFamily, subtitle: newSubtitle } : n));
+            setReplacePickerNode(null);
+          }}
+          onClose={() => setReplacePickerNode(null)}
+        />
+      )}
+
+      {/* Inline comment editor */}
+      {editingComment && nodeMap[editingComment] && (() => {
+        const n = nodeMap[editingComment];
+        const top = n.top * zoom + pan.y - 10;
+        const left = (n.left + 170) * zoom + pan.x + 8;
+        return (
+          <div
+            className="absolute z-50 w-52 rounded-lg border border-blue-200 bg-white shadow-lg overflow-hidden"
+            style={{ top, left }}
+          >
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-zinc-100 bg-blue-50">
+              <MessageSquare size={10} className="text-blue-500" />
+              <span className="text-[10px] font-semibold text-blue-700">Comment</span>
+              <button onClick={() => setEditingComment(null)} className="ml-auto text-zinc-400 hover:text-zinc-600 p-0.5 rounded hover:bg-zinc-100">
+                <X size={10} />
+              </button>
+            </div>
+            <textarea
+              autoFocus
+              className="w-full resize-none border-0 bg-transparent px-2.5 py-2 text-[11px] text-zinc-700 placeholder:text-zinc-300 outline-none"
+              rows={3}
+              placeholder="Add a note…"
+              value={nodeComments[editingComment] ?? ""}
+              onChange={(e) => setNodeComments(prev => ({ ...prev, [editingComment]: e.target.value }))}
+            />
+            <div className="flex items-center gap-1 px-2 pb-2 justify-end">
+              {nodeComments[editingComment] && (
+                <button
+                  onClick={() => { setNodeComments(prev => { const c = { ...prev }; delete c[editingComment]; return c; }); setEditingComment(null); }}
+                  className="rounded px-1.5 py-0.5 text-[9px] text-red-400 hover:bg-red-50"
+                >Delete</button>
+              )}
+              <button
+                onClick={() => setEditingComment(null)}
+                className="rounded bg-blue-500 px-2 py-0.5 text-[9px] font-medium text-white hover:bg-blue-600"
+              >Done</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Canvas controls */}
       <div className="absolute bottom-4 right-4 flex flex-col rounded-lg border border-zinc-200 bg-white shadow-sm overflow-hidden">

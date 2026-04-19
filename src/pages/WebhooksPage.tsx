@@ -229,14 +229,39 @@ export function WebhooksPage() {
               onRowClick={(row) => navigate(`/webhooks/${row.id}`)}
               emptyState={<EmptyState icon={<Webhook size={32} strokeWidth={1.25} />} title="No webhooks" description="Create a webhook to start receiving events." />}
             />
-            <div className="mt-4 rounded-lg border border-zinc-100 bg-white px-5 py-3 shadow-xs">
-              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Base URL</p>
-              <div className="flex items-center gap-2">
-                <code className="rounded bg-zinc-50 px-2.5 py-1 font-mono text-[11px] text-zinc-600 flex-1">
-                  https://api.flowholt.com/webhooks&#123;path&#125;
-                </code>
-                <Copy size={12} className="text-zinc-300 cursor-pointer hover:text-zinc-500 transition-colors" />
+            <div className="mt-4 rounded-lg border border-zinc-100 bg-white px-5 py-4 shadow-xs space-y-3">
+              <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Webhook URLs</p>
+              <div className="space-y-2">
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                    <span className="text-[10px] font-semibold text-green-700">Production</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="rounded bg-zinc-50 px-2.5 py-1 font-mono text-[11px] text-zinc-600 flex-1 truncate">
+                      https://api.flowholt.com/webhooks&#123;path&#125;
+                    </code>
+                    <button className="rounded px-1.5 py-0.5 text-[9px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors flex items-center gap-1">
+                      <Copy size={10} /> Copy
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    <span className="text-[10px] font-semibold text-amber-700">Test</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="rounded bg-amber-50 px-2.5 py-1 font-mono text-[11px] text-amber-700 flex-1 truncate">
+                      https://test.flowholt.com/webhooks&#123;path&#125;
+                    </code>
+                    <button className="rounded px-1.5 py-0.5 text-[9px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors flex items-center gap-1">
+                      <Copy size={10} /> Copy
+                    </button>
+                  </div>
+                </div>
               </div>
+              <p className="text-[9px] text-zinc-400">Test URLs route to the workflow editor for debugging. Production URLs trigger live executions.</p>
             </div>
           </>
         )}

@@ -144,6 +144,8 @@ function CanvasNode({
   onContextMenu,
   onMouseEnter,
   onMouseLeave,
+  onDragStart,
+  onPortDragStart,
 }: {
   node: CanvasNodeData;
   selected: boolean;
@@ -155,6 +157,8 @@ function CanvasNode({
   onContextMenu: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  onDragStart?: (e: React.MouseEvent) => void;
+  onPortDragStart?: (e: React.MouseEvent) => void;
 }) {
   const colors = familyColors[node.family];
   const isDisabled = execState === "disabled";
@@ -167,8 +171,9 @@ function CanvasNode({
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu(e); }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      onMouseDown={(e) => { if (e.button === 0 && !e.altKey && onDragStart) onDragStart(e); }}
       className={cn(
-        "absolute w-48 rounded-lg border bg-white shadow-sm border-l-4 cursor-pointer transition-all duration-150 select-none group",
+        "absolute w-48 rounded-lg border bg-white shadow-sm border-l-4 cursor-grab transition-all duration-150 select-none group",
         colors.border,
         isDisabled && "opacity-40 grayscale",
         searchMatch && "ring-2 ring-amber-400/50",
@@ -182,10 +187,16 @@ function CanvasNode({
       style={{ top: node.top, left: node.left }}
     >
       <NodeExecBadge state={execState} />
-      {/* Left port */}
+      {/* Left port (input) */}
       <span className={cn("absolute -left-[5px] top-1/2 -translate-y-1/2 h-[6px] w-[6px] rounded-full border-2 bg-white transition-colors", hovered ? "border-zinc-500" : "border-zinc-300")} />
-      {/* Right port */}
-      <span className={cn("absolute -right-[5px] top-1/2 -translate-y-1/2 h-[6px] w-[6px] rounded-full border-2 bg-white transition-colors", hovered ? "border-zinc-500" : "border-zinc-300")} />
+      {/* Right port (output) — draggable for edge creation */}
+      <span
+        className={cn(
+          "absolute -right-[7px] top-1/2 -translate-y-1/2 h-[10px] w-[10px] rounded-full border-2 bg-white transition-all cursor-crosshair hover:scale-150 hover:border-violet-500 hover:bg-violet-50 z-10",
+          hovered ? "border-zinc-500" : "border-zinc-300"
+        )}
+        onMouseDown={(e) => { e.stopPropagation(); onPortDragStart?.(e); }}
+      />
 
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-2">
@@ -195,7 +206,6 @@ function CanvasNode({
         <p className="mt-0.5 pl-4 text-[11px] text-zinc-400">{node.subtitle}</p>
       </div>
 
-      {/* Execution overlay: timing + item count */}
       {showOverlay && execState !== "idle" && execState !== "disabled" && (
         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-white border border-zinc-200 px-2 py-0.5 shadow-sm whitespace-nowrap">
           <span className="flex items-center gap-0.5 text-[8px] text-zinc-500"><Clock size={7} />{timing}</span>
@@ -345,8 +355,9 @@ function CanvasSearch({ query, onChange, results, onSelect, onClose }: {
 }
 
 /* ── Minimap ── */
-function Minimap({ nodes, execStates, selectedNodeId, canvasW, canvasH }: {
+function Minimap({ nodes, edges, execStates, selectedNodeId, canvasW, canvasH }: {
   nodes: CanvasNodeData[];
+  edges: [string, string][];
   execStates: Record<string, NodeExecState>;
   selectedNodeId: string | null;
   canvasW: number;
@@ -363,8 +374,7 @@ function Minimap({ nodes, execStates, selectedNodeId, canvasW, canvasH }: {
       onClick={(e) => e.stopPropagation()}
     >
       <svg width={w + 16} height={h + 16} className="block">
-        {/* Connections */}
-        {connections.map(([fromId, toId]) => {
+        {edges.map(([fromId, toId]) => {
           const from = nodes.find(n => n.id === fromId);
           const to = nodes.find(n => n.id === toId);
           if (!from || !to) return null;
@@ -374,7 +384,6 @@ function Minimap({ nodes, execStates, selectedNodeId, canvasW, canvasH }: {
           const y2 = (to.top + NODE_H / 2) * scale + 8;
           return <line key={`${fromId}-${toId}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#d4d4d8" strokeWidth={0.5} />;
         })}
-        {/* Nodes */}
         {nodes.map((node) => {
           const colors = familyColors[node.family];
           const isSelected = selectedNodeId === node.id;
@@ -451,18 +460,34 @@ interface StudioCanvasProps {
 }
 
 export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: StudioCanvasProps) {
-  const nodeMap = Object.fromEntries(canvasNodes.map((n) => [n.id, n]));
+  const [nodes, setNodes] = useState<CanvasNodeData[]>(canvasNodes);
+  const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(execStateDefaults);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
-  const [notes, setNotes] = useState<StickyNoteData[]>(initialNotes);
+  const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>(initialNotes);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showOverlay, setShowOverlay] = useState(true);
+  const [edgeList, setEdgeList] = useState<[string, string][]>(connections);
+
+  // Zoom + pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Node drag state
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const dragStart = useRef({ x: 0, y: 0, nodeTop: 0, nodeLeft: 0 });
+
+  // Connection drawing state
+  const [drawingEdge, setDrawingEdge] = useState<{ fromId: string; toX: number; toY: number } | null>(null);
 
   const searchResults = searchQuery
-    ? canvasNodes.filter(n => n.name.toLowerCase().includes(searchQuery.toLowerCase()) || n.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? nodes.filter(n => n.name.toLowerCase().includes(searchQuery.toLowerCase()) || n.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
 
   const handleContextMenu = useCallback((nodeId: string, e: React.MouseEvent) => {
@@ -476,33 +501,140 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
     }));
   }
 
+  // ── Zoom with scroll wheel ──
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    setZoom(z => Math.max(0.25, Math.min(2, z + delta)));
+  }, []);
+
+  const zoomIn = () => setZoom(z => Math.min(2, z + 0.15));
+  const zoomOut = () => setZoom(z => Math.max(0.25, z - 0.15));
+  const fitView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  // ── Pan with middle-click or space+drag ──
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      e.preventDefault();
+      setIsPanning(true);
+      panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+    }
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning) {
+      setPan({
+        x: panStart.current.panX + (e.clientX - panStart.current.x),
+        y: panStart.current.panY + (e.clientY - panStart.current.y),
+      });
+      return;
+    }
+    // Node dragging
+    if (draggingNodeId) {
+      const dx = (e.clientX - dragStart.current.x) / zoom;
+      const dy = (e.clientY - dragStart.current.y) / zoom;
+      setNodes(prev => prev.map(n =>
+        n.id === draggingNodeId ? { ...n, top: dragStart.current.nodeTop + dy, left: dragStart.current.nodeLeft + dx } : n
+      ));
+      return;
+    }
+    // Edge drawing
+    if (drawingEdge && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      setDrawingEdge(prev => prev ? {
+        ...prev,
+        toX: (e.clientX - rect.left - pan.x) / zoom,
+        toY: (e.clientY - rect.top - pan.y) / zoom,
+      } : null);
+    }
+  }, [isPanning, draggingNodeId, drawingEdge, zoom, pan]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (isPanning) { setIsPanning(false); return; }
+    if (draggingNodeId) { setDraggingNodeId(null); return; }
+    if (drawingEdge) {
+      // Check if we dropped on a node port
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mx = (e.clientX - rect.left - pan.x) / zoom;
+        const my = (e.clientY - rect.top - pan.y) / zoom;
+        const targetNode = nodes.find(n =>
+          n.id !== drawingEdge.fromId &&
+          mx >= n.left - 10 && mx <= n.left + 15 &&
+          my >= n.top && my <= n.top + NODE_H
+        );
+        if (targetNode && !edgeList.some(([f, t]) => f === drawingEdge.fromId && t === targetNode.id)) {
+          setEdgeList(prev => [...prev, [drawingEdge.fromId, targetNode.id]]);
+        }
+      }
+      setDrawingEdge(null);
+    }
+  }, [isPanning, draggingNodeId, drawingEdge, nodes, edgeList, zoom, pan]);
+
+  // Node drag start
+  const startNodeDrag = useCallback((nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    setDraggingNodeId(nodeId);
+    dragStart.current = { x: e.clientX, y: e.clientY, nodeTop: node.top, nodeLeft: node.left };
+  }, [nodes]);
+
+  // Edge draw start from right port
+  const startEdgeDraw = useCallback((nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    setDrawingEdge({ fromId: nodeId, toX: node.left + NODE_W + 10, toY: node.top + NODE_H / 2 });
+  }, [nodes]);
+
   const handleControlClick = useCallback((label: string) => {
+    if (label === "Zoom In") zoomIn();
+    if (label === "Zoom Out") zoomOut();
+    if (label === "Fit View") fitView();
     if (label === "Mini-map") setShowMinimap(p => !p);
     if (label === "Search") setShowSearch(p => !p);
   }, []);
 
-  // Keyboard shortcut: Ctrl+F for search
+  // Keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.ctrlKey && e.key === "f") { e.preventDefault(); setShowSearch(true); }
       if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedNodeId && document.activeElement === document.body) {
+          e.preventDefault();
+          setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
+          setEdgeList(prev => prev.filter(([f, t]) => f !== selectedNodeId && t !== selectedNodeId));
+          onCanvasClick();
+        }
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [selectedNodeId, onCanvasClick]);
 
   const CANVAS_W = 1200;
   const CANVAS_H = 600;
 
   return (
     <div
-      className="relative flex-1 overflow-auto bg-zinc-50"
+      ref={canvasRef}
+      className={cn("relative flex-1 overflow-hidden bg-zinc-50", isPanning && "cursor-grabbing")}
       onClick={() => { onCanvasClick(); setContextMenu(null); }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onWheel={handleWheel}
       style={{
         backgroundImage: "radial-gradient(circle, #e4e4e7 1px, transparent 1px)",
-        backgroundSize: "20px 20px",
+        backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+        backgroundPosition: `${pan.x}px ${pan.y}px`,
       }}
     >
+      {/* Transformed canvas layer */}
+      <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "0 0" }}>
+
       {/* SVG connections with animated execution flow */}
       <svg className="absolute inset-0 pointer-events-none" style={{ width: CANVAS_W, height: CANVAS_H }}>
         <defs>
@@ -516,7 +648,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
             <path d="M0,0 L0,6 L8,3 z" fill="#93c5fd" />
           </marker>
         </defs>
-        {connections.map(([fromId, toId]) => {
+        {edgeList.map(([fromId, toId]) => {
           const from = nodeMap[fromId];
           const to = nodeMap[toId];
           if (!from || !to) return null;
@@ -533,13 +665,11 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
                 strokeWidth={isSuccess || isRunning ? 2 : 1.5}
                 markerEnd={isSuccess ? "url(#arrow-green)" : isRunning ? "url(#arrow-blue)" : "url(#arrow)"}
               />
-              {/* Animated dot for running connections */}
               {isRunning && showOverlay && (
                 <circle r="3" fill="#3b82f6" opacity="0.8">
                   <animateMotion dur="1.5s" repeatCount="indefinite" path={pathD} />
                 </circle>
               )}
-              {/* Data flow dots for success connections */}
               {isSuccess && showOverlay && (
                 <circle r="2" fill="#22c55e" opacity="0.5">
                   <animateMotion dur="2s" repeatCount="indefinite" path={pathD} />
@@ -548,33 +678,37 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
             </g>
           );
         })}
+        {/* Drawing edge preview */}
+        {drawingEdge && (() => {
+          const from = nodeMap[drawingEdge.fromId];
+          if (!from) return null;
+          const x1 = from.left + NODE_W;
+          const y1 = from.top + NODE_H / 2;
+          const dx = (drawingEdge.toX - x1) * 0.5;
+          return (
+            <path
+              d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${drawingEdge.toX - dx} ${drawingEdge.toY}, ${drawingEdge.toX} ${drawingEdge.toY}`}
+              fill="none"
+              stroke="#a78bfa"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              opacity={0.7}
+            />
+          );
+        })()}
       </svg>
 
-      {/* Execution overlay bar */}
-      {showOverlay && <ExecutionOverlayBar execStates={execStates} nodes={canvasNodes} />}
-
-      {/* Canvas search */}
-      {showSearch && (
-        <CanvasSearch
-          query={searchQuery}
-          onChange={setSearchQuery}
-          results={searchResults}
-          onSelect={(id) => { onNodeSelect(id); setSearchQuery(""); }}
-          onClose={() => { setShowSearch(false); setSearchQuery(""); }}
-        />
-      )}
-
       {/* Sticky notes */}
-      {notes.map((note) => (
+      {stickyNotes.map((note) => (
         <CanvasStickyNote
           key={note.id}
           note={note}
-          onDelete={() => setNotes((prev) => prev.filter((n) => n.id !== note.id))}
+          onDelete={() => setStickyNotes((prev) => prev.filter((n) => n.id !== note.id))}
         />
       ))}
 
       {/* Node hover toolbar */}
-      {hoveredNodeId && !contextMenu && (
+      {hoveredNodeId && !contextMenu && !draggingNodeId && nodeMap[hoveredNodeId] && (
         <NodeToolbar
           node={nodeMap[hoveredNodeId]}
           execState={execStates[hoveredNodeId] ?? "idle"}
@@ -585,7 +719,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       )}
 
       {/* Nodes */}
-      {canvasNodes.map((node) => (
+      {nodes.map((node) => (
         <CanvasNode
           key={node.id}
           node={node}
@@ -598,10 +732,28 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           onContextMenu={(e) => handleContextMenu(node.id, e)}
           onMouseEnter={() => setHoveredNodeId(node.id)}
           onMouseLeave={() => setHoveredNodeId(null)}
+          onDragStart={(e) => startNodeDrag(node.id, e)}
+          onPortDragStart={(e) => startEdgeDraw(node.id, e)}
         />
       ))}
 
-      {/* Context menu */}
+      </div>{/* end transform layer */}
+
+      {/* Execution overlay bar (fixed position, not affected by zoom) */}
+      {showOverlay && <ExecutionOverlayBar execStates={execStates} nodes={nodes} />}
+
+      {/* Canvas search (fixed position) */}
+      {showSearch && (
+        <CanvasSearch
+          query={searchQuery}
+          onChange={setSearchQuery}
+          results={searchResults}
+          onSelect={(id) => { onNodeSelect(id); setSearchQuery(""); }}
+          onClose={() => { setShowSearch(false); setSearchQuery(""); }}
+        />
+      )}
+
+      {/* Context menu (fixed position) */}
       {contextMenu && (
         <NodeContextMenu
           x={contextMenu.x}
@@ -631,11 +783,17 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         ))}
       </div>
 
+      {/* Zoom indicator */}
+      <div className="absolute bottom-4 right-16 mr-2 rounded-md bg-white border border-zinc-200 px-2 py-0.5 text-[9px] font-mono text-zinc-400 shadow-sm">
+        {Math.round(zoom * 100)}%
+      </div>
+
       {/* Minimap */}
       {showMinimap && (
-        <div className="absolute bottom-4 right-16">
+        <div className="absolute bottom-4 right-28">
           <Minimap
-            nodes={canvasNodes}
+            nodes={nodes}
+            edges={edgeList}
             execStates={execStates}
             selectedNodeId={selectedNodeId}
             canvasW={CANVAS_W}
@@ -644,12 +802,12 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         </div>
       )}
 
-      {/* Bottom left: add note + toggle overlay */}
+      {/* Bottom left controls */}
       <div className="absolute bottom-4 left-4 flex items-center gap-2">
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setNotes((prev) => [
+            setStickyNotes((prev) => [
               ...prev,
               { id: `s${Date.now()}`, text: "", top: 350 + Math.random() * 60, left: 400 + Math.random() * 100, color: "#fef9c3" },
             ]);

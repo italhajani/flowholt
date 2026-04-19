@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { BookOpen, Terminal, FileText, MessageCircle, ExternalLink, Search, Sparkles, Video, Lightbulb, ChevronRight, ArrowRight, Send, HelpCircle, Zap, GraduationCap } from "lucide-react";
+import { BookOpen, Terminal, FileText, MessageCircle, ExternalLink, Search, Sparkles, Video, Lightbulb, ChevronRight, ArrowRight, Send, HelpCircle, Zap, GraduationCap, CheckCircle2, Rocket, Code, Shield, Database, Globe, Bot, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SHORTCUT_LIST } from "@/hooks/useGlobalShortcuts";
 import { cn } from "@/lib/utils";
 
 const helpCards = [
@@ -119,19 +120,81 @@ export function HelpPage() {
             </div>
           </div>
 
-          {/* Keyboard shortcuts */}
+          {/* Keyboard shortcuts — pulled from global shortcut registry */}
           <div>
             <h3 className="text-[12px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">
               Keyboard Shortcuts
             </h3>
             <div className="rounded-lg border border-zinc-100 bg-white overflow-hidden shadow-xs divide-y divide-zinc-50">
-              <ShortcutRow label="Command palette" keys={["⌘", "K"]} />
-              <ShortcutRow label="New workflow" keys={["⌘", "⇧", "N"]} />
-              <ShortcutRow label="Search" keys={["⌘", "/"]} />
-              <ShortcutRow label="Toggle sidebar" keys={["⌘", "B"]} />
-              <ShortcutRow label="Go to home" keys={["⌘", "⇧", "H"]} />
-              <ShortcutRow label="Open AI Copilot" keys={["⌘", "⇧", "C"]} />
-              <ShortcutRow label="Run workflow" keys={["⌘", "↵"]} />
+              {SHORTCUT_LIST.map((group) => (
+                <div key={group.category}>
+                  <div className="px-5 py-2 bg-zinc-50/50">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{group.category}</span>
+                  </div>
+                  {group.shortcuts.map((s) => (
+                    <ShortcutRow key={s.label} label={s.label} keys={s.keys} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Onboarding checklist */}
+          <div>
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
+              <Rocket size={13} />
+              Getting Started Checklist
+            </h3>
+            <div className="rounded-lg border border-zinc-100 bg-white overflow-hidden shadow-xs">
+              {[
+                { label: "Create your first workflow", done: true },
+                { label: "Add a credential to the vault", done: true },
+                { label: "Set up a webhook trigger", done: false },
+                { label: "Connect an AI agent", done: false },
+                { label: "Invite a team member", done: false },
+                { label: "Deploy to production", done: false },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-50 last:border-b-0">
+                  <div className={cn("h-4 w-4 rounded-full border flex items-center justify-center flex-shrink-0", item.done ? "bg-green-500 border-green-500" : "border-zinc-300")}>
+                    {item.done && <CheckCircle2 size={10} className="text-white" />}
+                  </div>
+                  <span className={cn("text-[12px]", item.done ? "text-zinc-400 line-through" : "text-zinc-700")}>{item.label}</span>
+                </div>
+              ))}
+              <div className="px-4 py-2 bg-zinc-50/50">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: "33%" }} />
+                  </div>
+                  <span className="text-[10px] text-zinc-400">2/6 complete</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* API Reference quick links */}
+          <div>
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
+              <Code size={13} />
+              API Reference
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Workflows", desc: "CRUD, execute, activate", icon: Globe },
+                { label: "Credentials", desc: "Create, test, rotate", icon: Shield },
+                { label: "Executions", desc: "List, retry, cancel", icon: Zap },
+                { label: "Webhooks", desc: "Register, test, delete", icon: Globe },
+                { label: "AI Agents", desc: "Config, tools, knowledge", icon: Bot },
+                { label: "Settings", desc: "Workspace, users, billing", icon: Settings },
+              ].map((api) => (
+                <button key={api.label} className="flex items-start gap-2 rounded-lg border border-zinc-100 bg-white px-3 py-2.5 text-left hover:bg-zinc-50 hover:border-zinc-200 transition-all">
+                  <api.icon size={12} className="text-zinc-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-[11px] font-medium text-zinc-700">{api.label}</p>
+                    <p className="text-[9px] text-zinc-400">{api.desc}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>

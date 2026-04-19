@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Minus, Maximize2, Map, CheckCircle2, XCircle,
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
+  Search, X, Play, Pause, Eye, Zap, ArrowRight, Pin,
+  ChevronRight, GitBranch, Clock, Hash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +17,12 @@ export interface CanvasNodeData {
   left: number;
 }
 
-export const familyColors: Record<string, { border: string; dot: string; accent: string }> = {
-  trigger:     { border: "border-l-green-500", dot: "bg-green-500", accent: "#22c55e" },
-  integration: { border: "border-l-zinc-400",  dot: "bg-zinc-400",  accent: "#a1a1aa" },
-  logic:       { border: "border-l-blue-500",  dot: "bg-blue-500",  accent: "#3b82f6" },
-  ai:          { border: "border-l-violet-600",dot: "bg-violet-600",accent: "#7c3aed" },
-  data:        { border: "border-l-teal-500",  dot: "bg-teal-500",  accent: "#14b8a6" },
+export const familyColors: Record<string, { border: string; dot: string; accent: string; bg: string }> = {
+  trigger:     { border: "border-l-green-500", dot: "bg-green-500", accent: "#22c55e", bg: "bg-green-50" },
+  integration: { border: "border-l-zinc-400",  dot: "bg-zinc-400",  accent: "#a1a1aa", bg: "bg-zinc-50" },
+  logic:       { border: "border-l-blue-500",  dot: "bg-blue-500",  accent: "#3b82f6", bg: "bg-blue-50" },
+  ai:          { border: "border-l-violet-600",dot: "bg-violet-600",accent: "#7c3aed", bg: "bg-violet-50" },
+  data:        { border: "border-l-teal-500",  dot: "bg-teal-500",  accent: "#14b8a6", bg: "bg-teal-50" },
 };
 
 export const canvasNodes: CanvasNodeData[] = [
@@ -35,6 +37,14 @@ export type NodeExecState = "idle" | "running" | "success" | "error" | "disabled
 
 const execStateDefaults: Record<string, NodeExecState> = {
   n1: "success", n2: "success", n3: "running", n4: "idle", n5: "idle",
+};
+
+const execTimings: Record<string, string> = {
+  n1: "24ms", n2: "340ms", n3: "1.2s", n4: "—", n5: "—",
+};
+
+const execItemCounts: Record<string, number> = {
+  n1: 45, n2: 45, n3: 42, n4: 0, n5: 0,
 };
 
 const NODE_W = 192;
@@ -92,29 +102,76 @@ function NodeExecBadge({ state }: { state: NodeExecState }) {
   );
 }
 
+/* ── Node hover toolbar ── */
+function NodeToolbar({ node, execState, onRun, onPin, onEdit }: {
+  node: CanvasNodeData; execState: NodeExecState;
+  onRun: () => void; onPin: () => void; onEdit: () => void;
+}) {
+  return (
+    <div
+      className="absolute z-20 flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-white shadow-lg px-1 py-0.5"
+      style={{ top: node.top - 32, left: node.left + NODE_W / 2 - 68 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button onClick={onRun} className="flex h-6 items-center gap-1 rounded-md px-1.5 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition-colors" title="Run from here">
+        <Play size={9} /> Run
+      </button>
+      <div className="w-px h-4 bg-zinc-100" />
+      <button onClick={onEdit} className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 transition-colors" title="Edit">
+        <Edit2 size={10} />
+      </button>
+      <button onClick={onPin} className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 transition-colors" title="Pin output">
+        <Pin size={10} />
+      </button>
+      <button className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 transition-colors" title="Copy">
+        <Copy size={10} />
+      </button>
+      <button className="flex h-6 w-6 items-center justify-center rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="Delete">
+        <Trash2 size={10} />
+      </button>
+    </div>
+  );
+}
+
 function CanvasNode({
   node,
   selected,
   execState,
+  hovered,
+  searchMatch,
+  showOverlay,
   onClick,
   onContextMenu,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   node: CanvasNodeData;
   selected: boolean;
   execState: NodeExecState;
+  hovered: boolean;
+  searchMatch: boolean;
+  showOverlay: boolean;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }) {
   const colors = familyColors[node.family];
   const isDisabled = execState === "disabled";
+  const items = execItemCounts[node.id] ?? 0;
+  const timing = execTimings[node.id] ?? "—";
+
   return (
     <div
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu(e); }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={cn(
-        "absolute w-48 rounded-lg border bg-white shadow-sm border-l-4 cursor-pointer transition-all duration-150 select-none",
+        "absolute w-48 rounded-lg border bg-white shadow-sm border-l-4 cursor-pointer transition-all duration-150 select-none group",
         colors.border,
         isDisabled && "opacity-40 grayscale",
+        searchMatch && "ring-2 ring-amber-400/50",
         selected
           ? "border-zinc-900 ring-2 ring-zinc-900/10 shadow-md"
           : "border-zinc-200 hover:shadow-md hover:border-zinc-300",
@@ -126,9 +183,9 @@ function CanvasNode({
     >
       <NodeExecBadge state={execState} />
       {/* Left port */}
-      <span className="absolute -left-[5px] top-1/2 -translate-y-1/2 h-[6px] w-[6px] rounded-full border-2 border-zinc-300 bg-white" />
+      <span className={cn("absolute -left-[5px] top-1/2 -translate-y-1/2 h-[6px] w-[6px] rounded-full border-2 bg-white transition-colors", hovered ? "border-zinc-500" : "border-zinc-300")} />
       {/* Right port */}
-      <span className="absolute -right-[5px] top-1/2 -translate-y-1/2 h-[6px] w-[6px] rounded-full border-2 border-zinc-300 bg-white" />
+      <span className={cn("absolute -right-[5px] top-1/2 -translate-y-1/2 h-[6px] w-[6px] rounded-full border-2 bg-white transition-colors", hovered ? "border-zinc-500" : "border-zinc-300")} />
 
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-2">
@@ -138,11 +195,17 @@ function CanvasNode({
         <p className="mt-0.5 pl-4 text-[11px] text-zinc-400">{node.subtitle}</p>
       </div>
 
-      {/* Execution timing badge */}
-      {execState === "success" && (
-        <span className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 rounded-full bg-white border border-zinc-200 px-1.5 py-0 text-[9px] font-medium text-zinc-500 shadow-sm whitespace-nowrap">
-          142ms
-        </span>
+      {/* Execution overlay: timing + item count */}
+      {showOverlay && execState !== "idle" && execState !== "disabled" && (
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-white border border-zinc-200 px-2 py-0.5 shadow-sm whitespace-nowrap">
+          <span className="flex items-center gap-0.5 text-[8px] text-zinc-500"><Clock size={7} />{timing}</span>
+          {items > 0 && (
+            <>
+              <span className="text-[8px] text-zinc-200">|</span>
+              <span className="flex items-center gap-0.5 text-[8px] text-zinc-500"><Hash size={7} />{items}</span>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
@@ -151,9 +214,10 @@ function CanvasNode({
 /* ─── Context menu ─── */
 const contextMenuItems = [
   { label: "Open / Edit",   icon: Edit2,          danger: false },
+  { label: "Run from here", icon: Play,           danger: false },
   { label: "Duplicate",     icon: Copy,           danger: false },
   { label: "Add sticky note", icon: StickyNote,   danger: false },
-  { label: "Pin output",    icon: Layers,         danger: false },
+  { label: "Pin output",    icon: Pin,            danger: false },
   { label: "View sub-flow", icon: CornerDownRight,danger: false },
   null,
   { label: "Delete",        icon: Trash2,         danger: true },
@@ -233,11 +297,151 @@ function CanvasStickyNote({ note, onDelete }: { note: StickyNoteData; onDelete: 
   );
 }
 
+/* ── Canvas Search Overlay ── */
+function CanvasSearch({ query, onChange, results, onSelect, onClose }: {
+  query: string;
+  onChange: (v: string) => void;
+  results: CanvasNodeData[];
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 w-72 rounded-xl border border-zinc-200 bg-white shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-100">
+        <Search size={13} className="text-zinc-400" />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Search nodes…"
+          className="flex-1 text-[12px] outline-none bg-transparent text-zinc-700 placeholder:text-zinc-300"
+          onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+        />
+        <button onClick={onClose} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>
+      </div>
+      {query && results.length > 0 && (
+        <div className="max-h-[200px] overflow-y-auto">
+          {results.map((node) => {
+            const colors = familyColors[node.family];
+            return (
+              <button
+                key={node.id}
+                onClick={() => { onSelect(node.id); onClose(); }}
+                className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-zinc-50 transition-colors"
+              >
+                <span className={cn("h-2 w-2 rounded-full flex-shrink-0", colors.dot)} />
+                <span className="text-[12px] text-zinc-700 flex-1 truncate">{node.name}</span>
+                <span className="text-[9px] text-zinc-300 font-medium uppercase">{node.family}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {query && results.length === 0 && (
+        <div className="px-3 py-3 text-[11px] text-zinc-400 text-center">No nodes found</div>
+      )}
+    </div>
+  );
+}
+
+/* ── Minimap ── */
+function Minimap({ nodes, execStates, selectedNodeId, canvasW, canvasH }: {
+  nodes: CanvasNodeData[];
+  execStates: Record<string, NodeExecState>;
+  selectedNodeId: string | null;
+  canvasW: number;
+  canvasH: number;
+}) {
+  const scale = 0.12;
+  const w = canvasW * scale;
+  const h = canvasH * scale;
+
+  return (
+    <div
+      className="rounded-lg border border-zinc-200 bg-white/90 shadow-sm overflow-hidden backdrop-blur-sm"
+      style={{ width: w + 16, height: h + 16 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <svg width={w + 16} height={h + 16} className="block">
+        {/* Connections */}
+        {connections.map(([fromId, toId]) => {
+          const from = nodes.find(n => n.id === fromId);
+          const to = nodes.find(n => n.id === toId);
+          if (!from || !to) return null;
+          const x1 = (from.left + NODE_W) * scale + 8;
+          const y1 = (from.top + NODE_H / 2) * scale + 8;
+          const x2 = to.left * scale + 8;
+          const y2 = (to.top + NODE_H / 2) * scale + 8;
+          return <line key={`${fromId}-${toId}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#d4d4d8" strokeWidth={0.5} />;
+        })}
+        {/* Nodes */}
+        {nodes.map((node) => {
+          const colors = familyColors[node.family];
+          const isSelected = selectedNodeId === node.id;
+          const state = execStates[node.id] ?? "idle";
+          return (
+            <rect
+              key={node.id}
+              x={node.left * scale + 8}
+              y={node.top * scale + 8}
+              width={NODE_W * scale}
+              height={NODE_H * scale}
+              rx={2}
+              fill={state === "success" ? "#bbf7d0" : state === "error" ? "#fecaca" : state === "running" ? "#bfdbfe" : "#f4f4f5"}
+              stroke={isSelected ? "#18181b" : colors.accent}
+              strokeWidth={isSelected ? 1.5 : 0.5}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/* ── Execution overlay bar ── */
+function ExecutionOverlayBar({ execStates, nodes }: { execStates: Record<string, NodeExecState>; nodes: CanvasNodeData[] }) {
+  const successCount = nodes.filter(n => execStates[n.id] === "success").length;
+  const runningCount = nodes.filter(n => execStates[n.id] === "running").length;
+  const errorCount = nodes.filter(n => execStates[n.id] === "error").length;
+  const total = nodes.length;
+
+  if (successCount === 0 && runningCount === 0 && errorCount === 0) return null;
+
+  return (
+    <div className="absolute top-3 right-3 z-20 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white/95 backdrop-blur-sm px-3 py-1.5 shadow-sm" onClick={(e) => e.stopPropagation()}>
+      <GitBranch size={11} className="text-zinc-400" />
+      <span className="text-[10px] font-medium text-zinc-600">Execution</span>
+      <div className="flex items-center gap-1.5 ml-1">
+        {successCount > 0 && (
+          <span className="flex items-center gap-0.5 rounded-full bg-green-50 border border-green-200 px-1.5 py-0.5 text-[8px] font-semibold text-green-600">
+            <CheckCircle2 size={8} /> {successCount}/{total}
+          </span>
+        )}
+        {runningCount > 0 && (
+          <span className="flex items-center gap-0.5 rounded-full bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[8px] font-semibold text-blue-600">
+            <Loader2 size={8} className="animate-spin" /> {runningCount}
+          </span>
+        )}
+        {errorCount > 0 && (
+          <span className="flex items-center gap-0.5 rounded-full bg-red-50 border border-red-200 px-1.5 py-0.5 text-[8px] font-semibold text-red-600">
+            <XCircle size={8} /> {errorCount}
+          </span>
+        )}
+      </div>
+      {/* Progress bar */}
+      <div className="w-16 h-1.5 rounded-full bg-zinc-100 overflow-hidden ml-1">
+        <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-500 transition-all" style={{ width: `${(successCount / total) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
 const controlButtons = [
   { icon: Plus,      label: "Zoom In" },
   { icon: Minus,     label: "Zoom Out" },
   { icon: Maximize2, label: "Fit View" },
   { icon: Map,       label: "Mini-map" },
+  { icon: Search,    label: "Search" },
 ];
 
 interface StudioCanvasProps {
@@ -251,10 +455,19 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(execStateDefaults);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [notes, setNotes] = useState<StickyNoteData[]>(initialNotes);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [showMinimap, setShowMinimap] = useState(true);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showOverlay, setShowOverlay] = useState(true);
 
-  function handleContextMenu(nodeId: string, e: React.MouseEvent) {
+  const searchResults = searchQuery
+    ? canvasNodes.filter(n => n.name.toLowerCase().includes(searchQuery.toLowerCase()) || n.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
+
+  const handleContextMenu = useCallback((nodeId: string, e: React.MouseEvent) => {
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
-  }
+  }, []);
 
   function toggleDisabled(nodeId: string) {
     setExecStates((prev) => ({
@@ -262,6 +475,24 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       [nodeId]: prev[nodeId] === "disabled" ? "idle" : "disabled",
     }));
   }
+
+  const handleControlClick = useCallback((label: string) => {
+    if (label === "Mini-map") setShowMinimap(p => !p);
+    if (label === "Search") setShowSearch(p => !p);
+  }, []);
+
+  // Keyboard shortcut: Ctrl+F for search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === "f") { e.preventDefault(); setShowSearch(true); }
+      if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const CANVAS_W = 1200;
+  const CANVAS_H = 600;
 
   return (
     <div
@@ -272,31 +503,66 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         backgroundSize: "20px 20px",
       }}
     >
-      {/* SVG connections */}
-      <svg className="absolute inset-0 pointer-events-none" style={{ width: 1200, height: 600 }}>
+      {/* SVG connections with animated execution flow */}
+      <svg className="absolute inset-0 pointer-events-none" style={{ width: CANVAS_W, height: CANVAS_H }}>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
             <path d="M0,0 L0,6 L8,3 z" fill="#d4d4d8" />
+          </marker>
+          <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#86efac" />
+          </marker>
+          <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#93c5fd" />
           </marker>
         </defs>
         {connections.map(([fromId, toId]) => {
           const from = nodeMap[fromId];
           const to = nodeMap[toId];
           if (!from || !to) return null;
-          const isFromSuccess = execStates[fromId] === "success";
+          const fromState = execStates[fromId];
+          const isSuccess = fromState === "success";
+          const isRunning = fromState === "running";
+          const pathD = getPath(from, to);
           return (
-            <path
-              key={`${fromId}-${toId}`}
-              d={getPath(from, to)}
-              fill="none"
-              stroke={isFromSuccess ? "#86efac" : "#d4d4d8"}
-              strokeWidth={1.5}
-              strokeDasharray={isFromSuccess ? "none" : "none"}
-              markerEnd="url(#arrow)"
-            />
+            <g key={`${fromId}-${toId}`}>
+              <path
+                d={pathD}
+                fill="none"
+                stroke={isSuccess ? "#86efac" : isRunning ? "#93c5fd" : "#d4d4d8"}
+                strokeWidth={isSuccess || isRunning ? 2 : 1.5}
+                markerEnd={isSuccess ? "url(#arrow-green)" : isRunning ? "url(#arrow-blue)" : "url(#arrow)"}
+              />
+              {/* Animated dot for running connections */}
+              {isRunning && showOverlay && (
+                <circle r="3" fill="#3b82f6" opacity="0.8">
+                  <animateMotion dur="1.5s" repeatCount="indefinite" path={pathD} />
+                </circle>
+              )}
+              {/* Data flow dots for success connections */}
+              {isSuccess && showOverlay && (
+                <circle r="2" fill="#22c55e" opacity="0.5">
+                  <animateMotion dur="2s" repeatCount="indefinite" path={pathD} />
+                </circle>
+              )}
+            </g>
           );
         })}
       </svg>
+
+      {/* Execution overlay bar */}
+      {showOverlay && <ExecutionOverlayBar execStates={execStates} nodes={canvasNodes} />}
+
+      {/* Canvas search */}
+      {showSearch && (
+        <CanvasSearch
+          query={searchQuery}
+          onChange={setSearchQuery}
+          results={searchResults}
+          onSelect={(id) => { onNodeSelect(id); setSearchQuery(""); }}
+          onClose={() => { setShowSearch(false); setSearchQuery(""); }}
+        />
+      )}
 
       {/* Sticky notes */}
       {notes.map((note) => (
@@ -307,6 +573,17 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         />
       ))}
 
+      {/* Node hover toolbar */}
+      {hoveredNodeId && !contextMenu && (
+        <NodeToolbar
+          node={nodeMap[hoveredNodeId]}
+          execState={execStates[hoveredNodeId] ?? "idle"}
+          onRun={() => {}}
+          onPin={() => {}}
+          onEdit={() => onNodeSelect(hoveredNodeId)}
+        />
+      )}
+
       {/* Nodes */}
       {canvasNodes.map((node) => (
         <CanvasNode
@@ -314,8 +591,13 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           node={node}
           selected={selectedNodeId === node.id}
           execState={execStates[node.id] ?? "idle"}
+          hovered={hoveredNodeId === node.id}
+          searchMatch={searchQuery ? searchResults.some(r => r.id === node.id) : false}
+          showOverlay={showOverlay}
           onClick={() => onNodeSelect(node.id)}
           onContextMenu={(e) => handleContextMenu(node.id, e)}
+          onMouseEnter={() => setHoveredNodeId(node.id)}
+          onMouseLeave={() => setHoveredNodeId(null)}
         />
       ))}
 
@@ -336,9 +618,12 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           <button
             key={label}
             title={label}
+            onClick={(e) => { e.stopPropagation(); handleControlClick(label); }}
             className={cn(
               "flex h-8 w-8 items-center justify-center text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 transition-colors",
-              i > 0 && "border-t border-zinc-100"
+              i > 0 && "border-t border-zinc-100",
+              label === "Mini-map" && showMinimap && "bg-zinc-100 text-zinc-700",
+              label === "Search" && showSearch && "bg-zinc-100 text-zinc-700",
             )}
           >
             <Icon size={14} />
@@ -346,23 +631,47 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         ))}
       </div>
 
-      {/* Add note button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setNotes((prev) => [
-            ...prev,
-            { id: `s${Date.now()}`, text: "", top: 350 + Math.random() * 60, left: 400 + Math.random() * 100, color: "#fef9c3" },
-          ]);
-        }}
-        title="Add sticky note"
-        className="absolute bottom-4 left-4 flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-medium text-zinc-500 shadow-sm hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
-      >
-        <StickyNote size={12} />
-        Add note
-      </button>
+      {/* Minimap */}
+      {showMinimap && (
+        <div className="absolute bottom-4 right-16">
+          <Minimap
+            nodes={canvasNodes}
+            execStates={execStates}
+            selectedNodeId={selectedNodeId}
+            canvasW={CANVAS_W}
+            canvasH={CANVAS_H}
+          />
+        </div>
+      )}
+
+      {/* Bottom left: add note + toggle overlay */}
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setNotes((prev) => [
+              ...prev,
+              { id: `s${Date.now()}`, text: "", top: 350 + Math.random() * 60, left: 400 + Math.random() * 100, color: "#fef9c3" },
+            ]);
+          }}
+          title="Add sticky note"
+          className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-medium text-zinc-500 shadow-sm hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
+        >
+          <StickyNote size={12} />
+          Add note
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowOverlay(p => !p); }}
+          title="Toggle execution overlay"
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-medium shadow-sm transition-colors",
+            showOverlay ? "text-green-600 hover:bg-green-50" : "text-zinc-400 hover:bg-zinc-50"
+          )}
+        >
+          <Eye size={12} />
+          {showOverlay ? "Overlay on" : "Overlay off"}
+        </button>
+      </div>
     </div>
   );
 }
-
-

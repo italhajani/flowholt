@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, GitBranch, Play, Pause, Trash2, Tag, Clock, User, Pencil,
-  Folder, FolderOpen, ChevronRight, MoreHorizontal,
+  Folder, FolderOpen, ChevronRight, MoreHorizontal, FolderPlus, X, Check,
+  GripVertical, ChevronDown, Upload,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CreateWorkflowModal } from "@/components/modals/CreateWorkflowModal";
+import { ImportWorkflowModal } from "@/components/modals/ImportExportWorkflowModals";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
@@ -36,16 +38,224 @@ const mockWorkflows: Workflow[] = [
   { id: "wf-7", name: "PR Review Notifier", status: "active", tags: ["DevOps"], lastRun: "30 min ago", created: "Jan 22", owner: "Team", folder: "DevOps" },
 ];
 
-/* ── Folders ── */
-const folders = [
-  { id: "all",              label: "All Workflows", count: mockWorkflows.length },
-  { id: "Sales Automation", label: "Sales Automation", count: mockWorkflows.filter((w) => w.folder === "Sales Automation").length },
-  { id: "Internal Tools",   label: "Internal Tools", count: mockWorkflows.filter((w) => w.folder === "Internal Tools").length },
-  { id: "Reporting",        label: "Reporting", count: mockWorkflows.filter((w) => w.folder === "Reporting").length },
-  { id: "Operations",       label: "Operations", count: mockWorkflows.filter((w) => w.folder === "Operations").length },
-  { id: "Finance",          label: "Finance", count: mockWorkflows.filter((w) => w.folder === "Finance").length },
-  { id: "DevOps",           label: "DevOps", count: mockWorkflows.filter((w) => w.folder === "DevOps").length },
+/* ── Tag management ── */
+interface TagDef {
+  name: string;
+  color: string;
+}
+
+const tagColors = [
+  "bg-blue-100 text-blue-700", "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700", "bg-red-100 text-red-700",
+  "bg-purple-100 text-purple-700", "bg-pink-100 text-pink-700",
+  "bg-cyan-100 text-cyan-700", "bg-orange-100 text-orange-700",
 ];
+
+const defaultTags: TagDef[] = [
+  { name: "Sales", color: tagColors[0] },
+  { name: "AI", color: tagColors[4] },
+  { name: "Internal", color: tagColors[6] },
+  { name: "Reporting", color: tagColors[2] },
+  { name: "CRM", color: tagColors[1] },
+  { name: "Ops", color: tagColors[3] },
+  { name: "Finance", color: tagColors[7] },
+  { name: "DevOps", color: tagColors[5] },
+];
+
+function TagBadge({ tag, tags }: { tag: string; tags: TagDef[] }) {
+  const def = tags.find((t) => t.name === tag);
+  return (
+    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium", def?.color ?? "bg-zinc-100 text-zinc-600")}>
+      {tag}
+    </span>
+  );
+}
+
+function TagFilterDropdown({
+  allTags, activeTags, toggle, onCreateTag,
+}: {
+  allTags: TagDef[]; activeTags: Set<string>;
+  toggle: (name: string) => void; onCreateTag: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [newTag, setNewTag] = useState("");
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-all",
+          activeTags.size > 0 ? "bg-blue-50 text-blue-700" : "text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700"
+        )}
+      >
+        <Tag size={11} />
+        Tags{activeTags.size > 0 && ` (${activeTags.size})`}
+        <ChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 w-56 rounded-lg border border-zinc-200 bg-white shadow-lg p-2">
+          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider px-1 mb-1">Filter by tag</p>
+          <div className="max-h-40 overflow-y-auto space-y-0.5">
+            {allTags.map((t) => (
+              <button
+                key={t.name}
+                onClick={() => toggle(t.name)}
+                className="flex w-full items-center gap-2 rounded px-2 py-1 text-[11px] hover:bg-zinc-50 transition-colors"
+              >
+                <span className={cn("h-3 w-3 rounded border-2 flex items-center justify-center", activeTags.has(t.name) ? "border-blue-500 bg-blue-500" : "border-zinc-300")}>
+                  {activeTags.has(t.name) && <Check size={8} className="text-white" />}
+                </span>
+                <span className={cn("rounded-full px-1.5 py-0.5 text-[10px]", t.color)}>{t.name}</span>
+                <span className="ml-auto text-[10px] text-zinc-300">
+                  {mockWorkflows.filter((w) => w.tags.includes(t.name)).length}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 border-t border-zinc-100 pt-2">
+            <div className="flex items-center gap-1 px-1">
+              <input
+                className="flex-1 rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[11px] outline-none focus:border-blue-400"
+                placeholder="New tag…"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newTag.trim()) { onCreateTag(newTag.trim()); setNewTag(""); }
+                }}
+              />
+              <button
+                onClick={() => { if (newTag.trim()) { onCreateTag(newTag.trim()); setNewTag(""); } }}
+                className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-600 hover:bg-zinc-200"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+          {activeTags.size > 0 && (
+            <button
+              onClick={() => { activeTags.forEach((t) => toggle(t)); }}
+              className="mt-1 w-full text-center text-[10px] text-zinc-400 hover:text-zinc-600"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Folders (nested tree) ── */
+interface FolderNode {
+  id: string;
+  label: string;
+  children?: FolderNode[];
+}
+
+const folderTree: FolderNode[] = [
+  {
+    id: "Sales Automation",
+    label: "Sales Automation",
+    children: [
+      { id: "Sales Automation/Leads", label: "Leads" },
+      { id: "Sales Automation/Onboarding", label: "Onboarding" },
+    ],
+  },
+  { id: "Internal Tools", label: "Internal Tools" },
+  {
+    id: "Reporting",
+    label: "Reporting",
+    children: [
+      { id: "Reporting/Daily", label: "Daily" },
+      { id: "Reporting/Weekly", label: "Weekly" },
+    ],
+  },
+  { id: "Operations", label: "Operations" },
+  { id: "Finance", label: "Finance" },
+  { id: "DevOps", label: "DevOps" },
+];
+
+function countInFolder(folderId: string): number {
+  return mockWorkflows.filter((w) => w.folder === folderId || w.folder.startsWith(folderId + "/")).length;
+}
+
+/* Folder tree item component */
+function FolderTreeItem({
+  node, depth, activeFolder, setActiveFolder, expandedFolders, toggleExpanded,
+}: {
+  node: FolderNode; depth: number; activeFolder: string;
+  setActiveFolder: (id: string) => void;
+  expandedFolders: Set<string>; toggleExpanded: (id: string) => void;
+}) {
+  const isActive = activeFolder === node.id;
+  const hasChildren = node.children && node.children.length > 0;
+  const isExpanded = expandedFolders.has(node.id);
+  const count = countInFolder(node.id);
+  const [showMenu, setShowMenu] = useState(false);
+
+  return (
+    <>
+      <div
+        className={cn(
+          "group flex w-full items-center justify-between rounded-md py-1.5 text-[12px] font-medium transition-all duration-100 cursor-pointer",
+          isActive
+            ? "bg-white text-zinc-900 shadow-xs border border-zinc-200"
+            : "text-zinc-500 hover:bg-white/70 hover:text-zinc-800"
+        )}
+        style={{ paddingLeft: `${10 + depth * 16}px`, paddingRight: 8 }}
+        onClick={() => setActiveFolder(node.id)}
+      >
+        <span className="flex items-center gap-1.5 min-w-0 flex-1">
+          {hasChildren ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleExpanded(node.id); }}
+              className="p-0.5 rounded hover:bg-zinc-200/50 transition-colors"
+            >
+              <ChevronRight size={11} className={cn("text-zinc-400 transition-transform", isExpanded && "rotate-90")} />
+            </button>
+          ) : (
+            <span className="w-[15px]" />
+          )}
+          {isActive
+            ? <FolderOpen size={13} className="text-zinc-400 flex-shrink-0" />
+            : <Folder size={13} className="text-zinc-300 flex-shrink-0" />
+          }
+          <span className="truncate">{node.label}</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className={cn("text-[11px] tabular-nums", isActive ? "text-zinc-600" : "text-zinc-300")}>{count}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-200/50 transition-all"
+          >
+            <MoreHorizontal size={11} className="text-zinc-400" />
+          </button>
+        </span>
+      </div>
+      {showMenu && (
+        <div className="ml-10 mb-1 rounded-md border border-zinc-200 bg-white shadow-lg p-1 text-[11px]">
+          <button className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-zinc-600 hover:bg-zinc-50" onClick={() => setShowMenu(false)}>
+            <Pencil size={10} /> Rename
+          </button>
+          <button className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-zinc-600 hover:bg-zinc-50" onClick={() => setShowMenu(false)}>
+            <FolderPlus size={10} /> Add subfolder
+          </button>
+          <button className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-red-500 hover:bg-red-50" onClick={() => setShowMenu(false)}>
+            <Trash2 size={10} /> Delete
+          </button>
+        </div>
+      )}
+      {hasChildren && isExpanded && node.children!.map((child) => (
+        <FolderTreeItem
+          key={child.id} node={child} depth={depth + 1}
+          activeFolder={activeFolder} setActiveFolder={setActiveFolder}
+          expandedFolders={expandedFolders} toggleExpanded={toggleExpanded}
+        />
+      ))}
+    </>
+  );
+}
 
 const columns: Column<Workflow>[] = [
   {
@@ -72,7 +282,7 @@ const columns: Column<Workflow>[] = [
     accessor: (row) => (
       <div className="flex items-center gap-1">
         {row.tags.map((t) => (
-          <Badge key={t} variant="neutral">{t}</Badge>
+          <TagBadge key={t} tag={t} tags={defaultTags} />
         ))}
       </div>
     ),
@@ -135,10 +345,39 @@ export function WorkflowsPage() {
   const [activeFolder, setActiveFolder] = useState("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["Sales Automation", "Reporting"]));
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [allTags, setAllTags] = useState<TagDef[]>(defaultTags);
+
+  const toggleTag = (name: string) => {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+  };
+
+  const createTag = (name: string) => {
+    if (!allTags.find((t) => t.name === name)) {
+      setAllTags((prev) => [...prev, { name, color: tagColors[prev.length % tagColors.length] }]);
+    }
+  };
+
+  const toggleExpanded = (id: string) => {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const filtered = mockWorkflows.filter((w) => {
-    if (activeFolder !== "all" && w.folder !== activeFolder) return false;
+    if (activeFolder !== "all" && w.folder !== activeFolder && !w.folder.startsWith(activeFolder + "/")) return false;
     if (activeFilter !== "All" && w.status !== activeFilter.toLowerCase()) return false;
+    if (activeTags.size > 0 && !w.tags.some((t) => activeTags.has(t))) return false;
     if (search && !w.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -146,44 +385,74 @@ export function WorkflowsPage() {
   return (
     <div className="flex h-full">
       {/* ── Folder sidebar ── */}
-      <aside className="w-52 flex-shrink-0 border-r border-zinc-100 bg-zinc-50/50 px-3 py-6">
+      <aside className="w-52 flex-shrink-0 border-r border-zinc-100 bg-zinc-50/50 px-3 py-6 overflow-y-auto">
         <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
           Folders
         </p>
         <div className="space-y-0.5">
-          {folders.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setActiveFolder(f.id)}
-              className={cn(
-                "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-all duration-100",
-                activeFolder === f.id
-                  ? "bg-white text-zinc-900 shadow-xs border border-zinc-200"
-                  : "text-zinc-500 hover:bg-white/70 hover:text-zinc-800"
-              )}
-            >
-              <span className="flex items-center gap-1.5">
-                {activeFolder === f.id
-                  ? <FolderOpen size={13} className="text-zinc-400" />
-                  : <Folder size={13} className="text-zinc-300" />
-                }
-                {f.label}
-              </span>
-              <span className={cn(
-                "text-[11px] tabular-nums",
-                activeFolder === f.id ? "text-zinc-600" : "text-zinc-300"
-              )}>
-                {f.count}
-              </span>
-            </button>
+          {/* All Workflows */}
+          <button
+            onClick={() => setActiveFolder("all")}
+            className={cn(
+              "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-all duration-100",
+              activeFolder === "all"
+                ? "bg-white text-zinc-900 shadow-xs border border-zinc-200"
+                : "text-zinc-500 hover:bg-white/70 hover:text-zinc-800"
+            )}
+          >
+            <span className="flex items-center gap-1.5">
+              {activeFolder === "all"
+                ? <FolderOpen size={13} className="text-zinc-400" />
+                : <Folder size={13} className="text-zinc-300" />
+              }
+              All Workflows
+            </span>
+            <span className={cn("text-[11px] tabular-nums", activeFolder === "all" ? "text-zinc-600" : "text-zinc-300")}>
+              {mockWorkflows.length}
+            </span>
+          </button>
+
+          {/* Tree folders */}
+          {folderTree.map((node) => (
+            <FolderTreeItem
+              key={node.id} node={node} depth={0}
+              activeFolder={activeFolder} setActiveFolder={setActiveFolder}
+              expandedFolders={expandedFolders} toggleExpanded={toggleExpanded}
+            />
           ))}
         </div>
 
-        {/* New folder button */}
-        <button className="mt-4 flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600">
-          <Plus size={12} />
-          New Folder
-        </button>
+        {/* Create folder inline */}
+        {creatingFolder ? (
+          <div className="mt-3 flex items-center gap-1 px-1">
+            <FolderPlus size={12} className="text-zinc-400 flex-shrink-0" />
+            <input
+              autoFocus
+              className="flex-1 rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[11px] text-zinc-700 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newFolderName.trim()) setCreatingFolder(false);
+                if (e.key === "Escape") { setCreatingFolder(false); setNewFolderName(""); }
+              }}
+              placeholder="Folder name…"
+            />
+            <button onClick={() => setCreatingFolder(false)} className="p-0.5 rounded hover:bg-zinc-100">
+              <Check size={11} className="text-emerald-500" />
+            </button>
+            <button onClick={() => { setCreatingFolder(false); setNewFolderName(""); }} className="p-0.5 rounded hover:bg-zinc-100">
+              <X size={11} className="text-zinc-400" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setCreatingFolder(true)}
+            className="mt-4 flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+          >
+            <Plus size={12} />
+            New Folder
+          </button>
+        )}
       </aside>
 
       {/* ── Main content ── */}
@@ -192,10 +461,15 @@ export function WorkflowsPage() {
           title="Workflows"
           description="Automate processes across your systems."
           actions={
-            <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
-              <Plus size={14} strokeWidth={2.5} />
-              New Workflow
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowImport(true)}>
+                <Upload size={13} /> Import
+              </Button>
+              <Button variant="primary" size="md" onClick={() => setShowCreate(true)}>
+                <Plus size={14} strokeWidth={2.5} />
+                New Workflow
+              </Button>
+            </div>
           }
         />
 
@@ -232,6 +506,7 @@ export function WorkflowsPage() {
               </button>
             ))}
           </div>
+          <TagFilterDropdown allTags={allTags} activeTags={activeTags} toggle={toggleTag} onCreateTag={createTag} />
           <span className="ml-auto text-[12px] text-zinc-400">
             {filtered.length} workflow{filtered.length !== 1 ? "s" : ""}
           </span>
@@ -280,6 +555,7 @@ export function WorkflowsPage() {
         </div>
 
         <CreateWorkflowModal open={showCreate} onClose={() => setShowCreate(false)} />
+        <ImportWorkflowModal open={showImport} onClose={() => setShowImport(false)} />
       </div>
     </div>
   );

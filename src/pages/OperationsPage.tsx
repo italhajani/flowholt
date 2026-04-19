@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Search, HeartPulse, Clock, AlertTriangle, Users, GitBranch, XCircle, FileText, Bell, BarChart3, RefreshCw } from "lucide-react";
+import { Activity, Search, HeartPulse, Clock, AlertTriangle, Users, GitBranch, XCircle, FileText, Bell, BarChart3, RefreshCw, Download, ChevronDown, ChevronRight, Filter } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,12 @@ const mockAudit: AuditEvent[] = [
   { id: "au4", actor: "Gouhar Ali", action: "Invited member", target: "alex@flowholt.com", timestamp: "3 hrs ago", category: "settings" },
   { id: "au5", actor: "Alex Kim", action: "Login from new device", target: "Chrome / Windows", timestamp: "5 hrs ago", category: "auth" },
   { id: "au6", actor: "System", action: "Connection health check failed", target: "Stripe API", timestamp: "1 day ago", category: "vault" },
+  { id: "au7", actor: "Gouhar Ali", action: "Deployed workflow", target: "Customer Onboarding v3", timestamp: "1 day ago", category: "workflow" },
+  { id: "au8", actor: "Sarah Chen", action: "Changed workspace name", target: "FlowHolt Production", timestamp: "2 days ago", category: "settings" },
+  { id: "au9", actor: "System", action: "API key revoked (expired)", target: "fh_key_****3f9a", timestamp: "2 days ago", category: "auth" },
+  { id: "au10", actor: "Alex Kim", action: "Created credential", target: "Slack Bot Token", timestamp: "3 days ago", category: "vault" },
+  { id: "au11", actor: "Gouhar Ali", action: "Enabled 2FA", target: "gouhar@flowholt.com", timestamp: "3 days ago", category: "auth" },
+  { id: "au12", actor: "System", action: "Workflow execution limit reached", target: "Bulk Import Pipeline", timestamp: "4 days ago", category: "workflow" },
 ];
 
 /* ── Column defs ── */
@@ -357,14 +363,7 @@ export function OperationsPage() {
           </div>
         )}
 
-        {activeTab === "audit" && (
-          <DataTable
-            columns={auditColumns}
-            data={mockAudit.filter((e) => !search || e.actor.toLowerCase().includes(search.toLowerCase()) || e.target.toLowerCase().includes(search.toLowerCase()))}
-            getRowId={(e) => e.id}
-            emptyState={<EmptyState icon={<FileText size={32} strokeWidth={1.25} />} title="No audit events" description="Activity will be logged here." />}
-          />
-        )}
+        {activeTab === "audit" && <AuditTab search={search} />}
 
         {activeTab === "alerts" && (
           <div className="space-y-2">
@@ -393,6 +392,116 @@ export function OperationsPage() {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Enhanced Audit Tab ── */
+const auditCategories = ["all", "workflow", "vault", "settings", "auth"] as const;
+
+function AuditTab({ search }: { search: string }) {
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const filtered = mockAudit.filter(e => {
+    if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
+    if (search && !e.actor.toLowerCase().includes(search.toLowerCase()) && !e.target.toLowerCase().includes(search.toLowerCase()) && !e.action.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const handleExport = () => {
+    const csv = ["Actor,Action,Target,Category,Timestamp"]
+      .concat(filtered.map(e => `"${e.actor}","${e.action}","${e.target}","${e.category}","${e.timestamp}"`))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "audit-log.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Filters bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <Filter size={11} className="text-zinc-400 mr-1" />
+          {auditCategories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[10px] font-medium capitalize transition-colors",
+                categoryFilter === cat ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              )}
+            >
+              {cat === "all" ? "All" : cat}
+            </button>
+          ))}
+        </div>
+        <Button variant="secondary" size="sm" onClick={handleExport} className="text-[11px]">
+          <Download size={11} /> Export CSV
+        </Button>
+      </div>
+
+      {/* Event list */}
+      <div className="space-y-1">
+        {filtered.length === 0 ? (
+          <EmptyState icon={<FileText size={32} strokeWidth={1.25} />} title="No audit events" description="No events match your current filter." />
+        ) : filtered.map(event => {
+          const isExpanded = expandedId === event.id;
+          return (
+            <div key={event.id} className="rounded-lg border border-zinc-100 bg-white overflow-hidden">
+              <button
+                onClick={() => setExpandedId(isExpanded ? null : event.id)}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-zinc-50/50 transition-colors"
+              >
+                {isExpanded ? <ChevronDown size={10} className="text-zinc-400" /> : <ChevronRight size={10} className="text-zinc-400" />}
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[9px] font-medium text-zinc-600 flex-shrink-0">
+                  {event.actor.charAt(0)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[12px] text-zinc-700">
+                    <strong className="font-medium">{event.actor}</strong>
+                    {" "}<span className="text-zinc-500">{event.action}</span>
+                    {" "}<strong className="font-medium">{event.target}</strong>
+                  </span>
+                </div>
+                <span className={cn("inline-flex px-2 py-0.5 rounded text-[9px] font-medium capitalize", auditCategoryColors[event.category])}>
+                  {event.category}
+                </span>
+                <span className="text-[11px] text-zinc-400 flex-shrink-0">{event.timestamp}</span>
+              </button>
+              {isExpanded && (
+                <div className="px-4 pb-3 pt-0 ml-[52px] border-t border-zinc-50">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11px] mt-2">
+                    <div className="text-zinc-400">Event ID</div>
+                    <div className="text-zinc-600 font-mono">{event.id}</div>
+                    <div className="text-zinc-400">Actor</div>
+                    <div className="text-zinc-600">{event.actor}</div>
+                    <div className="text-zinc-400">Action</div>
+                    <div className="text-zinc-600">{event.action}</div>
+                    <div className="text-zinc-400">Target</div>
+                    <div className="text-zinc-600">{event.target}</div>
+                    <div className="text-zinc-400">Category</div>
+                    <div className="text-zinc-600 capitalize">{event.category}</div>
+                    <div className="text-zinc-400">IP Address</div>
+                    <div className="text-zinc-600 font-mono">192.168.1.{Math.floor(Math.random() * 255)}</div>
+                    <div className="text-zinc-400">User Agent</div>
+                    <div className="text-zinc-600 text-[10px] truncate">Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="text-center text-[10px] text-zinc-400 pt-2">
+        Showing {filtered.length} of {mockAudit.length} events
       </div>
     </div>
   );

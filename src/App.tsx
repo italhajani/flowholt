@@ -26,6 +26,8 @@ import { RuntimeSettings } from "@/pages/settings/RuntimeSettings";
 import { IntegrationsSettings } from "@/pages/settings/IntegrationsSettings";
 import { DomainsSettings } from "@/pages/settings/DomainsSettings";
 import { SecuritySettings } from "@/pages/settings/SecuritySettings";
+import { SourceControlSettings } from "@/pages/settings/SourceControlSettings";
+import { CommunityNodesSettings } from "@/pages/settings/CommunityNodesSettings";
 import { BillingSettings } from "@/pages/settings/BillingSettings";
 import { WorkflowDetailPage } from "@/pages/detail/WorkflowDetailPage";
 import { CredentialDetailPage } from "@/pages/detail/CredentialDetailPage";
@@ -47,10 +49,12 @@ import { CommandPalette } from "@/components/ui/command-palette";
 import { ToastProvider } from "@/components/ui/toast";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 export function App() {
   return (
     <ThemeProvider>
+    <ErrorBoundary scope="Application Root">
     <HashRouter>
       <ToastProvider>
         <ConfirmProvider>
@@ -110,6 +114,8 @@ export function App() {
                 <Route path="workspace/integrations" element={<IntegrationsSettings />} />
                 <Route path="workspace/domains" element={<DomainsSettings />} />
                 <Route path="workspace/security" element={<SecuritySettings />} />
+                <Route path="workspace/source-control" element={<SourceControlSettings />} />
+                <Route path="workspace/community-nodes" element={<CommunityNodesSettings />} />
                 <Route path="workspace/billing" element={<BillingSettings />} />
               </Route>
             </Route>
@@ -120,6 +126,7 @@ export function App() {
         </ConfirmProvider>
       </ToastProvider>
     </HashRouter>
+    </ErrorBoundary>
     </ThemeProvider>
   );
 }

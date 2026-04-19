@@ -186,6 +186,42 @@ const sparklineData = [
   { h: "18", s: 18, f: 0 }, { h: "20", s: 14, f: 1 }, { h: "22", s: 9, f: 0 },
 ];
 
+/* Weekly success rate trend data */
+const weeklyTrend = [
+  { day: "Mon", rate: 96, executions: 142 },
+  { day: "Tue", rate: 94, executions: 168 },
+  { day: "Wed", rate: 98, executions: 155 },
+  { day: "Thu", rate: 91, executions: 189 },
+  { day: "Fri", rate: 97, executions: 174 },
+  { day: "Sat", rate: 99, executions: 63 },
+  { day: "Sun", rate: 100, executions: 41 },
+];
+
+/* Duration distribution buckets */
+const durationBuckets = [
+  { label: "<1s", count: 38, pct: 28 },
+  { label: "1-5s", count: 52, pct: 38 },
+  { label: "5-10s", count: 24, pct: 18 },
+  { label: "10-30s", count: 14, pct: 10 },
+  { label: "30s+", count: 8, pct: 6 },
+];
+
+/* Top failing workflows */
+const topFailing = [
+  { name: "Customer Onboarding Flow", failures: 12, total: 89, rate: 13.5 },
+  { name: "Error Alert Handler", failures: 8, total: 156, rate: 5.1 },
+  { name: "Invoice Processing Pipeline", failures: 5, total: 74, rate: 6.8 },
+  { name: "Data Sync Pipeline", failures: 3, total: 45, rate: 6.7 },
+];
+
+/* Token/Cost breakdown */
+const costBreakdown = [
+  { workflow: "Lead Qualification Pipeline", tokens: 48200, cost: 1.24, runs: 312 },
+  { workflow: "Email Campaign Automation", tokens: 31400, cost: 0.81, runs: 98 },
+  { workflow: "Customer Onboarding Flow", tokens: 22100, cost: 0.57, runs: 89 },
+  { workflow: "Daily Report Generator", tokens: 18600, cost: 0.48, runs: 42 },
+];
+
 function ExecutionSparkline() {
   const maxVal = Math.max(...sparklineData.map((d) => d.s + d.f));
   return (
@@ -214,6 +250,112 @@ function ExecutionSparkline() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function InsightsDashboard() {
+  const [insightsExpanded, setInsightsExpanded] = useState(false);
+  const totalTokens = costBreakdown.reduce((s, c) => s + c.tokens, 0);
+  const totalCost = costBreakdown.reduce((s, c) => s + c.cost, 0);
+
+  return (
+    <div className="rounded-lg border border-zinc-100 bg-white shadow-xs overflow-hidden">
+      <button
+        onClick={() => setInsightsExpanded(!insightsExpanded)}
+        className="flex w-full items-center justify-between px-4 py-3 hover:bg-zinc-50/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <BarChart3 size={14} className="text-zinc-400" />
+          <span className="text-[12px] font-semibold text-zinc-700">Execution Insights</span>
+          <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] font-semibold text-blue-600">7d</span>
+        </div>
+        <ChevronDown size={13} className={cn("text-zinc-400 transition-transform", insightsExpanded && "rotate-180")} />
+      </button>
+
+      {insightsExpanded && (
+        <div className="border-t border-zinc-100 p-4 space-y-5">
+          {/* Row 1: Success Rate Trend + Duration Distribution */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Success rate trend */}
+            <div>
+              <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">Success Rate Trend</p>
+              <div className="flex items-end gap-2 h-[80px]">
+                {weeklyTrend.map((d) => (
+                  <div key={d.day} className="flex-1 flex flex-col items-center">
+                    <div className="w-full flex flex-col items-stretch" style={{ height: 60 }}>
+                      <div className="flex-1" />
+                      <div
+                        className={cn(
+                          "w-full rounded-t-sm transition-all",
+                          d.rate >= 97 ? "bg-emerald-400" : d.rate >= 93 ? "bg-amber-400" : "bg-red-400"
+                        )}
+                        style={{ height: `${(d.rate / 100) * 60}px` }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-zinc-400 mt-1">{d.day}</span>
+                    <span className="text-[8px] font-mono text-zinc-300">{d.rate}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Duration distribution */}
+            <div>
+              <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-3">Duration Distribution</p>
+              <div className="space-y-1.5">
+                {durationBuckets.map((b) => (
+                  <div key={b.label} className="flex items-center gap-2">
+                    <span className="text-[10px] text-zinc-500 w-10 text-right font-mono">{b.label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-zinc-100 overflow-hidden">
+                      <div className="h-full rounded-full bg-blue-400" style={{ width: `${b.pct}%` }} />
+                    </div>
+                    <span className="text-[10px] text-zinc-400 w-8 font-mono">{b.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Top Failing + Cost Breakdown */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Top failing workflows */}
+            <div>
+              <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">Top Failing Workflows</p>
+              <div className="space-y-1">
+                {topFailing.map((wf) => (
+                  <div key={wf.name} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-zinc-50 transition-colors">
+                    <XCircle size={11} className="text-red-400 flex-shrink-0" />
+                    <span className="text-[11px] text-zinc-700 flex-1 truncate">{wf.name}</span>
+                    <span className="text-[10px] font-mono text-red-500">{wf.failures}</span>
+                    <span className="text-[9px] text-zinc-300">/</span>
+                    <span className="text-[10px] font-mono text-zinc-400">{wf.total}</span>
+                    <span className="text-[9px] font-mono text-zinc-400">({wf.rate}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Token & cost breakdown */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">AI Cost Breakdown</p>
+                <span className="text-[10px] font-mono text-zinc-500">{totalTokens.toLocaleString()} tok · ${totalCost.toFixed(2)}</span>
+              </div>
+              <div className="space-y-1">
+                {costBreakdown.map((wf) => (
+                  <div key={wf.workflow} className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-zinc-50 transition-colors">
+                    <Zap size={11} className="text-amber-400 flex-shrink-0" />
+                    <span className="text-[11px] text-zinc-700 flex-1 truncate">{wf.workflow}</span>
+                    <span className="text-[10px] font-mono text-zinc-500">{(wf.tokens / 1000).toFixed(1)}k</span>
+                    <span className="text-[10px] font-mono text-amber-600">${wf.cost.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -290,6 +432,11 @@ export function ExecutionsPage() {
       {/* Sparkline chart */}
       <div className="mt-4">
         <ExecutionSparkline />
+      </div>
+
+      {/* Insights dashboard (collapsible) */}
+      <div className="mt-3">
+        <InsightsDashboard />
       </div>
 
       {/* Filter + search + date range */}

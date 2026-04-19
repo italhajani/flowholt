@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Palette, Bell, Key, Building2, Sliders, Users, Zap, Globe, CreditCard, Shield } from "lucide-react";
+import { ArrowLeft, User, Palette, Bell, Key, Building2, Sliders, Users, Zap, Globe, CreditCard, Shield, GitBranch, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavSection {
@@ -29,6 +29,8 @@ const workspaceSections: NavSection[] = [
       { to: "/settings/workspace/integrations", label: "Integrations", icon: Zap },
       { to: "/settings/workspace/domains", label: "Domains", icon: Globe },
       { to: "/settings/workspace/security", label: "Security", icon: Shield },
+      { to: "/settings/workspace/source-control", label: "Source Control", icon: GitBranch },
+      { to: "/settings/workspace/community-nodes", label: "Community Nodes", icon: Package },
       { to: "/settings/workspace/billing", label: "Billing", icon: CreditCard },
     ],
   },

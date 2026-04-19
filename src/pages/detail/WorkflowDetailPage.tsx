@@ -3,11 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   GitBranch, Play, Clock, Zap, Settings, BarChart3,
   Beaker, CheckCircle2, XCircle, Layers, Plug, Tag, Calendar, User,
+  History, GitCompare, RotateCcw, Eye, ChevronRight, ArrowRight,
+  Plus, Minus, FileCode, ArrowDown, Users, Download,
 } from "lucide-react";
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
+import { ShareWorkflowModal } from "@/components/modals/ShareWorkflowModal";
+import { ExportWorkflowModal } from "@/components/modals/ImportExportWorkflowModals";
 import { cn } from "@/lib/utils";
 
 /* ── Mock data — would come from API via :id ── */
@@ -58,9 +62,72 @@ const nodeTypeColors: Record<string, string> = {
   error: "bg-red-50 text-red-600",
 };
 
+/* ── Version History mock ── */
+interface WorkflowVersion {
+  id: string;
+  version: string;
+  label?: string;
+  author: string;
+  timestamp: string;
+  changes: { type: "added" | "modified" | "removed"; node: string; detail: string }[];
+  nodeCount: number;
+  connectionCount: number;
+}
+
+const mockVersions: WorkflowVersion[] = [
+  {
+    id: "v12", version: "v12", label: "Current", author: "Gouhar Ali", timestamp: "10 min ago",
+    changes: [
+      { type: "modified", node: "Score Lead (GPT-4o)", detail: "Updated prompt template and temperature (0.7→0.5)" },
+      { type: "modified", node: "IF Score > 70", detail: "Changed threshold from 65 to 70" },
+    ],
+    nodeCount: 8, connectionCount: 7,
+  },
+  {
+    id: "v11", version: "v11", author: "Gouhar Ali", timestamp: "2 hrs ago",
+    changes: [
+      { type: "added", node: "Error Handler", detail: "Added error handler with Slack notification" },
+      { type: "modified", node: "Slack Notify Sales", detail: "Added channel override for urgent leads" },
+    ],
+    nodeCount: 8, connectionCount: 7,
+  },
+  {
+    id: "v10", version: "v10", author: "Sarah K.", timestamp: "Yesterday",
+    changes: [
+      { type: "added", node: "Google Sheets Log", detail: "Added logging node for audit trail" },
+    ],
+    nodeCount: 7, connectionCount: 6,
+  },
+  {
+    id: "v9", version: "v9", label: "Stable Release", author: "Gouhar Ali", timestamp: "3 days ago",
+    changes: [
+      { type: "modified", node: "Clearbit Enrich", detail: "Switched from v1 to v2 API endpoint" },
+      { type: "removed", node: "Debug Logger", detail: "Removed debug logging node" },
+      { type: "modified", node: "Salesforce Create Lead", detail: "Added custom field mappings" },
+    ],
+    nodeCount: 6, connectionCount: 5,
+  },
+  {
+    id: "v8", version: "v8", author: "Gouhar Ali", timestamp: "5 days ago",
+    changes: [
+      { type: "added", node: "Score Lead (GPT-4o)", detail: "Added AI scoring with GPT-4o" },
+      { type: "added", node: "IF Score > 70", detail: "Added routing based on lead score" },
+    ],
+    nodeCount: 7, connectionCount: 6,
+  },
+  {
+    id: "v7", version: "v7", author: "Sarah K.", timestamp: "1 week ago",
+    changes: [
+      { type: "modified", node: "Typeform Trigger", detail: "Updated to new form ID" },
+    ],
+    nodeCount: 5, connectionCount: 4,
+  },
+];
+
 const tabs = [
   { id: "overview", label: "Overview", icon: <GitBranch size={13} /> },
   { id: "executions", label: "Executions", icon: <Play size={13} /> },
+  { id: "history", label: "History", icon: <History size={13} /> },
   { id: "evaluation", label: "Evaluation", icon: <Beaker size={13} /> },
   { id: "settings", label: "Settings", icon: <Settings size={13} /> },
 ];
@@ -69,6 +136,8 @@ export function WorkflowDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [showShare, setShowShare] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   return (
     <EntityDetailLayout
@@ -83,6 +152,8 @@ export function WorkflowDetailPage() {
       onTabChange={setActiveTab}
       actions={
         <>
+          <Button variant="ghost" size="sm" onClick={() => setShowShare(true)}><Users size={12} /> Share</Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowExport(true)}><Download size={12} /> Export</Button>
           <Button variant="secondary" size="sm" onClick={() => navigate(`/studio/${id}`)}>Edit in Studio</Button>
           <Button variant="primary" size="sm"><Play size={12} /> Run</Button>
         </>
@@ -90,8 +161,11 @@ export function WorkflowDetailPage() {
     >
       {activeTab === "overview" && <OverviewTab />}
       {activeTab === "executions" && <ExecutionsTab />}
+      {activeTab === "history" && <VersionHistoryTab />}
       {activeTab === "evaluation" && <EvaluationTab />}
       {activeTab === "settings" && <SettingsTab />}
+      <ShareWorkflowModal open={showShare} onClose={() => setShowShare(false)} workflowName={workflow.name} />
+      <ExportWorkflowModal open={showExport} onClose={() => setShowExport(false)} workflowName={workflow.name} />
     </EntityDetailLayout>
   );
 }
@@ -229,6 +303,223 @@ function EvaluationTab() {
           </div>
         </div>
       </DetailSection>
+    </div>
+  );
+}
+
+function VersionHistoryTab() {
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareA, setCompareA] = useState<string>("v12");
+  const [compareB, setCompareB] = useState<string>("v9");
+
+  const selected = mockVersions.find((v) => v.id === selectedVersion);
+  const versionA = mockVersions.find((v) => v.id === compareA);
+  const versionB = mockVersions.find((v) => v.id === compareB);
+
+  const changeIcon = { added: Plus, modified: FileCode, removed: Minus };
+  const changeColor = {
+    added: "text-emerald-500 bg-emerald-50",
+    modified: "text-amber-500 bg-amber-50",
+    removed: "text-red-400 bg-red-50",
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-3 text-[12px]">
+          <span className="text-zinc-400">Versions <span className="font-semibold text-zinc-700">{mockVersions.length}</span></span>
+          <span className="text-zinc-400">Authors <span className="font-semibold text-zinc-700">2</span></span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCompareMode(!compareMode)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors",
+              compareMode ? "bg-zinc-800 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+            )}
+          >
+            <GitCompare size={12} />
+            {compareMode ? "Exit Compare" : "Compare Versions"}
+          </button>
+        </div>
+      </div>
+
+      {/* Compare Mode */}
+      {compareMode && versionA && versionB && (
+        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+          <div className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
+            <select
+              value={compareA}
+              onChange={(e) => setCompareA(e.target.value)}
+              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[12px] font-medium text-zinc-700 bg-white outline-none"
+            >
+              {mockVersions.map((v) => (
+                <option key={v.id} value={v.id}>{v.version}{v.label ? ` (${v.label})` : ""}</option>
+              ))}
+            </select>
+            <ArrowRight size={14} className="text-zinc-400" />
+            <select
+              value={compareB}
+              onChange={(e) => setCompareB(e.target.value)}
+              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[12px] font-medium text-zinc-700 bg-white outline-none"
+            >
+              {mockVersions.map((v) => (
+                <option key={v.id} value={v.id}>{v.version}{v.label ? ` (${v.label})` : ""}</option>
+              ))}
+            </select>
+          </div>
+          {/* Diff summary */}
+          <div className="grid grid-cols-2 divide-x divide-zinc-100">
+            <div className="px-4 py-3">
+              <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">{versionA.version} — {versionA.timestamp}</p>
+              <div className="space-y-1">
+                <p className="text-[12px] text-zinc-600">Nodes: <span className="font-mono font-semibold">{versionA.nodeCount}</span></p>
+                <p className="text-[12px] text-zinc-600">Connections: <span className="font-mono font-semibold">{versionA.connectionCount}</span></p>
+              </div>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">{versionB.version} — {versionB.timestamp}</p>
+              <div className="space-y-1">
+                <p className="text-[12px] text-zinc-600">Nodes: <span className="font-mono font-semibold">{versionB.nodeCount}</span></p>
+                <p className="text-[12px] text-zinc-600">Connections: <span className="font-mono font-semibold">{versionB.connectionCount}</span></p>
+              </div>
+            </div>
+          </div>
+          {/* Changes between versions */}
+          <div className="border-t border-zinc-100 px-4 py-3">
+            <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">Changes between {compareB.replace("v", "v")} → {compareA.replace("v", "v")}</p>
+            <div className="space-y-1.5">
+              {mockVersions
+                .filter((v) => {
+                  const aIdx = mockVersions.findIndex((x) => x.id === compareA);
+                  const bIdx = mockVersions.findIndex((x) => x.id === compareB);
+                  const vIdx = mockVersions.indexOf(v);
+                  return vIdx >= aIdx && vIdx < bIdx;
+                })
+                .flatMap((v) => v.changes.map((c, i) => ({ ...c, version: v.version, key: `${v.id}-${i}` })))
+                .map((change) => {
+                  const Icon = changeIcon[change.type];
+                  return (
+                    <div key={change.key} className="flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-50">
+                      <span className={cn("flex h-5 w-5 items-center justify-center rounded", changeColor[change.type])}>
+                        <Icon size={10} />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-medium text-zinc-700">{change.node}</span>
+                          <span className="text-[9px] font-mono text-zinc-400">{change.version}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400">{change.detail}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version timeline */}
+      <div className="relative">
+        {/* Timeline line */}
+        <div className="absolute left-[19px] top-6 bottom-6 w-px bg-zinc-200" />
+
+        <div className="space-y-0.5">
+          {mockVersions.map((version, idx) => {
+            const isSelected = selectedVersion === version.id;
+            return (
+              <div key={version.id}>
+                <button
+                  onClick={() => setSelectedVersion(isSelected ? null : version.id)}
+                  className={cn(
+                    "relative flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-all",
+                    isSelected ? "bg-zinc-50" : "hover:bg-zinc-50/50"
+                  )}
+                >
+                  {/* Timeline dot */}
+                  <div className={cn(
+                    "relative z-10 mt-0.5 flex h-[10px] w-[10px] flex-shrink-0 rounded-full ring-2 ring-white",
+                    idx === 0 ? "bg-zinc-800" : "bg-zinc-300"
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold text-zinc-800 font-mono">{version.version}</span>
+                      {version.label && (
+                        <span className={cn(
+                          "rounded-full px-2 py-0.5 text-[9px] font-semibold",
+                          version.label === "Current" ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                        )}>
+                          {version.label}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-zinc-400">{version.timestamp}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <User size={10} className="text-zinc-300" />
+                      <span className="text-[11px] text-zinc-500">{version.author}</span>
+                      <span className="text-[10px] text-zinc-300">·</span>
+                      <span className="text-[10px] text-zinc-400">
+                        {version.changes.length} change{version.changes.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight size={12} className={cn("mt-1 text-zinc-300 transition-transform", isSelected && "rotate-90")} />
+                </button>
+
+                {/* Expanded change details */}
+                {isSelected && (
+                  <div className="ml-9 mb-2 space-y-2">
+                    {/* Changes list */}
+                    <div className="rounded-lg border border-zinc-100 bg-white overflow-hidden">
+                      {version.changes.map((change, ci) => {
+                        const Icon = changeIcon[change.type];
+                        return (
+                          <div key={ci} className="flex items-start gap-2 border-b border-zinc-50 last:border-0 px-3 py-2">
+                            <span className={cn("flex h-5 w-5 items-center justify-center rounded flex-shrink-0 mt-0.5", changeColor[change.type])}>
+                              <Icon size={10} />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[12px] font-medium text-zinc-700">{change.node}</span>
+                              <p className="text-[11px] text-zinc-400 mt-0.5">{change.detail}</p>
+                            </div>
+                            <span className={cn(
+                              "text-[9px] font-medium rounded-full px-1.5 py-0.5 capitalize",
+                              change.type === "added" ? "bg-emerald-50 text-emerald-600" :
+                              change.type === "removed" ? "bg-red-50 text-red-500" :
+                              "bg-amber-50 text-amber-600"
+                            )}>
+                              {change.type}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <button className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+                        <Eye size={11} />
+                        Preview
+                      </button>
+                      {idx !== 0 && (
+                        <button className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+                          <RotateCcw size={11} />
+                          Restore this version
+                        </button>
+                      )}
+                      <button className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+                        <ArrowDown size={11} />
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

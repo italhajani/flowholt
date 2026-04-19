@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { ClipboardList, Search, AlertCircle } from "lucide-react";
+import {
+  ClipboardList, Search, AlertCircle, CheckCircle2, XCircle, Clock,
+  User, ArrowRight, MessageSquare, ChevronDown, ChevronRight, FileText,
+  AlertTriangle,
+} from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,14 +173,225 @@ export function HumanTasksPage() {
         />
       </div>
 
-      {/* Review placeholder panel */}
-      {reviewingId && (
-        <div className="mt-4 rounded-lg border border-zinc-100 bg-white p-5 shadow-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle size={14} className="text-zinc-400" />
-            <p className="text-[13px] font-medium text-zinc-700">Task Review</p>
+      {/* Full task review panel */}
+      {reviewingId && (() => {
+        const task = mockTasks.find(t => t.id === reviewingId);
+        if (!task) return null;
+        return <TaskReviewPanel task={task} onClose={() => setReviewingId(null)} />;
+      })()}
+    </div>
+  );
+}
+
+/* ── Task Review Panel ── */
+function TaskReviewPanel({ task, onClose }: { task: HumanTask; onClose: () => void }) {
+  const [comment, setComment] = useState("");
+  const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
+  const [showContext, setShowContext] = useState(true);
+  const [formValues, setFormValues] = useState<Record<string, string>>({
+    amount: "$4,250.00",
+    vendor: "Acme Corp",
+    category: "Software",
+    notes: "",
+  });
+
+  const isCompleted = task.statusLabel === "completed";
+
+  // Simulated execution context
+  const executionContext = {
+    executionId: "exec-" + task.id.slice(2),
+    triggeredBy: "Scheduled (every 30 min)",
+    startedAt: "2024-01-15 14:32:00 UTC",
+    previousNodeOutput: {
+      total_amount: 4250.0,
+      vendor_name: "Acme Corp",
+      invoice_number: "INV-2024-0847",
+      risk_score: 0.72,
+    },
+  };
+
+  const handleSubmit = (action: "approve" | "reject") => {
+    setDecision(action);
+  };
+
+  return (
+    <div className="mt-4 rounded-lg border border-zinc-100 bg-white shadow-xs overflow-hidden">
+      {/* Panel header */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-100 bg-zinc-50/50">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-lg",
+            task.taskType === "approval" ? "bg-blue-50" : task.taskType === "form" ? "bg-purple-50" : "bg-green-50"
+          )}>
+            {task.taskType === "approval" ? <CheckCircle2 size={14} className="text-blue-600" /> :
+             task.taskType === "form" ? <FileText size={14} className="text-purple-600" /> :
+             <AlertCircle size={14} className="text-green-600" />}
           </div>
-          <p className="text-[12px] text-zinc-400">Task review form will appear here with execution context and input fields.</p>
+          <div>
+            <h4 className="text-[13px] font-semibold text-zinc-800">{task.nodeName}</h4>
+            <p className="text-[11px] text-zinc-400">{task.workflowName}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {task.isOverdue && (
+            <Badge variant="default" className="bg-red-50 text-red-600">
+              <AlertTriangle size={10} /> Overdue
+            </Badge>
+          )}
+          {task.expires && !task.isOverdue && (
+            <span className="text-[10px] text-zinc-400 flex items-center gap-1">
+              <Clock size={10} /> Expires in {task.expires}
+            </span>
+          )}
+          <button onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 transition-colors">
+            <XCircle size={14} />
+          </button>
+        </div>
+      </div>
+
+      {decision ? (
+        /* ── Decision confirmation ── */
+        <div className="p-8 text-center">
+          <div className={cn(
+            "flex h-14 w-14 items-center justify-center rounded-2xl mx-auto mb-3",
+            decision === "approve" ? "bg-green-50" : "bg-red-50"
+          )}>
+            {decision === "approve" ? <CheckCircle2 size={28} className="text-green-600" /> : <XCircle size={28} className="text-red-500" />}
+          </div>
+          <h4 className="text-[14px] font-semibold text-zinc-900">
+            Task {decision === "approve" ? "Approved" : "Rejected"}
+          </h4>
+          <p className="text-[12px] text-zinc-500 mt-1">
+            {task.workflowName} will {decision === "approve" ? "continue execution" : "follow the rejection path"}
+          </p>
+          {comment && <p className="text-[11px] text-zinc-400 mt-2 italic">"{comment}"</p>}
+        </div>
+      ) : (
+        <div className="grid grid-cols-5 divide-x divide-zinc-100">
+          {/* Left column: Execution context */}
+          <div className="col-span-2 p-4 space-y-3">
+            <button
+              onClick={() => setShowContext(o => !o)}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500"
+            >
+              {showContext ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+              Execution Context
+            </button>
+            {showContext && (
+              <div className="space-y-2">
+                <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-zinc-400">Execution</span>
+                    <span className="text-zinc-600 font-mono">{executionContext.executionId}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-zinc-400">Trigger</span>
+                    <span className="text-zinc-600">{executionContext.triggeredBy}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-zinc-400">Started</span>
+                    <span className="text-zinc-600">{executionContext.startedAt}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-medium text-zinc-400 mb-1">Previous Node Output</p>
+                  <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 font-mono text-[10px] text-zinc-600 space-y-1">
+                    {Object.entries(executionContext.previousNodeOutput).map(([key, val]) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <span className="text-zinc-400">{key}</span>
+                        <span className={typeof val === "number" && val > 0.5 ? "text-amber-600 font-medium" : ""}>
+                          {typeof val === "number" ? val.toLocaleString() : String(val)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                  <User size={10} />
+                  <span>Assigned to: <strong className="text-zinc-600">{task.assignedTo ?? "Unassigned"}</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right column: Review form */}
+          <div className="col-span-3 p-4 space-y-3">
+            {task.taskType === "form" && (
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium text-zinc-500">Required Fields</p>
+                {Object.entries(formValues).map(([key, val]) => (
+                  <div key={key}>
+                    <label className="text-[10px] font-medium text-zinc-400 mb-0.5 block capitalize">{key}</label>
+                    <input
+                      type="text"
+                      value={val}
+                      onChange={e => setFormValues(prev => ({ ...prev, [key]: e.target.value }))}
+                      className="h-7 w-full rounded-md border border-zinc-200 bg-white px-2 text-[11px] text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-900/10"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {task.taskType === "approval" && (
+              <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-3">
+                <p className="text-[11px] font-medium text-amber-700">Approval Required</p>
+                <p className="text-[10px] text-amber-600 mt-0.5">
+                  Review the execution context and decide whether to approve or reject this workflow step.
+                </p>
+              </div>
+            )}
+
+            {task.taskType === "confirmation" && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                <p className="text-[11px] font-medium text-blue-700">Confirmation Needed</p>
+                <p className="text-[10px] text-blue-600 mt-0.5">
+                  Confirm that the data mapping is correct before proceeding.
+                </p>
+              </div>
+            )}
+
+            {/* Comment */}
+            <div>
+              <label className="text-[10px] font-medium text-zinc-400 mb-0.5 block flex items-center gap-1">
+                <MessageSquare size={9} /> Comment (optional)
+              </label>
+              <textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Add a note for the audit log…"
+                className="h-16 w-full resize-none rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-[11px] text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-900/10"
+              />
+            </div>
+
+            {/* Action buttons */}
+            {!isCompleted && (
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleSubmit("approve")}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 size={12} /> Approve
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleSubmit("reject")}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  <XCircle size={12} /> Reject
+                </Button>
+                <div className="flex-1" />
+                <Button variant="secondary" size="sm" onClick={onClose}>
+                  Skip
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

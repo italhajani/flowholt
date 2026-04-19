@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import {
   Webhook, Copy, CheckCircle, XCircle, Clock, RefreshCw,
   Shield, Zap, Activity, Settings, Trash2, ToggleLeft, ToggleRight,
+  Play, Send, Code, ArrowRight, Loader2, ChevronDown, ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ const queueColumns: Column<QueueItem>[] = [
 /* ── Tabs ── */
 const tabs = [
   { id: "overview", label: "Overview" },
+  { id: "test", label: "Test" },
   { id: "deliveries", label: "Deliveries" },
   { id: "queue", label: "Queue" },
   { id: "settings", label: "Settings" },
@@ -202,6 +204,9 @@ export function WebhookDetailPage() {
           </DetailSection>
         </div>
       )}
+
+      {/* ── Test ── */}
+      {activeTab === "test" && <WebhookTestPanel url={webhook.url} method={webhook.method} />}
 
       {/* ── Deliveries ── */}
       {activeTab === "deliveries" && (
@@ -292,6 +297,197 @@ export function WebhookDetailPage() {
         </div>
       )}
     </EntityDetailLayout>
+  );
+}
+
+/* ── Webhook Test Panel ── */
+function WebhookTestPanel({ url, method }: { url: string; method: string }) {
+  const [payload, setPayload] = useState(JSON.stringify({
+    event: "invoice.paid",
+    data: {
+      id: "inv_test_123",
+      amount: 4999,
+      currency: "usd",
+      customer: "cus_test_abc",
+    },
+  }, null, 2));
+  const [headers, setHeaders] = useState<{ key: string; value: string }[]>([
+    { key: "Content-Type", value: "application/json" },
+    { key: "X-Webhook-Secret", value: "whsec_test_signature" },
+  ]);
+  const [sending, setSending] = useState(false);
+  const [response, setResponse] = useState<{
+    status: number;
+    statusText: string;
+    duration: string;
+    headers: Record<string, string>;
+    body: string;
+  } | null>(null);
+  const [showHeaders, setShowHeaders] = useState(false);
+  const [activeSection, setActiveSection] = useState<"payload" | "headers">("payload");
+
+  const addHeader = () => setHeaders(prev => [...prev, { key: "", value: "" }]);
+  const removeHeader = (i: number) => setHeaders(prev => prev.filter((_, idx) => idx !== i));
+  const updateHeader = (i: number, field: "key" | "value", val: string) => {
+    setHeaders(prev => prev.map((h, idx) => idx === i ? { ...h, [field]: val } : h));
+  };
+
+  const handleSend = () => {
+    setSending(true);
+    setResponse(null);
+    // Simulate request
+    setTimeout(() => {
+      setSending(false);
+      setResponse({
+        status: 200,
+        statusText: "OK",
+        duration: `${Math.floor(Math.random() * 200 + 50)}ms`,
+        headers: {
+          "content-type": "application/json",
+          "x-request-id": "req_" + Math.random().toString(36).slice(2, 10),
+          "x-flowholt-execution": "exec_" + Math.random().toString(36).slice(2, 8),
+        },
+        body: JSON.stringify({
+          success: true,
+          executionId: "exec_" + Math.random().toString(36).slice(2, 8),
+          message: "Webhook received and execution started",
+        }, null, 2),
+      });
+    }, 1200);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Endpoint bar */}
+      <div className="flex items-center gap-2">
+        <span className="inline-flex px-2 py-1 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-600">{method}</span>
+        <code className="flex-1 rounded bg-zinc-50 border border-zinc-100 px-3 py-1.5 font-mono text-[11px] text-zinc-500 truncate">{url}</code>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleSend}
+          disabled={sending}
+        >
+          {sending ? <><Loader2 size={12} className="animate-spin" /> Sending…</> : <><Send size={12} /> Send Test</>}
+        </Button>
+      </div>
+
+      {/* Request section */}
+      <div className="rounded-lg border border-zinc-200 overflow-hidden">
+        <div className="flex border-b border-zinc-100">
+          <button
+            onClick={() => setActiveSection("payload")}
+            className={cn(
+              "px-4 py-2 text-[11px] font-medium border-b-2 -mb-px transition-colors",
+              activeSection === "payload" ? "border-zinc-800 text-zinc-800" : "border-transparent text-zinc-400 hover:text-zinc-600"
+            )}
+          >
+            <Code size={10} className="inline mr-1" /> Body
+          </button>
+          <button
+            onClick={() => setActiveSection("headers")}
+            className={cn(
+              "px-4 py-2 text-[11px] font-medium border-b-2 -mb-px transition-colors",
+              activeSection === "headers" ? "border-zinc-800 text-zinc-800" : "border-transparent text-zinc-400 hover:text-zinc-600"
+            )}
+          >
+            Headers ({headers.length})
+          </button>
+        </div>
+
+        {activeSection === "payload" && (
+          <textarea
+            value={payload}
+            onChange={e => setPayload(e.target.value)}
+            className="w-full h-[200px] p-3 font-mono text-[11px] text-zinc-700 bg-zinc-50/50 resize-none focus:outline-none"
+            spellCheck={false}
+          />
+        )}
+
+        {activeSection === "headers" && (
+          <div className="p-3 space-y-2">
+            {headers.map((h, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={h.key}
+                  onChange={e => updateHeader(i, "key", e.target.value)}
+                  placeholder="Header name"
+                  className="h-7 flex-1 rounded-md border border-zinc-200 bg-white px-2 text-[11px] font-mono text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-900/10"
+                />
+                <input
+                  value={h.value}
+                  onChange={e => updateHeader(i, "value", e.target.value)}
+                  placeholder="Value"
+                  className="h-7 flex-[2] rounded-md border border-zinc-200 bg-white px-2 text-[11px] font-mono text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-900/10"
+                />
+                <button onClick={() => removeHeader(i)} className="text-zinc-300 hover:text-red-500 transition-colors">
+                  <XCircle size={12} />
+                </button>
+              </div>
+            ))}
+            <button onClick={addHeader} className="text-[10px] text-zinc-400 hover:text-zinc-600 transition-colors">+ Add header</button>
+          </div>
+        )}
+      </div>
+
+      {/* Response section */}
+      {response && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-50/50 border-b border-zinc-100">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-zinc-500">Response</span>
+              <Badge variant={response.status < 300 ? "success" : response.status < 500 ? "warning" : "danger"}>
+                {response.status} {response.statusText}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-zinc-400">
+              <span className="flex items-center gap-1"><Clock size={9} /> {response.duration}</span>
+              <button
+                onClick={() => setShowHeaders(o => !o)}
+                className="hover:text-zinc-600 transition-colors flex items-center gap-0.5"
+              >
+                {showHeaders ? <ChevronDown size={9} /> : <ChevronRightIcon size={9} />} Headers
+              </button>
+            </div>
+          </div>
+
+          {showHeaders && (
+            <div className="px-4 py-2 bg-zinc-50/30 border-b border-zinc-100 space-y-1">
+              {Object.entries(response.headers).map(([k, v]) => (
+                <div key={k} className="flex items-center gap-2 text-[10px]">
+                  <span className="text-zinc-400 font-mono">{k}:</span>
+                  <span className="text-zinc-600 font-mono">{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <pre className="p-3 font-mono text-[11px] text-zinc-700 bg-white max-h-[200px] overflow-y-auto whitespace-pre-wrap">
+            {response.body}
+          </pre>
+        </div>
+      )}
+
+      {/* Sample payloads */}
+      <div>
+        <p className="text-[11px] font-medium text-zinc-500 mb-2">Quick Payloads</p>
+        <div className="flex gap-2">
+          {[
+            { label: "Invoice Paid", payload: { event: "invoice.paid", data: { id: "inv_123", amount: 4999, currency: "usd" } } },
+            { label: "Customer Created", payload: { event: "customer.created", data: { id: "cus_abc", email: "test@example.com" } } },
+            { label: "Empty", payload: {} },
+          ].map(sample => (
+            <button
+              key={sample.label}
+              onClick={() => setPayload(JSON.stringify(sample.payload, null, 2))}
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-medium text-zinc-500 hover:border-zinc-300 hover:bg-zinc-50 transition-all"
+            >
+              {sample.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

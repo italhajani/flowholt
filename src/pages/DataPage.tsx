@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { Database, Plus, Search, Table2, Brain, Server, FileCode, HardDrive, Hash } from "lucide-react";
+import {
+  Database, Plus, Search, Table2, Brain, Server, FileCode, HardDrive, Hash,
+  ChevronRight, X, Eye, Pencil, Trash2, RefreshCw, CheckCircle2, AlertCircle,
+  Loader2, Upload, Plug, Settings2, ArrowUpDown, GripVertical, ToggleLeft,
+} from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +12,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { KnowledgeUploadModal } from "@/components/modals/KnowledgeUploadModal";
+import { MCPServerWizard } from "@/components/modals/MCPServerWizard";
 
 const tabs = ["Data Stores", "Schemas", "Knowledge", "MCP Servers"] as const;
 type Tab = (typeof tabs)[number];
@@ -164,6 +170,332 @@ const mcpColumns: Column<MCPServer>[] = [
   { id: "ping", header: "Last Ping", hideBelow: "lg", accessor: (row) => <span className="text-zinc-500">{row.lastPing}</span> },
 ];
 
+/* ── Detail Data for Previews ── */
+
+const storePreviewRows = [
+  { key: "usr_001", value: '{ "theme": "dark", "lang": "en", "timezone": "UTC-5" }', updated: "5 min ago" },
+  { key: "usr_002", value: '{ "theme": "light", "lang": "fr", "timezone": "UTC+1" }', updated: "12 min ago" },
+  { key: "usr_003", value: '{ "theme": "dark", "lang": "de", "timezone": "UTC+2" }', updated: "1 hr ago" },
+  { key: "usr_004", value: '{ "theme": "light", "lang": "en", "timezone": "UTC-8" }', updated: "2 hrs ago" },
+  { key: "usr_005", value: '{ "theme": "dark", "lang": "es", "timezone": "UTC-3" }', updated: "3 hrs ago" },
+];
+
+const schemaFieldTypes = ["string", "number", "boolean", "date", "email", "url", "json", "array", "enum"] as const;
+
+interface SchemaField {
+  name: string;
+  type: string;
+  required: boolean;
+  description: string;
+}
+
+const mockSchemaFields: SchemaField[] = [
+  { name: "id", type: "string", required: true, description: "Unique invoice identifier" },
+  { name: "amount", type: "number", required: true, description: "Total amount in cents" },
+  { name: "currency", type: "string", required: true, description: "ISO 4217 currency code" },
+  { name: "issued_at", type: "date", required: true, description: "Invoice issue date" },
+  { name: "due_at", type: "date", required: false, description: "Payment due date" },
+  { name: "customer_email", type: "email", required: true, description: "Customer email address" },
+  { name: "line_items", type: "json", required: true, description: "Array of line items" },
+  { name: "paid", type: "boolean", required: false, description: "Whether invoice is paid" },
+];
+
+const mcpToolList = [
+  { name: "search_code", description: "Search codebase by pattern", params: 2 },
+  { name: "read_file", description: "Read file contents", params: 1 },
+  { name: "run_tests", description: "Execute test suite", params: 3 },
+  { name: "lint_code", description: "Run linter on file", params: 2 },
+  { name: "format_code", description: "Format source code", params: 2 },
+];
+
+/* ── Detail Panel Components ── */
+
+function DataStorePreview({ store, onClose }: { store: DataStore; onClose: () => void }) {
+  return (
+    <div className="mt-3 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Eye size={13} className="text-zinc-400" />
+          <span className="text-[13px] font-medium text-zinc-800">{store.name}</span>
+          <span className={cn("inline-flex px-2 py-0.5 rounded text-[9px] font-medium", typeColors[store.type])}>{store.type}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button className="rounded p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors" title="Refresh">
+            <RefreshCw size={12} />
+          </button>
+          <button onClick={onClose} className="rounded p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
+            <X size={13} />
+          </button>
+        </div>
+      </div>
+      {/* Stats bar */}
+      <div className="flex gap-6 border-b border-zinc-100 px-4 py-2 text-[11px]">
+        <span className="text-zinc-400">Records <span className="font-semibold text-zinc-600">{store.records.toLocaleString()}</span></span>
+        <span className="text-zinc-400">Size <span className="font-semibold text-zinc-600">{store.size}</span></span>
+        <span className="text-zinc-400">Linked <span className="font-semibold text-zinc-600">{store.linkedWorkflows} workflows</span></span>
+      </div>
+      {/* Table preview */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="bg-zinc-50 border-b border-zinc-100">
+              <th className="text-left px-4 py-2 font-semibold text-zinc-500">Key</th>
+              <th className="text-left px-4 py-2 font-semibold text-zinc-500">Value</th>
+              <th className="text-left px-4 py-2 font-semibold text-zinc-500">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {storePreviewRows.map((row) => (
+              <tr key={row.key} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                <td className="px-4 py-2 font-mono text-zinc-700">{row.key}</td>
+                <td className="px-4 py-2 font-mono text-zinc-500 max-w-[400px] truncate">{row.value}</td>
+                <td className="px-4 py-2 text-zinc-400">{row.updated}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-between border-t border-zinc-100 px-4 py-2">
+        <span className="text-[10px] text-zinc-400">Showing 5 of {store.records.toLocaleString()} records</span>
+        <div className="flex gap-1">
+          <button className="rounded px-2 py-0.5 text-[10px] font-medium text-zinc-500 hover:bg-zinc-100 transition-colors">← Prev</button>
+          <button className="rounded px-2 py-0.5 text-[10px] font-medium text-zinc-500 hover:bg-zinc-100 transition-colors">Next →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SchemaFieldEditor({ schema, onClose }: { schema: Schema; onClose: () => void }) {
+  const [fields, setFields] = useState<SchemaField[]>(mockSchemaFields.slice(0, schema.fields));
+
+  const addField = () => {
+    setFields([...fields, { name: "", type: "string", required: false, description: "" }]);
+  };
+
+  const removeField = (idx: number) => {
+    setFields(fields.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="mt-3 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Pencil size={13} className="text-zinc-400" />
+          <span className="text-[13px] font-medium text-zinc-800">{schema.name}</span>
+          <Badge variant="neutral">{schema.version}</Badge>
+        </div>
+        <div className="flex items-center gap-1">
+          <button className="rounded-lg px-3 py-1 text-[11px] font-medium text-white bg-zinc-800 hover:bg-zinc-700 transition-colors">Save</button>
+          <button onClick={onClose} className="rounded p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
+            <X size={13} />
+          </button>
+        </div>
+      </div>
+      <div className="divide-y divide-zinc-50">
+        {/* Header row */}
+        <div className="grid grid-cols-[20px_1fr_100px_60px_1.5fr_32px] gap-2 items-center px-4 py-2 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+          <span />
+          <span>Field Name</span>
+          <span>Type</span>
+          <span>Req</span>
+          <span>Description</span>
+          <span />
+        </div>
+        {fields.map((field, i) => (
+          <div key={i} className="grid grid-cols-[20px_1fr_100px_60px_1.5fr_32px] gap-2 items-center px-4 py-1.5 hover:bg-zinc-50/50">
+            <GripVertical size={11} className="text-zinc-300 cursor-grab" />
+            <input
+              value={field.name}
+              onChange={(e) => {
+                const next = [...fields];
+                next[i] = { ...next[i], name: e.target.value };
+                setFields(next);
+              }}
+              className="rounded border border-zinc-200 px-2 py-1 text-[12px] font-mono text-zinc-700 outline-none focus:border-zinc-400"
+              placeholder="field_name"
+            />
+            <select
+              value={field.type}
+              onChange={(e) => {
+                const next = [...fields];
+                next[i] = { ...next[i], type: e.target.value };
+                setFields(next);
+              }}
+              className="rounded border border-zinc-200 px-1.5 py-1 text-[11px] text-zinc-600 outline-none focus:border-zinc-400 bg-white"
+            >
+              {schemaFieldTypes.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <label className="flex items-center justify-center">
+              <input
+                type="checkbox"
+                checked={field.required}
+                onChange={() => {
+                  const next = [...fields];
+                  next[i] = { ...next[i], required: !next[i].required };
+                  setFields(next);
+                }}
+                className="h-3.5 w-3.5 rounded border-zinc-300 text-zinc-800"
+              />
+            </label>
+            <input
+              value={field.description}
+              onChange={(e) => {
+                const next = [...fields];
+                next[i] = { ...next[i], description: e.target.value };
+                setFields(next);
+              }}
+              className="rounded border border-zinc-200 px-2 py-1 text-[11px] text-zinc-500 outline-none focus:border-zinc-400"
+              placeholder="Description…"
+            />
+            <button onClick={() => removeField(i)} className="rounded p-1 text-zinc-300 hover:text-red-400 hover:bg-red-50 transition-colors">
+              <Trash2 size={11} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-zinc-100 px-4 py-2">
+        <button onClick={addField} className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors">
+          <Plus size={12} />
+          Add field
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KnowledgeDetailPanel({ asset, onClose }: { asset: KnowledgeAsset; onClose: () => void }) {
+  const progress = asset.indexState === "indexed" ? 100 : asset.indexState === "indexing" ? 67 : 0;
+  return (
+    <div className="mt-3 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Brain size={13} className="text-zinc-400" />
+          <span className="text-[13px] font-medium text-zinc-800">{asset.name}</span>
+          <Badge variant="neutral">{asset.format}</Badge>
+        </div>
+        <button onClick={onClose} className="rounded p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
+          <X size={13} />
+        </button>
+      </div>
+      {/* Index progress */}
+      <div className="px-4 py-3 space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-medium text-zinc-600">Indexing Progress</span>
+            <span className="flex items-center gap-1 text-[11px]">
+              {asset.indexState === "indexed" && <><CheckCircle2 size={11} className="text-emerald-500" /><span className="text-emerald-600">Complete</span></>}
+              {asset.indexState === "indexing" && <><Loader2 size={11} className="text-amber-500 animate-spin" /><span className="text-amber-600">Processing…</span></>}
+              {asset.indexState === "failed" && <><AlertCircle size={11} className="text-red-400" /><span className="text-red-500">Failed</span></>}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                asset.indexState === "indexed" ? "bg-emerald-500" : asset.indexState === "indexing" ? "bg-amber-400" : "bg-red-400"
+              )}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: "Chunks", value: asset.chunks.toString() },
+            { label: "Size", value: asset.size },
+            { label: "Agents", value: asset.agents.toString() },
+            { label: "Uploaded", value: asset.uploaded },
+          ].map((s) => (
+            <div key={s.label} className="rounded-lg bg-zinc-50 px-3 py-2">
+              <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">{s.label}</p>
+              <p className="text-[13px] font-semibold text-zinc-700 mt-0.5">{s.value}</p>
+            </div>
+          ))}
+        </div>
+        {/* Actions */}
+        <div className="flex gap-2">
+          {asset.indexState === "failed" && (
+            <button className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-zinc-700 transition-colors">
+              <RefreshCw size={11} />
+              Retry Indexing
+            </button>
+          )}
+          <button className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+            <Upload size={11} />
+            Re-upload
+          </button>
+          <button className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors">
+            <Trash2 size={11} />
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MCPServerDetail({ server, onClose }: { server: MCPServer; onClose: () => void }) {
+  const [testing, setTesting] = useState(false);
+  return (
+    <div className="mt-3 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Plug size={13} className="text-zinc-400" />
+          <span className="text-[13px] font-medium text-zinc-800">{server.name}</span>
+          <StatusDot status={server.status === "healthy" ? "healthy" : server.status === "degraded" ? "warning" : "error"} label={server.status} />
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => { setTesting(true); setTimeout(() => setTesting(false), 1500); }}
+            className="flex items-center gap-1 rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            {testing ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+            {testing ? "Testing…" : "Test Connection"}
+          </button>
+          <button onClick={onClose} className="rounded p-1 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors">
+            <X size={13} />
+          </button>
+        </div>
+      </div>
+      {/* Server info */}
+      <div className="grid grid-cols-3 gap-3 px-4 py-3 border-b border-zinc-100">
+        <div>
+          <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Endpoint</p>
+          <p className="text-[11px] font-mono text-zinc-600 mt-0.5">{server.url}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Tools</p>
+          <p className="text-[13px] font-semibold text-zinc-700 mt-0.5">{server.tools}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Last Ping</p>
+          <p className="text-[11px] text-zinc-600 mt-0.5">{server.lastPing}</p>
+        </div>
+      </div>
+      {/* Tool list */}
+      <div className="px-4 py-2">
+        <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Available Tools</p>
+        <div className="space-y-1">
+          {mcpToolList.slice(0, server.tools > 5 ? 5 : server.tools).map((tool) => (
+            <div key={tool.name} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-50 transition-colors">
+              <Settings2 size={11} className="text-zinc-400 flex-shrink-0" />
+              <span className="text-[11px] font-mono font-medium text-zinc-700">{tool.name}</span>
+              <span className="text-[10px] text-zinc-400 flex-1 truncate">{tool.description}</span>
+              <span className="text-[9px] text-zinc-300 font-mono">{tool.params} params</span>
+            </div>
+          ))}
+          {server.tools > 5 && (
+            <p className="text-[10px] text-zinc-400 pl-2">+ {server.tools - 5} more tools</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Action labels per tab ── */
 const actionLabels: Record<Tab, string> = {
   "Data Stores": "New Store",
@@ -175,6 +507,12 @@ const actionLabels: Record<Tab, string> = {
 export function DataPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Data Stores");
   const [search, setSearch] = useState("");
+  const [selectedStore, setSelectedStore] = useState<DataStore | null>(null);
+  const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
+  const [selectedKnowledge, setSelectedKnowledge] = useState<KnowledgeAsset | null>(null);
+  const [selectedMCP, setSelectedMCP] = useState<MCPServer | null>(null);
+  const [showKnowledgeUpload, setShowKnowledgeUpload] = useState(false);
+  const [showMCPWizard, setShowMCPWizard] = useState(false);
 
   return (
     <div className="mx-auto max-w-[960px] px-8 py-8">
@@ -182,10 +520,17 @@ export function DataPage() {
         title="Data"
         description="Data stores, schemas, knowledge assets, and MCP servers."
         actions={
-          <Button variant="primary" size="md">
-            <Plus size={14} strokeWidth={2.5} />
-            {actionLabels[activeTab]}
-          </Button>
+           <Button
+             variant="primary"
+             size="md"
+             onClick={() => {
+               if (activeTab === "Knowledge") setShowKnowledgeUpload(true);
+               if (activeTab === "MCP Servers") setShowMCPWizard(true);
+             }}
+           >
+             <Plus size={14} strokeWidth={2.5} />
+             {actionLabels[activeTab]}
+           </Button>
         }
       />
 
@@ -216,7 +561,7 @@ export function DataPage() {
             return (
               <button
                 key={t}
-                onClick={() => { setActiveTab(t); setSearch(""); }}
+                onClick={() => { setActiveTab(t); setSearch(""); setSelectedStore(null); setSelectedSchema(null); setSelectedKnowledge(null); setSelectedMCP(null); }}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium transition-colors duration-150 border-b-2 -mb-px",
                   activeTab === t
@@ -242,44 +587,66 @@ export function DataPage() {
       {/* Tab content */}
       <div className="mt-4">
         {activeTab === "Data Stores" && (
-          <DataTable
-            columns={storeColumns}
-            data={mockStores.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()))}
-            getRowId={(s) => s.id}
-            selectable
-            emptyState={<EmptyState icon={<Table2 size={32} strokeWidth={1.25} />} title="No data stores" description="Create structured data stores for your workflows." />}
-          />
+          <>
+            <DataTable
+              columns={storeColumns}
+              data={mockStores.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()))}
+              getRowId={(s) => s.id}
+              selectable
+              onRowClick={(row) => setSelectedStore(selectedStore?.id === row.id ? null : row)}
+              emptyState={<EmptyState icon={<Table2 size={32} strokeWidth={1.25} />} title="No data stores" description="Create structured data stores for your workflows." />}
+            />
+            {selectedStore && <DataStorePreview store={selectedStore} onClose={() => setSelectedStore(null)} />}
+          </>
         )}
 
         {activeTab === "Schemas" && (
-          <DataTable
-            columns={schemaColumns}
-            data={mockSchemas.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()))}
-            getRowId={(s) => s.id}
-            selectable
-            emptyState={<EmptyState icon={<Database size={32} strokeWidth={1.25} />} title="No schemas defined" description="Define reusable data schemas for validation." />}
-          />
+          <>
+            <DataTable
+              columns={schemaColumns}
+              data={mockSchemas.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()))}
+              getRowId={(s) => s.id}
+              selectable
+              onRowClick={(row) => setSelectedSchema(selectedSchema?.id === row.id ? null : row)}
+              emptyState={<EmptyState icon={<Database size={32} strokeWidth={1.25} />} title="No schemas defined" description="Define reusable data schemas for validation." />}
+            />
+            {selectedSchema && <SchemaFieldEditor schema={selectedSchema} onClose={() => setSelectedSchema(null)} />}
+          </>
         )}
 
         {activeTab === "Knowledge" && (
-          <DataTable
-            columns={knowledgeColumns}
-            data={mockKnowledge.filter((k) => !search || k.name.toLowerCase().includes(search.toLowerCase()))}
-            getRowId={(k) => k.id}
-            selectable
-            emptyState={<EmptyState icon={<Brain size={32} strokeWidth={1.25} />} title="No knowledge assets" description="Upload documents and knowledge for AI agents." />}
-          />
+          <>
+            <DataTable
+              columns={knowledgeColumns}
+              data={mockKnowledge.filter((k) => !search || k.name.toLowerCase().includes(search.toLowerCase()))}
+              getRowId={(k) => k.id}
+              selectable
+              onRowClick={(row) => setSelectedKnowledge(selectedKnowledge?.id === row.id ? null : row)}
+              emptyState={<EmptyState icon={<Brain size={32} strokeWidth={1.25} />} title="No knowledge assets" description="Upload documents and knowledge for AI agents." />}
+            />
+            {selectedKnowledge && <KnowledgeDetailPanel asset={selectedKnowledge} onClose={() => setSelectedKnowledge(null)} />}
+          </>
         )}
 
         {activeTab === "MCP Servers" && (
-          <DataTable
-            columns={mcpColumns}
-            data={mockMCP.filter((m) => !search || m.name.toLowerCase().includes(search.toLowerCase()))}
-            getRowId={(m) => m.id}
-            emptyState={<EmptyState icon={<Server size={32} strokeWidth={1.25} />} title="No MCP servers" description="Connect Model Context Protocol servers for tool use." />}
-          />
+          <>
+            <DataTable
+              columns={mcpColumns}
+              data={mockMCP.filter((m) => !search || m.name.toLowerCase().includes(search.toLowerCase()))}
+              getRowId={(m) => m.id}
+              onRowClick={(row) => setSelectedMCP(selectedMCP?.id === row.id ? null : row)}
+              emptyState={<EmptyState icon={<Server size={32} strokeWidth={1.25} />} title="No MCP servers" description="Connect Model Context Protocol servers for tool use." />}
+            />
+            {selectedMCP && <MCPServerDetail server={selectedMCP} onClose={() => setSelectedMCP(null)} />}
+          </>
         )}
       </div>
+
+      {/* Knowledge upload modal */}
+      <KnowledgeUploadModal open={showKnowledgeUpload} onClose={() => setShowKnowledgeUpload(false)} />
+
+      {/* MCP Server wizard */}
+      <MCPServerWizard open={showMCPWizard} onClose={() => setShowMCPWizard(false)} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   CheckCircle2, XCircle, Clock, Loader2, ChevronDown, Copy,
   Search, Filter, Cpu, DollarSign, Zap, Brain, AlertTriangle,
-  ArrowDown, ArrowUp, RefreshCw, BarChart3, Eye,
+  ArrowDown, ArrowUp, RefreshCw, BarChart3, Eye, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +16,11 @@ const drawerTabs = [
 
 /* ── Mock execution data ── */
 const traceSteps = [
-  { id: "n1", name: "Webhook Trigger",  status: "success", duration: "2ms",   items: 1, ts: "09:42:01.120", input: 324, output: 324, type: "trigger" },
-  { id: "n2", name: "Enrich Lead Data", status: "success", duration: "342ms", items: 1, ts: "09:42:01.122", input: 324, output: 1280, type: "integration" },
-  { id: "n3", name: "Score with AI",    status: "running", duration: "1.2s",  items: 0, ts: "09:42:01.464", input: 1280, output: 0, type: "ai" },
-  { id: "n4", name: "Route by Score",   status: "pending", duration: "—",     items: 0, ts: "—", input: 0, output: 0, type: "logic" },
-  { id: "n5", name: "Update CRM",       status: "pending", duration: "—",     items: 0, ts: "—", input: 0, output: 0, type: "integration" },
+  { id: "n1", name: "Webhook Trigger",  status: "success", duration: "2ms",   items: 1, ts: "09:42:01.120", input: 324, output: 324, type: "trigger", error: "" },
+  { id: "n2", name: "Enrich Lead Data", status: "success", duration: "342ms", items: 1, ts: "09:42:01.122", input: 324, output: 1280, type: "integration", error: "" },
+  { id: "n3", name: "Score with AI",    status: "error",   duration: "3.4s",  items: 0, ts: "09:42:01.464", input: 1280, output: 0, type: "ai", error: "OpenAI API Error 429: Rate limit exceeded. You have sent too many requests. Please try again in 20s." },
+  { id: "n4", name: "Route by Score",   status: "pending", duration: "—",     items: 0, ts: "—", input: 0, output: 0, type: "logic", error: "" },
+  { id: "n5", name: "Update CRM",       status: "pending", duration: "—",     items: 0, ts: "—", input: 0, output: 0, type: "integration", error: "" },
 ];
 
 /* ── AI reasoning trace ── */
@@ -88,7 +88,7 @@ const logLevelBg: Record<string, string> = {
 
 type LogLevel = "all" | "info" | "debug" | "warn" | "error";
 
-export function StudioRuntimeDrawer() {
+export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) => void }) {
   const [activeTab, setActiveTab] = useState("Output");
   const [expandedNode, setExpandedNode] = useState<string | null>("n2");
   const [logFilter, setLogFilter] = useState<LogLevel>("all");
@@ -212,6 +212,30 @@ export function StudioRuntimeDrawer() {
                     </pre>
                   </div>
                 )}
+                {expandedNode === step.id && step.status === "error" && step.error && (
+                  <div className="bg-red-50/50 border-t border-red-100 px-4 py-2">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <AlertTriangle size={10} className="text-red-500" />
+                      <span className="text-[10px] font-semibold text-red-600">Error</span>
+                    </div>
+                    <pre className="text-[9px] font-mono text-red-600 leading-relaxed max-h-16 overflow-y-auto rounded bg-white border border-red-200 p-2 mb-2">
+                      {step.error}
+                    </pre>
+                    <div className="flex items-center gap-2">
+                      <button className="flex items-center gap-1 rounded bg-red-100 px-2 py-1 text-[9px] font-medium text-red-700 hover:bg-red-200 transition-colors">
+                        <RefreshCw size={9} /> Retry
+                      </button>
+                      {onAskAI && (
+                        <button
+                          onClick={() => onAskAI(`Debug error in "${step.name}": ${step.error}`)}
+                          className="flex items-center gap-1 rounded bg-violet-100 px-2 py-1 text-[9px] font-medium text-violet-700 hover:bg-violet-200 transition-colors"
+                        >
+                          <Sparkles size={9} /> Ask AI Assistant
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -301,10 +325,18 @@ export function StudioRuntimeDrawer() {
                 <p className="text-[10px] text-zinc-300 text-center py-4">No logs match filter</p>
               ) : (
                 filteredLogs.map((log, i) => (
-                  <div key={i} className={cn("flex items-start gap-2 text-[9px] rounded px-1.5 py-0.5 hover:bg-zinc-50 transition-colors", log.level === "warn" && "bg-amber-50/50", log.level === "error" && "bg-red-50/50")}>
+                  <div key={i} className={cn("flex items-start gap-2 text-[9px] rounded px-1.5 py-0.5 hover:bg-zinc-50 transition-colors group", log.level === "warn" && "bg-amber-50/50", log.level === "error" && "bg-red-50/50")}>
                     <span className="text-zinc-400 flex-shrink-0 w-[72px]">{log.ts}</span>
                     <span className={cn("uppercase font-semibold flex-shrink-0 w-9", logLevelColor[log.level])}>{log.level}</span>
-                    <span className="text-zinc-600 break-all">{log.msg}</span>
+                    <span className="text-zinc-600 break-all flex-1">{log.msg}</span>
+                    {(log.level === "error" || log.level === "warn") && onAskAI && (
+                      <button
+                        onClick={() => onAskAI(`Debug ${log.level}: ${log.msg}`)}
+                        className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-[7px] font-medium text-violet-700 hover:bg-violet-200 transition-all flex-shrink-0"
+                      >
+                        <Sparkles size={7} /> Ask AI
+                      </button>
+                    )}
                   </div>
                 ))
               )}

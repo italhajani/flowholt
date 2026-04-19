@@ -151,11 +151,53 @@ export function TemplateDetailPage() {
 
       {activeTab === "preview" && (
         <div className="space-y-5">
-          <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-20 text-center">
-            <Eye size={28} strokeWidth={1.25} className="mx-auto text-zinc-200 mb-2" />
-            <p className="text-[13px] text-zinc-400">Workflow canvas preview</p>
-            <p className="text-[11px] text-zinc-300 mt-1">Visual representation of template nodes and connections</p>
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 overflow-hidden" style={{ minHeight: 260 }}>
+            <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-3">Workflow Preview</p>
+            <div className="relative" style={{ height: 200 }}>
+              <svg className="absolute inset-0" width="100%" height="200">
+                {steps.slice(0, -1).map((_, i) => {
+                  const x1 = 60 + i * 130 + 50;
+                  const x2 = 60 + (i + 1) * 130;
+                  return (
+                    <line key={i} x1={x1} y1={50} x2={x2} y2={50} stroke="#d4d4d8" strokeWidth={2} strokeDasharray="4 3" />
+                  );
+                })}
+              </svg>
+              {steps.map((step, i) => {
+                const x = 60 + i * 130;
+                const color = step.type === "trigger" ? "#22c55e" : step.type === "ai" ? "#7c3aed" : step.type === "logic" ? "#3b82f6" : "#a1a1aa";
+                return (
+                  <div key={step.order} className="absolute flex flex-col items-center" style={{ left: x - 28, top: 20 }}>
+                    <div className="w-14 h-14 rounded-xl border-2 bg-white flex items-center justify-center shadow-sm" style={{ borderColor: color }}>
+                      <span className="text-[11px] font-bold" style={{ color }}>{step.order}</span>
+                    </div>
+                    <p className="text-[9px] font-medium text-zinc-600 mt-1.5 text-center max-w-[80px] leading-tight">{step.name}</p>
+                    <span className={cn("mt-0.5 rounded px-1 py-0 text-[7px] font-semibold uppercase", stepTypeColors[step.type])}>
+                      {step.type}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+          <DetailSection title="Related Templates">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { name: "Customer Onboarding with AI", uses: 320, cat: "Sales" },
+                { name: "Support Ticket Classification", uses: 280, cat: "AI & ML" },
+                { name: "Lead Enrichment Pipeline", uses: 410, cat: "Marketing" },
+                { name: "Deal Alert Notifications", uses: 195, cat: "Sales" },
+              ].map((t, i) => (
+                <div key={i} className="rounded-lg border border-zinc-100 px-3 py-2.5 hover:border-zinc-200 transition-colors cursor-pointer">
+                  <p className="text-[12px] font-medium text-zinc-700 truncate">{t.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="info">{t.cat}</Badge>
+                    <span className="text-[10px] text-zinc-400">{t.uses} uses</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DetailSection>
         </div>
       )}
 

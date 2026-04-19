@@ -3,9 +3,10 @@ import {
   X, Search, Clock, Star, ChevronRight,
   GitBranch, KeyRound, RotateCcw, StickyNote,
   HelpCircle, Keyboard, ExternalLink, FileText,
-  CheckCircle, AlertTriangle, Hash,
+  CheckCircle, AlertTriangle, Hash, GitCompare, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WorkflowDiffViewer } from "./WorkflowDiffViewer";
 
 const contextTitles: Record<string, string> = {
   nodes: "Insert Node",
@@ -166,6 +167,17 @@ const helpLinks = [
   { label: "Report an issue",      href: "#" },
 ];
 
+/* ── Color-to-family mapping for drag data ── */
+const colorToFamily: Record<string, string> = {
+  "bg-green-500": "trigger",
+  "bg-zinc-400": "integration",
+  "bg-blue-500": "logic",
+  "bg-violet-600": "ai",
+  "bg-zinc-900": "ai",
+  "bg-teal-500": "data",
+  "bg-red-500": "trigger",
+};
+
 export function StudioInsertPane({
   context,
   onClose,
@@ -261,7 +273,16 @@ function NodesPane({
                 {filtered.map((item) => (
                   <button
                     key={`${section.title}-${item.name}`}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-zinc-50 transition-colors group"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("application/flowholt-node", JSON.stringify({
+                        name: item.name,
+                        subtitle: item.subtitle,
+                        family: colorToFamily[item.color] ?? "integration",
+                      }));
+                      e.dataTransfer.effectAllowed = "copy";
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-zinc-50 transition-colors group cursor-grab active:cursor-grabbing"
                   >
                     <span className={cn("h-2 w-2 rounded-full flex-shrink-0", item.color)} />
                     <div className="min-w-0 flex-1">
@@ -366,12 +387,20 @@ function AssetsPane() {
 /* ─── VERSIONS pane ─── */
 function VersionsPane() {
   const [selected, setSelected] = useState("v3.2");
+  const [showDiff, setShowDiff] = useState(false);
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="p-3 pb-0">
+      <div className="p-3 pb-0 space-y-1.5">
         <button className="flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-200 py-1.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
           <FileText size={12} />
           Save named version
+        </button>
+        <button
+          onClick={() => setShowDiff(true)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-200 py-1.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+        >
+          <GitCompare size={12} />
+          Compare versions
         </button>
       </div>
       <div className="p-3 space-y-0.5">
@@ -391,18 +420,36 @@ function VersionsPane() {
               )}
             </div>
             <p className="text-[11px] text-zinc-500 truncate">{v.label}</p>
-            <p className="text-[10px] text-zinc-400">{v.who} · {v.time}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-[10px] text-zinc-400">{v.who} · {v.time}</p>
+              {!v.current && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSelected(v.ver); setShowDiff(true); }}
+                  className="text-[10px] text-blue-500 hover:text-blue-600 flex items-center gap-0.5"
+                >
+                  <Eye size={9} /> Diff
+                </button>
+              )}
+            </div>
           </button>
         ))}
       </div>
       {selected && selected !== "v3.2" && (
-        <div className="border-t border-zinc-100 p-3">
+        <div className="border-t border-zinc-100 p-3 space-y-1.5">
+          <button
+            onClick={() => setShowDiff(true)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-zinc-200 py-1.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            <GitCompare size={12} />
+            Compare {selected} with current
+          </button>
           <button className="flex w-full items-center justify-center gap-1.5 rounded-md bg-zinc-900 py-1.5 text-[11px] font-medium text-white hover:bg-zinc-700 transition-colors">
             <RotateCcw size={12} />
             Restore {selected}
           </button>
         </div>
       )}
+      {showDiff && <WorkflowDiffViewer onClose={() => setShowDiff(false)} />}
     </div>
   );
 }

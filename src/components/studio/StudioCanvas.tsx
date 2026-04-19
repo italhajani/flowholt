@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useContext } from "react";
 import {
   Plus, Minus, Maximize2, Map, CheckCircle2, XCircle,
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
@@ -6,6 +6,7 @@ import {
   ChevronRight, GitBranch, Clock, Hash,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCanvasStore } from "./useCanvasStore";
 
 /* ── Mock node data ── */
 export interface CanvasNodeData {
@@ -49,6 +50,10 @@ const execItemCounts: Record<string, number> = {
 
 const NODE_W = 192;
 const NODE_H = 60;
+const GRID_SIZE = 20;
+const SNAP_THRESHOLD = 8;
+
+const snapToGrid = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
 
 const connections: [string, string][] = [
   ["n1", "n2"],
@@ -153,7 +158,7 @@ function CanvasNode({
   hovered: boolean;
   searchMatch: boolean;
   showOverlay: boolean;
-  onClick: () => void;
+  onClick: (e?: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -167,7 +172,7 @@ function CanvasNode({
 
   return (
     <div
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onClick={(e) => { e.stopPropagation(); onClick(e); }}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onContextMenu(e); }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -460,9 +465,14 @@ interface StudioCanvasProps {
 }
 
 export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: StudioCanvasProps) {
-  const [nodes, setNodes] = useState<CanvasNodeData[]>(canvasNodes);
+  const store = useCanvasStore();
+  const nodes = store.nodes;
+  const setNodes = store.setNodes;
+  const execStates = store.execStates;
+  const setExecStates = store.setExecStates;
+  const edgeList = store.edges;
+  const setEdgeList = store.setEdges;
   const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
-  const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(execStateDefaults);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>(initialNotes);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -470,7 +480,9 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showOverlay, setShowOverlay] = useState(true);
-  const [edgeList, setEdgeList] = useState<[string, string][]>(connections);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [alignGuides, setAlignGuides] = useState<{ x?: number; y?: number }>({});
 
   // Zoom + pan state
   const [zoom, setZoom] = useState(1);
@@ -512,6 +524,35 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const zoomOut = () => setZoom(z => Math.max(0.25, z - 0.15));
   const fitView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
+  // ── Drop handler for inserting nodes from the InsertPane ──
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData("application/flowholt-node");
+    if (!data) return;
+    try {
+      const nodeInfo = JSON.parse(data) as { name: string; subtitle: string; family: string };
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = (e.clientX - rect.left - pan.x) / zoom;
+      const y = (e.clientY - rect.top - pan.y) / zoom;
+      const newNode: CanvasNodeData = {
+        id: `n${Date.now()}`,
+        name: nodeInfo.name,
+        subtitle: nodeInfo.subtitle,
+        family: (nodeInfo.family || "integration") as CanvasNodeData["family"],
+        top: y - 30,
+        left: x - 96,
+      };
+      setNodes(prev => [...prev, newNode]);
+      setExecStates(prev => ({ ...prev, [newNode.id]: "idle" }));
+    } catch { /* ignore bad data */ }
+  }, [pan, zoom]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
+
   // ── Pan with middle-click or space+drag ──
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
@@ -529,12 +570,23 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       });
       return;
     }
-    // Node dragging
+    // Node dragging with alignment guides
     if (draggingNodeId) {
       const dx = (e.clientX - dragStart.current.x) / zoom;
       const dy = (e.clientY - dragStart.current.y) / zoom;
+      const newTop = dragStart.current.nodeTop + dy;
+      const newLeft = dragStart.current.nodeLeft + dx;
+      // Check alignment with other nodes
+      const guides: { x?: number; y?: number } = {};
+      for (const n of nodes) {
+        if (n.id === draggingNodeId) continue;
+        if (Math.abs(n.top - newTop) < SNAP_THRESHOLD) guides.y = n.top;
+        if (Math.abs(n.left - newLeft) < SNAP_THRESHOLD) guides.x = n.left;
+        if (Math.abs((n.left + NODE_W / 2) - (newLeft + NODE_W / 2)) < SNAP_THRESHOLD) guides.x = n.left;
+      }
+      setAlignGuides(guides);
       setNodes(prev => prev.map(n =>
-        n.id === draggingNodeId ? { ...n, top: dragStart.current.nodeTop + dy, left: dragStart.current.nodeLeft + dx } : n
+        n.id === draggingNodeId ? { ...n, top: newTop, left: newLeft } : n
       ));
       return;
     }
@@ -551,7 +603,17 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (isPanning) { setIsPanning(false); return; }
-    if (draggingNodeId) { setDraggingNodeId(null); return; }
+    if (draggingNodeId) {
+      // Snap to grid on release if enabled
+      if (snapEnabled) {
+        setNodes(prev => prev.map(n =>
+          n.id === draggingNodeId ? { ...n, top: snapToGrid(n.top), left: snapToGrid(n.left) } : n
+        ));
+      }
+      setDraggingNodeId(null);
+      setAlignGuides({});
+      return;
+    }
     if (drawingEdge) {
       // Check if we dropped on a node port
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -600,19 +662,28 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.ctrlKey && e.key === "f") { e.preventDefault(); setShowSearch(true); }
-      if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); }
+      if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); setSelectedNodeIds(new Set()); }
+      if (e.ctrlKey && e.key === "z") { e.preventDefault(); store.undo(); }
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedNodeId && document.activeElement === document.body) {
+        if (document.activeElement === document.body) {
           e.preventDefault();
-          setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
-          setEdgeList(prev => prev.filter(([f, t]) => f !== selectedNodeId && t !== selectedNodeId));
-          onCanvasClick();
+          // Delete multi-selected nodes
+          if (selectedNodeIds.size > 0) {
+            const idsToDelete = selectedNodeIds;
+            setNodes(prev => prev.filter(n => !idsToDelete.has(n.id)));
+            setEdgeList(prev => prev.filter(([f, t]) => !idsToDelete.has(f) && !idsToDelete.has(t)));
+            setSelectedNodeIds(new Set());
+          } else if (selectedNodeId) {
+            setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
+            setEdgeList(prev => prev.filter(([f, t]) => f !== selectedNodeId && t !== selectedNodeId));
+            onCanvasClick();
+          }
         }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedNodeId, onCanvasClick]);
+  }, [selectedNodeId, selectedNodeIds, onCanvasClick, store]);
 
   const CANVAS_W = 1200;
   const CANVAS_H = 600;
@@ -626,6 +697,8 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onWheel={handleWheel}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
       style={{
         backgroundImage: "radial-gradient(circle, #e4e4e7 1px, transparent 1px)",
         backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
@@ -698,6 +771,20 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         })()}
       </svg>
 
+      {/* Alignment guides */}
+      {(alignGuides.x !== undefined || alignGuides.y !== undefined) && (
+        <svg className="absolute inset-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
+          {alignGuides.y !== undefined && (
+            <line x1="0" x2="100%" y1={alignGuides.y + NODE_H / 2} y2={alignGuides.y + NODE_H / 2}
+              stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+          )}
+          {alignGuides.x !== undefined && (
+            <line y1="0" y2="100%" x1={alignGuides.x + NODE_W / 2} x2={alignGuides.x + NODE_W / 2}
+              stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+          )}
+        </svg>
+      )}
+
       {/* Sticky notes */}
       {stickyNotes.map((note) => (
         <CanvasStickyNote
@@ -723,12 +810,23 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         <CanvasNode
           key={node.id}
           node={node}
-          selected={selectedNodeId === node.id}
+          selected={selectedNodeId === node.id || selectedNodeIds.has(node.id)}
           execState={execStates[node.id] ?? "idle"}
           hovered={hoveredNodeId === node.id}
           searchMatch={searchQuery ? searchResults.some(r => r.id === node.id) : false}
           showOverlay={showOverlay}
-          onClick={() => onNodeSelect(node.id)}
+          onClick={(e?: React.MouseEvent) => {
+            if (e?.shiftKey) {
+              setSelectedNodeIds(prev => {
+                const next = new Set(prev);
+                if (next.has(node.id)) next.delete(node.id); else next.add(node.id);
+                return next;
+              });
+            } else {
+              setSelectedNodeIds(new Set());
+              onNodeSelect(node.id);
+            }
+          }}
           onContextMenu={(e) => handleContextMenu(node.id, e)}
           onMouseEnter={() => setHoveredNodeId(node.id)}
           onMouseLeave={() => setHoveredNodeId(null)}
@@ -829,6 +927,22 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           <Eye size={12} />
           {showOverlay ? "Overlay on" : "Overlay off"}
         </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setSnapEnabled(p => !p); }}
+          title="Toggle snap to grid"
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[11px] font-medium shadow-sm transition-colors",
+            snapEnabled ? "text-blue-600 hover:bg-blue-50" : "text-zinc-400 hover:bg-zinc-50"
+          )}
+        >
+          <Hash size={12} />
+          {snapEnabled ? "Snap on" : "Snap off"}
+        </button>
+        {selectedNodeIds.size > 0 && (
+          <span className="rounded-md bg-zinc-100 border border-zinc-200 px-2 py-1 text-[10px] font-medium text-zinc-500">
+            {selectedNodeIds.size} selected
+          </span>
+        )}
       </div>
     </div>
   );

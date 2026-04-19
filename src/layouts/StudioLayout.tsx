@@ -4,15 +4,17 @@ import { StudioHeader } from "@/components/studio/StudioHeader";
 import { StudioTabBar } from "@/components/studio/StudioTabBar";
 import { StudioLeftRail, type LeftRailContext } from "@/components/studio/StudioLeftRail";
 import { StudioInsertPane } from "@/components/studio/StudioInsertPane";
-import { StudioCanvas, canvasNodes, type CanvasNodeData } from "@/components/studio/StudioCanvas";
+import { StudioCanvas, type CanvasNodeData } from "@/components/studio/StudioCanvas";
 import { StudioInspector } from "@/components/studio/StudioInspector";
 import { StudioRuntimeBar } from "@/components/studio/StudioRuntimeBar";
 import { StudioRuntimeDrawer } from "@/components/studio/StudioRuntimeDrawer";
 import { StudioCopilotPanel, StudioCopilotButton } from "@/components/studio/StudioCopilotPanel";
+import { CanvasStoreProvider, useCanvasStore } from "@/components/studio/useCanvasStore";
 
-export function StudioLayout() {
+function StudioLayoutInner() {
   const navigate = useNavigate();
   const { workflowId } = useParams();
+  const canvasStore = useCanvasStore();
 
   const [activeTab, setActiveTab] = useState("Workflow");
   const [leftPaneOpen, setLeftPaneOpen] = useState(true);
@@ -21,9 +23,17 @@ export function StudioLayout() {
   const [runtimeDrawerOpen, setRuntimeDrawerOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotPrompt, setCopilotPrompt] = useState("");
+
+  const handleAskAI = useCallback((context: string) => {
+    setCopilotPrompt(context);
+    setCopilotOpen(true);
+    setInspectorOpen(false);
+    setSelectedNodeId(null);
+  }, []);
 
   const selectedNode: CanvasNodeData | null =
-    canvasNodes.find((n) => n.id === selectedNodeId) ?? null;
+    canvasStore.nodes.find((n) => n.id === selectedNodeId) ?? null;
 
   function handleTogglePane(ctx: LeftRailContext) {
     if (leftPaneOpen && leftPaneContext === ctx) {
@@ -87,7 +97,7 @@ export function StudioLayout() {
 
         {/* AI Copilot panel — 380px, collapsible */}
         {copilotOpen && !inspectorOpen && (
-          <StudioCopilotPanel onClose={() => setCopilotOpen(false)} />
+          <StudioCopilotPanel onClose={() => { setCopilotOpen(false); setCopilotPrompt(""); }} initialPrompt={copilotPrompt} />
         )}
       </div>
 
@@ -98,7 +108,7 @@ export function StudioLayout() {
       />
 
       {/* Runtime drawer — 240px, shown above bar when open */}
-      {runtimeDrawerOpen && <StudioRuntimeDrawer />}
+      {runtimeDrawerOpen && <StudioRuntimeDrawer onAskAI={handleAskAI} />}
 
       {/* Runtime bar — 44px */}
       <StudioRuntimeBar
@@ -106,5 +116,13 @@ export function StudioLayout() {
         onToggleDrawer={() => setRuntimeDrawerOpen((o) => !o)}
       />
     </div>
+  );
+}
+
+export function StudioLayout() {
+  return (
+    <CanvasStoreProvider>
+      <StudioLayoutInner />
+    </CanvasStoreProvider>
   );
 }

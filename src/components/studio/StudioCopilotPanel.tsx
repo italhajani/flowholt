@@ -7,9 +7,11 @@ import {
   ThumbsUp, ThumbsDown, RefreshCw, Maximize2, Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
+import type { CanvasNodeData } from "./StudioCanvas";
 
 /* ── Types ── */
-type CopilotMode = "ask" | "build";
+type CopilotMode = "ask" | "build" | "builder";
 type ReviewStatus = "pending" | "accepted" | "rejected";
 
 interface CopilotMessage {
@@ -96,6 +98,15 @@ const buildActions = [
   { label: "Add data validation step", icon: Check },
 ];
 
+const builderActions = [
+  { label: "Customer onboarding workflow", icon: Wand2 },
+  { label: "Slack → GPT → Email responder", icon: Zap },
+  { label: "RSS feed → AI summary → Notion", icon: Layers },
+  { label: "Form submission → CRM pipeline", icon: Target },
+  { label: "GitHub issue → classify → assign", icon: GitBranch },
+  { label: "Daily report aggregator", icon: Code2 },
+];
+
 /* ── Context ── */
 const contextInfo = {
   workflowName: "Lead Qualification Pipeline",
@@ -128,32 +139,129 @@ const assistantGreetings: Record<CopilotMode, CopilotMessage> = {
     role: "assistant",
     content: "I'm in **Build mode**. Describe what you want to build or modify and I'll generate a plan with workflow changes. You can review and apply each change individually.\n\nTry: *\"Add retry logic for HTTP nodes\"* or *\"Build a data validation step after the trigger\"*",
   },
+  builder: {
+    id: "greet-builder",
+    role: "assistant",
+    content: "🏗️ **AI Workflow Builder**\n\nDescribe the workflow you want and I'll build it end-to-end — selecting nodes, configuring them, and wiring everything together.\n\nI'll show you each phase in real-time:\n**Planning** → **Generating nodes** → **Connecting** → **Configuring**\n\nTry: *\"Build a Slack bot that uses GPT to answer questions and saves conversations to Notion\"*",
+  },
 };
 
 interface StudioCopilotPanelProps {
   onClose: () => void;
+  initialPrompt?: string;
 }
 
-export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
+/* ── Model selector options ── */
+const modelOptions = [
+  { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "Best" },
+  { id: "claude-sonnet", label: "Claude Sonnet", provider: "Anthropic", badge: "Fast" },
+  { id: "claude-opus", label: "Claude Opus", provider: "Anthropic", badge: "Smart" },
+  { id: "gemini-pro", label: "Gemini Pro", provider: "Google", badge: null },
+  { id: "llama-3", label: "Llama 3.1", provider: "Meta", badge: "Local" },
+];
+
+export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPanelProps) {
+  const canvasStore = useCanvasStore();
   const [mode, setMode] = useState<CopilotMode>("ask");
   const [messages, setMessages] = useState<CopilotMessage[]>([assistantGreetings.ask]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialPrompt ?? "");
   const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
   const [showNodePicker, setShowNodePicker] = useState(false);
   const [nodeFilter, setNodeFilter] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gpt-4o");
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const streamRef = useRef<number | null>(null);
 
   const scroll = useCallback(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), []);
   useEffect(() => { scroll(); }, [messages, scroll]);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
+  // Auto-send initialPrompt if provided (e.g. from "Ask AI" button on error)
+  useEffect(() => {
+    if (initialPrompt) {
+      inputRef.current?.focus();
+    }
+  }, [initialPrompt]);
+
+  // Cleanup streaming interval on unmount
+  useEffect(() => {
+    return () => { if (streamRef.current) clearInterval(streamRef.current); };
+  }, []);
+
   const switchMode = (newMode: CopilotMode) => {
     setMode(newMode);
     setMessages([assistantGreetings[newMode]]);
     setInput("");
+    cancelStream();
   };
+
+  const cancelStream = () => {
+    if (streamRef.current) { clearInterval(streamRef.current); streamRef.current = null; }
+    setIsStreaming(false);
+    setStreamingMsgId(null);
+  };
+
+  /* ── Convert a diff change to a canvas action and apply ── */
+  const familyFromAction = (name: string): CanvasNodeData["family"] => {
+    const lower = name.toLowerCase();
+    if (lower.includes("trigger") || lower.includes("webhook")) return "trigger";
+    if (lower.includes("ai") || lower.includes("gpt") || lower.includes("score")) return "ai";
+    if (lower.includes("route") || lower.includes("switch") || lower.includes("validate") || lower.includes("filter") || lower.includes("parse") || lower.includes("batch") || lower.includes("merge") || lower.includes("split")) return "logic";
+    if (lower.includes("data") || lower.includes("enrich") || lower.includes("crm")) return "data";
+    return "integration";
+  };
+
+  const applyDiffChange = useCallback((change: DiffChange) => {
+    const existing = canvasStore.nodes;
+    const rightmostLeft = Math.max(...existing.map(n => n.left), 200);
+    const bottomTop = Math.max(...existing.map(n => n.top), 100);
+    const actions: CanvasAction[] = [];
+    if (change.action === "add") {
+      actions.push({
+        type: "add-node",
+        nodeId: change.nodeId.startsWith("new") ? `n${Date.now()}-${change.nodeId}` : change.nodeId,
+        node: {
+          name: change.nodeName,
+          subtitle: change.details.slice(0, 40),
+          family: familyFromAction(change.nodeName),
+          left: rightmostLeft + 200 + Math.random() * 60,
+          top: bottomTop + Math.random() * 80,
+        },
+      });
+    } else if (change.action === "modify") {
+      const target = existing.find(n => n.name === change.nodeName || n.id === change.nodeId);
+      if (target) {
+        actions.push({
+          type: "modify-node",
+          nodeId: target.id,
+          node: { subtitle: change.details.slice(0, 50) },
+        });
+      }
+    } else if (change.action === "remove") {
+      const target = existing.find(n => n.name === change.nodeName || n.id === change.nodeId);
+      if (target) actions.push({ type: "remove-node", nodeId: target.id });
+    }
+    if (actions.length > 0) canvasStore.applyActions(actions);
+  }, [canvasStore]);
+
+  const applyAllDiffs = useCallback((diffs: DiffChange[]) => {
+    for (const d of diffs) {
+      if (d.reviewStatus === "pending") applyDiffChange(d);
+    }
+  }, [applyDiffChange]);
+
+  const updateDiffStatus = useCallback((msgId: string, diffIdx: number, status: ReviewStatus) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId || !m.diff) return m;
+      const newDiff = m.diff.map((d, i) => i === diffIdx ? { ...d, reviewStatus: status } : d);
+      return { ...m, diff: newDiff };
+    }));
+  }, []);
 
   const insertNodeMention = (nodeName: string) => {
     setInput((p) => p + `@${nodeName} `);
@@ -162,8 +270,55 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
     inputRef.current?.focus();
   };
 
+  /* ── Streaming simulation: reveal content char-by-char ── */
+  const streamResponse = (response: Partial<CopilotMessage>) => {
+    const fullContent = response.content ?? "";
+    const msgId = `a-${Date.now()}`;
+    const chunkSize = 2 + Math.floor(Math.random() * 3); // 2-4 chars per tick
+    let idx = 0;
+
+    // Add placeholder message with empty content
+    setMessages((p) => [...p, {
+      id: msgId,
+      role: "assistant" as const,
+      content: "",
+    }]);
+    setIsStreaming(true);
+    setStreamingMsgId(msgId);
+    setIsTyping(false);
+
+    streamRef.current = window.setInterval(() => {
+      idx = Math.min(idx + chunkSize, fullContent.length);
+      const partial = fullContent.slice(0, idx);
+
+      setMessages((prev) => prev.map((m) =>
+        m.id === msgId ? { ...m, content: partial } : m
+      ));
+
+      if (idx >= fullContent.length) {
+        // Streaming complete — reveal rich attachments
+        clearInterval(streamRef.current!);
+        streamRef.current = null;
+        setMessages((prev) => prev.map((m) =>
+          m.id === msgId ? {
+            ...m,
+            content: fullContent,
+            ...(response.diff ? { diff: response.diff } : {}),
+            ...(response.nodePreview ? { nodePreview: response.nodePreview } : {}),
+            ...(response.codeBlock ? { codeBlock: response.codeBlock } : {}),
+            ...(response.actions ? { actions: response.actions } : {}),
+            ...(response.toolCalls ? { toolCalls: response.toolCalls } : {}),
+            ...(response.tokenUsage ? { tokenUsage: response.tokenUsage } : {}),
+          } : m
+        ));
+        setIsStreaming(false);
+        setStreamingMsgId(null);
+      }
+    }, 18); // ~55 chars/sec
+  };
+
   const send = (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || isStreaming) return;
     const mentionedNodes = workflowNodes.filter(n => text.includes(`@${n.name}`)).map(n => n.name);
     const userMsg: CopilotMessage = { id: `u-${Date.now()}`, role: "user", content: text.trim(), mentionedNodes };
     setMessages((p) => [...p, userMsg]);
@@ -171,13 +326,16 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
     setIsTyping(true);
     if (inputRef.current) inputRef.current.style.height = "auto";
 
+    // Simulate thinking delay then stream
+    const thinkDelay = mode === "builder" ? 1200 + Math.random() * 800 : mode === "build" ? 800 + Math.random() * 600 : 400 + Math.random() * 400;
+
     setTimeout(() => {
       let response: Partial<CopilotMessage> = { content: "I'll analyze your workflow and get back to you with specific suggestions." };
 
       if (mode === "build") {
         if (text.toLowerCase().includes("error handling") || text.toLowerCase().includes("retry")) {
           response = {
-            content: "I've prepared the following changes to add error handling:",
+            content: "I've analyzed your workflow for failure points. Here are the changes I recommend to add comprehensive error handling:",
             diff: [
               { nodeId: "n4", nodeName: "Enrich via Clearbit", action: "modify", details: "Add retry: 3 attempts, exponential backoff (1s, 2s, 4s)", reviewStatus: "pending" },
               { nodeId: "n5", nodeName: "Notify on Slack", action: "modify", details: "Add retry: 2 attempts, 500ms delay", reviewStatus: "pending" },
@@ -192,7 +350,7 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
           };
         } else if (text.toLowerCase().includes("validation") || text.toLowerCase().includes("filter")) {
           response = {
-            content: "Here's a data validation step I'll add after the trigger:",
+            content: "I'll add a data validation step right after the trigger. This ensures only clean, well-structured data flows through the rest of your pipeline:",
             nodePreview: [
               { name: "Webhook Trigger", type: "trigger", status: "ready" },
               { name: "Validate Input", type: "logic", status: "new" },
@@ -208,6 +366,39 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
               { label: "Edit rules first", icon: Wrench, variant: "secondary" },
             ],
             tokenUsage: { input: 980, output: 650, cost: "$0.006" },
+          };
+        } else if (text.toLowerCase().includes("slack") || text.toLowerCase().includes("notification") || text.toLowerCase().includes("alert")) {
+          response = {
+            content: "I'll enhance the notification system with richer Slack messages. Here's what I'll add:\n\n• **Rich formatting** with Block Kit\n• **Conditional channels** based on lead score\n• **Threaded updates** for follow-up actions",
+            nodePreview: [
+              { name: "Route by Score", type: "logic", status: "ready" },
+              { name: "Slack Rich Notify", type: "output", status: "new" },
+              { name: "Slack Thread Update", type: "output", status: "new" },
+            ],
+            diff: [
+              { nodeId: "n5", nodeName: "Notify on Slack", action: "modify", details: "Replace with Block Kit formatting: header, lead card, score badge, CTA button", reviewStatus: "pending" },
+              { nodeId: "new1", nodeName: "Slack Thread Update", action: "add", details: "Auto-reply in thread after Salesforce record is created with CRM link", reviewStatus: "pending" },
+            ],
+            actions: [
+              { label: "Apply changes", icon: Check, variant: "primary" },
+              { label: "Preview Slack message", icon: Eye, variant: "secondary" },
+            ],
+            tokenUsage: { input: 860, output: 540, cost: "$0.005" },
+          };
+        } else if (text.toLowerCase().includes("batch") || text.toLowerCase().includes("parallel")) {
+          response = {
+            content: "I'll convert your pipeline to batch processing mode. This will process multiple leads simultaneously while respecting API rate limits:\n\n• **Batch size:** 10 items per batch\n• **Concurrency:** 3 parallel API calls\n• **Rate limiting:** Auto-throttle on 429 responses",
+            diff: [
+              { nodeId: "n1", nodeName: "Webhook Trigger", action: "modify", details: "Add batch collection: wait 5s or until 10 items", reviewStatus: "pending" },
+              { nodeId: "new1", nodeName: "Batch Splitter", action: "add", details: "Split incoming array into batches of 10", reviewStatus: "pending" },
+              { nodeId: "n4", nodeName: "Enrich via Clearbit", action: "modify", details: "Enable parallel execution (3 concurrent), add rate limit guard", reviewStatus: "pending" },
+              { nodeId: "new2", nodeName: "Batch Merger", action: "add", details: "Collect all enriched results, merge into single array", reviewStatus: "pending" },
+            ],
+            actions: [
+              { label: "Generate workflow", icon: Wand2, variant: "primary" },
+              { label: "Adjust batch settings", icon: Settings, variant: "secondary" },
+            ],
+            tokenUsage: { input: 1380, output: 920, cost: "$0.010" },
           };
         } else {
           response = {
@@ -231,6 +422,120 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
               { label: "Customize plan", icon: Wrench, variant: "secondary" },
             ],
             tokenUsage: { input: 1520, output: 1100, cost: "$0.012" },
+          };
+        }
+      } else if (mode === "builder") {
+        // AI Workflow Builder — multi-phase generation
+        const phases = [
+          { phase: "Planning", detail: "Analyzing requirements and selecting optimal node types…" },
+          { phase: "Generating", detail: "Creating node configurations and parameters…" },
+          { phase: "Connecting", detail: "Wiring nodes with data mappings…" },
+          { phase: "Configuring", detail: "Setting credentials, expressions, and error handling…" },
+        ];
+        const phaseStr = phases.map((p, i) => `${i + 1}. **${p.phase}** — ${p.detail}`).join("\n");
+
+        if (text.toLowerCase().includes("slack") || text.toLowerCase().includes("gpt") || text.toLowerCase().includes("bot")) {
+          response = {
+            content: `🏗️ **Building workflow...**\n\n${phaseStr}\n\n✅ **Workflow generated!** 6 nodes created and connected.\n\nThis workflow listens for Slack messages, sends them to GPT-4o for response generation, and posts the reply back in-thread. Conversations are saved to Notion for reference.`,
+            nodePreview: [
+              { name: "Slack Trigger", type: "trigger", status: "new" },
+              { name: "Filter Bot Messages", type: "logic", status: "new" },
+              { name: "Build AI Prompt", type: "logic", status: "new" },
+              { name: "GPT-4o Chat", type: "ai", status: "new" },
+              { name: "Reply in Slack Thread", type: "output", status: "new" },
+              { name: "Save to Notion", type: "data", status: "new" },
+            ],
+            diff: [
+              { nodeId: "bld1", nodeName: "Slack Trigger", action: "add", details: "Event: message.channels — listen for new messages in #ask-ai channel", reviewStatus: "pending" },
+              { nodeId: "bld2", nodeName: "Filter Bot Messages", action: "add", details: "IF node: skip messages from bots (subtype !== 'bot_message')", reviewStatus: "pending" },
+              { nodeId: "bld3", nodeName: "Build AI Prompt", action: "add", details: "Set node: system prompt + user message + last 5 thread messages as context", reviewStatus: "pending" },
+              { nodeId: "bld4", nodeName: "GPT-4o Chat", action: "add", details: "OpenAI Chat Completion: model=gpt-4o, temperature=0.7, max_tokens=1024", reviewStatus: "pending" },
+              { nodeId: "bld5", nodeName: "Reply in Slack Thread", action: "add", details: "Slack: postMessage in thread (thread_ts from trigger), unfurl_links=false", reviewStatus: "pending" },
+              { nodeId: "bld6", nodeName: "Save to Notion", action: "add", details: "Create page in Conversations DB: user, question, answer, timestamp", reviewStatus: "pending" },
+            ],
+            actions: [
+              { label: "Apply to canvas", icon: Check, variant: "primary" },
+              { label: "Refine workflow", icon: Wrench, variant: "secondary" },
+            ],
+            toolCalls: [
+              { tool: "search_integrations", args: 'query="Slack trigger"', result: "Found: Slack Event Trigger", duration: "34ms" },
+              { tool: "search_integrations", args: 'query="OpenAI chat"', result: "Found: OpenAI Chat Model", duration: "28ms" },
+              { tool: "search_integrations", args: 'query="Notion create page"', result: "Found: Notion Create Page", duration: "31ms" },
+              { tool: "generate_workflow_graph", args: 'nodes=6, edges=5', result: "Graph generated with auto-layout", duration: "145ms" },
+            ],
+            tokenUsage: { input: 2840, output: 1960, cost: "$0.024" },
+          };
+        } else if (text.toLowerCase().includes("rss") || text.toLowerCase().includes("notion") || text.toLowerCase().includes("summary")) {
+          response = {
+            content: `🏗️ **Building workflow...**\n\n${phaseStr}\n\n✅ **Workflow generated!** 5 nodes created and connected.\n\nThis workflow polls RSS feeds on a schedule, uses AI to summarize articles, and saves structured summaries to a Notion database.`,
+            nodePreview: [
+              { name: "Schedule Trigger", type: "trigger", status: "new" },
+              { name: "RSS Feed Reader", type: "integration", status: "new" },
+              { name: "AI Summarizer", type: "ai", status: "new" },
+              { name: "Format Output", type: "logic", status: "new" },
+              { name: "Save to Notion", type: "data", status: "new" },
+            ],
+            diff: [
+              { nodeId: "bld1", nodeName: "Schedule Trigger", action: "add", details: "Cron: every 6 hours (0 */6 * * *)", reviewStatus: "pending" },
+              { nodeId: "bld2", nodeName: "RSS Feed Reader", action: "add", details: "HTTP Request: fetch RSS XML from configured URL, parse items", reviewStatus: "pending" },
+              { nodeId: "bld3", nodeName: "AI Summarizer", action: "add", details: "GPT-4o-mini: summarize article in 3 bullet points, extract key topics", reviewStatus: "pending" },
+              { nodeId: "bld4", nodeName: "Format Output", action: "add", details: "Set node: title, summary, topics[], source_url, published_date", reviewStatus: "pending" },
+              { nodeId: "bld5", nodeName: "Save to Notion", action: "add", details: "Create page in RSS Summaries DB with rich text formatting", reviewStatus: "pending" },
+            ],
+            actions: [
+              { label: "Apply to canvas", icon: Check, variant: "primary" },
+              { label: "Add more feeds", icon: Zap, variant: "secondary" },
+            ],
+            tokenUsage: { input: 2200, output: 1580, cost: "$0.019" },
+          };
+        } else if (text.toLowerCase().includes("github") || text.toLowerCase().includes("issue") || text.toLowerCase().includes("classify")) {
+          response = {
+            content: `🏗️ **Building workflow...**\n\n${phaseStr}\n\n✅ **Workflow generated!** 6 nodes created and connected.\n\nThis workflow triggers on new GitHub issues, uses AI to classify priority and type, then auto-assigns to the right team member.`,
+            nodePreview: [
+              { name: "GitHub Issue Trigger", type: "trigger", status: "new" },
+              { name: "Fetch Issue Details", type: "integration", status: "new" },
+              { name: "AI Classifier", type: "ai", status: "new" },
+              { name: "Route by Priority", type: "logic", status: "new" },
+              { name: "Assign to Team", type: "integration", status: "new" },
+              { name: "Post Comment", type: "output", status: "new" },
+            ],
+            diff: [
+              { nodeId: "bld1", nodeName: "GitHub Issue Trigger", action: "add", details: "Webhook: issues.opened event on configured repo", reviewStatus: "pending" },
+              { nodeId: "bld2", nodeName: "Fetch Issue Details", action: "add", details: "GitHub API: get full issue body, labels, author info", reviewStatus: "pending" },
+              { nodeId: "bld3", nodeName: "AI Classifier", action: "add", details: "GPT-4o-mini: classify → {priority: P0-P3, type: bug|feature|docs, team: frontend|backend|infra}", reviewStatus: "pending" },
+              { nodeId: "bld4", nodeName: "Route by Priority", action: "add", details: "Switch: P0→immediate, P1→sprint, P2→backlog, P3→icebox", reviewStatus: "pending" },
+              { nodeId: "bld5", nodeName: "Assign to Team", action: "add", details: "GitHub API: add labels, assign reviewer from team roster", reviewStatus: "pending" },
+              { nodeId: "bld6", nodeName: "Post Comment", action: "add", details: "GitHub API: post classification summary as bot comment", reviewStatus: "pending" },
+            ],
+            actions: [
+              { label: "Apply to canvas", icon: Check, variant: "primary" },
+              { label: "Edit classification rules", icon: Wrench, variant: "secondary" },
+            ],
+            tokenUsage: { input: 2640, output: 1840, cost: "$0.022" },
+          };
+        } else {
+          const userGoal = text.length > 50 ? text.slice(0, 50) + "…" : text;
+          response = {
+            content: `🏗️ **Building workflow...**\n\n${phaseStr}\n\n✅ **Workflow generated!** 5 nodes created and connected.\n\nBased on: *"${userGoal}"*\n\nI've created a complete workflow with trigger, processing, AI analysis, routing, and output steps.`,
+            nodePreview: [
+              { name: "Webhook Trigger", type: "trigger", status: "new" },
+              { name: "Data Processor", type: "logic", status: "new" },
+              { name: "AI Analysis", type: "ai", status: "new" },
+              { name: "Smart Router", type: "logic", status: "new" },
+              { name: "Send Results", type: "output", status: "new" },
+            ],
+            diff: [
+              { nodeId: "bld1", nodeName: "Webhook Trigger", action: "add", details: "POST endpoint with JSON body parsing and validation", reviewStatus: "pending" },
+              { nodeId: "bld2", nodeName: "Data Processor", action: "add", details: "Transform and normalize incoming data fields", reviewStatus: "pending" },
+              { nodeId: "bld3", nodeName: "AI Analysis", action: "add", details: "GPT-4o analysis with structured JSON output", reviewStatus: "pending" },
+              { nodeId: "bld4", nodeName: "Smart Router", action: "add", details: "Switch node routing based on AI analysis results", reviewStatus: "pending" },
+              { nodeId: "bld5", nodeName: "Send Results", action: "add", details: "HTTP request to configured callback URL with results", reviewStatus: "pending" },
+            ],
+            actions: [
+              { label: "Apply to canvas", icon: Check, variant: "primary" },
+              { label: "Refine workflow", icon: Wrench, variant: "secondary" },
+            ],
+            tokenUsage: { input: 2100, output: 1420, cost: "$0.018" },
           };
         }
       } else {
@@ -282,30 +587,52 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
             ],
             tokenUsage: { input: 450, output: 280, cost: "$0.003" },
           };
+        } else if (text.toLowerCase().includes("optim") || text.toLowerCase().includes("improve") || text.toLowerCase().includes("performance")) {
+          response = {
+            content: "**Performance Analysis** for Lead Qualification Pipeline:\n\n🔍 **Bottleneck identified:** Node 3 (*Score with AI*) takes 62% of total execution time.\n\n**Optimization recommendations:**\n\n1. **Cache repeated leads** — Same email within 24h returns cached score → saves ~$18/month\n2. **Use GPT-4o-mini** for initial screen, GPT-4o only for borderline (50-80) scores → 40% cost reduction\n3. **Parallel enrichment** — Run Clearbit + AI scoring simultaneously instead of sequentially → 890ms saved\n4. **Batch Slack notifications** — Group 5 leads into single digest message → fewer API calls",
+            actions: [
+              { label: "Apply top recommendation", icon: Wand2, variant: "primary" },
+              { label: "Show cost projections", icon: Target, variant: "secondary" },
+              { label: "Switch to Build mode", icon: Hammer, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "analyze_performance", args: 'last_executions=100', result: "Avg 1.2s, p95 2.8s, bottleneck: node n2", duration: "156ms" },
+              { tool: "estimate_costs", args: 'period="30d"', result: "$42.80 projected monthly", duration: "23ms" },
+            ],
+            tokenUsage: { input: 920, output: 680, cost: "$0.007" },
+          };
+        } else if (text.toLowerCase().includes("stats") || text.toLowerCase().includes("execution") || text.toLowerCase().includes("metrics")) {
+          response = {
+            content: "**Execution Stats** (last 7 days):\n\n| Metric | Value |\n|--------|-------|\n| Total runs | 1,047 |\n| Success rate | 94.2% |\n| Avg duration | 1.24s |\n| P95 latency | 2.81s |\n| AI tokens used | 356K |\n| Total cost | $9.42 |\n\n**Top errors:**\n1. HTTP 429 (Clearbit) — 38 occurrences\n2. Timeout (Salesforce) — 12 occurrences\n3. Invalid email format — 8 occurrences",
+            actions: [
+              { label: "View full dashboard", icon: Target, variant: "secondary" },
+              { label: "Export CSV", icon: ArrowRight, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "query_execution_stats", args: 'period="7d", workflow="wf-lead-qual"', result: "1,047 executions loaded", duration: "312ms" },
+            ],
+            tokenUsage: { input: 580, output: 420, cost: "$0.004" },
+          };
         } else {
           response = {
-            content: "I'll analyze that for you. Here are my findings based on the current workflow state and recent executions.",
+            content: "I'll analyze that for you. Here are my findings based on the current workflow state and recent executions.\n\nYour **Lead Qualification Pipeline** is running well with a 94% success rate. The main area for improvement is the Clearbit enrichment step, which occasionally hits rate limits during high-traffic periods.\n\nWould you like me to dive deeper into any specific aspect?",
             actions: [
               { label: "Show more details", icon: Eye, variant: "secondary" },
+              { label: "Suggest improvements", icon: Sparkles, variant: "ghost" },
             ],
           };
         }
       }
 
-      setMessages((p) => [...p, {
-        id: `a-${Date.now()}`,
-        role: "assistant" as const,
-        ...response,
-        content: response.content!,
-      }]);
-      setIsTyping(false);
-    }, mode === "build" ? 1800 : 1200);
+      // Stream the response character by character
+      streamResponse(response);
+    }, thinkDelay);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
     if (e.key === "@") setShowNodePicker(true);
-    if (e.key === "Escape") setShowNodePicker(false);
+    if (e.key === "Escape") { setShowNodePicker(false); if (isStreaming) cancelStream(); }
   };
 
   const filteredNodes = workflowNodes.filter(n =>
@@ -343,7 +670,7 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
 
       {/* Mode tabs */}
       <div className="flex items-center border-b px-4" style={{ borderColor: "var(--color-border-default)" }}>
-        {(["ask", "build"] as const).map((m) => (
+        {(["ask", "build", "builder"] as const).map((m) => (
           <button
             key={m}
             onClick={() => switchMode(m)}
@@ -352,15 +679,38 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
               mode === m ? "border-zinc-800 text-zinc-800" : "border-transparent text-zinc-400 hover:text-zinc-600"
             )}
           >
-            {m === "ask" ? <MessageSquare size={11} /> : <Hammer size={11} />}
-            {m === "ask" ? "Ask" : "Build"}
+            {m === "ask" ? <MessageSquare size={11} /> : m === "build" ? <Hammer size={11} /> : <Wand2 size={11} />}
+            {m === "ask" ? "Ask" : m === "build" ? "Build" : "Builder"}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-1.5 py-2">
+        <div className="ml-auto flex items-center gap-1.5 py-2 relative">
           <span className="text-[9px] text-zinc-300">model:</span>
-          <button className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[9px] font-medium text-zinc-600 hover:bg-zinc-50">
-            <Cpu size={9} /> GPT-4o <ChevronDown size={8} />
+          <button onClick={() => setShowModelPicker(!showModelPicker)} className="flex items-center gap-1 rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[9px] font-medium text-zinc-600 hover:bg-zinc-50">
+            <Cpu size={9} /> {modelOptions.find(m => m.id === selectedModel)?.label ?? "GPT-4o"} <ChevronDown size={8} />
           </button>
+          {showModelPicker && (
+            <div className="absolute top-full right-0 mt-1 z-50 w-48 rounded-lg border border-zinc-200 bg-white shadow-lg p-1">
+              {modelOptions.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setSelectedModel(m.id); setShowModelPicker(false); }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[10px] hover:bg-zinc-50 transition-colors",
+                    selectedModel === m.id && "bg-zinc-50 font-semibold"
+                  )}
+                >
+                  <Cpu size={9} className="text-zinc-400 flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <span className="text-zinc-700">{m.label}</span>
+                    <span className="text-zinc-400 ml-1">({m.provider})</span>
+                  </div>
+                  {m.badge && (
+                    <span className="rounded bg-zinc-100 px-1 py-0.5 text-[8px] font-medium text-zinc-500">{m.badge}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -471,26 +821,54 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
                     <div className="mt-2 rounded-md border border-zinc-200 overflow-hidden">
                       <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-50 border-b border-zinc-200 text-[9px] font-semibold text-zinc-500">
                         <Diff size={10} /> Review Changes ({msg.diff.length})
+                        {msg.diff.some(d => d.reviewStatus === "pending") && (
+                          <button
+                            onClick={() => {
+                              applyAllDiffs(msg.diff!);
+                              msg.diff!.forEach((_, idx) => updateDiffStatus(msg.id, idx, "accepted"));
+                            }}
+                            className="ml-auto rounded-md bg-green-500 px-2 py-0.5 text-[8px] font-semibold text-white hover:bg-green-600 transition-colors"
+                          >
+                            Accept All
+                          </button>
+                        )}
                       </div>
                       {msg.diff.map((change, i) => {
                         const Icon = diffActionIcons[change.action];
+                        const isAccepted = change.reviewStatus === "accepted";
+                        const isRejected = change.reviewStatus === "rejected";
                         return (
-                          <div key={i} className="flex items-start gap-2 px-2.5 py-2 border-b border-zinc-50 last:border-0 hover:bg-zinc-50/50 transition-colors">
+                          <div key={i} className={cn(
+                            "flex items-start gap-2 px-2.5 py-2 border-b border-zinc-50 last:border-0 transition-colors",
+                            isAccepted ? "bg-green-50/50" : isRejected ? "bg-red-50/30 opacity-50" : "hover:bg-zinc-50/50"
+                          )}>
                             <span className={cn("flex items-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-semibold uppercase flex-shrink-0 mt-0.5", diffActionColors[change.action])}>
                               <Icon size={8} />{change.action}
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[10px] font-medium text-zinc-700">{change.nodeName}</p>
                               <p className="text-[9px] text-zinc-400 leading-relaxed">{change.details}</p>
+                              {isAccepted && <span className="text-[8px] text-green-600 font-medium">✓ Applied to canvas</span>}
+                              {isRejected && <span className="text-[8px] text-red-500 font-medium">✗ Rejected</span>}
                             </div>
-                            <div className="flex items-center gap-0.5 flex-shrink-0">
-                              <button className="rounded p-0.5 text-green-400 hover:text-green-600 hover:bg-green-50 transition-colors" title="Accept">
-                                <Check size={10} />
-                              </button>
-                              <button className="rounded p-0.5 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Reject">
-                                <XCircle size={10} />
-                              </button>
-                            </div>
+                            {change.reviewStatus === "pending" && (
+                              <div className="flex items-center gap-0.5 flex-shrink-0">
+                                <button
+                                  onClick={() => { applyDiffChange(change); updateDiffStatus(msg.id, i, "accepted"); }}
+                                  className="rounded p-0.5 text-green-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                                  title="Accept & Apply"
+                                >
+                                  <Check size={10} />
+                                </button>
+                                <button
+                                  onClick={() => updateDiffStatus(msg.id, i, "rejected")}
+                                  className="rounded p-0.5 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="Reject"
+                                >
+                                  <XCircle size={10} />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -513,7 +891,13 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
                     {msg.actions.map((action, i) => {
                       const Icon = action.icon;
                       return (
-                        <button key={i} className={cn(
+                        <button key={i} onClick={() => {
+                          if (action.onClick) { action.onClick(); return; }
+                          if (msg.diff && (action.label.toLowerCase().includes("apply") || action.label.toLowerCase().includes("generate"))) {
+                            applyAllDiffs(msg.diff);
+                            msg.diff.forEach((_, idx) => updateDiffStatus(msg.id, idx, "accepted"));
+                          }
+                        }} className={cn(
                           "flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-medium transition-all",
                           action.variant === "primary" ? "bg-zinc-900 text-white hover:bg-zinc-700"
                             : action.variant === "secondary" ? "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
@@ -540,6 +924,20 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
           </div>
         ))}
 
+        {/* Streaming cursor indicator */}
+        {isStreaming && (
+          <div className="mb-1 flex items-center gap-2 px-2">
+            <span className="inline-block h-3.5 w-0.5 animate-pulse bg-violet-500 rounded-full" />
+            <span className="text-[9px] text-zinc-400">Streaming…</span>
+            <button
+              onClick={cancelStream}
+              className="ml-auto rounded-md border border-zinc-200 px-2 py-0.5 text-[9px] font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+            >
+              Stop ■
+            </button>
+          </div>
+        )}
+
         {isTyping && (
           <div className="mb-3 flex justify-start">
             <div className="mr-2 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600">
@@ -564,10 +962,10 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
       {messages.length <= 1 && (
         <div className="px-4 pb-2">
           <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
-            {mode === "ask" ? "Quick Questions" : "Quick Builds"}
+            {mode === "ask" ? "Quick Questions" : mode === "build" ? "Quick Builds" : "Example Workflows"}
           </p>
           <div className="flex flex-wrap gap-1">
-            {(mode === "ask" ? askActions : buildActions).map((action) => {
+            {(mode === "ask" ? askActions : mode === "build" ? buildActions : builderActions).map((action) => {
               const Icon = action.icon;
               return (
                 <button key={action.label} onClick={() => send(action.label)}
@@ -636,14 +1034,16 @@ export function StudioCopilotPanel({ onClose }: StudioCopilotPanelProps) {
             }}
           />
           <button
-            onClick={() => send(input)}
-            disabled={!input.trim() || isTyping}
+            onClick={() => isStreaming ? cancelStream() : send(input)}
+            disabled={!input.trim() && !isStreaming}
             className={cn(
               "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-all mb-0.5",
-              input.trim() && !isTyping ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white hover:opacity-90" : "bg-zinc-100 text-zinc-300 cursor-not-allowed"
+              isStreaming ? "bg-red-500 text-white hover:bg-red-600"
+                : input.trim() && !isTyping ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white hover:opacity-90"
+                : "bg-zinc-100 text-zinc-300 cursor-not-allowed"
             )}
           >
-            <Send size={11} />
+            {isStreaming ? <X size={11} /> : <Send size={11} />}
           </button>
         </div>
         <div className="flex items-center gap-2 mt-1.5 px-1 text-[8px] text-zinc-300">

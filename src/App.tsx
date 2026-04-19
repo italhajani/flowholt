@@ -49,6 +49,10 @@ import { CommunityNodesMarketplace } from "@/pages/CommunityNodesMarketplace";
 import { WorkflowVersionsPage } from "@/pages/WorkflowVersionsPage";
 import { EnvironmentVariablesPage } from "@/pages/EnvironmentVariablesPage";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { WorkflowAnalyticsPage } from "@/pages/WorkflowAnalyticsPage";
+import { SourceControlPanel } from "@/pages/SourceControlPanel";
+import { ExecutionTimelinePage } from "@/pages/ExecutionTimelinePage";
+import { LogStreamingPanel } from "@/pages/LogStreamingPanel";
 import { InviteAcceptPage } from "@/pages/InviteAcceptPage";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ToastProvider } from "@/components/ui/toast";
@@ -112,6 +116,10 @@ export function App() {
               <Route path="/chat" element={<ChatHubPage />} />
               <Route path="/evaluations" element={<EvaluationsPage />} />
               <Route path="/community-nodes" element={<CommunityNodesMarketplace />} />
+              <Route path="/workflows/:id/analytics" element={<WorkflowAnalyticsPage />} />
+              <Route path="/source-control" element={<SourceControlPanel />} />
+              <Route path="/executions/:id/timeline" element={<ExecutionTimelinePage />} />
+              <Route path="/logs" element={<LogStreamingPanel />} />
 
               {/* Settings with nested layout */}
               <Route path="/settings" element={<SettingsLayout />}>

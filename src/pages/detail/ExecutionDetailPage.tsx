@@ -191,47 +191,103 @@ function colorizeJson(line: string): React.ReactNode {
 }
 
 /* Waterfall timing chart */
-function WaterfallChart({ steps, totalMs }: { steps: Step[]; totalMs: number }) {
+function WaterfallChart({ steps, totalMs, onStepClick }: { steps: Step[]; totalMs: number; onStepClick?: (i: number) => void }) {
   const maxOffset = Math.max(...steps.map((s) => s.startOffset + s.durationMs));
   const scale = totalMs > 0 ? 100 / maxOffset : 0;
+  const [hoveredStep, setHoveredStep] = useState<number | null>(null);
+
+  // Detect parallel branches — steps overlapping in time
+  const getParallelGroup = (step: Step): string => {
+    const overlapping = steps.filter(
+      (s) => s !== step && s.startOffset < step.startOffset + step.durationMs && s.startOffset + s.durationMs > step.startOffset
+    );
+    return overlapping.length > 0 ? "parallel" : "sequential";
+  };
 
   return (
     <div className="rounded-lg border border-zinc-100 bg-white shadow-xs overflow-hidden">
       {/* Time axis */}
       <div className="flex items-center border-b border-zinc-100 px-4 py-2">
         <span className="w-[180px] text-[10px] font-medium text-zinc-400">Node</span>
-        <div className="flex-1 flex items-center justify-between">
+        <div className="flex-1 flex items-center justify-between relative">
           {[0, 25, 50, 75, 100].map((pct) => (
             <span key={pct} className="text-[9px] font-mono text-zinc-300">
               {((maxOffset * pct) / 100 / 1000).toFixed(1)}s
             </span>
           ))}
         </div>
+        <span className="w-14" />
       </div>
 
       {steps.map((step, i) => {
         const left = step.startOffset * scale;
         const width = Math.max(0.5, step.durationMs * scale);
+        const isParallel = getParallelGroup(step) === "parallel";
+        const isHovered = hoveredStep === i;
+
+        const barColors: Record<string, string> = {
+          trigger: "bg-green-400",
+          integration: "bg-emerald-400",
+          ai: "bg-zinc-700",
+          logic: "bg-blue-400",
+          error: "bg-red-300",
+        };
+
         return (
-          <div key={i} className="flex items-center border-b border-zinc-50 px-4 py-1.5 hover:bg-zinc-50/50 transition-colors">
+          <div
+            key={i}
+            className={cn(
+              "flex items-center border-b border-zinc-50 px-4 py-1.5 transition-colors cursor-pointer",
+              isHovered ? "bg-blue-50/50" : "hover:bg-zinc-50/50",
+            )}
+            onClick={() => onStepClick?.(i)}
+            onMouseEnter={() => setHoveredStep(i)}
+            onMouseLeave={() => setHoveredStep(null)}
+          >
             <div className="w-[180px] flex items-center gap-2 flex-shrink-0">
               <span className="text-[9px] font-mono text-zinc-300 w-3">{step.order}</span>
               {(() => { const Icon = stepTypeIcons[step.type]; return <Icon size={11} className="text-zinc-400" />; })()}
               <span className="text-[11px] text-zinc-700 truncate">{step.name}</span>
+              {isParallel && <span className="text-[7px] bg-blue-100 text-blue-600 rounded px-1 font-semibold">∥</span>}
             </div>
-            <div className="flex-1 relative h-4">
+            <div className="flex-1 relative h-5">
+              {/* Background gridlines */}
+              {[25, 50, 75].map(pct => (
+                <div key={pct} className="absolute top-0 bottom-0 border-l border-zinc-100" style={{ left: `${pct}%` }} />
+              ))}
+              {/* Bar */}
               <div
                 className={cn(
-                  "absolute top-1 h-2 rounded-full transition-all",
-                  step.status === "failed" ? "bg-red-400" : step.status === "skipped" ? "bg-zinc-200" : step.type === "ai" ? "bg-zinc-700" : "bg-emerald-400"
+                  "absolute top-1 h-3 rounded-full transition-all",
+                  step.status === "failed" ? "bg-red-400" : step.status === "skipped" ? "bg-zinc-200" : barColors[step.type] || "bg-emerald-400",
+                  isHovered && "ring-2 ring-blue-300/50 shadow-sm",
                 )}
-                style={{ left: `${left}%`, width: `${width}%`, minWidth: 3 }}
-              />
+                style={{ left: `${left}%`, width: `${width}%`, minWidth: 4 }}
+              >
+                {/* Inline duration label for wide bars */}
+                {width > 8 && (
+                  <span className="absolute inset-0 flex items-center justify-center text-[7px] font-mono text-white/80 font-semibold">{step.duration}</span>
+                )}
+              </div>
+              {/* Hover tooltip */}
+              {isHovered && (
+                <div className="absolute -top-8 bg-zinc-800 text-white text-[9px] rounded px-2 py-1 whitespace-nowrap z-20 shadow-lg pointer-events-none"
+                  style={{ left: `${left + width / 2}%`, transform: "translateX(-50%)" }}
+                >
+                  {step.name} — {step.duration} ({Math.round((step.durationMs / totalMs) * 100)}%)
+                </div>
+              )}
             </div>
             <span className="text-[10px] font-mono text-zinc-400 w-14 text-right flex-shrink-0">{step.duration}</span>
           </div>
         );
       })}
+
+      {/* Summary footer */}
+      <div className="flex items-center justify-between px-4 py-2 bg-zinc-50/50 border-t border-zinc-100">
+        <span className="text-[9px] text-zinc-400">{steps.length} nodes • {steps.filter(s => s.status === "success").length} passed</span>
+        <span className="text-[9px] font-mono text-zinc-400">Total: {(maxOffset / 1000).toFixed(2)}s</span>
+      </div>
     </div>
   );
 }
@@ -405,7 +461,7 @@ export function ExecutionDetailPage() {
             <span className="flex items-center gap-1 text-zinc-400"><span className="h-2 w-2 rounded-full bg-blue-400" /> Logic</span>
             <span className="flex items-center gap-1 text-zinc-400"><span className="h-2 w-2 rounded-full bg-green-400" /> Trigger</span>
           </div>
-          <WaterfallChart steps={stepTrace} totalMs={execution.durationMs} />
+          <WaterfallChart steps={stepTrace} totalMs={execution.durationMs} onStepClick={(i) => { setActiveTab("trace"); setExpandedStep(i); }} />
 
           {/* Bottleneck analysis */}
           <div className="rounded-lg border border-zinc-100 bg-white p-4 shadow-xs">

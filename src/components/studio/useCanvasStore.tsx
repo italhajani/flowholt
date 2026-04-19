@@ -2,10 +2,13 @@ import { createContext, useContext, useState, useCallback, useRef, type ReactNod
 import { canvasNodes, type CanvasNodeData, type NodeExecState } from "./StudioCanvas";
 
 /* ── Types ── */
+export type CanvasActionType = "add-node" | "remove-node" | "modify-node" | "add-edge" | "remove-edge" | "move-node";
+
 export interface CanvasAction {
-  type: "add-node" | "remove-node" | "modify-node" | "add-edge" | "remove-edge";
+  type: CanvasActionType;
   nodeId?: string;
   node?: Partial<CanvasNodeData>;
+  prevNode?: Partial<CanvasNodeData>; // snapshot for undo
   edge?: [string, string];
 }
 
@@ -23,7 +26,12 @@ interface CanvasStore {
   removeEdge: (from: string, to: string) => void;
   applyActions: (actions: CanvasAction[]) => void;
   undoStack: CanvasAction[][];
+  redoStack: CanvasAction[][];
   undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  historyIndex: number;
 }
 
 const CanvasStoreCtx = createContext<CanvasStore | null>(null);
@@ -41,6 +49,8 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   const [edges, setEdges] = useState<[string, string][]>(defaultEdges);
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(defaultExecStates);
   const undoStackRef = useRef<CanvasAction[][]>([]);
+  const redoStackRef = useRef<CanvasAction[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   const addNode = useCallback((node: CanvasNodeData) => {
     setNodes(prev => [...prev, node]);
@@ -67,9 +77,25 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
     setEdges(prev => prev.filter(([f, t]) => !(f === from && t === to)));
   }, []);
 
+  /* Snapshot a node's current state for undo */
+  const getNodeSnapshot = useCallback((id: string): Partial<CanvasNodeData> | undefined => {
+    const found = nodes.find(n => n.id === id);
+    return found ? { ...found } : undefined;
+  }, [nodes]);
+
   const applyActions = useCallback((actions: CanvasAction[]) => {
-    undoStackRef.current.push(actions);
-    for (const a of actions) {
+    // Enrich actions with undo snapshots
+    const enriched = actions.map(a => {
+      if ((a.type === "remove-node" || a.type === "modify-node" || a.type === "move-node") && a.nodeId && !a.prevNode) {
+        return { ...a, prevNode: getNodeSnapshot(a.nodeId) };
+      }
+      return a;
+    });
+    undoStackRef.current.push(enriched);
+    redoStackRef.current = []; // clear redo on new action
+    setHistoryIndex(i => i + 1);
+
+    for (const a of enriched) {
       switch (a.type) {
         case "add-node":
           if (a.node) {
@@ -88,6 +114,73 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
           if (a.nodeId) removeNode(a.nodeId);
           break;
         case "modify-node":
+        case "move-node":
+          if (a.nodeId && a.node) updateNode(a.nodeId, a.node);
+          break;
+        case "add-edge":
+          if (a.edge) addEdge(a.edge[0], a.edge[1]);
+          break;
+        case "remove-edge":
+          if (a.edge) removeEdge(a.edge[0], a.edge[1]);
+          break;
+      }
+    }
+  }, [addNode, removeNode, updateNode, addEdge, removeEdge, getNodeSnapshot]);
+
+  const undo = useCallback(() => {
+    const lastBatch = undoStackRef.current.pop();
+    if (!lastBatch) return;
+    redoStackRef.current.push(lastBatch);
+    setHistoryIndex(i => Math.max(0, i - 1));
+
+    for (const a of [...lastBatch].reverse()) {
+      switch (a.type) {
+        case "add-node":
+          if (a.nodeId || a.node?.id) removeNode((a.nodeId || a.node?.id)!);
+          break;
+        case "remove-node":
+          if (a.prevNode && a.prevNode.id) addNode(a.prevNode as CanvasNodeData);
+          break;
+        case "modify-node":
+        case "move-node":
+          if (a.nodeId && a.prevNode) updateNode(a.nodeId, a.prevNode);
+          break;
+        case "add-edge":
+          if (a.edge) removeEdge(a.edge[0], a.edge[1]);
+          break;
+        case "remove-edge":
+          if (a.edge) addEdge(a.edge[0], a.edge[1]);
+          break;
+      }
+    }
+  }, [addNode, removeNode, updateNode, addEdge, removeEdge]);
+
+  const redo = useCallback(() => {
+    const batch = redoStackRef.current.pop();
+    if (!batch) return;
+    undoStackRef.current.push(batch);
+    setHistoryIndex(i => i + 1);
+
+    for (const a of batch) {
+      switch (a.type) {
+        case "add-node":
+          if (a.node) {
+            const newNode: CanvasNodeData = {
+              id: a.nodeId || `n${Date.now()}`,
+              name: a.node.name || "New Node",
+              subtitle: a.node.subtitle || "",
+              family: a.node.family || "integration",
+              top: a.node.top ?? 200,
+              left: a.node.left ?? 400,
+            };
+            addNode(newNode);
+          }
+          break;
+        case "remove-node":
+          if (a.nodeId) removeNode(a.nodeId);
+          break;
+        case "modify-node":
+        case "move-node":
           if (a.nodeId && a.node) updateNode(a.nodeId, a.node);
           break;
         case "add-edge":
@@ -100,27 +193,6 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [addNode, removeNode, updateNode, addEdge, removeEdge]);
 
-  const undo = useCallback(() => {
-    const lastBatch = undoStackRef.current.pop();
-    if (!lastBatch) return;
-    for (const a of [...lastBatch].reverse()) {
-      switch (a.type) {
-        case "add-node":
-          if (a.nodeId) removeNode(a.nodeId);
-          break;
-        case "remove-node":
-          // Can't fully undo remove without snapshot — skip for now
-          break;
-        case "add-edge":
-          if (a.edge) removeEdge(a.edge[0], a.edge[1]);
-          break;
-        case "remove-edge":
-          if (a.edge) addEdge(a.edge[0], a.edge[1]);
-          break;
-      }
-    }
-  }, [removeNode, addEdge, removeEdge]);
-
   return (
     <CanvasStoreCtx.Provider value={{
       nodes, edges, execStates,
@@ -129,7 +201,11 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
       addEdge, removeEdge,
       applyActions,
       undoStack: undoStackRef.current,
-      undo,
+      redoStack: redoStackRef.current,
+      undo, redo,
+      canUndo: undoStackRef.current.length > 0,
+      canRedo: redoStackRef.current.length > 0,
+      historyIndex,
     }}>
       {children}
     </CanvasStoreCtx.Provider>

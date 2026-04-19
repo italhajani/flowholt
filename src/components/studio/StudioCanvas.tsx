@@ -206,6 +206,10 @@ function CanvasNode({
         )}
         onMouseDown={(e) => { e.stopPropagation(); onPortDragStart?.(e); }}
       />
+      {/* Error output port — red dot below main output when node has error */}
+      {execState === "error" && (
+        <span className="absolute -right-[5px] top-[72%] h-[7px] w-[7px] rounded-full border-2 border-red-400 bg-red-50 z-10" title="Error output" />
+      )}
 
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-2">
@@ -878,7 +882,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       if (label === "Select all") setSelectedNodeIds(new Set(nodes.map(n => n.id)));
       if (label === "Fit to view") fitView();
       if (label === "Undo") store.undo();
-      if (label === "Redo") store.redo?.();
+      if (label === "Redo") store.redo();
       if (label === "Add sticky note") {
         const rect = canvasRef.current?.getBoundingClientRect();
         const cx = rect ? ((contextMenu?.x ?? 0) - rect.left - pan.x) / zoom : 350;
@@ -1066,7 +1070,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
     if (label === "Mini-map") setShowMinimap(p => !p);
     if (label === "Search") setShowSearch(p => !p);
     if (label === "Undo") store.undo();
-    if (label === "Redo") store.redo?.();
+    if (label === "Redo") store.redo();
   }, []);
 
   // Keyboard shortcuts
@@ -1078,7 +1082,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       if (e.ctrlKey && e.key === "f") { e.preventDefault(); setShowSearch(true); }
       if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); setSelectedNodeIds(new Set()); setContextMenu(null); }
       if (e.ctrlKey && e.key === "z" && !e.shiftKey) { e.preventDefault(); store.undo(); }
-      if (e.ctrlKey && e.shiftKey && e.key === "Z") { e.preventDefault(); store.redo?.(); }
+      if (e.ctrlKey && e.shiftKey && e.key === "Z") { e.preventDefault(); store.redo(); }
       // Ctrl+A: select all nodes
       if (e.ctrlKey && e.key === "a") { e.preventDefault(); setSelectedNodeIds(new Set(nodes.map(n => n.id))); }
       // Ctrl+D: duplicate selected node
@@ -1174,6 +1178,9 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
             <path d="M0,0 L0,6 L8,3 z" fill="#93c5fd" />
           </marker>
+          <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#fca5a5" />
+          </marker>
         </defs>
         {edgeList.map(([fromId, toId]) => {
           const from = nodeMap[fromId];
@@ -1208,6 +1215,19 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
                 markerEnd={isSuccess ? "url(#arrow-green)" : isRunning ? "url(#arrow-blue)" : "url(#arrow)"}
                 className="pointer-events-none"
               />
+              {/* Error overlay on edges from error nodes */}
+              {fromState === "error" && (
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke="#fca5a5"
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
+                  markerEnd="url(#arrow-red)"
+                  className="pointer-events-none"
+                  opacity={0.8}
+                />
+              )}
               {/* Connection label — item count on successful edges */}
               {isSuccess && items > 0 && showOverlay && (
                 <g className="pointer-events-none">

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, X, GitBranch, KeyRound, AlertTriangle, Users, Activity, Shield } from "lucide-react";
+import { Bell, X, GitBranch, KeyRound, AlertTriangle, Users, Activity, Shield, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "./toast";
 
 interface Notification {
   id: string;
@@ -39,14 +40,15 @@ const categoryColors: Record<string, string> = {
   system: "text-zinc-500 bg-zinc-100",
 };
 
-const tabs = ["All", "Action", "Workflow", "Vault", "Runtime"] as const;
+const tabs = ["All", "Action", "Workflow", "Vault", "Recent"] as const;
 type Tab = (typeof tabs)[number];
 
 export function NotificationsPanel() {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const panelRef = useRef<HTMLDivElement>(null);
-  const unreadCount = mockNotifications.filter((n) => !n.read).length;
+  const { notifications: toastHistory, clearNotifications } = useToast();
+  const unreadCount = mockNotifications.filter((n) => !n.read).length + toastHistory.length;
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -61,6 +63,7 @@ export function NotificationsPanel() {
   const filtered = mockNotifications.filter((n) => {
     if (activeTab === "All") return true;
     if (activeTab === "Action") return !n.read && n.actionLabel;
+    if (activeTab === "Recent") return false;
     return n.category === activeTab.toLowerCase();
   });
 
@@ -75,7 +78,7 @@ export function NotificationsPanel() {
         <Bell size={15} strokeWidth={1.75} />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white">
-            {unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -113,13 +116,51 @@ export function NotificationsPanel() {
                 )}
               >
                 {t}
+                {t === "Recent" && toastHistory.length > 0 && (
+                  <span className="ml-1 text-[9px] bg-zinc-200 rounded-full px-1">{toastHistory.length}</span>
+                )}
               </button>
             ))}
           </div>
 
           {/* Notification list */}
           <div className="max-h-[400px] overflow-y-auto">
-            {filtered.length === 0 ? (
+            {/* Recent toast history tab */}
+            {activeTab === "Recent" ? (
+              toastHistory.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Activity size={24} strokeWidth={1.25} className="mx-auto text-zinc-200 mb-2" />
+                  <p className="text-[12px] text-zinc-400">No recent activity</p>
+                </div>
+              ) : (
+                <>
+                  {toastHistory.map((t) => {
+                    const variantColors = { success: "text-green-500 bg-green-50", error: "text-red-500 bg-red-50", warning: "text-amber-500 bg-amber-50", info: "text-blue-500 bg-blue-50" };
+                    const variantIcons = { success: Shield, error: AlertTriangle, warning: AlertTriangle, info: Activity };
+                    const Icon = variantIcons[t.variant];
+                    const elapsed = Math.round((Date.now() - t.createdAt) / 1000);
+                    const timeStr = elapsed < 60 ? `${elapsed}s ago` : elapsed < 3600 ? `${Math.round(elapsed / 60)}m ago` : `${Math.round(elapsed / 3600)}h ago`;
+                    return (
+                      <div key={t.id} className="flex gap-3 px-4 py-3 hover:bg-zinc-50 transition-colors" style={{ borderBottom: "1px solid #fafafa" }}>
+                        <div className={cn("flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md", variantColors[t.variant])}>
+                          <Icon size={13} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {t.title && <p className="text-[12px] font-medium text-zinc-800 leading-tight">{t.title}</p>}
+                          <p className="text-[11px] text-zinc-400 mt-0.5 leading-tight">{t.message}</p>
+                          <span className="text-[10px] text-zinc-300 mt-1 block">{timeStr}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="px-4 py-2 text-center border-t border-zinc-100">
+                    <button onClick={clearNotifications} className="text-[11px] text-zinc-400 hover:text-red-500 flex items-center gap-1 mx-auto transition-colors">
+                      <Trash2 size={10} /> Clear recent
+                    </button>
+                  </div>
+                </>
+              )
+            ) : filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <Bell size={24} strokeWidth={1.25} className="mx-auto text-zinc-200 mb-2" />
                 <p className="text-[12px] text-zinc-400">No notifications</p>

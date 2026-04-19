@@ -3,6 +3,7 @@ import {
   X, ChevronRight, ChevronDown, ChevronLeft, Copy, Pin, PinOff, RefreshCw,
   AlertTriangle, Play, Braces, Code2, Eye, EyeOff, Hash, MoreHorizontal,
   Search, Download, Upload, Trash2, Check, Clock, Zap, Maximize2,
+  CheckCircle2, XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CanvasNodeData, familyColors } from "./StudioCanvas";
@@ -237,7 +238,7 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "Parameters" && <ParametersContent config={config} />}
+        {activeTab === "Parameters" && <ParametersContent config={config} nodeFamily={node.family} nodeName={node.name} />}
         {activeTab === "Input" && <DataPanel nodeId={node.id} direction="input" pinned={pinned} />}
         {activeTab === "Output" && <DataPanel nodeId={node.id} direction="output" pinned={pinned} />}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
@@ -672,6 +673,8 @@ function SettingsContent() {
   const [retryCount, setRetryCount] = useState(3);
   const [notes, setNotes] = useState("");
   const [executeOnce, setExecuteOnce] = useState(false);
+  const [errorWorkflow, setErrorWorkflow] = useState("none");
+  const [errorOutput, setErrorOutput] = useState<"stop" | "branch" | "ignore">("stop");
 
   return (
     <div className="space-y-5">
@@ -685,6 +688,31 @@ function SettingsContent() {
 
       <div className="space-y-3">
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Error handling</p>
+
+        {/* Error output behavior */}
+        <FieldGroup label="On error" description="What happens when this node fails">
+          <div className="grid grid-cols-3 gap-1">
+            {([
+              { id: "stop", label: "Stop", desc: "Halt workflow" },
+              { id: "branch", label: "Error branch", desc: "Route to error output" },
+              { id: "ignore", label: "Ignore", desc: "Continue with empty" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setErrorOutput(opt.id)}
+                className={cn(
+                  "flex flex-col items-center rounded-lg border px-2 py-2 text-center transition-all",
+                  errorOutput === opt.id
+                    ? "border-zinc-900 bg-zinc-900 text-white"
+                    : "border-zinc-200 text-zinc-500 hover:border-zinc-300",
+                )}
+              >
+                <span className="text-[10px] font-semibold">{opt.label}</span>
+                <span className={cn("text-[8px] mt-0.5", errorOutput === opt.id ? "text-zinc-300" : "text-zinc-400")}>{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </FieldGroup>
 
         <ToggleRow label="Continue on error" description="Pass error to output instead of failing" enabled={continueOnError} onToggle={() => setContinueOnError(o => !o)} />
         <ToggleRow label="Auto-retry on failure" description={`Retry up to ${retryCount}× with exponential backoff`} enabled={retryEnabled} onToggle={() => setRetryEnabled(o => !o)} />
@@ -709,6 +737,9 @@ function SettingsContent() {
                 <option>Fixed (1s, 1s, 1s…)</option>
               </select>
             </FieldGroup>
+            <FieldGroup label="Initial delay (ms)">
+              <input type="number" defaultValue={1000} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+            </FieldGroup>
           </div>
           <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 flex gap-2">
             <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -716,6 +747,25 @@ function SettingsContent() {
           </div>
         </>
       )}
+
+      {/* Error workflow */}
+      <FieldGroup label="Error workflow" description="Execute another workflow when this node fails">
+        <select
+          value={errorWorkflow}
+          onChange={(e) => setErrorWorkflow(e.target.value)}
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all"
+        >
+          <option value="none">— None —</option>
+          <option value="error-handler">Error Alert Handler</option>
+          <option value="slack-notify">Slack Error Notifier</option>
+          <option value="pagerduty">PagerDuty Escalation</option>
+        </select>
+        {errorWorkflow !== "none" && (
+          <p className="text-[9px] text-green-600 mt-1 flex items-center gap-1">
+            <CheckCircle2 size={8} /> Error workflow will receive the error context and original input data
+          </p>
+        )}
+      </FieldGroup>
 
       <div className="space-y-3">
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Execution</p>
@@ -740,9 +790,106 @@ function SettingsContent() {
     </div>
   );
 }
+
+/* ── Node type hero — visual identity per node type ── */
+function NodeTypeHero({ family, name, config }: { family: string; name: string; config: typeof nodeConfigs[string] }) {
+  if (family === "trigger") {
+    const method = config.fields?.find((f) => f.label === "Method")?.value || "POST";
+    const path = config.fields?.find((f) => f.label === "Path")?.value || "/webhook";
+    return (
+      <div className="rounded-lg border border-green-100 bg-gradient-to-r from-green-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-green-100 text-[8px] font-bold text-green-700">⚡</span>
+          <span className="text-[10px] font-semibold text-green-700 uppercase tracking-wider">Trigger</span>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-md border border-green-200 bg-white px-2 py-1.5">
+          <span className={cn(
+            "rounded px-1.5 py-0.5 text-[9px] font-bold",
+            method === "GET" ? "bg-blue-100 text-blue-700" : method === "POST" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+          )}>{method}</span>
+          <code className="text-[11px] font-mono text-zinc-600 flex-1 truncate">{path}</code>
+          <button className="text-zinc-300 hover:text-zinc-500"><Copy size={9} /></button>
+        </div>
+        <p className="mt-1.5 text-[9px] text-green-600">Listening for incoming requests</p>
+      </div>
+    );
+  }
+
+  if (family === "ai") {
+    const model = config.model || "gpt-4o";
+    const temp = config.fields?.find((f) => f.label === "Temperature")?.value || "0.7";
+    const maxTok = config.fields?.find((f) => f.label === "Max Tokens")?.value || "500";
+    return (
+      <div className="rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-violet-100 text-[8px] font-bold text-violet-700">🧠</span>
+          <span className="text-[10px] font-semibold text-violet-700 uppercase tracking-wider">AI Node</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-white">{model}</span>
+          <span className="rounded bg-violet-50 border border-violet-200 px-1.5 py-0.5 text-[9px] text-violet-600">temp {temp}</span>
+          <span className="rounded bg-violet-50 border border-violet-200 px-1.5 py-0.5 text-[9px] text-violet-600">{maxTok} tokens</span>
+        </div>
+        <div className="mt-2 flex items-center gap-3 text-[9px] text-violet-500">
+          <span>~340ms avg latency</span>
+          <span>~$0.004/call</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (family === "logic") {
+    const condition = config.fields?.find((f) => f.label === "Condition")?.value || "";
+    const trueOut = config.fields?.find((f) => f.label === "True Output")?.value || "True";
+    const falseOut = config.fields?.find((f) => f.label === "False Output")?.value || "False";
+    return (
+      <div className="rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 text-[8px] font-bold text-blue-700">⑂</span>
+          <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">Conditional</span>
+        </div>
+        {condition && (
+          <div className="rounded-md border border-blue-200 bg-white px-2.5 py-1.5">
+            <code className="text-[10px] font-mono text-violet-600">{condition}</code>
+          </div>
+        )}
+        <div className="mt-2 flex items-center gap-2">
+          <span className="flex items-center gap-1 rounded bg-green-50 border border-green-200 px-1.5 py-0.5 text-[9px] text-green-700">
+            <CheckCircle2 size={8} /> {trueOut}
+          </span>
+          <span className="text-[9px] text-zinc-300">/</span>
+          <span className="flex items-center gap-1 rounded bg-red-50 border border-red-200 px-1.5 py-0.5 text-[9px] text-red-700">
+            <XCircle size={8} /> {falseOut}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (family === "integration") {
+    const operation = config.fields?.find((f) => f.label === "Operation")?.value || "Execute";
+    return (
+      <div className="rounded-lg border border-zinc-100 bg-gradient-to-r from-zinc-50/60 to-white p-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-100 text-[8px] font-bold text-zinc-600">🔗</span>
+          <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Integration</span>
+          <span className="ml-auto rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-600">{operation}</span>
+        </div>
+        {config.credential && (
+          <div className="mt-2 flex items-center gap-1.5 text-[9px] text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            {config.credential}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
 
 /* ── PARAMETERS content with expression editor ── */
-function ParametersContent({ config }: { config: typeof nodeConfigs[string] }) {
+function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof nodeConfigs[string]; nodeFamily: string; nodeName: string }) {
   const [advanced, setAdvanced] = useState(false);
   const [exprFields, setExprFields] = useState<Record<string, boolean>>({});
   const [exprModalField, setExprModalField] = useState<string | null>(null);
@@ -759,6 +906,9 @@ function ParametersContent({ config }: { config: typeof nodeConfigs[string] }) {
 
   return (
     <div className="space-y-4">
+      {/* Node-type-specific hero section */}
+      <NodeTypeHero family={nodeFamily} name={nodeName} config={config} />
+
       {config.model && (
         <FieldGroup label="Model" description="AI model to use for inference">
           <select

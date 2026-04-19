@@ -4,6 +4,8 @@ import {
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
   Search, X, Play, Pause, Eye, Zap, ArrowRight, Pin,
   ChevronRight, GitBranch, Clock, Hash, Home, Undo2, Redo2,
+  Clipboard, Scissors, Replace, Fingerprint, MousePointerSquareDashed,
+  Download, Share2, MessageSquare, Sparkles, Bot, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "./useCanvasStore";
@@ -69,6 +71,8 @@ interface StickyNoteData {
   top: number;
   left: number;
   color: string;
+  width?: number;
+  height?: number;
 }
 
 const initialNotes: StickyNoteData[] = [
@@ -227,21 +231,44 @@ function CanvasNode({
 }
 
 /* ─── Context menu ─── */
-const contextMenuItems = [
-  { label: "Open / Edit",   icon: Edit2,          danger: false },
-  { label: "Run from here", icon: Play,           danger: false },
-  { label: "Duplicate",     icon: Copy,           danger: false },
-  { label: "Add sticky note", icon: StickyNote,   danger: false },
-  { label: "Pin output",    icon: Pin,            danger: false },
-  { label: "View sub-flow", icon: CornerDownRight,danger: false },
+type CtxMenuItem = { label: string; icon: typeof Edit2; shortcut?: string; danger?: boolean } | null;
+
+const nodeContextItems: CtxMenuItem[] = [
+  { label: "Open / Edit",          icon: Edit2,              shortcut: "Enter" },
+  { label: "Run from here",        icon: Play,               shortcut: "R" },
   null,
-  { label: "Delete",        icon: Trash2,         danger: true },
+  { label: "Copy",                 icon: Copy,               shortcut: "Ctrl+C" },
+  { label: "Cut",                  icon: Scissors,           shortcut: "Ctrl+X" },
+  { label: "Duplicate",            icon: Clipboard,          shortcut: "Ctrl+D" },
+  null,
+  { label: "Pin output",           icon: Pin,                shortcut: "P" },
+  { label: "Rename",               icon: Edit2,              shortcut: "F2" },
+  { label: "Copy node ID",         icon: Fingerprint },
+  null,
+  { label: "Replace node",         icon: Replace },
+  { label: "Extract sub-workflow",  icon: CornerDownRight },
+  { label: "Ask AI about this",    icon: Sparkles },
+  null,
+  { label: "Delete",               icon: Trash2,             shortcut: "Del",   danger: true },
 ];
 
-function NodeContextMenu({
-  x, y, onClose, onDisable, disabled,
+const canvasContextItems: CtxMenuItem[] = [
+  { label: "Paste",                icon: Clipboard,          shortcut: "Ctrl+V" },
+  null,
+  { label: "Add node",             icon: Plus,               shortcut: "Tab" },
+  { label: "Add sticky note",      icon: StickyNote,         shortcut: "Shift+S" },
+  null,
+  { label: "Select all",           icon: MousePointerSquareDashed, shortcut: "Ctrl+A" },
+  { label: "Fit to view",          icon: Maximize2,          shortcut: "1" },
+  { label: "Undo",                 icon: Undo2,              shortcut: "Ctrl+Z" },
+  { label: "Redo",                 icon: Redo2,              shortcut: "Ctrl+Shift+Z" },
+];
+
+function ContextMenuOverlay({
+  x, y, items, onAction, onClose, extraRows,
 }: {
-  x: number; y: number; onClose: () => void; onDisable: () => void; disabled: boolean;
+  x: number; y: number; items: CtxMenuItem[]; onAction: (label: string) => void; onClose: () => void;
+  extraRows?: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -252,62 +279,179 @@ function NodeContextMenu({
     return () => document.removeEventListener("mousedown", handle);
   }, [onClose]);
 
+  // Keep menu within viewport
+  const [pos, setPos] = useState({ top: y, left: x });
+  useEffect(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    let top = y, left = x;
+    if (rect.bottom > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
+    if (rect.right > window.innerWidth - 8) left = window.innerWidth - rect.width - 8;
+    setPos({ top: Math.max(4, top), left: Math.max(4, left) });
+  }, [x, y]);
+
   return (
     <div
       ref={ref}
-      className="fixed z-[100] w-52 rounded-lg border border-zinc-200 bg-white shadow-xl py-1"
-      style={{ top: y, left: x }}
+      className="fixed z-[100] w-56 rounded-lg border border-zinc-200 bg-white shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100"
+      style={{ top: pos.top, left: pos.left }}
+      onClick={(e) => e.stopPropagation()}
     >
-      {contextMenuItems.map((item, i) =>
+      {items.map((item, i) =>
         item === null ? (
-          <div key={`d${i}`} className="my-1 border-t border-zinc-100" />
+          <div key={`d${i}`} className="my-0.5 border-t border-zinc-100" />
         ) : (
           <button
             key={item.label}
-            onClick={() => { onClose(); }}
+            onClick={() => { onAction(item.label); onClose(); }}
             className={cn(
               "flex w-full items-center gap-2.5 px-3 py-1.5 text-[12px] transition-colors",
               item.danger ? "text-red-600 hover:bg-red-50" : "text-zinc-600 hover:bg-zinc-50"
             )}
           >
-            <item.icon size={13} />
-            {item.label}
+            <item.icon size={13} className="flex-shrink-0" />
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.shortcut && (
+              <kbd className="ml-auto text-[9px] font-mono text-zinc-300">{item.shortcut}</kbd>
+            )}
           </button>
         )
       )}
-      <div className="my-1 border-t border-zinc-100" />
-      <button
-        onClick={() => { onDisable(); onClose(); }}
-        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
-      >
-        <span className="h-3.5 w-3.5 rounded border border-zinc-300 flex-shrink-0" />
-        {disabled ? "Enable node" : "Disable node"}
-      </button>
+      {extraRows}
     </div>
   );
 }
 
+function NodeContextMenu({
+  x, y, nodeId, disabled, onAction, onDisable, onClose,
+}: {
+  x: number; y: number; nodeId: string; disabled: boolean;
+  onAction: (label: string) => void; onDisable: () => void; onClose: () => void;
+}) {
+  const disableRow = (
+    <>
+      <div className="my-0.5 border-t border-zinc-100" />
+      <button
+        onClick={() => { onDisable(); onClose(); }}
+        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
+      >
+        <Eye size={13} className={cn("flex-shrink-0", disabled && "text-amber-500")} />
+        <span className="flex-1 text-left">{disabled ? "Enable node" : "Disable node"}</span>
+        <kbd className="ml-auto text-[9px] font-mono text-zinc-300">D</kbd>
+      </button>
+    </>
+  );
+  return (
+    <ContextMenuOverlay
+      x={x} y={y} items={nodeContextItems}
+      onAction={onAction} onClose={onClose}
+      extraRows={disableRow}
+    />
+  );
+}
+
+function CanvasContextMenu({
+  x, y, onAction, onClose,
+}: {
+  x: number; y: number; onAction: (label: string) => void; onClose: () => void;
+}) {
+  return <ContextMenuOverlay x={x} y={y} items={canvasContextItems} onAction={onAction} onClose={onClose} />;
+}
+
 /* ─── Sticky note on canvas ─── */
-function CanvasStickyNote({ note, onDelete }: { note: StickyNoteData; onDelete: () => void }) {
+const stickyColors = [
+  { name: "Yellow", bg: "#fef9c3", border: "#fde047", text: "#854d0e" },
+  { name: "Blue",   bg: "#dbeafe", border: "#93c5fd", text: "#1e40af" },
+  { name: "Green",  bg: "#dcfce7", border: "#86efac", text: "#166534" },
+  { name: "Pink",   bg: "#fce7f3", border: "#f9a8d4", text: "#9d174d" },
+  { name: "Purple", bg: "#ede9fe", border: "#c4b5fd", text: "#5b21b6" },
+  { name: "Orange", bg: "#ffedd5", border: "#fdba74", text: "#9a3412" },
+];
+
+function CanvasStickyNote({ note, onUpdate, onDelete }: {
+  note: StickyNoteData; onUpdate: (patch: Partial<StickyNoteData>) => void; onDelete: () => void;
+}) {
   const [text, setText] = useState(note.text);
+  const [width, setWidth] = useState(note.width ?? 200);
+  const [height, setHeight] = useState(note.height ?? 100);
+  const [showColors, setShowColors] = useState(false);
+  const colorInfo = stickyColors.find(c => c.bg === note.color) ?? stickyColors[0];
+  const resizeRef = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); e.preventDefault();
+    resizeRef.current = { startX: e.clientX, startY: e.clientY, startW: width, startH: height };
+    function onMove(ev: MouseEvent) {
+      if (!resizeRef.current) return;
+      const newW = Math.max(140, resizeRef.current.startW + (ev.clientX - resizeRef.current.startX));
+      const newH = Math.max(60, resizeRef.current.startH + (ev.clientY - resizeRef.current.startY));
+      setWidth(newW); setHeight(newH);
+    }
+    function onUp() {
+      resizeRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [width, height]);
+
   return (
     <div
-      className="absolute rounded-md shadow-sm"
-      style={{ top: note.top, left: note.left, background: note.color, width: 180, minHeight: 80 }}
+      className="absolute rounded-lg shadow-sm group/sticky select-none"
+      style={{ top: note.top, left: note.left, background: colorInfo.bg, width, minHeight: height, borderLeft: `3px solid ${colorInfo.border}` }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-2 py-1">
-        <StickyNote size={11} className="text-amber-600" />
-        <button onClick={onDelete} className="text-zinc-400 hover:text-zinc-600 transition-colors">
-          <Plus size={11} className="rotate-45" />
-        </button>
+      {/* Header */}
+      <div className="flex items-center justify-between px-2 py-1.5 cursor-grab">
+        <div className="flex items-center gap-1.5">
+          <StickyNote size={11} style={{ color: colorInfo.border }} />
+          <span className="text-[9px] font-medium opacity-50" style={{ color: colorInfo.text }}>Note</span>
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover/sticky:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowColors(p => !p); }}
+            className="h-4 w-4 rounded flex items-center justify-center hover:bg-black/5 transition-colors"
+            title="Change color"
+          >
+            <div className="h-2.5 w-2.5 rounded-full" style={{ background: colorInfo.border }} />
+          </button>
+          <button onClick={onDelete} className="h-4 w-4 rounded flex items-center justify-center hover:bg-black/5 transition-colors" title="Delete note">
+            <X size={9} style={{ color: colorInfo.text }} />
+          </button>
+        </div>
       </div>
+      {/* Color picker */}
+      {showColors && (
+        <div className="absolute top-8 right-1 z-30 flex gap-1 rounded-lg bg-white border border-zinc-200 shadow-lg p-1.5" onClick={(e) => e.stopPropagation()}>
+          {stickyColors.map(c => (
+            <button
+              key={c.name}
+              onClick={() => { onUpdate({ color: c.bg }); setShowColors(false); }}
+              className={cn("h-5 w-5 rounded-full border-2 transition-transform hover:scale-110", note.color === c.bg ? "border-zinc-600 scale-110" : "border-transparent")}
+              style={{ background: c.bg }}
+              title={c.name}
+            />
+          ))}
+        </div>
+      )}
+      {/* Editable text */}
       <textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="w-full resize-none bg-transparent px-2 pb-2 text-[11px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none"
-        rows={3}
+        onChange={(e) => { setText(e.target.value); onUpdate({ text: e.target.value }); }}
+        className="w-full resize-none bg-transparent px-2.5 pb-2 text-[11px] leading-relaxed placeholder:opacity-40 focus:outline-none"
+        style={{ color: colorInfo.text, minHeight: height - 32 }}
+        placeholder="Type a note..."
       />
+      {/* Resize handle */}
+      <div
+        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover/sticky:opacity-40 transition-opacity"
+        onMouseDown={handleResizeMouseDown}
+      >
+        <svg viewBox="0 0 16 16" fill={colorInfo.border}>
+          <path d="M14 16L16 14V16H14ZM8 16L16 8V10L10 16H8ZM2 16L16 2V4L4 16H2Z" />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -485,6 +629,134 @@ function ExecutionOverlayBar({ execStates, nodes }: { execStates: Record<string,
   );
 }
 
+/* ── Canvas floating AI chat ── */
+function CanvasAiChat({ open, onToggle, messages, input, onInputChange, onSend }: {
+  open: boolean;
+  onToggle: () => void;
+  messages: { role: "user" | "assistant"; text: string }[];
+  input: string;
+  onInputChange: (v: string) => void;
+  onSend: () => void;
+}) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  const quickActions = [
+    "Add error handling",
+    "Optimize this workflow",
+    "Add a conditional branch",
+    "Explain this workflow",
+  ];
+
+  return (
+    <>
+      {/* FAB button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className={cn(
+          "absolute bottom-16 right-4 z-30 flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-all duration-200",
+          open
+            ? "bg-zinc-800 text-white scale-95"
+            : "bg-gradient-to-br from-violet-600 to-violet-700 text-white hover:from-violet-500 hover:to-violet-600 hover:shadow-xl hover:scale-105",
+        )}
+        title="AI Assistant"
+      >
+        {open ? <X size={16} /> : <Bot size={18} />}
+      </button>
+
+      {/* Chat panel */}
+      {open && (
+        <div
+          className="absolute bottom-28 right-4 z-30 flex w-80 flex-col rounded-xl border border-zinc-200 bg-white shadow-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxHeight: 420 }}
+        >
+          {/* Header */}
+          <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-2.5 bg-gradient-to-r from-violet-50/50 to-white">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-100">
+              <Sparkles size={12} className="text-violet-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[12px] font-semibold text-zinc-800">AI Assistant</p>
+              <p className="text-[9px] text-zinc-400">Ask about your workflow</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5" style={{ maxHeight: 260 }}>
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center py-4">
+                <Bot size={24} className="text-zinc-300 mb-2" />
+                <p className="text-[11px] text-zinc-400 text-center mb-3">How can I help with your workflow?</p>
+                <div className="grid grid-cols-2 gap-1.5 w-full">
+                  {quickActions.map((action) => (
+                    <button
+                      key={action}
+                      onClick={() => {
+                        onInputChange(action);
+                        setTimeout(onSend, 50);
+                      }}
+                      className="rounded-md border border-zinc-100 px-2 py-1.5 text-[10px] text-zinc-500 hover:bg-zinc-50 hover:border-zinc-200 transition-colors text-left"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              messages.map((msg, i) => (
+                <div key={i} className={cn("flex gap-2", msg.role === "user" && "justify-end")}>
+                  {msg.role === "assistant" && (
+                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-violet-100 mt-0.5">
+                      <Sparkles size={9} className="text-violet-600" />
+                    </div>
+                  )}
+                  <div className={cn(
+                    "rounded-lg px-3 py-2 text-[11px] leading-relaxed max-w-[85%]",
+                    msg.role === "user"
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-50 text-zinc-700 border border-zinc-100",
+                  )}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="border-t border-zinc-100 px-3 py-2">
+            <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50/50 px-2 py-1">
+              <input
+                value={input}
+                onChange={(e) => onInputChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+                placeholder="Ask about your workflow..."
+                className="flex-1 bg-transparent text-[11px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none"
+              />
+              <button
+                onClick={onSend}
+                disabled={!input.trim()}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                  input.trim()
+                    ? "bg-violet-600 text-white hover:bg-violet-500"
+                    : "text-zinc-300",
+                )}
+              >
+                <Send size={11} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const controlButtons = [
   { icon: Plus,      label: "Zoom In" },
   { icon: Minus,     label: "Zoom Out" },
@@ -510,13 +782,16 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const edgeList = store.edges;
   const setEdgeList = store.setEdges;
   const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
-  const [contextMenu, setContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string | null; x: number; y: number } | null>(null);
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>(initialNotes);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showOverlay, setShowOverlay] = useState(true);
+  const [showAiChat, setShowAiChat] = useState(false);
+  const [aiChatInput, setAiChatInput] = useState("");
+  const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [alignGuides, setAlignGuides] = useState<{ x?: number; y?: number }>({});
@@ -570,6 +845,58 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const handleContextMenu = useCallback((nodeId: string, e: React.MouseEvent) => {
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
   }, []);
+
+  const handleCanvasContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ nodeId: null, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleContextAction = useCallback((label: string) => {
+    const nodeId = contextMenu?.nodeId;
+    if (nodeId) {
+      // Node actions
+      if (label === "Open / Edit") onNodeSelect(nodeId);
+      if (label === "Copy node ID") navigator.clipboard?.writeText(nodeId);
+      if (label === "Duplicate") {
+        const src = nodeMap[nodeId];
+        if (src) {
+          const dup: CanvasNodeData = { ...src, id: `n${Date.now()}`, top: src.top + 40, left: src.left + 40 };
+          setNodes(prev => [...prev, dup]);
+          setExecStates(prev => ({ ...prev, [dup.id]: "idle" }));
+        }
+      }
+      if (label === "Delete") {
+        setNodes(prev => prev.filter(n => n.id !== nodeId));
+        setEdgeList(prev => prev.filter(([f, t]) => f !== nodeId && t !== nodeId));
+        onCanvasClick();
+      }
+      if (label === "Pin output") {
+        setExecStates(prev => ({ ...prev, [nodeId]: prev[nodeId] === "success" ? "idle" : "success" }));
+      }
+    } else {
+      // Canvas background actions
+      if (label === "Select all") setSelectedNodeIds(new Set(nodes.map(n => n.id)));
+      if (label === "Fit to view") fitView();
+      if (label === "Undo") store.undo();
+      if (label === "Redo") store.redo?.();
+      if (label === "Add sticky note") {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        const cx = rect ? ((contextMenu?.x ?? 0) - rect.left - pan.x) / zoom : 350;
+        const cy = rect ? ((contextMenu?.y ?? 0) - rect.top - pan.y) / zoom : 350;
+        setStickyNotes(prev => [...prev, { id: `s${Date.now()}`, text: "", top: cy, left: cx, color: "#fef9c3" }]);
+      }
+      if (label === "Add node") {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        const cx = rect ? ((contextMenu?.x ?? 0) - rect.left - pan.x) / zoom : 400;
+        const cy = rect ? ((contextMenu?.y ?? 0) - rect.top - pan.y) / zoom : 200;
+        const newNode: CanvasNodeData = { id: `n${Date.now()}`, name: "New Node", subtitle: "Select type...", family: "logic", top: cy, left: cx };
+        setNodes(prev => [...prev, newNode]);
+        setExecStates(prev => ({ ...prev, [newNode.id]: "idle" }));
+        onNodeSelect(newNode.id);
+      }
+    }
+    setContextMenu(null);
+  }, [contextMenu, nodeMap, nodes, setNodes, setExecStates, setEdgeList, onNodeSelect, onCanvasClick, fitView, store, pan, zoom]);
 
   function toggleDisabled(nodeId: string) {
     setExecStates((prev) => ({
@@ -745,30 +1072,60 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   // Keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const isInputFocused = document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA" || (document.activeElement as HTMLElement)?.contentEditable === "true";
+      if (isInputFocused) return;
+
       if (e.ctrlKey && e.key === "f") { e.preventDefault(); setShowSearch(true); }
-      if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); setSelectedNodeIds(new Set()); }
+      if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); setSelectedNodeIds(new Set()); setContextMenu(null); }
       if (e.ctrlKey && e.key === "z" && !e.shiftKey) { e.preventDefault(); store.undo(); }
       if (e.ctrlKey && e.shiftKey && e.key === "Z") { e.preventDefault(); store.redo?.(); }
+      // Ctrl+A: select all nodes
+      if (e.ctrlKey && e.key === "a") { e.preventDefault(); setSelectedNodeIds(new Set(nodes.map(n => n.id))); }
+      // Ctrl+D: duplicate selected node
+      if (e.ctrlKey && e.key === "d" && selectedNodeId) {
+        e.preventDefault();
+        const src = nodeMap[selectedNodeId];
+        if (src) {
+          const dup: CanvasNodeData = { ...src, id: `n${Date.now()}`, top: src.top + 40, left: src.left + 40 };
+          setNodes(prev => [...prev, dup]);
+          setExecStates(prev => ({ ...prev, [dup.id]: "idle" }));
+          onNodeSelect(dup.id);
+        }
+      }
+      // D: toggle disable on selected node
+      if (e.key === "d" && !e.ctrlKey && !e.metaKey && selectedNodeId) {
+        e.preventDefault(); toggleDisabled(selectedNodeId);
+      }
+      // P: pin/unpin output on selected node
+      if (e.key === "p" && !e.ctrlKey && selectedNodeId) {
+        e.preventDefault();
+        setExecStates(prev => ({ ...prev, [selectedNodeId]: prev[selectedNodeId] === "success" ? "idle" : "success" }));
+      }
+      // Shift+S: add sticky note
+      if (e.shiftKey && e.key === "S" && !e.ctrlKey) {
+        e.preventDefault();
+        setStickyNotes(prev => [...prev, { id: `s${Date.now()}`, text: "", top: 300 + Math.random() * 80, left: 400 + Math.random() * 100, color: "#fef9c3" }]);
+      }
+      // 1: fit to view
+      if (e.key === "1" && !e.ctrlKey && !e.metaKey) { fitView(); }
+
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (document.activeElement === document.body) {
-          e.preventDefault();
-          // Delete multi-selected nodes
-          if (selectedNodeIds.size > 0) {
-            const idsToDelete = selectedNodeIds;
-            setNodes(prev => prev.filter(n => !idsToDelete.has(n.id)));
-            setEdgeList(prev => prev.filter(([f, t]) => !idsToDelete.has(f) && !idsToDelete.has(t)));
-            setSelectedNodeIds(new Set());
-          } else if (selectedNodeId) {
-            setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
-            setEdgeList(prev => prev.filter(([f, t]) => f !== selectedNodeId && t !== selectedNodeId));
-            onCanvasClick();
-          }
+        e.preventDefault();
+        if (selectedNodeIds.size > 0) {
+          const idsToDelete = selectedNodeIds;
+          setNodes(prev => prev.filter(n => !idsToDelete.has(n.id)));
+          setEdgeList(prev => prev.filter(([f, t]) => !idsToDelete.has(f) && !idsToDelete.has(t)));
+          setSelectedNodeIds(new Set());
+        } else if (selectedNodeId) {
+          setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
+          setEdgeList(prev => prev.filter(([f, t]) => f !== selectedNodeId && t !== selectedNodeId));
+          onCanvasClick();
         }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedNodeId, selectedNodeIds, onCanvasClick, store]);
+  }, [selectedNodeId, selectedNodeIds, nodes, nodeMap, onCanvasClick, store, fitView]);
 
   const CANVAS_W = 1200;
   const CANVAS_H = 600;
@@ -778,6 +1135,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       ref={canvasRef}
       className={cn("relative flex-1 overflow-hidden bg-zinc-50", isPanning && "cursor-grabbing")}
       onClick={() => { onCanvasClick(); setContextMenu(null); }}
+      onContextMenu={handleCanvasContextMenu}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -909,6 +1267,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         <CanvasStickyNote
           key={note.id}
           note={note}
+          onUpdate={(patch) => setStickyNotes(prev => prev.map(n => n.id === note.id ? { ...n, ...patch } : n))}
           onDelete={() => setStickyNotes((prev) => prev.filter((n) => n.id !== note.id))}
         />
       ))}
@@ -991,13 +1350,23 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         />
       )}
 
-      {/* Context menu (fixed position) */}
-      {contextMenu && (
+      {/* Context menu */}
+      {contextMenu && contextMenu.nodeId && (
         <NodeContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          nodeId={contextMenu.nodeId}
           disabled={execStates[contextMenu.nodeId] === "disabled"}
-          onDisable={() => toggleDisabled(contextMenu.nodeId)}
+          onAction={handleContextAction}
+          onDisable={() => toggleDisabled(contextMenu.nodeId!)}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+      {contextMenu && !contextMenu.nodeId && (
+        <CanvasContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onAction={handleContextAction}
           onClose={() => setContextMenu(null)}
         />
       )}
@@ -1087,6 +1456,29 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           </span>
         )}
       </div>
+
+      {/* Floating AI Chat */}
+      <CanvasAiChat
+        open={showAiChat}
+        onToggle={() => setShowAiChat((p) => !p)}
+        messages={aiChatMessages}
+        input={aiChatInput}
+        onInputChange={setAiChatInput}
+        onSend={() => {
+          if (!aiChatInput.trim()) return;
+          const q = aiChatInput.trim();
+          setAiChatMessages((p) => [...p, { role: "user", text: q }]);
+          setAiChatInput("");
+          setTimeout(() => {
+            const responses = [
+              `I can help with that! For "${q}", I'd suggest adding a conditional node after your trigger to filter the data first.`,
+              `Good question! Looking at your workflow, you could optimize the "${q}" part by using a batch processing node.`,
+              `To handle "${q}", try connecting an error handler node after any integration nodes that might fail.`,
+            ];
+            setAiChatMessages((p) => [...p, { role: "assistant", text: responses[Math.floor(Math.random() * responses.length)] }]);
+          }, 1200);
+        }}
+      />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { type CanvasNodeData, familyColors } from "./StudioCanvas";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";
 
-type DataView = "schema" | "table" | "json" | "html";
+type DataView = "schema" | "table" | "json" | "html" | "binary";
 type ParamFieldType = "select" | "text" | "number" | "textarea" | "code" | "expression";
 
 const inspectorTabs = [
@@ -70,6 +70,7 @@ interface MockDataSet {
   json: string;
   totalItems: number;
   html?: string;
+  binary?: { fileName: string; mimeType: string; size: string; preview?: string };
 }
 
 const mockInputData: Record<string, MockDataSet> = {
@@ -122,6 +123,7 @@ const mockOutputData: Record<string, MockDataSet> = {
     json: `{\n  "email": "alex@acme.com",\n  "name": "Alex Chen",\n  "title": "VP Engineering",\n  "employees": 1200,\n  "techStack": ["React", "Python", "AWS"],\n  "domain": "acme.com"\n}`,
     totalItems: 45,
     html: `<div class="enrichment-result"><h3>Alex Chen</h3><p>VP Engineering at Acme Inc (1,200 employees)</p><ul><li>React</li><li>Python</li><li>AWS</li></ul></div>`,
+    binary: { fileName: "enrichment_report.pdf", mimeType: "application/pdf", size: "24.3 KB" },
   },
   n3: {
     schema: [
@@ -275,7 +277,7 @@ function DataPanel({ nodeId, direction, pinned }: { nodeId: string; direction: "
       {/* View switcher + search */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-0.5 rounded-lg bg-zinc-100 p-0.5 flex-1">
-          {(["schema", "table", "json", ...(data?.html ? ["html"] : [])] as DataView[]).map((v) => (
+          {(["schema", "table", "json", ...(data?.html ? ["html"] : []), ...(data?.binary ? ["binary"] : [])] as DataView[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -345,6 +347,8 @@ function DataPanel({ nodeId, direction, pinned }: { nodeId: string; direction: "
         <TableView rows={filteredSchema} />
       ) : view === "html" && data.html ? (
         <HtmlView html={data.html} />
+      ) : view === "binary" && data.binary ? (
+        <BinaryView binary={data.binary} />
       ) : (
         <JsonView json={data.json} />
       )}
@@ -389,26 +393,43 @@ function DataPanel({ nodeId, direction, pinned }: { nodeId: string; direction: "
   );
 }
 
+const typeIcons: Record<string, string> = {
+  string: "Aa",
+  number: "#",
+  array: "[]",
+  object: "{}",
+  boolean: "01",
+};
+
 function SchemaView({ rows }: { rows: DataRow[] }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
     <div className="rounded-lg border border-zinc-100 divide-y divide-zinc-100 overflow-hidden">
-      {rows.map((row) => (
+      {rows.map((row, i) => (
         <div key={row.key}>
           <div
-            className="flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 transition-colors cursor-pointer group"
+            className={cn("flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 transition-colors cursor-pointer group", i % 2 === 1 && "bg-zinc-50/30")}
             onClick={() => setExpanded((p) => ({ ...p, [row.key]: !p[row.key] }))}
           >
             <ChevronRight size={10} className={cn("text-zinc-300 flex-shrink-0 transition-transform", expanded[row.key] && "rotate-90")} />
+            {/* Type icon bubble */}
+            <span className={cn("flex h-4 w-5 items-center justify-center rounded text-[7px] font-bold flex-shrink-0", typeColors[row.type] || "text-zinc-500 bg-zinc-100")}>
+              {typeIcons[row.type] || "?"}
+            </span>
             <span className="text-[11px] font-medium text-zinc-700 flex-1 truncate">{row.key}</span>
-            <span className={cn("rounded px-1.5 py-0 text-[8px] font-semibold flex-shrink-0", typeColors[row.type] || "text-zinc-500 bg-zinc-100")}>{row.type}</span>
-            <span className="text-[10px] text-zinc-400 max-w-[90px] truncate flex-shrink-0 font-mono">{row.value}</span>
+            <span className="text-[10px] text-zinc-400 max-w-[100px] truncate flex-shrink-0 font-mono">{row.value}</span>
             <button className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); }}>
               <Copy size={9} className="text-zinc-400 hover:text-zinc-600" />
             </button>
           </div>
           {expanded[row.key] && (
             <div className="bg-zinc-50/50 px-4 py-2 border-t border-zinc-50">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={cn("rounded px-1.5 py-0 text-[8px] font-semibold", typeColors[row.type])}>{row.type}</span>
+                <span className="text-[8px] text-zinc-300">|</span>
+                <span className="text-[9px] text-zinc-400">Sample:</span>
+                <code className="text-[9px] text-zinc-600 font-mono">{row.value}</code>
+              </div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[9px] text-zinc-400 uppercase font-medium">Path:</span>
                 <code className="text-[9px] text-violet-600 font-mono bg-violet-50 px-1 rounded">$json.{row.key}</code>
@@ -428,24 +449,43 @@ function SchemaView({ rows }: { rows: DataRow[] }) {
 }
 
 function TableView({ rows }: { rows: DataRow[] }) {
+  const [sortKey, setSortKey] = useState<"key" | "type" | "value" | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
+
+  const sorted = sortKey ? [...rows].sort((a, b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+  }) : rows;
+
+  const handleSort = (col: "key" | "type" | "value") => {
+    if (sortKey === col) setSortAsc(!sortAsc);
+    else { setSortKey(col); setSortAsc(true); }
+  };
+
   return (
     <div className="overflow-hidden rounded-lg border border-zinc-100">
       <table className="w-full text-[10px]">
         <thead>
-          <tr className="bg-zinc-50 border-b border-zinc-100">
-            <th className="px-3 py-1.5 text-left font-semibold text-zinc-500 w-8">#</th>
-            <th className="px-3 py-1.5 text-left font-semibold text-zinc-500">Field</th>
-            <th className="px-3 py-1.5 text-left font-semibold text-zinc-500 w-12">Type</th>
-            <th className="px-3 py-1.5 text-left font-semibold text-zinc-500">Value</th>
+          <tr className="bg-zinc-50 border-b border-zinc-200">
+            <th className="px-3 py-2 text-left font-semibold text-zinc-500 w-8">#</th>
+            <th className="px-3 py-2 text-left font-semibold text-zinc-500 cursor-pointer hover:text-zinc-700 select-none" onClick={() => handleSort("key")}>
+              Field {sortKey === "key" && <span className="text-[8px]">{sortAsc ? "^" : "v"}</span>}
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-zinc-500 w-14 cursor-pointer hover:text-zinc-700 select-none" onClick={() => handleSort("type")}>
+              Type {sortKey === "type" && <span className="text-[8px]">{sortAsc ? "^" : "v"}</span>}
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-zinc-500 cursor-pointer hover:text-zinc-700 select-none" onClick={() => handleSort("value")}>
+              Value {sortKey === "value" && <span className="text-[8px]">{sortAsc ? "^" : "v"}</span>}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-50">
-          {rows.map((row, i) => (
-            <tr key={row.key} className="hover:bg-zinc-50 transition-colors group">
+          {sorted.map((row, i) => (
+            <tr key={row.key} className={cn("hover:bg-blue-50/30 transition-colors group cursor-default", i % 2 === 1 && "bg-zinc-50/40")}>
               <td className="px-3 py-1.5 text-zinc-300 font-mono">{i}</td>
               <td className="px-3 py-1.5 font-medium text-zinc-700">{row.key}</td>
               <td className="px-3 py-1.5"><span className={cn("rounded px-1 py-0 text-[8px] font-semibold", typeColors[row.type])}>{row.type}</span></td>
-              <td className="px-3 py-1.5 text-zinc-500 max-w-[120px] truncate font-mono text-[9px]">{row.value}</td>
+              <td className="px-3 py-1.5 text-zinc-500 max-w-[120px] truncate font-mono text-[9px] group-hover:max-w-none">{row.value}</td>
             </tr>
           ))}
         </tbody>
@@ -456,6 +496,15 @@ function TableView({ rows }: { rows: DataRow[] }) {
 
 function JsonView({ json }: { json: string }) {
   const [wrap, setWrap] = useState(false);
+
+  // Simple syntax highlighting
+  const highlighted = json
+    .replace(/("(?:[^"\\]|\\.)*")\s*:/g, '<span class="text-violet-600">$1</span>:')
+    .replace(/:\s*("(?:[^"\\]|\\.)*")/g, ': <span class="text-emerald-600">$1</span>')
+    .replace(/:\s*(\d+\.?\d*)/g, ': <span class="text-blue-600">$1</span>')
+    .replace(/:\s*(true|false)/g, ': <span class="text-rose-600">$1</span>')
+    .replace(/:\s*(null)/g, ': <span class="text-zinc-400">$1</span>');
+
   return (
     <div className="relative group">
       <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -466,7 +515,10 @@ function JsonView({ json }: { json: string }) {
           <Copy size={9} />
         </button>
       </div>
-      <pre className={cn("overflow-auto rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-[10px] text-zinc-700 font-mono leading-relaxed max-h-72", wrap && "whitespace-pre-wrap")}>{json}</pre>
+      <pre
+        className={cn("overflow-auto rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-[10px] font-mono leading-relaxed max-h-72", wrap && "whitespace-pre-wrap")}
+        dangerouslySetInnerHTML={{ __html: highlighted }}
+      />
     </div>
   );
 }
@@ -484,6 +536,51 @@ function HtmlView({ html }: { html: string }) {
       ) : (
         <div className="rounded-lg border border-zinc-100 bg-white p-3 text-[11px] text-zinc-700 max-h-64 overflow-auto" dangerouslySetInnerHTML={{ __html: html }} />
       )}
+    </div>
+  );
+}
+
+function BinaryView({ binary }: { binary: { fileName: string; mimeType: string; size: string; preview?: string } }) {
+  const isImage = binary.mimeType.startsWith("image/");
+  const isPdf = binary.mimeType === "application/pdf";
+  const ext = binary.fileName.split(".").pop()?.toUpperCase() || "FILE";
+
+  return (
+    <div className="rounded-lg border border-zinc-100 overflow-hidden">
+      {/* File preview area */}
+      <div className="flex h-40 items-center justify-center bg-zinc-50">
+        {isImage && binary.preview ? (
+          <img src={binary.preview} alt={binary.fileName} className="max-h-full max-w-full object-contain" />
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white border border-zinc-200 shadow-sm">
+              <span className="text-[11px] font-bold text-zinc-400">{ext}</span>
+            </div>
+            <span className="text-[10px] text-zinc-400">{isPdf ? "PDF document" : "Binary file"}</span>
+          </div>
+        )}
+      </div>
+      {/* File info */}
+      <div className="border-t border-zinc-100 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-medium text-zinc-700 truncate">{binary.fileName}</span>
+          <span className="text-[9px] text-zinc-400 flex-shrink-0 ml-2">{binary.size}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[8px] font-mono text-zinc-500">{binary.mimeType}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button className="inline-flex h-6 items-center gap-1 rounded border border-zinc-200 px-2 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50 transition-colors">
+            <Download size={9} /> Download
+          </button>
+          <button className="inline-flex h-6 items-center gap-1 rounded border border-zinc-200 px-2 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50 transition-colors">
+            <Copy size={9} /> Copy path
+          </button>
+          <button className="inline-flex h-6 items-center gap-1 rounded border border-zinc-200 px-2 text-[9px] font-medium text-zinc-500 hover:bg-zinc-50 transition-colors">
+            <Maximize2 size={9} /> Full view
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

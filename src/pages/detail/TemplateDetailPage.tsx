@@ -7,6 +7,7 @@ import {
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { UseTemplateWizardModal } from "@/components/modals/UseTemplateWizardModal";
 import { cn } from "@/lib/utils";
 
 const template = {
@@ -63,6 +64,7 @@ const tabs = [
 export function TemplateDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
+  const [showWizard, setShowWizard] = useState(false);
 
   return (
     <EntityDetailLayout
@@ -76,7 +78,7 @@ export function TemplateDetailPage() {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       actions={
-        <Button variant="primary" size="sm"><Download size={12} /> Install Template</Button>
+        <Button variant="primary" size="sm" onClick={() => setShowWizard(true)}><Download size={12} /> Use Template</Button>
       }
     >
       {activeTab === "overview" && (
@@ -210,7 +212,7 @@ export function TemplateDetailPage() {
                   <p className="text-[13px] font-medium text-zinc-700">Install as new workflow</p>
                   <p className="text-[11px] text-zinc-400">Creates a new workflow from this template</p>
                 </div>
-                <Button variant="primary" size="sm"><Download size={12} /> Install</Button>
+                <Button variant="primary" size="sm" onClick={() => setShowWizard(true)}><Download size={12} /> Install</Button>
               </div>
               <div className="flex items-center justify-between rounded-md border border-zinc-100 px-4 py-3 hover:border-zinc-200 transition-colors cursor-pointer">
                 <div>
@@ -258,6 +260,19 @@ export function TemplateDetailPage() {
           </div>
         </DetailSection>
       )}
+
+      <UseTemplateWizardModal
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        templateName={template.name}
+        templateDescription={template.description}
+        credentials={requiredAssets.map((a) => ({
+          name: a.name,
+          type: a.type,
+          required: a.required,
+        }))}
+        steps={steps}
+      />
     </EntityDetailLayout>
   );
 }

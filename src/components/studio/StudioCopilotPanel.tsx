@@ -5,14 +5,14 @@ import {
   Zap, FileJson, Settings, Eye, MessageSquare, Hammer, RotateCcw, Diff,
   ChevronRight, Hash, AtSign, Braces, Cpu, Target, Layers, Check, XCircle,
   ThumbsUp, ThumbsDown, RefreshCw, Maximize2, Minimize2, KeyRound, Shield,
-  ExternalLink, CircleDot, Link2,
+  ExternalLink, CircleDot, Link2, Clock, Globe, Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import type { CanvasNodeData } from "./StudioCanvas";
 
 /* ── Types ── */
-type CopilotMode = "ask" | "build" | "builder" | "credentials";
+type CopilotMode = "ask" | "build" | "builder" | "credentials" | "code";
 type ReviewStatus = "pending" | "accepted" | "rejected";
 
 interface CopilotMessage {
@@ -117,6 +117,15 @@ const credentialActions = [
   { label: "Test all my credentials", icon: CircleDot },
 ];
 
+const codeActions = [
+  { label: "Transform JSON payload", icon: Braces },
+  { label: "Filter items by condition", icon: Target },
+  { label: "Date formatting expression", icon: Clock },
+  { label: "HTTP request with auth", icon: Globe },
+  { label: "Parse CSV to JSON", icon: FileJson },
+  { label: "Merge data from two sources", icon: Layers },
+];
+
 /* ── Context ── */
 const contextInfo = {
   workflowName: "Lead Qualification Pipeline",
@@ -158,6 +167,11 @@ const assistantGreetings: Record<CopilotMode, CopilotMessage> = {
     id: "greet-creds",
     role: "assistant",
     content: "🔑 **Credential Helper**\n\nI'll guide you through setting up integrations step by step. Tell me which service you want to connect and I'll walk you through:\n\n• **OAuth flows** — Redirect URLs, scopes, client setup\n• **API keys** — Where to find them, how to configure\n• **Testing** — Verify your credentials are working\n• **Troubleshooting** — Fix auth errors and expired tokens\n\nWhich integration do you need help with?",
+  },
+  code: {
+    id: "greet-code",
+    role: "assistant",
+    content: "💻 **Code Generation**\n\nI'll write code for your Function nodes, expressions, and data transformations. Tell me what you need:\n\n• **Function nodes** — JavaScript/TypeScript snippets for custom logic\n• **Expressions** — Transform, filter, map data between nodes\n• **HTTP requests** — Custom API calls with auth and error handling\n• **Data parsing** — CSV, XML, JSON transformation\n• **Regex patterns** — Extract and validate data\n\nDescribe your use case and I'll generate production-ready code with type safety and error handling.",
   },
 };
 
@@ -342,7 +356,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
     if (inputRef.current) inputRef.current.style.height = "auto";
 
     // Simulate thinking delay then stream
-    const thinkDelay = mode === "builder" ? 1200 + Math.random() * 800 : mode === "build" ? 800 + Math.random() * 600 : mode === "credentials" ? 600 + Math.random() * 500 : 400 + Math.random() * 400;
+    const thinkDelay = mode === "builder" ? 1200 + Math.random() * 800 : mode === "build" ? 800 + Math.random() * 600 : mode === "credentials" ? 600 + Math.random() * 500 : mode === "code" ? 700 + Math.random() * 500 : 400 + Math.random() * 400;
 
     setTimeout(() => {
       let response: Partial<CopilotMessage> = { content: "I'll analyze your workflow and get back to you with specific suggestions." };
@@ -643,6 +657,405 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
             tokenUsage: { input: 220, output: 280, cost: "$0.002" },
           };
         }
+      } else if (mode === "code") {
+        // Code generation mode — Function node snippets, expressions, transformations
+        if (text.toLowerCase().includes("transform") || text.toLowerCase().includes("json") || text.toLowerCase().includes("payload")) {
+          response = {
+            content: "💻 **JSON Payload Transformer**\n\nHere's a Function node that transforms incoming webhook data into your CRM format:",
+            codeBlock: `// Function Node: Transform Webhook → CRM Format
+const items = $input.all();
+
+return items.map(item => {
+  const data = item.json;
+  return {
+    json: {
+      // Contact fields
+      fullName: \`\${data.first_name} \${data.last_name}\`.trim(),
+      email: data.email?.toLowerCase(),
+      phone: data.phone?.replace(/[^\\d+]/g, ''),
+      
+      // Company enrichment
+      company: {
+        name: data.company_name ?? 'Unknown',
+        domain: data.email?.split('@')[1] ?? null,
+        size: categorizeSize(data.employee_count),
+      },
+      
+      // Lead scoring
+      score: calculateScore(data),
+      source: data.utm_source ?? 'direct',
+      
+      // Metadata
+      createdAt: new Date().toISOString(),
+      raw: data, // preserve original
+    }
+  };
+});
+
+function categorizeSize(count) {
+  if (!count) return 'unknown';
+  if (count < 50) return 'startup';
+  if (count < 500) return 'mid-market';
+  return 'enterprise';
+}
+
+function calculateScore(d) {
+  let score = 50;
+  if (d.company_name) score += 15;
+  if (d.phone) score += 10;
+  if (d.utm_source === 'demo_request') score += 25;
+  return Math.min(score, 100);
+}`,
+            actions: [
+              { label: "Insert into Function node", icon: Code2, variant: "primary" },
+              { label: "Add error handling", icon: Shield, variant: "secondary" },
+              { label: "Generate test data", icon: Play, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "analyze_schema", args: 'node="Webhook Trigger"', result: "Input schema: {first_name, last_name, email, phone, company_name, employee_count, utm_source}", duration: "32ms" },
+              { tool: "validate_code", args: 'syntax="javascript"', result: "✅ No syntax errors, all functions defined", duration: "18ms" },
+            ],
+            tokenUsage: { input: 680, output: 920, cost: "$0.007" },
+          };
+        } else if (text.toLowerCase().includes("filter") || text.toLowerCase().includes("condition") || text.toLowerCase().includes("where")) {
+          response = {
+            content: "💻 **Conditional Filter**\n\nFunction node to filter items by multiple conditions with detailed logging:",
+            codeBlock: `// Function Node: Advanced Filter with Logging
+const items = $input.all();
+const results = { passed: [], filtered: [], errors: [] };
+
+for (const item of items) {
+  const d = item.json;
+  try {
+    const checks = [
+      { name: 'hasEmail', pass: !!d.email && d.email.includes('@') },
+      { name: 'validScore', pass: d.score >= 50 },
+      { name: 'notBounced', pass: d.status !== 'bounced' },
+      { name: 'recentActivity', pass: daysSince(d.last_active) < 90 },
+    ];
+    
+    const failed = checks.filter(c => !c.pass);
+    
+    if (failed.length === 0) {
+      results.passed.push({ json: { ...d, _filterPassed: true } });
+    } else {
+      results.filtered.push({
+        json: { ...d, _filterReason: failed.map(f => f.name) }
+      });
+    }
+  } catch (err) {
+    results.errors.push({ json: { ...d, _error: err.message } });
+  }
+}
+
+// Output 0: passed, Output 1: filtered, Output 2: errors
+return [results.passed, results.filtered, results.errors];
+
+function daysSince(dateStr) {
+  if (!dateStr) return Infinity;
+  return (Date.now() - new Date(dateStr).getTime()) / 86400000;
+}`,
+            actions: [
+              { label: "Insert into Function node", icon: Code2, variant: "primary" },
+              { label: "Customize conditions", icon: Wrench, variant: "secondary" },
+              { label: "Add to workflow", icon: Zap, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "inspect_data_schema", args: 'upstream_node="Score with AI"', result: "Fields: email, score, status, last_active, company", duration: "24ms" },
+            ],
+            tokenUsage: { input: 520, output: 780, cost: "$0.006" },
+          };
+        } else if (text.toLowerCase().includes("date") || text.toLowerCase().includes("time") || text.toLowerCase().includes("format")) {
+          response = {
+            content: "💻 **Date & Time Expressions**\n\nHere are common date expressions for your workflow nodes:\n\n**In expressions (inline):**",
+            codeBlock: `// ─── Expression Examples (use in any node field) ───
+
+// Current timestamp (ISO)
+{{ $now.toISO() }}
+
+// Format as readable date
+{{ $now.toFormat('MMM dd, yyyy HH:mm') }}
+// → "Apr 18, 2026 14:30"
+
+// Relative time (e.g., "2 hours ago")
+{{ DateTime.fromISO($json.created_at).toRelative() }}
+
+// Add/subtract time
+{{ $now.plus({ days: 7 }).toISO() }}        // 1 week from now
+{{ $now.minus({ hours: 24 }).toISO() }}     // 24 hours ago
+
+// Compare dates
+{{ DateTime.fromISO($json.due_date) < $now ? 'overdue' : 'on_track' }}
+
+// Business hours check  
+{{ $now.hour >= 9 && $now.hour < 17 ? 'business_hours' : 'after_hours' }}
+
+// ─── Function Node: Date Processing ───
+const items = $input.all();
+return items.map(item => ({
+  json: {
+    ...item.json,
+    // Parse various formats
+    parsedDate: DateTime.fromFormat(item.json.date, 'MM/dd/yyyy'),
+    // Timezone conversion
+    localTime: DateTime.fromISO(item.json.timestamp)
+      .setZone('America/New_York')
+      .toFormat('yyyy-MM-dd HH:mm:ss z'),
+    // Age in days
+    daysSinceCreated: Math.floor(
+      $now.diff(DateTime.fromISO(item.json.created_at), 'days').days
+    ),
+  }
+}));`,
+            actions: [
+              { label: "Copy expressions", icon: Copy, variant: "primary" },
+              { label: "Insert Function node", icon: Code2, variant: "secondary" },
+            ],
+            tokenUsage: { input: 340, output: 620, cost: "$0.004" },
+          };
+        } else if (text.toLowerCase().includes("http") || text.toLowerCase().includes("api") || text.toLowerCase().includes("request") || text.toLowerCase().includes("fetch")) {
+          response = {
+            content: "💻 **HTTP Request with Auth & Error Handling**\n\nFunction node for making authenticated API calls with retry logic:",
+            codeBlock: `// Function Node: Robust HTTP Request
+const items = $input.all();
+const results = [];
+
+for (const item of items) {
+  const response = await makeRequest(item.json);
+  results.push({ json: response });
+}
+return results;
+
+async function makeRequest(data, attempt = 1) {
+  const MAX_RETRIES = 3;
+  const BASE_URL = $env.API_BASE_URL ?? 'https://api.example.com';
+  
+  try {
+    const res = await $http.request({
+      method: 'POST',
+      url: \`\${BASE_URL}/v2/process\`,
+      headers: {
+        'Authorization': \`Bearer \${$credentials.apiKey}\`,
+        'Content-Type': 'application/json',
+        'X-Request-ID': crypto.randomUUID(),
+      },
+      body: {
+        input: data.payload,
+        options: { format: 'json', validate: true },
+      },
+      timeout: 10000,
+    });
+    
+    return {
+      success: true,
+      statusCode: res.statusCode,
+      data: res.body,
+      duration: res.timings?.total,
+    };
+  } catch (err) {
+    if (attempt < MAX_RETRIES && isRetryable(err)) {
+      const delay = Math.pow(2, attempt) * 1000;
+      await new Promise(r => setTimeout(r, delay));
+      return makeRequest(data, attempt + 1);
+    }
+    return {
+      success: false,
+      error: err.message,
+      statusCode: err.statusCode ?? 500,
+      attempt,
+    };
+  }
+}
+
+function isRetryable(err) {
+  const code = err.statusCode;
+  return code === 429 || code === 502 || code === 503;
+}`,
+            actions: [
+              { label: "Insert into Function node", icon: Code2, variant: "primary" },
+              { label: "Add OAuth support", icon: Shield, variant: "secondary" },
+              { label: "Configure environment vars", icon: Settings, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "check_credentials", args: 'type="api_key"', result: "3 API key credentials available", duration: "15ms" },
+              { tool: "validate_code", args: 'syntax="javascript", async=true', result: "✅ Valid async function, retry logic sound", duration: "22ms" },
+            ],
+            tokenUsage: { input: 780, output: 1100, cost: "$0.009" },
+          };
+        } else if (text.toLowerCase().includes("csv") || text.toLowerCase().includes("parse") || text.toLowerCase().includes("split")) {
+          response = {
+            content: "💻 **CSV Parser**\n\nFunction node to parse CSV text into structured JSON with type inference:",
+            codeBlock: `// Function Node: CSV → JSON with Type Inference
+const items = $input.all();
+const csvText = items[0].json.data; // raw CSV string
+
+const rows = csvText.trim().split('\\n');
+const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+const parsed = rows.slice(1).map((row, idx) => {
+  const values = parseCSVRow(row);
+  const obj = {};
+  
+  headers.forEach((header, i) => {
+    const val = values[i]?.trim() ?? '';
+    obj[header] = inferType(val);
+  });
+  
+  obj._rowIndex = idx + 1;
+  return { json: obj };
+});
+
+return parsed;
+
+function parseCSVRow(row) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (const char of row) {
+    if (char === '"') { inQuotes = !inQuotes; continue; }
+    if (char === ',' && !inQuotes) { result.push(current); current = ''; continue; }
+    current += char;
+  }
+  result.push(current);
+  return result;
+}
+
+function inferType(val) {
+  if (val === '') return null;
+  if (val === 'true' || val === 'false') return val === 'true';
+  if (/^-?\\d+\\.?\\d*$/.test(val)) return Number(val);
+  if (/^\\d{4}-\\d{2}-\\d{2}/.test(val)) return val; // keep dates as strings
+  return val;
+}`,
+            actions: [
+              { label: "Insert into Function node", icon: Code2, variant: "primary" },
+              { label: "Handle encoding issues", icon: Wrench, variant: "secondary" },
+              { label: "Preview parsed output", icon: Eye, variant: "ghost" },
+            ],
+            tokenUsage: { input: 440, output: 860, cost: "$0.006" },
+          };
+        } else if (text.toLowerCase().includes("merge") || text.toLowerCase().includes("join") || text.toLowerCase().includes("combine")) {
+          response = {
+            content: "💻 **Data Merge / Join**\n\nFunction node to merge data from two input branches by a common key:",
+            codeBlock: `// Function Node: Merge Two Inputs by Key
+// Connect two nodes to this Function node's inputs
+const input1 = $input.first(0); // e.g., CRM contacts
+const input2 = $input.first(1); // e.g., email analytics
+
+const contacts = input1?.json ? [input1.json] : $input.all().map(i => i.json);
+const analytics = input2?.json ? [input2.json] : [];
+
+// Build lookup map from second input
+const analyticsMap = new Map();
+for (const record of analytics) {
+  const key = record.email?.toLowerCase();
+  if (key) analyticsMap.set(key, record);
+}
+
+// Merge: left join contacts with analytics
+const merged = contacts.map(contact => {
+  const key = contact.email?.toLowerCase();
+  const match = key ? analyticsMap.get(key) : null;
+  
+  return {
+    json: {
+      // Contact fields
+      ...contact,
+      // Analytics overlay
+      opens: match?.opens ?? 0,
+      clicks: match?.clicks ?? 0,
+      lastEngaged: match?.last_engaged ?? null,
+      engagementScore: match
+        ? Math.round((match.opens * 1 + match.clicks * 3) / 4 * 100)
+        : 0,
+      // Merge metadata
+      _matched: !!match,
+      _mergedAt: new Date().toISOString(),
+    }
+  };
+});
+
+return merged;`,
+            actions: [
+              { label: "Insert into Function node", icon: Code2, variant: "primary" },
+              { label: "Use outer join instead", icon: Wrench, variant: "secondary" },
+              { label: "Add deduplication", icon: Layers, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "inspect_inputs", args: 'node="Function", inputs=2', result: "Input 0: 142 contacts, Input 1: 89 analytics records", duration: "28ms" },
+            ],
+            tokenUsage: { input: 560, output: 740, cost: "$0.006" },
+          };
+        } else if (text.toLowerCase().includes("regex") || text.toLowerCase().includes("extract") || text.toLowerCase().includes("validate") || text.toLowerCase().includes("pattern")) {
+          response = {
+            content: "💻 **Regex Patterns & Validation**\n\nCommon patterns for data extraction and validation in expressions and Function nodes:",
+            codeBlock: `// ─── Expression Patterns (use in Set/IF nodes) ───
+
+// Extract email from text
+{{ $json.text.match(/[\\w.-]+@[\\w.-]+\\.[a-z]{2,}/i)?.[0] ?? '' }}
+
+// Validate phone number
+{{ /^\\+?[\\d\\s()-]{10,}$/.test($json.phone) ? 'valid' : 'invalid' }}
+
+// Extract URLs
+{{ $json.body.match(/https?:\\/\\/[^\\s<>"]+/g) ?? [] }}
+
+// ─── Function Node: Comprehensive Data Validation ───
+const items = $input.all();
+
+const patterns = {
+  email: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/,
+  phone: /^\\+?[1-9]\\d{6,14}$/,
+  url: /^https?:\\/\\/[^\\s/$.?#].[^\\s]*$/,
+  ipv4: /^(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$/,
+  uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  isoDate: /^\\d{4}-\\d{2}-\\d{2}(T\\d{2}:\\d{2}:\\d{2})?/,
+};
+
+return items.map(item => {
+  const d = item.json;
+  const errors = [];
+  
+  if (d.email && !patterns.email.test(d.email))
+    errors.push('Invalid email format');
+  if (d.phone && !patterns.phone.test(d.phone.replace(/[\\s()-]/g, '')))
+    errors.push('Invalid phone number');
+  if (d.website && !patterns.url.test(d.website))
+    errors.push('Invalid URL');
+  
+  return {
+    json: {
+      ...d,
+      _valid: errors.length === 0,
+      _errors: errors,
+      _sanitized: {
+        email: d.email?.toLowerCase().trim(),
+        phone: d.phone?.replace(/[^\\d+]/g, ''),
+        name: d.name?.replace(/[<>{}]/g, '').trim(),
+      }
+    }
+  };
+});`,
+            actions: [
+              { label: "Insert validation node", icon: Code2, variant: "primary" },
+              { label: "Add custom patterns", icon: Wrench, variant: "secondary" },
+              { label: "Test with sample data", icon: Play, variant: "ghost" },
+            ],
+            tokenUsage: { input: 480, output: 950, cost: "$0.007" },
+          };
+        } else {
+          // Generic code generation response
+          const task = text.trim();
+          response = {
+            content: `💻 **Code Generator**\n\nI'll write code for: *"${task}"*\n\nTo generate the best code, tell me:\n\n1. **Context** — Which node will this run in? (Function, Expression, HTTP Request)\n2. **Input format** — What does the incoming data look like?\n3. **Expected output** — What should the result look like?\n\n💡 **Tip:** Paste a sample of your input data and I'll auto-detect the schema.\n\nOr try a quick action below for common patterns.`,
+            actions: [
+              { label: "Function node code", icon: Terminal, variant: "secondary" },
+              { label: "Expression formula", icon: Braces, variant: "secondary" },
+              { label: "Show code templates", icon: FileJson, variant: "ghost" },
+            ],
+            tokenUsage: { input: 280, output: 320, cost: "$0.003" },
+          };
+        }
       } else {
         // Ask mode responses
         if (text.includes("@") && mentionedNodes.length > 0) {
@@ -775,7 +1188,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
 
       {/* Mode tabs */}
       <div className="flex items-center border-b px-4" style={{ borderColor: "var(--color-border-default)" }}>
-        {(["ask", "build", "builder", "credentials"] as const).map((m) => (
+        {(["ask", "build", "builder", "credentials", "code"] as const).map((m) => (
           <button
             key={m}
             onClick={() => switchMode(m)}
@@ -784,8 +1197,8 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
               mode === m ? "border-zinc-800 text-zinc-800" : "border-transparent text-zinc-400 hover:text-zinc-600"
             )}
           >
-            {m === "ask" ? <MessageSquare size={11} /> : m === "build" ? <Hammer size={11} /> : m === "builder" ? <Wand2 size={11} /> : <KeyRound size={11} />}
-            {m === "ask" ? "Ask" : m === "build" ? "Build" : m === "builder" ? "Builder" : "Creds"}
+            {m === "ask" ? <MessageSquare size={11} /> : m === "build" ? <Hammer size={11} /> : m === "builder" ? <Wand2 size={11} /> : m === "credentials" ? <KeyRound size={11} /> : <Code2 size={11} />}
+            {m === "ask" ? "Ask" : m === "build" ? "Build" : m === "builder" ? "Builder" : m === "credentials" ? "Creds" : "Code"}
           </button>
         ))}
         <div className="ml-auto flex items-center gap-1.5 py-2 relative">
@@ -1055,7 +1468,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
                   <div className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
                   <div className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
-                <span>{mode === "build" ? "Building…" : mode === "credentials" ? "Checking…" : "Thinking…"}</span>
+                <span>{mode === "build" ? "Building…" : mode === "credentials" ? "Checking…" : mode === "code" ? "Generating…" : "Thinking…"}</span>
               </div>
             </div>
           </div>
@@ -1067,10 +1480,10 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
       {messages.length <= 1 && (
         <div className="px-4 pb-2">
           <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
-            {mode === "ask" ? "Quick Questions" : mode === "build" ? "Quick Builds" : mode === "builder" ? "Example Workflows" : "Common Setups"}
+            {mode === "ask" ? "Quick Questions" : mode === "build" ? "Quick Builds" : mode === "builder" ? "Example Workflows" : mode === "code" ? "Code Templates" : "Common Setups"}
           </p>
           <div className="flex flex-wrap gap-1">
-            {(mode === "ask" ? askActions : mode === "build" ? buildActions : mode === "builder" ? builderActions : credentialActions).map((action) => {
+            {(mode === "ask" ? askActions : mode === "build" ? buildActions : mode === "builder" ? builderActions : mode === "code" ? codeActions : credentialActions).map((action) => {
               const Icon = action.icon;
               return (
                 <button key={action.label} onClick={() => send(action.label)}
@@ -1128,7 +1541,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === "ask" ? "Ask about your workflow… (@ to mention nodes)" : mode === "credentials" ? "Which service do you need to connect?" : "Describe what to build or change…"}
+            placeholder={mode === "ask" ? "Ask about your workflow… (@ to mention nodes)" : mode === "credentials" ? "Which service do you need to connect?" : mode === "code" ? "Describe the code you need…" : "Describe what to build or change…"}
             rows={1}
             className="flex-1 resize-none bg-transparent text-[12px] text-zinc-800 placeholder:text-zinc-400 outline-none leading-relaxed"
             style={{ maxHeight: "80px" }}

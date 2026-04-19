@@ -5,7 +5,7 @@ import {
   Search, X, Play, Pause, Eye, Zap, ArrowRight, Pin,
   ChevronRight, GitBranch, Clock, Hash, Home, Undo2, Redo2,
   Clipboard, Scissors, Replace, Fingerprint, MousePointerSquareDashed,
-  Download, Share2, MessageSquare, Sparkles, Bot, Send,
+  Download, Share2, MessageSquare, Sparkles, Bot, Send, Link,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "./useCanvasStore";
@@ -352,11 +352,34 @@ function ContextMenuOverlay({
 }
 
 function NodeContextMenu({
-  x, y, nodeId, disabled, onAction, onDisable, onClose,
+  x, y, nodeId, disabled, onAction, onDisable, onClose, nodeFamily,
 }: {
   x: number; y: number; nodeId: string; disabled: boolean;
   onAction: (label: string) => void; onDisable: () => void; onClose: () => void;
+  nodeFamily?: string;
 }) {
+  const isWebhook = nodeFamily === "trigger";
+  const webhookRows = isWebhook ? (
+    <>
+      <div className="my-0.5 border-t border-zinc-100" />
+      <button
+        onClick={() => { onAction("Copy test URL"); onClose(); }}
+        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
+      >
+        <Link size={13} className="flex-shrink-0 text-blue-500" />
+        <span className="flex-1 text-left">Copy test URL</span>
+        <kbd className="ml-auto text-[9px] font-mono text-zinc-300">Shift+Alt+U</kbd>
+      </button>
+      <button
+        onClick={() => { onAction("Copy production URL"); onClose(); }}
+        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
+      >
+        <Link size={13} className="flex-shrink-0 text-emerald-500" />
+        <span className="flex-1 text-left">Copy production URL</span>
+        <kbd className="ml-auto text-[9px] font-mono text-zinc-300">Alt+U</kbd>
+      </button>
+    </>
+  ) : null;
   const disableRow = (
     <>
       <div className="my-0.5 border-t border-zinc-100" />
@@ -374,7 +397,7 @@ function NodeContextMenu({
     <ContextMenuOverlay
       x={x} y={y} items={nodeContextItems}
       onAction={onAction} onClose={onClose}
-      extraRows={disableRow}
+      extraRows={<>{webhookRows}{disableRow}</>}
     />
   );
 }
@@ -979,6 +1002,12 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       if (label === "Pin output") {
         store.togglePin(nodeId);
       }
+      if (label === "Copy test URL") {
+        navigator.clipboard?.writeText(`https://app.flowholt.com/webhook-test/${nodeId}`);
+      }
+      if (label === "Copy production URL") {
+        navigator.clipboard?.writeText(`https://app.flowholt.com/webhook/${nodeId}`);
+      }
       if (label === "Replace node") {
         setReplacePickerNode(nodeId);
       }
@@ -1504,6 +1533,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           x={contextMenu.x}
           y={contextMenu.y}
           nodeId={contextMenu.nodeId}
+          nodeFamily={nodeMap[contextMenu.nodeId]?.family}
           disabled={execStates[contextMenu.nodeId] === "disabled"}
           onAction={handleContextAction}
           onDisable={() => toggleDisabled(contextMenu.nodeId!)}

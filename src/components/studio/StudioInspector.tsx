@@ -19,6 +19,7 @@ const inspectorTabs = [
   { key: "Input",      badge: "3" },
   { key: "Output",     badge: "3" },
   { key: "Diff",       badge: null },
+  { key: "Pin Data",   badge: null },
   { key: "Settings",   badge: null },
 ];
 
@@ -244,6 +245,7 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
         {activeTab === "Input" && <InputPanel nodeId={node.id} pinned={pinned} />}
         {activeTab === "Output" && <DataPanel nodeId={node.id} direction="output" pinned={pinned} />}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
+        {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} />}
         {activeTab === "Settings" && <SettingsContent />}
       </div>
     </div>
@@ -262,12 +264,42 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
   const upstream = upstreamNodes[nodeId] ?? [];
   const [selectedUpstream, setSelectedUpstream] = useState(upstream[0]?.id ?? "");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [inputView, setInputView] = useState<"schema" | "table" | "json">("schema");
+  const [dragField, setDragField] = useState<string | null>(null);
 
   const copyExpression = (fieldPath: string) => {
     const expr = `{{ $node["${upstream.find(u => u.id === selectedUpstream)?.name ?? ""}"].json["${fieldPath}"] }}`;
     navigator.clipboard.writeText(expr);
     setCopiedField(fieldPath);
     setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  // Mock schema tree
+  const schemaTree = [
+    { key: "id", type: "number" as const, sample: "42", depth: 0 },
+    { key: "name", type: "string" as const, sample: "John Doe", depth: 0 },
+    { key: "email", type: "string" as const, sample: "john@example.com", depth: 0 },
+    { key: "status", type: "string" as const, sample: "active", depth: 0 },
+    { key: "score", type: "number" as const, sample: "87", depth: 0 },
+    { key: "metadata", type: "object" as const, sample: "{...}", depth: 0 },
+    { key: "metadata.source", type: "string" as const, sample: "typeform", depth: 1 },
+    { key: "metadata.timestamp", type: "string" as const, sample: "2025-01-06T09:00:00Z", depth: 1 },
+    { key: "tags", type: "array" as const, sample: '["vip", "trial"]', depth: 0 },
+    { key: "tags[0]", type: "string" as const, sample: "vip", depth: 1 },
+  ];
+
+  const typeColor: Record<string, string> = {
+    string: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    number: "bg-blue-100 text-blue-700 border-blue-200",
+    boolean: "bg-amber-100 text-amber-700 border-amber-200",
+    array: "bg-purple-100 text-purple-700 border-purple-200",
+    object: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  };
+
+  const rawJson = {
+    id: 42, name: "John Doe", email: "john@example.com", status: "active", score: 87,
+    metadata: { source: "typeform", timestamp: "2025-01-06T09:00:00Z" },
+    tags: ["vip", "trial"],
   };
 
   if (upstream.length === 0) {
@@ -304,13 +336,115 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
         </div>
       </div>
 
-      {/* Drag hint */}
-      <div className="rounded-md bg-blue-50 border border-blue-100 px-2.5 py-1.5 flex items-center gap-1.5">
-        <Copy size={10} className="text-blue-500" />
-        <span className="text-[9px] text-blue-600">Click a field name to copy its expression reference</span>
+      {/* View toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex rounded-lg border border-zinc-200 p-0.5">
+          {(["schema", "table", "json"] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setInputView(v)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[10px] font-medium transition-all capitalize",
+                inputView === v ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              {v === "schema" ? "🌳 Schema" : v === "table" ? "📊 Table" : "{ } JSON"}
+            </button>
+          ))}
+        </div>
+        <span className="text-[9px] text-zinc-400">3 items</span>
       </div>
 
-      {/* Data viewer using existing DataPanel */}
+      {/* Drag hint */}
+      <div className="rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 px-2.5 py-1.5 flex items-center gap-1.5">
+        <Zap size={10} className="text-blue-500" />
+        <span className="text-[9px] text-blue-600">
+          {dragField ? `Dragging: {{ $json.${dragField} }}` : "Drag a field pill to insert expression, or click to copy"}
+        </span>
+      </div>
+
+      {/* Schema tree view */}
+      {inputView === "schema" && (
+        <div className="space-y-0.5">
+          {schemaTree.map((field) => (
+            <div
+              key={field.key}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all cursor-grab hover:bg-zinc-50 group",
+                copiedField === field.key && "bg-emerald-50 ring-1 ring-emerald-200"
+              )}
+              style={{ paddingLeft: `${field.depth * 16 + 8}px` }}
+              draggable
+              onDragStart={() => setDragField(field.key)}
+              onDragEnd={() => setDragField(null)}
+              onClick={() => copyExpression(field.key)}
+            >
+              {field.depth > 0 && <span className="text-zinc-300 text-[9px]">└</span>}
+              {/* Type badge */}
+              <span className={cn("rounded px-1 py-0 text-[8px] font-bold border", typeColor[field.type] || typeColor.string)}>
+                {field.type === "string" ? "Str" : field.type === "number" ? "Num" : field.type === "boolean" ? "Bool" : field.type === "array" ? "Arr" : "Obj"}
+              </span>
+              {/* Field pill */}
+              <span className={cn(
+                "rounded-full border px-2 py-0.5 text-[10px] font-mono font-medium transition-all",
+                dragField === field.key
+                  ? "border-blue-400 bg-blue-100 text-blue-700 shadow-sm scale-105"
+                  : "border-zinc-200 bg-white text-zinc-700 group-hover:border-zinc-400 group-hover:shadow-sm"
+              )}>
+                {field.key.includes(".") ? field.key.split(".").pop() : field.key}
+              </span>
+              {/* Sample value */}
+              <span className="text-[9px] text-zinc-400 truncate flex-1 font-mono">{field.sample}</span>
+              {/* Copy indicator */}
+              {copiedField === field.key
+                ? <Check size={10} className="text-emerald-500 flex-shrink-0" />
+                : <Copy size={9} className="text-zinc-300 opacity-0 group-hover:opacity-100 flex-shrink-0 transition-opacity" />
+              }
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Table view */}
+      {inputView === "table" && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden">
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="bg-zinc-50 border-b border-zinc-200">
+                <th className="text-left px-2 py-1.5 font-medium text-zinc-500">Field</th>
+                <th className="text-left px-2 py-1.5 font-medium text-zinc-500">Type</th>
+                <th className="text-left px-2 py-1.5 font-medium text-zinc-500">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schemaTree.filter(f => f.depth === 0).map(field => (
+                <tr
+                  key={field.key}
+                  className="border-b border-zinc-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
+                  onClick={() => copyExpression(field.key)}
+                >
+                  <td className="px-2 py-1.5 font-mono font-medium text-zinc-700">{field.key}</td>
+                  <td className="px-2 py-1.5">
+                    <span className={cn("rounded px-1 py-0 text-[8px] font-bold border", typeColor[field.type] || typeColor.string)}>
+                      {field.type}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5 font-mono text-zinc-500 truncate max-w-[120px]">{field.sample}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* JSON view */}
+      {inputView === "json" && (
+        <pre className="rounded-lg border border-zinc-200 bg-zinc-950 p-3 text-[10px] font-mono text-emerald-400 max-h-64 overflow-auto leading-relaxed">
+          {JSON.stringify(rawJson, null, 2)}
+        </pre>
+      )}
+
+      {/* Data viewer fallback */}
       <DataPanel nodeId={selectedUpstream} direction="output" pinned={pinned} onFieldClick={copyExpression} copiedField={copiedField} />
     </div>
   );
@@ -739,6 +873,152 @@ function DiffPanel({ nodeId }: { nodeId: string }) {
         <span>Output: {output.schema.length} fields</span>
         <span className="text-green-500">+{allKeys.filter(k => !inputKeys.has(k)).length} added</span>
         <span className="text-red-500">-{allKeys.filter(k => !outputKeys.has(k)).length} removed</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── PIN DATA panel ── */
+const mockPinHistory = [
+  { id: "pin-1", date: "2 min ago", items: 3, source: "Manual execution", size: "1.2 KB" },
+  { id: "pin-2", date: "1 hour ago", items: 5, source: "Test run #42", size: "2.8 KB" },
+  { id: "pin-3", date: "Yesterday", items: 1, source: "Production exec", size: "0.4 KB" },
+];
+
+function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: string; nodeName: string; pinned: boolean; onTogglePin: () => void }) {
+  const [runWithPinned, setRunWithPinned] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [pinnedJson, setPinnedJson] = useState(JSON.stringify([
+    { json: { id: 42, name: "John Doe", email: "john@example.com", status: "active" } },
+    { json: { id: 43, name: "Jane Smith", email: "jane@example.com", status: "pending" } },
+    { json: { id: 44, name: "Bob Wilson", email: "bob@example.com", status: "active" } },
+  ], null, 2));
+  const [copied, setCopied] = useState(false);
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+
+  const handleCopy = () => { navigator.clipboard.writeText(pinnedJson); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+
+  return (
+    <div className="space-y-4">
+      {/* Status card */}
+      <div className={cn(
+        "rounded-lg border p-3",
+        pinned ? "border-blue-200 bg-blue-50/50" : "border-zinc-200 bg-zinc-50/50"
+      )}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg", pinned ? "bg-blue-100" : "bg-zinc-200")}>
+              <Pin size={12} className={pinned ? "text-blue-600" : "text-zinc-400"} />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-zinc-700">{pinned ? "Data Pinned" : "No Pinned Data"}</p>
+              <p className="text-[9px] text-zinc-500">{pinned ? "3 items · 1.2 KB" : "Pin output to freeze upstream data"}</p>
+            </div>
+          </div>
+          <button
+            onClick={onTogglePin}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-[10px] font-medium transition-all",
+              pinned ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200" : "bg-blue-600 text-white hover:bg-blue-700"
+            )}
+          >
+            {pinned ? "Unpin" : "Pin Current Output"}
+          </button>
+        </div>
+        {pinned && (
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-blue-200/50">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <button
+                onClick={() => setRunWithPinned(!runWithPinned)}
+                className={cn(
+                  "h-4 w-7 rounded-full transition-colors relative",
+                  runWithPinned ? "bg-blue-600" : "bg-zinc-300"
+                )}
+              >
+                <span className={cn(
+                  "absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform",
+                  runWithPinned ? "left-3.5" : "left-0.5"
+                )} />
+              </button>
+              <span className="text-[10px] text-zinc-600">Run with pinned data</span>
+            </label>
+            <span className="text-[9px] text-zinc-400 ml-auto">Downstream nodes use this data instead of live upstream</span>
+          </div>
+        )}
+      </div>
+
+      {/* Pinned data editor */}
+      {pinned && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden">
+          <div className="flex items-center justify-between bg-zinc-50 px-3 py-2 border-b border-zinc-200">
+            <span className="text-[10px] font-medium text-zinc-600">Pinned Data</span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setEditMode(!editMode)} className={cn("rounded px-2 py-0.5 text-[9px] transition-colors", editMode ? "bg-amber-100 text-amber-700" : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100")}>
+                {editMode ? "Done" : "Edit"}
+              </button>
+              <button onClick={handleCopy} className="rounded px-2 py-0.5 text-[9px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
+              </button>
+              <button className="rounded px-2 py-0.5 text-[9px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                <Download size={10} />
+              </button>
+            </div>
+          </div>
+          {editMode ? (
+            <textarea
+              value={pinnedJson}
+              onChange={e => setPinnedJson(e.target.value)}
+              className="w-full h-48 bg-zinc-950 text-[11px] font-mono text-emerald-400 p-3 focus:outline-none resize-none"
+              spellCheck={false}
+            />
+          ) : (
+            <pre className="bg-zinc-950 text-[11px] font-mono text-emerald-400 p-3 max-h-48 overflow-auto leading-relaxed">
+              {pinnedJson}
+            </pre>
+          )}
+        </div>
+      )}
+
+      {/* Pin history */}
+      <div>
+        <p className="text-[10px] font-medium text-zinc-500 mb-2">Pin History</p>
+        <div className="space-y-1">
+          {mockPinHistory.map(h => (
+            <button
+              key={h.id}
+              onClick={() => setActiveHistoryId(activeHistoryId === h.id ? null : h.id)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-all",
+                activeHistoryId === h.id ? "border-blue-200 bg-blue-50/30" : "border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50"
+              )}
+            >
+              <Clock size={10} className="text-zinc-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-zinc-700">{h.source}</p>
+                <p className="text-[9px] text-zinc-400">{h.date} · {h.items} items · {h.size}</p>
+              </div>
+              {activeHistoryId === h.id && (
+                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[8px] font-medium text-blue-700">Restore</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Environment isolation */}
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3">
+        <p className="text-[10px] font-medium text-zinc-600 mb-2">Environment Scope</p>
+        <div className="flex gap-2">
+          {["Development", "Staging", "Production"].map(env => (
+            <span key={env} className={cn(
+              "rounded-full px-2.5 py-0.5 text-[9px] font-medium border",
+              env === "Development" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-zinc-100 text-zinc-400 border-zinc-200"
+            )}>
+              {env}
+            </span>
+          ))}
+        </div>
+        <p className="text-[9px] text-zinc-400 mt-1.5">Pinned data is scoped to the current environment</p>
       </div>
     </div>
   );

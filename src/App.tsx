@@ -47,6 +47,7 @@ import { ModelDirectoryPage } from "@/pages/ModelDirectoryPage";
 import { EvaluationsPage } from "@/pages/EvaluationsPage";
 import { CommunityNodesMarketplace } from "@/pages/CommunityNodesMarketplace";
 import { WorkflowVersionsPage } from "@/pages/WorkflowVersionsPage";
+import { EnvironmentVariablesPage } from "@/pages/EnvironmentVariablesPage";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { InviteAcceptPage } from "@/pages/InviteAcceptPage";
 import { CommandPalette } from "@/components/ui/command-palette";
@@ -95,6 +96,7 @@ export function App() {
               <Route path="/executions/:id" element={<ExecutionDetailPage />} />
               <Route path="/vault/credentials/:id" element={<CredentialDetailPage />} />
               <Route path="/vault/connections/:id" element={<ConnectionDetailPage />} />
+              <Route path="/vault/environment-variables" element={<EnvironmentVariablesPage />} />
               <Route path="/vault/*" element={<VaultPage />} />
               <Route path="/webhooks" element={<WebhooksPage />} />
               <Route path="/webhooks/:id" element={<WebhookDetailPage />} />

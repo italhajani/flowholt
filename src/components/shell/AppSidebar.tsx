@@ -16,6 +16,7 @@ import {
   Globe,
   HelpCircle,
   Settings,
+  TestTube,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ const primaryNav: NavItem[] = [
   { id: "chat",       label: "Chat",       icon: MessageSquare,  path: "/chat" },
   { id: "executions", label: "Executions", icon: Play,           path: "/executions", badge: 2 },
   { id: "human-tasks",label: "Tasks",      icon: ClipboardList,  path: "/human-tasks", badge: 3 },
+  { id: "evaluations",label: "Evaluations",icon: TestTube,       path: "/evaluations" },
 ];
 
 const resourceNav: NavItem[] = [

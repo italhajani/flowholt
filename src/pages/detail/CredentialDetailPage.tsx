@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   Key, Shield, Clock, FileText, RotateCcw, Eye, EyeOff, AlertTriangle, CheckCircle2, Copy, RefreshCw,
+  Users, Share2, Globe, Lock, UserPlus, Trash2,
 } from "lucide-react";
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
@@ -47,12 +48,21 @@ const rotationHistory = [
   { version: "v1 (initial)", rotatedBy: "Gouhar Ali", method: "Created", date: "Dec 8, 2025" },
 ];
 
+const sharedWith = [
+  { id: "u1", name: "Gouhar Ali", email: "gouhar@flowholt.com", role: "Owner", avatar: "GA" },
+  { id: "u2", name: "Sarah Chen", email: "sarah@flowholt.com", role: "Can use", avatar: "SC" },
+  { id: "u3", name: "Dev Team", email: "dev-team (workspace)", role: "Can use", avatar: "DT" },
+];
+
+const sharingPermissions = ["Owner", "Can use", "Can edit", "No access"] as const;
+
 const tabs = [
   { id: "overview", label: "Overview", icon: <Key size={13} /> },
   { id: "policy", label: "Secret Policy", icon: <Shield size={13} /> },
   { id: "usage", label: "Usage", icon: <FileText size={13} /> },
   { id: "audit", label: "Audit", icon: <Clock size={13} /> },
   { id: "rotation", label: "Rotation", icon: <RotateCcw size={13} /> },
+  { id: "sharing", label: "Sharing", icon: <Share2 size={13} /> },
 ];
 
 export function CredentialDetailPage() {
@@ -209,6 +219,58 @@ export function CredentialDetailPage() {
                 </div>
               ))}
             </div>
+          </DetailSection>
+        </div>
+      )}
+      {activeTab === "sharing" && (
+        <div className="space-y-5">
+          <DetailSection title="Access Control">
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { icon: Lock, label: "Private", desc: "Only owner can use", active: credential.scope !== "workspace" },
+                { icon: Users, label: "Workspace", desc: "All workspace members", active: credential.scope === "workspace" },
+                { icon: Globe, label: "Global", desc: "All workspaces", active: false },
+              ].map(opt => (
+                <button key={opt.label} className={cn("rounded-xl border p-3 text-left transition-all",
+                  opt.active ? "border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900" : "border-zinc-200 hover:border-zinc-300"
+                )}>
+                  <opt.icon size={16} className={opt.active ? "text-zinc-900" : "text-zinc-400"} />
+                  <p className={cn("text-[12px] font-medium mt-1.5", opt.active ? "text-zinc-900" : "text-zinc-500")}>{opt.label}</p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+          </DetailSection>
+
+          <DetailSection title="Shared With">
+            <div className="space-y-1.5 mb-3">
+              {sharedWith.map(user => (
+                <div key={user.id} className="flex items-center gap-3 rounded-lg border border-zinc-100 px-3 py-2.5 hover:bg-zinc-50 transition-colors">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-[9px] font-semibold text-white">{user.avatar}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-medium text-zinc-700">{user.name}</p>
+                    <p className="text-[10px] text-zinc-400">{user.email}</p>
+                  </div>
+                  <select className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-600 focus:outline-none" defaultValue={user.role}>
+                    {sharingPermissions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  {user.role !== "Owner" && (
+                    <button className="text-zinc-300 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button className="flex items-center gap-1.5 text-[12px] font-medium text-zinc-500 hover:text-zinc-700 transition-colors">
+              <UserPlus size={12} /> Add person or team
+            </button>
+          </DetailSection>
+
+          <DetailSection title="Share Link">
+            <div className="flex items-center gap-2">
+              <input readOnly value="https://app.flowholt.com/invite/cred/abc123" className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] text-zinc-500 font-mono" />
+              <Button variant="outline" size="sm"><Copy size={12} /> Copy</Button>
+            </div>
+            <p className="text-[10px] text-zinc-400 mt-1.5">Anyone with this link and workspace access can use this credential.</p>
           </DetailSection>
         </div>
       )}

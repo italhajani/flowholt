@@ -44,6 +44,8 @@ import { StudioLayout } from "@/layouts/StudioLayout";
 import { PublicChatPage } from "@/pages/public/PublicChatPage";
 import { PublicFormPage } from "@/pages/public/PublicFormPage";
 import { ModelDirectoryPage } from "@/pages/ModelDirectoryPage";
+import { EvaluationsPage } from "@/pages/EvaluationsPage";
+import { CommunityNodesMarketplace } from "@/pages/CommunityNodesMarketplace";
 import { InviteAcceptPage } from "@/pages/InviteAcceptPage";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ToastProvider } from "@/components/ui/toast";
@@ -100,6 +102,8 @@ export function App() {
               <Route path="/help" element={<HelpPage />} />
               <Route path="/human-tasks" element={<HumanTasksPage />} />
               <Route path="/chat" element={<ChatHubPage />} />
+              <Route path="/evaluations" element={<EvaluationsPage />} />
+              <Route path="/community-nodes" element={<CommunityNodesMarketplace />} />
 
               {/* Settings with nested layout */}
               <Route path="/settings" element={<SettingsLayout />}>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   CheckCircle2, XCircle, Clock, Loader2, ChevronDown, Copy,
   Search, Filter, Cpu, DollarSign, Zap, Brain, AlertTriangle,
-  ArrowDown, ArrowUp, RefreshCw, BarChart3, Eye, Sparkles,
+  ArrowDown, ArrowUp, RefreshCw, BarChart3, Eye, Sparkles, Download, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,14 +42,15 @@ const tokenUsageSummary = {
 };
 
 const mockLogs = [
-  { ts: "09:42:01.120", level: "info",  msg: "[Webhook Trigger] Received POST /leads/inbound", node: "n1" },
-  { ts: "09:42:01.122", level: "info",  msg: "[Enrich Lead Data] Enriched alex@acme.com via Clearbit", node: "n2" },
-  { ts: "09:42:01.464", level: "info",  msg: "[Score with AI] Sending prompt to GPT-4o…", node: "n3" },
-  { ts: "09:42:01.012", level: "debug", msg: "[Score with AI] token_count=312, model=gpt-4o, temp=0.3", node: "n3" },
-  { ts: "09:42:02.440", level: "info",  msg: "[Score with AI] Response received, latency=980ms", node: "n3" },
-  { ts: "09:42:02.441", level: "debug", msg: "[Score with AI] output_tokens=156, total_cost=$0.0042", node: "n3" },
-  { ts: "09:42:02.442", level: "warn",  msg: "[Score with AI] Confidence below threshold (0.92 < 0.95)", node: "n3" },
-  { ts: "09:42:02.443", level: "info",  msg: "[Score with AI] Schema validation passed", node: "n3" },
+  { ts: "09:42:01.120", level: "info",  msg: "[Webhook Trigger] Received POST /leads/inbound", node: "n1", data: '{"method":"POST","path":"/leads/inbound","headers":{"content-type":"application/json"},"body_size":"324 bytes"}' },
+  { ts: "09:42:01.122", level: "info",  msg: "[Enrich Lead Data] Enriched alex@acme.com via Clearbit", node: "n2", data: null },
+  { ts: "09:42:01.464", level: "info",  msg: "[Score with AI] Sending prompt to GPT-4o…", node: "n3", data: null },
+  { ts: "09:42:01.012", level: "debug", msg: "[Score with AI] token_count=312, model=gpt-4o, temp=0.3", node: "n3", data: '{"model":"gpt-4o","temperature":0.3,"max_tokens":512,"input_tokens":312}' },
+  { ts: "09:42:02.440", level: "info",  msg: "[Score with AI] Response received, latency=980ms", node: "n3", data: null },
+  { ts: "09:42:02.441", level: "debug", msg: "[Score with AI] output_tokens=156, total_cost=$0.0042", node: "n3", data: '{"output_tokens":156,"total_cost":"$0.0042","cache_hit":false}' },
+  { ts: "09:42:02.442", level: "warn",  msg: "[Score with AI] Confidence below threshold (0.92 < 0.95)", node: "n3", data: null },
+  { ts: "09:42:02.443", level: "info",  msg: "[Score with AI] Schema validation passed", node: "n3", data: null },
+  { ts: "09:42:04.900", level: "error", msg: "[Score with AI] OpenAI API Error 429: Rate limit exceeded", node: "n3", data: '{"status":429,"error":"rate_limit_exceeded","retry_after":20,"headers":{"x-ratelimit-remaining":"0"}}' },
 ];
 
 const outputJson = `{
@@ -94,6 +95,8 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
   const [logFilter, setLogFilter] = useState<LogLevel>("all");
   const [logSearch, setLogSearch] = useState("");
   const [showTokenPanel, setShowTokenPanel] = useState(true);
+  const [liveTail, setLiveTail] = useState(true);
+  const [expandedLogIdx, setExpandedLogIdx] = useState<number | null>(null);
 
   const filteredLogs = mockLogs.filter(l => {
     if (logFilter !== "all" && l.level !== logFilter) return false;
@@ -291,16 +294,16 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
           </div>
         )}
 
-        {/* Logs tab with filtering */}
+        {/* Enhanced Debug Console (Logs tab) */}
         {activeTab === "Logs" && (
-          <div>
-            {/* Filter bar */}
+          <div className="flex flex-col h-full">
+            {/* Toolbar */}
             <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-50 bg-zinc-50/50">
               <div className="flex items-center gap-1 flex-1 rounded border border-zinc-200 bg-white px-2 py-1">
                 <Search size={10} className="text-zinc-400" />
                 <input
                   className="flex-1 text-[10px] outline-none bg-transparent text-zinc-700 placeholder:text-zinc-300"
-                  placeholder="Filter logs…"
+                  placeholder="Filter logs… (supports regex)"
                   value={logSearch}
                   onChange={(e) => setLogSearch(e.target.value)}
                 />
@@ -319,26 +322,86 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => setLiveTail(t => !t)}
+                className={cn("flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px] font-medium transition-colors border",
+                  liveTail ? "border-green-200 bg-green-50 text-green-700" : "border-zinc-200 bg-white text-zinc-400"
+                )}
+              >
+                <ArrowDown size={8} className={liveTail ? "animate-bounce" : ""} /> Live
+              </button>
+              <button
+                onClick={() => {
+                  const txt = filteredLogs.map(l => `${l.ts} [${l.level.toUpperCase()}] ${l.msg}`).join("\n");
+                  navigator.clipboard.writeText(txt);
+                }}
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px] font-medium text-zinc-400 hover:text-zinc-600 border border-zinc-200 bg-white transition-colors"
+              >
+                <Download size={8} /> Export
+              </button>
             </div>
-            <div className="p-3 space-y-0.5 font-mono">
+            {/* Log entries */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-0.5 font-mono">
               {filteredLogs.length === 0 ? (
                 <p className="text-[10px] text-zinc-300 text-center py-4">No logs match filter</p>
               ) : (
                 filteredLogs.map((log, i) => (
-                  <div key={i} className={cn("flex items-start gap-2 text-[9px] rounded px-1.5 py-0.5 hover:bg-zinc-50 transition-colors group", log.level === "warn" && "bg-amber-50/50", log.level === "error" && "bg-red-50/50")}>
-                    <span className="text-zinc-400 flex-shrink-0 w-[72px]">{log.ts}</span>
-                    <span className={cn("uppercase font-semibold flex-shrink-0 w-9", logLevelColor[log.level])}>{log.level}</span>
-                    <span className="text-zinc-600 break-all flex-1">{log.msg}</span>
-                    {(log.level === "error" || log.level === "warn") && onAskAI && (
+                  <div key={i}>
+                    <div
+                      className={cn(
+                        "flex items-start gap-2 text-[9px] rounded px-1.5 py-0.5 hover:bg-zinc-50 transition-colors group cursor-pointer",
+                        log.level === "warn" && "bg-amber-50/50",
+                        log.level === "error" && "bg-red-50/50",
+                        expandedLogIdx === i && "bg-zinc-50 ring-1 ring-zinc-200"
+                      )}
+                      onClick={() => setExpandedLogIdx(expandedLogIdx === i ? null : i)}
+                    >
+                      {log.data && (
+                        <ChevronRight size={8} className={cn("text-zinc-300 flex-shrink-0 mt-0.5 transition-transform", expandedLogIdx === i && "rotate-90")} />
+                      )}
+                      <span className="text-zinc-400 flex-shrink-0 w-[72px]">{log.ts}</span>
+                      <span className={cn("uppercase font-semibold flex-shrink-0 w-9", logLevelColor[log.level])}>{log.level}</span>
+                      <span className="text-zinc-600 break-all flex-1">{log.msg}</span>
+                      {(log.level === "error" || log.level === "warn") && onAskAI && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onAskAI(`Debug ${log.level}: ${log.msg}`); }}
+                          className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-[7px] font-medium text-violet-700 hover:bg-violet-200 transition-all flex-shrink-0"
+                        >
+                          <Sparkles size={7} /> Ask AI
+                        </button>
+                      )}
                       <button
-                        onClick={() => onAskAI(`Debug ${log.level}: ${log.msg}`)}
-                        className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-[7px] font-medium text-violet-700 hover:bg-violet-200 transition-all flex-shrink-0"
+                        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(log.msg); }}
+                        className="opacity-0 group-hover:opacity-100 flex items-center rounded px-1 py-0.5 text-zinc-300 hover:text-zinc-500 transition-all flex-shrink-0"
                       >
-                        <Sparkles size={7} /> Ask AI
+                        <Copy size={7} />
                       </button>
+                    </div>
+                    {/* Structured JSON viewer */}
+                    {expandedLogIdx === i && log.data && (
+                      <div className="ml-6 mt-0.5 mb-1 rounded-md border border-zinc-100 bg-zinc-50 overflow-hidden">
+                        <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-100">
+                          <span className="text-[8px] font-semibold text-zinc-400 uppercase tracking-wider">Structured Data</span>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(log.data!)}
+                            className="text-[7px] text-zinc-400 hover:text-zinc-600 flex items-center gap-0.5"
+                          >
+                            <Copy size={7} /> Copy JSON
+                          </button>
+                        </div>
+                        <pre className="px-2 py-1.5 text-[9px] text-zinc-600 overflow-x-auto whitespace-pre-wrap">
+                          {(() => { try { return JSON.stringify(JSON.parse(log.data!), null, 2); } catch { return log.data; } })()}
+                        </pre>
+                      </div>
                     )}
                   </div>
                 ))
+              )}
+              {liveTail && (
+                <div className="flex items-center gap-1.5 py-1 text-[8px] text-green-500 animate-pulse">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                  Watching for new logs…
+                </div>
               )}
             </div>
           </div>

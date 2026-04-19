@@ -1950,4 +1950,174 @@ def get_workflow_trigger_details(
     )
 
 
+# ── Global Search Endpoint ──────────────────────────────────────────────
+
+class SearchResultItem(BaseModel):
+    id: str
+    type: str   # workflow | execution | agent | credential
+    label: str
+    description: Optional[str] = None
+    status: Optional[str] = None
+    tags: list[str] = []
+    path: str
+
+class SearchResponse(BaseModel):
+    query: str
+    results: list[SearchResultItem]
+    total: int
+
+
+@router.get(f"{settings.api_prefix}/search", response_model=SearchResponse)
+def global_search(
+    q: str = "",
+    type: Optional[str] = None,
+    limit: int = 20,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> SearchResponse:
+    """Search across workflows, executions, and AI agents."""
+    workspace_id = str(session["workspace"]["id"])
+    results: list[SearchResultItem] = []
+    query_lower = q.lower().strip()
+
+    if not query_lower:
+        return SearchResponse(query=q, results=[], total=0)
+
+    # Search workflows
+    if type in (None, "workflows"):
+        try:
+            wf_rows = list_workflows(workspace_id=workspace_id)
+            for wf in wf_rows:
+                name = wf.get("name", "")
+                desc = wf.get("description", "")
+                tags = wf.get("tags") or []
+                tag_names = [t.get("name", "") if isinstance(t, dict) else str(t) for t in tags]
+                searchable = f"{name} {desc} {' '.join(tag_names)}".lower()
+                if query_lower in searchable:
+                    results.append(SearchResultItem(
+                        id=str(wf["id"]),
+                        type="workflow",
+                        label=name,
+                        description=desc[:100] if desc else None,
+                        status="active" if wf.get("is_active") else "draft",
+                        tags=tag_names[:3],
+                        path=f"/workflows/{wf['id']}",
+                    ))
+        except Exception:
+            pass
+
+    # Search executions
+    if type in (None, "executions"):
+        try:
+            exec_rows = list_executions(workspace_id=workspace_id, limit=100)
+            for ex in exec_rows:
+                label = f"Execution #{ex.get('id', '')}"
+                wf_name = ex.get("workflow_name", "")
+                searchable = f"{label} {wf_name}".lower()
+                if query_lower in searchable:
+                    results.append(SearchResultItem(
+                        id=str(ex["id"]),
+                        type="execution",
+                        label=label,
+                        description=wf_name[:80] if wf_name else None,
+                        status=ex.get("status", "unknown"),
+                        path=f"/executions/{ex['id']}",
+                    ))
+        except Exception:
+            pass
+
+    results = results[:limit]
+    return SearchResponse(query=q, results=results, total=len(results))
+
+
+# ── Workflow Diff Endpoint ───────────────────────────────────────────────
+
+class NodeDiffItem(BaseModel):
+    node_id: str
+    name: str
+    node_type: str
+    status: str  # added | removed | modified | unchanged
+    changes: list[dict[str, str]] = []
+
+class WorkflowDiffResponse(BaseModel):
+    workflow_id: str
+    from_version: int
+    to_version: int
+    added_nodes: list[NodeDiffItem]
+    removed_nodes: list[NodeDiffItem]
+    modified_nodes: list[NodeDiffItem]
+    unchanged_count: int
+
+
+@router.get(
+    f"{settings.api_prefix}/workflows/{{workflow_id}}/diff",
+    response_model=WorkflowDiffResponse,
+)
+def get_workflow_diff(
+    workflow_id: str,
+    from_version: int = 1,
+    to_version: Optional[int] = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> WorkflowDiffResponse:
+    """Compare two versions of a workflow definition."""
+    workspace_id = str(session["workspace"]["id"])
+    workflow = get_workflow(workflow_id, workspace_id=workspace_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    current_def = workflow.get("definition_json") or {"steps": [], "edges": []}
+    current_steps = {s.get("id"): s for s in current_def.get("steps", [])}
+
+    # For now compare current version against an empty "from" (no version history yet)
+    from_steps: dict[str, Any] = {}
+
+    added, removed, modified = [], [], []
+    unchanged = 0
+
+    for sid, step in current_steps.items():
+        if sid not in from_steps:
+            added.append(NodeDiffItem(
+                node_id=sid,
+                name=step.get("name", sid),
+                node_type=step.get("type", "unknown"),
+                status="added",
+            ))
+        else:
+            old = from_steps[sid]
+            changes = []
+            for key in set(list(step.keys()) + list(old.keys())):
+                if key in ("id", "position"):
+                    continue
+                if str(step.get(key)) != str(old.get(key)):
+                    changes.append({"field": key, "before": str(old.get(key, "")), "after": str(step.get(key, ""))})
+            if changes:
+                modified.append(NodeDiffItem(
+                    node_id=sid,
+                    name=step.get("name", sid),
+                    node_type=step.get("type", "unknown"),
+                    status="modified",
+                    changes=changes,
+                ))
+            else:
+                unchanged += 1
+
+    for sid, step in from_steps.items():
+        if sid not in current_steps:
+            removed.append(NodeDiffItem(
+                node_id=sid,
+                name=step.get("name", sid),
+                node_type=step.get("type", "unknown"),
+                status="removed",
+            ))
+
+    actual_to = to_version or workflow.get("current_version_number", 1)
+    return WorkflowDiffResponse(
+        workflow_id=workflow_id,
+        from_version=from_version,
+        to_version=actual_to,
+        added_nodes=added,
+        removed_nodes=removed,
+        modified_nodes=modified,
+        unchanged_count=unchanged,
+    )
+
 

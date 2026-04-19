@@ -466,4 +466,68 @@ def cancel_execution_by_token(cancel_token: str) -> ExecutionSummary:
     return _cancel_paused_execution(pause, session=None)
 
 
+# ── Execution Trace Endpoint ─────────────────────────────────────────────
+
+class NodeTraceItem(BaseModel):
+    node_id: str
+    node_name: str
+    node_type: str
+    status: str  # success | error | skipped | running
+    input: dict[str, Any] = {}
+    output: dict[str, Any] = {}
+    error: Optional[str] = None
+    started_at: Optional[str] = None
+    duration_ms: int = 0
+
+class ExecutionTraceResponse(BaseModel):
+    execution_id: str
+    workflow_id: str
+    status: str
+    trace: list[NodeTraceItem]
+    total_duration_ms: int
+
+
+@router.get(
+    f"{settings.api_prefix}/executions/{{execution_id}}/trace",
+    response_model=ExecutionTraceResponse,
+)
+def get_execution_trace(
+    execution_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> ExecutionTraceResponse:
+    """Return per-node execution trace with input/output data."""
+    workspace_id = str(session["workspace"]["id"])
+    execution = get_execution(execution_id, workspace_id=workspace_id)
+    if execution is None:
+        raise HTTPException(status_code=404, detail="Execution not found")
+
+    # Extract trace from execution result or step_results
+    step_results = execution.get("step_results") or {}
+    definition = execution.get("workflow_definition_snapshot") or {}
+    steps = definition.get("steps") or []
+
+    trace_items: list[NodeTraceItem] = []
+    for step in steps:
+        step_id = step.get("id", "")
+        result = step_results.get(step_id, {})
+        trace_items.append(NodeTraceItem(
+            node_id=step_id,
+            node_name=step.get("name", step_id),
+            node_type=step.get("type", "unknown"),
+            status=result.get("status", "skipped"),
+            input=result.get("input", {}),
+            output=result.get("output", {}),
+            error=result.get("error"),
+            started_at=result.get("started_at"),
+            duration_ms=result.get("duration_ms", 0),
+        ))
+
+    total_duration = sum(t.duration_ms for t in trace_items)
+    return ExecutionTraceResponse(
+        execution_id=execution_id,
+        workflow_id=str(execution.get("workflow_id", "")),
+        status=execution.get("status", "unknown"),
+        trace=trace_items,
+        total_duration_ms=total_duration,
+    )
 

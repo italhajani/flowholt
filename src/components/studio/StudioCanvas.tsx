@@ -3,7 +3,7 @@ import {
   Plus, Minus, Maximize2, Map, CheckCircle2, XCircle,
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
   Search, X, Play, Pause, Eye, Zap, ArrowRight, Pin,
-  ChevronRight, GitBranch, Clock, Hash, Home,
+  ChevronRight, GitBranch, Clock, Hash, Home, Undo2, Redo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "./useCanvasStore";
@@ -491,6 +491,8 @@ const controlButtons = [
   { icon: Maximize2, label: "Fit View" },
   { icon: Map,       label: "Mini-map" },
   { icon: Search,    label: "Search" },
+  { icon: Undo2,     label: "Undo" },
+  { icon: Redo2,     label: "Redo" },
 ];
 
 interface StudioCanvasProps {
@@ -533,9 +535,37 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   // Connection drawing state
   const [drawingEdge, setDrawingEdge] = useState<{ fromId: string; toX: number; toY: number } | null>(null);
 
+  // Hovered edge for quick-add
+  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
+
   const searchResults = searchQuery
     ? nodes.filter(n => n.name.toLowerCase().includes(searchQuery.toLowerCase()) || n.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
+
+  const handleQuickAddNode = useCallback((fromId: string, toId: string) => {
+    const from = nodeMap[fromId];
+    const to = nodeMap[toId];
+    if (!from || !to) return;
+    const midX = (from.left + NODE_W + to.left) / 2 - NODE_W / 2;
+    const midY = (from.top + to.top) / 2;
+    const newNode: CanvasNodeData = {
+      id: `n${Date.now()}`,
+      name: "New Node",
+      subtitle: "Select type…",
+      family: "logic",
+      top: midY,
+      left: midX,
+    };
+    setNodes(prev => [...prev, newNode]);
+    setExecStates(prev => ({ ...prev, [newNode.id]: "idle" }));
+    setEdgeList(prev => [
+      ...prev.filter(([f, t]) => !(f === fromId && t === toId)),
+      [fromId, newNode.id],
+      [newNode.id, toId],
+    ]);
+    onNodeSelect(newNode.id);
+    setHoveredEdge(null);
+  }, [nodeMap, setNodes, setExecStates, setEdgeList, onNodeSelect]);
 
   const handleContextMenu = useCallback((nodeId: string, e: React.MouseEvent) => {
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
@@ -557,7 +587,24 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
 
   const zoomIn = () => setZoom(z => Math.min(2, z + 0.15));
   const zoomOut = () => setZoom(z => Math.max(0.25, z - 0.15));
-  const fitView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+  const fitView = () => {
+    if (nodes.length === 0) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
+    const minX = Math.min(...nodes.map(n => n.left));
+    const maxX = Math.max(...nodes.map(n => n.left + NODE_W));
+    const minY = Math.min(...nodes.map(n => n.top));
+    const maxY = Math.max(...nodes.map(n => n.top + NODE_H));
+    const bw = maxX - minX + 80;
+    const bh = maxY - minY + 80;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
+    const scaleX = rect.width / bw;
+    const scaleY = rect.height / bh;
+    const newZoom = Math.min(Math.max(Math.min(scaleX, scaleY) * 0.85, 0.25), 1.5);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    setPan({ x: rect.width / 2 - cx * newZoom, y: rect.height / 2 - cy * newZoom });
+    setZoom(newZoom);
+  };
 
   // ── Drop handler for inserting nodes from the InsertPane ──
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -691,6 +738,8 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
     if (label === "Fit View") fitView();
     if (label === "Mini-map") setShowMinimap(p => !p);
     if (label === "Search") setShowSearch(p => !p);
+    if (label === "Undo") store.undo();
+    if (label === "Redo") store.redo?.();
   }, []);
 
   // Keyboard shortcuts
@@ -698,7 +747,8 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
     function onKey(e: KeyboardEvent) {
       if (e.ctrlKey && e.key === "f") { e.preventDefault(); setShowSearch(true); }
       if (e.key === "Escape") { setShowSearch(false); setSearchQuery(""); setSelectedNodeIds(new Set()); }
-      if (e.ctrlKey && e.key === "z") { e.preventDefault(); store.undo(); }
+      if (e.ctrlKey && e.key === "z" && !e.shiftKey) { e.preventDefault(); store.undo(); }
+      if (e.ctrlKey && e.shiftKey && e.key === "Z") { e.preventDefault(); store.redo?.(); }
       if (e.key === "Delete" || e.key === "Backspace") {
         if (document.activeElement === document.body) {
           e.preventDefault();
@@ -775,15 +825,38 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           const isSuccess = fromState === "success";
           const isRunning = fromState === "running";
           const pathD = getPath(from, to);
+          const edgeKey = `${fromId}-${toId}`;
+          const items = execItemCounts[fromId] ?? 0;
+          const midX = (from.left + NODE_W + to.left) / 2;
+          const midY = (from.top + NODE_H / 2 + to.top + NODE_H / 2) / 2;
           return (
-            <g key={`${fromId}-${toId}`}>
+            <g key={edgeKey}>
+              {/* Invisible wider path for hover detection */}
               <path
                 d={pathD}
                 fill="none"
-                stroke={isSuccess ? "#86efac" : isRunning ? "#93c5fd" : "#d4d4d8"}
-                strokeWidth={isSuccess || isRunning ? 2 : 1.5}
-                markerEnd={isSuccess ? "url(#arrow-green)" : isRunning ? "url(#arrow-blue)" : "url(#arrow)"}
+                stroke="transparent"
+                strokeWidth={16}
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredEdge(edgeKey)}
+                onMouseLeave={() => setHoveredEdge(null)}
+                style={{ pointerEvents: "stroke" }}
               />
+              <path
+                d={pathD}
+                fill="none"
+                stroke={isSuccess ? "#86efac" : isRunning ? "#93c5fd" : hoveredEdge === edgeKey ? "#a1a1aa" : "#d4d4d8"}
+                strokeWidth={isSuccess || isRunning ? 2 : hoveredEdge === edgeKey ? 2 : 1.5}
+                markerEnd={isSuccess ? "url(#arrow-green)" : isRunning ? "url(#arrow-blue)" : "url(#arrow)"}
+                className="pointer-events-none"
+              />
+              {/* Connection label — item count on successful edges */}
+              {isSuccess && items > 0 && showOverlay && (
+                <g className="pointer-events-none">
+                  <rect x={midX - 14} y={midY - 9} width={28} height={16} rx={4} fill="white" stroke="#e4e4e7" strokeWidth={0.5} />
+                  <text x={midX} y={midY + 2} textAnchor="middle" fill="#71717a" fontSize={8} fontWeight={500} fontFamily="system-ui">{items}</text>
+                </g>
+              )}
               {isRunning && showOverlay && (
                 <circle r="3" fill="#3b82f6" opacity="0.8">
                   <animateMotion dur="1.5s" repeatCount="indefinite" path={pathD} />
@@ -839,6 +912,27 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           onDelete={() => setStickyNotes((prev) => prev.filter((n) => n.id !== note.id))}
         />
       ))}
+
+      {/* Quick-add "+" button on hovered edge midpoint */}
+      {hoveredEdge && (() => {
+        const [fromId, toId] = hoveredEdge.split("-");
+        const from = nodeMap[fromId];
+        const to = nodeMap[toId];
+        if (!from || !to) return null;
+        const midX = (from.left + NODE_W + to.left) / 2;
+        const midY = (from.top + NODE_H / 2 + to.top + NODE_H / 2) / 2;
+        return (
+          <button
+            className="absolute z-30 flex h-6 w-6 items-center justify-center rounded-full bg-violet-500 text-white shadow-lg hover:bg-violet-600 hover:scale-110 transition-all"
+            style={{ top: midY - 12, left: midX - 12 }}
+            onClick={(e) => { e.stopPropagation(); handleQuickAddNode(fromId, toId); }}
+            onMouseEnter={() => setHoveredEdge(hoveredEdge)}
+            title="Insert node here"
+          >
+            <Plus size={12} />
+          </button>
+        );
+      })()}
 
       {/* Node hover toolbar */}
       {hoveredNodeId && !contextMenu && !draggingNodeId && nodeMap[hoveredNodeId] && (

@@ -16,6 +16,7 @@ const inspectorTabs = [
   { key: "Parameters", badge: null },
   { key: "Input",      badge: "3" },
   { key: "Output",     badge: "3" },
+  { key: "Diff",       badge: null },
   { key: "Settings",   badge: null },
 ];
 
@@ -237,6 +238,7 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
         {activeTab === "Parameters" && <ParametersContent config={config} />}
         {activeTab === "Input" && <DataPanel nodeId={node.id} direction="input" pinned={pinned} />}
         {activeTab === "Output" && <DataPanel nodeId={node.id} direction="output" pinned={pinned} />}
+        {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
         {activeTab === "Settings" && <SettingsContent />}
       </div>
     </div>
@@ -486,6 +488,86 @@ function HtmlView({ html }: { html: string }) {
   );
 }
 
+/* ── Diff panel — compare input vs output ── */
+function DiffPanel({ nodeId }: { nodeId: string }) {
+  const input = mockInputData[nodeId];
+  const output = mockOutputData[nodeId];
+  const hasData = !!input && !!output;
+
+  if (!hasData) {
+    return (
+      <div className="flex h-40 flex-col items-center justify-center gap-2">
+        <RefreshCw size={20} className="text-zinc-300" />
+        <p className="text-[12px] text-zinc-400 text-center max-w-[200px]">Run the workflow to compare input vs output data.</p>
+      </div>
+    );
+  }
+
+  const inputKeys = new Set(input.schema.map(r => r.key));
+  const outputKeys = new Set(output.schema.map(r => r.key));
+  const allKeys = Array.from(new Set([...inputKeys, ...outputKeys]));
+  const inputMap = Object.fromEntries(input.schema.map(r => [r.key, r]));
+  const outputMap = Object.fromEntries(output.schema.map(r => [r.key, r]));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 text-[10px]">
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-400" /> Added</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400" /> Removed</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> Changed</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-zinc-300" /> Unchanged</span>
+      </div>
+
+      <div className="rounded-lg border border-zinc-100 divide-y divide-zinc-100 overflow-hidden">
+        {allKeys.map((key) => {
+          const inRow = inputMap[key];
+          const outRow = outputMap[key];
+          const isAdded = !inRow && outRow;
+          const isRemoved = inRow && !outRow;
+          const isChanged = inRow && outRow && inRow.value !== outRow.value;
+
+          return (
+            <div
+              key={key}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-[11px]",
+                isAdded && "bg-green-50/50",
+                isRemoved && "bg-red-50/50",
+                isChanged && "bg-amber-50/30",
+              )}
+            >
+              <span className={cn(
+                "h-1.5 w-1.5 rounded-full flex-shrink-0",
+                isAdded ? "bg-green-400" : isRemoved ? "bg-red-400" : isChanged ? "bg-amber-400" : "bg-zinc-200"
+              )} />
+              <span className={cn("font-medium flex-shrink-0 w-24 truncate", isRemoved ? "text-red-500 line-through" : "text-zinc-700")}>{key}</span>
+              {inRow && (
+                <span className={cn("font-mono text-[9px] flex-1 truncate", isChanged || isRemoved ? "text-red-400 line-through" : "text-zinc-400")}>
+                  {inRow.value}
+                </span>
+              )}
+              {isChanged && <span className="text-[9px] text-zinc-300">→</span>}
+              {outRow && (isChanged || isAdded) && (
+                <span className="font-mono text-[9px] flex-1 truncate text-green-600">{outRow.value}</span>
+              )}
+              {!isChanged && !isAdded && !isRemoved && outRow && (
+                <span className="font-mono text-[9px] flex-1 truncate text-zinc-400">{outRow.value}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-3 text-[9px] text-zinc-400">
+        <span>Input: {input.schema.length} fields</span>
+        <span>Output: {output.schema.length} fields</span>
+        <span className="text-green-500">+{allKeys.filter(k => !inputKeys.has(k)).length} added</span>
+        <span className="text-red-500">-{allKeys.filter(k => !outputKeys.has(k)).length} removed</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── SETTINGS content ── */
 function SettingsContent() {
   const [retryEnabled, setRetryEnabled] = useState(false);
@@ -633,31 +715,8 @@ function ParametersContent({ config }: { config: typeof nodeConfigs[string] }) {
             </div>
 
             {isExprMode ? (
-              /* Expression editor */
-              <div className="rounded-md border-2 border-violet-200 bg-violet-50/30 overflow-hidden">
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-50 border-b border-violet-100">
-                  <Braces size={9} className="text-violet-500" />
-                  <span className="text-[9px] font-medium text-violet-600">Expression</span>
-                  <button
-                    onClick={() => openExpressionEditor(field)}
-                    className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px] font-medium text-violet-500 hover:bg-violet-100 transition-colors"
-                    title="Open full expression editor"
-                  >
-                    <Maximize2 size={8} />
-                    Full Editor
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  defaultValue={field.value}
-                  className="h-8 w-full bg-transparent px-2 text-[11px] text-violet-800 font-mono outline-none placeholder:text-violet-300"
-                  placeholder="={{$json.field}}"
-                />
-                <div className="flex items-center gap-1 px-2 py-1 bg-violet-50/50 border-t border-violet-100">
-                  <span className="text-[8px] text-violet-400">Result:</span>
-                  <span className="text-[9px] text-zinc-600 font-mono">{field.value.startsWith("={{") ? field.value.slice(3, -2).replace("$json.", "") : field.value}</span>
-                </div>
-              </div>
+              /* Expression editor with inline validation + autocomplete */
+              <ExpressionFieldWithValidation field={field} onOpenEditor={openExpressionEditor} />
             ) : field.type === "select" ? (
               <select defaultValue={field.value} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all">
                 {(field.options ?? [field.value]).map(o => <option key={o}>{o}</option>)}
@@ -740,6 +799,116 @@ function ParametersContent({ config }: { config: typeof nodeConfigs[string] }) {
     </div>
   );
 }
+/* ── Expression field with inline validation + autocomplete ── */
+const expressionVars = [
+  { name: "$json", desc: "Current item data" },
+  { name: "$json.email", desc: "Email field" },
+  { name: "$json.company", desc: "Company name" },
+  { name: "$json.score", desc: "Lead score" },
+  { name: "$json.title", desc: "Job title" },
+  { name: "$json.employees", desc: "Company size" },
+  { name: "$input.item", desc: "Input item" },
+  { name: "$now", desc: "Current timestamp" },
+  { name: "$env", desc: "Environment vars" },
+  { name: "$execution.id", desc: "Execution ID" },
+  { name: "$workflow.id", desc: "Workflow ID" },
+  { name: "$node", desc: "Current node reference" },
+  { name: "$prevNode", desc: "Previous node reference" },
+];
+
+function ExpressionFieldWithValidation({ field, onOpenEditor }: { field: NodeField; onOpenEditor: (f: NodeField) => void }) {
+  const [value, setValue] = useState(field.value);
+  const [showAC, setShowAC] = useState(false);
+  const [acQuery, setAcQuery] = useState("");
+
+  const isValid = value.startsWith("={{") && value.endsWith("}}") && value.length > 5;
+  const hasError = value.includes("={{") && !value.endsWith("}}");
+  const resolvedValue = isValid ? value.slice(3, -2).replace("$json.", "") : value;
+
+  const filteredVars = expressionVars.filter(v =>
+    !acQuery || v.name.toLowerCase().includes(acQuery.toLowerCase())
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setValue(v);
+    // Show autocomplete when typing $
+    if (v.includes("$")) {
+      const dollarIdx = v.lastIndexOf("$");
+      setAcQuery(v.slice(dollarIdx));
+      setShowAC(true);
+    } else {
+      setShowAC(false);
+    }
+  };
+
+  const insertVar = (varName: string) => {
+    setValue(`={{${varName}}}`);
+    setShowAC(false);
+  };
+
+  return (
+    <div className="relative">
+      <div className={cn(
+        "rounded-md border-2 overflow-hidden",
+        hasError ? "border-red-300 bg-red-50/20" : isValid ? "border-green-300 bg-green-50/10" : "border-violet-200 bg-violet-50/30"
+      )}>
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-50 border-b border-violet-100">
+          <Braces size={9} className={hasError ? "text-red-500" : "text-violet-500"} />
+          <span className="text-[9px] font-medium text-violet-600">Expression</span>
+          {isValid && <Check size={8} className="text-green-500" />}
+          {hasError && <AlertTriangle size={8} className="text-red-500" />}
+          <button
+            onClick={() => onOpenEditor(field)}
+            className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px] font-medium text-violet-500 hover:bg-violet-100 transition-colors"
+          >
+            <Maximize2 size={8} /> Full Editor
+          </button>
+        </div>
+        <input
+          type="text"
+          value={value}
+          onChange={handleChange}
+          onFocus={() => { if (value.includes("$")) setShowAC(true); }}
+          onBlur={() => setTimeout(() => setShowAC(false), 200)}
+          className="h-8 w-full bg-transparent px-2 text-[11px] text-violet-800 font-mono outline-none placeholder:text-violet-300"
+          placeholder="={{$json.field}}"
+        />
+        <div className={cn("flex items-center gap-1.5 px-2 py-1 border-t", hasError ? "bg-red-50 border-red-100" : "bg-violet-50/50 border-violet-100")}>
+          {hasError ? (
+            <>
+              <AlertTriangle size={8} className="text-red-500" />
+              <span className="text-[8px] text-red-500 font-medium">Missing closing {"}}"} — expression is incomplete</span>
+            </>
+          ) : (
+            <>
+              <span className="text-[8px] text-violet-400">Result:</span>
+              <span className="text-[9px] text-zinc-600 font-mono truncate">{resolvedValue}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Autocomplete dropdown */}
+      {showAC && filteredVars.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-zinc-200 bg-white shadow-xl max-h-48 overflow-y-auto">
+          <div className="px-2 py-1.5 text-[8px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100">Variables</div>
+          {filteredVars.map((v) => (
+            <button
+              key={v.name}
+              onMouseDown={(e) => { e.preventDefault(); insertVar(v.name); }}
+              className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-violet-50 transition-colors"
+            >
+              <code className="text-[10px] text-violet-600 font-mono">{v.name}</code>
+              <span className="text-[9px] text-zinc-400 truncate">{v.desc}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FieldGroup({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
   return (
     <div>

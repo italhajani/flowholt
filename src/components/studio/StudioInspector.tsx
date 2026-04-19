@@ -3,7 +3,7 @@ import {
   X, ChevronRight, ChevronDown, ChevronLeft, Copy, Pin, PinOff, RefreshCw,
   AlertTriangle, Play, Braces, Code2, Eye, EyeOff, Hash, MoreHorizontal,
   Search, Download, Upload, Trash2, Check, Clock, Zap, Maximize2,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, Plus, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CanvasNodeData, familyColors } from "./StudioCanvas";
@@ -871,6 +871,87 @@ function SettingsContent() {
 
 /* ── Node type hero — visual identity per node type ── */
 function NodeTypeHero({ family, name, config }: { family: string; name: string; config: typeof nodeConfigs[string] }) {
+  /* ── Error Trigger hero ── */
+  if (name === "Error Trigger") {
+    return (
+      <div className="rounded-lg border border-red-100 bg-gradient-to-r from-red-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-red-100 text-[8px] font-bold text-red-700">🚨</span>
+          <span className="text-[10px] font-semibold text-red-700 uppercase tracking-wider">Error Trigger</span>
+        </div>
+        <p className="text-[10px] text-red-600 mb-2">Fires when an assigned workflow fails. Receives full error context.</p>
+        <div className="rounded-md border border-red-200 bg-white p-2.5 space-y-1">
+          <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Output schema</p>
+          {[
+            { key: "$json.execution.id", desc: "Failed execution ID" },
+            { key: "$json.workflow.id", desc: "Source workflow ID" },
+            { key: "$json.workflow.name", desc: "Source workflow name" },
+            { key: "$json.error.message", desc: "Error message" },
+            { key: "$json.error.nodeId", desc: "Node that failed" },
+            { key: "$json.error.timestamp", desc: "ISO timestamp" },
+          ].map(r => (
+            <div key={r.key} className="flex items-center gap-2">
+              <code className="text-[9px] font-mono text-red-600 bg-red-50 rounded px-1 py-0.5">{r.key}</code>
+              <span className="text-[9px] text-zinc-400">{r.desc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Wait node hero ── */
+  if (name === "Wait") {
+    return (
+      <div className="rounded-lg border border-amber-100 bg-gradient-to-r from-amber-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-amber-100 text-[8px] font-bold text-amber-700">⏸</span>
+          <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider">Wait / Pause</span>
+        </div>
+        <p className="text-[10px] text-amber-600">Pause execution until a condition is met: duration, specific time, webhook call, or custom expression.</p>
+      </div>
+    );
+  }
+
+  /* ── Sub-workflow hero ── */
+  if (name === "Sub-workflow" || name === "Execute Workflow") {
+    return (
+      <div className="rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-indigo-100 text-[8px] font-bold text-indigo-700">↩</span>
+          <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider">Sub-workflow</span>
+        </div>
+        <p className="text-[10px] text-indigo-600">Call another workflow, pass parameters, and receive its output. Enables reuse and modular automation.</p>
+      </div>
+    );
+  }
+
+  /* ── Form Trigger hero ── */
+  if (name === "Form Trigger" || name === "Form") {
+    return (
+      <div className="rounded-lg border border-cyan-100 bg-gradient-to-r from-cyan-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-cyan-100 text-[8px] font-bold text-cyan-700">📋</span>
+          <span className="text-[10px] font-semibold text-cyan-700 uppercase tracking-wider">{name === "Form Trigger" ? "Form Trigger" : "Form (Mid-flow)"}</span>
+        </div>
+        <p className="text-[10px] text-cyan-600">{name === "Form Trigger" ? "Generate a public form that starts this workflow on submission." : "Pause execution and collect additional data via form."}</p>
+      </div>
+    );
+  }
+
+  /* ── Chat Trigger hero ── */
+  if (name === "Chat Trigger") {
+    return (
+      <div className="rounded-lg border border-purple-100 bg-gradient-to-r from-purple-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-purple-100 text-[8px] font-bold text-purple-700">💬</span>
+          <span className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">Chat Trigger</span>
+        </div>
+        <p className="text-[10px] text-purple-600">Create a public chat interface. Each message triggers this workflow with session context.</p>
+      </div>
+    );
+  }
+
   if (family === "trigger") {
     const method = config.fields?.find((f) => f.label === "Method")?.value || "POST";
     const path = config.fields?.find((f) => f.label === "Path")?.value || "/webhook";
@@ -1085,6 +1166,12 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
         </div>
       )}
 
+      {/* ── Node-specific parameter sections ── */}
+      {nodeName === "Wait" && <WaitNodeParams />}
+      {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
+      {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
+      {nodeName === "Chat Trigger" && <ChatTriggerParams />}
+
       <button
         onClick={() => setAdvanced((o) => !o)}
         className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
@@ -1125,6 +1212,284 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
   );
 }
 /* ── Expression field with inline validation + autocomplete ── */
+/* ── Wait Node Params ── */
+function WaitNodeParams() {
+  const [mode, setMode] = useState<"duration" | "until" | "webhook" | "custom">("duration");
+  const [duration, setDuration] = useState(1);
+  const [unit, setUnit] = useState<"seconds" | "minutes" | "hours" | "days">("hours");
+  const webhookUrl = "https://app.flowholt.com/wait/w-3f8a…/resume";
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Resume when" description="Choose how this node should resume execution">
+        <div className="grid grid-cols-4 gap-1">
+          {(["duration", "until", "webhook", "custom"] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)} className={cn("rounded-lg border px-2 py-1.5 text-[10px] font-medium transition-all text-center capitalize", mode === m ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-500 hover:border-zinc-300")}>{m}</button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {mode === "duration" && (
+        <div className="flex gap-2">
+          <FieldGroup label="Amount">
+            <input type="number" value={duration} onChange={e => setDuration(+e.target.value)} min={1} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+          </FieldGroup>
+          <FieldGroup label="Unit">
+            <select value={unit} onChange={e => setUnit(e.target.value as typeof unit)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+              {["seconds", "minutes", "hours", "days"].map(u => <option key={u}>{u}</option>)}
+            </select>
+          </FieldGroup>
+        </div>
+      )}
+
+      {mode === "until" && (
+        <>
+          <FieldGroup label="Date & Time">
+            <input type="datetime-local" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+          </FieldGroup>
+          <FieldGroup label="Timezone">
+            <select defaultValue="UTC" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+              <option>UTC</option><option>America/New_York</option><option>Europe/London</option><option>Asia/Tokyo</option>
+            </select>
+          </FieldGroup>
+        </>
+      )}
+
+      {mode === "webhook" && (
+        <div className="space-y-2">
+          <FieldGroup label="Resume URL" description="Send a POST to this URL to resume execution">
+            <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5">
+              <code className="text-[10px] font-mono text-amber-700 flex-1 truncate">{webhookUrl}</code>
+              <button className="text-amber-500 hover:text-amber-700"><Copy size={10} /></button>
+            </div>
+          </FieldGroup>
+          <FieldGroup label="Timeout">
+            <select defaultValue="24h" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+              <option value="1h">1 hour</option><option value="24h">24 hours</option><option value="7d">7 days</option><option value="never">No timeout</option>
+            </select>
+          </FieldGroup>
+          <p className="text-[9px] text-amber-600 flex items-center gap-1"><AlertTriangle size={8} /> POST body will be merged into output data</p>
+        </div>
+      )}
+
+      {mode === "custom" && (
+        <FieldGroup label="Resume expression" description="Expression that evaluates to true when ready">
+          <textarea rows={2} placeholder='={{ $json.status === "approved" }}' className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[11px] text-zinc-700 font-mono focus:outline-none transition-all resize-none" />
+        </FieldGroup>
+      )}
+    </div>
+  );
+}
+
+/* ── Execute Workflow Params ── */
+function ExecuteWorkflowParams() {
+  const [selectedWf, setSelectedWf] = useState("");
+  const mockWorkflows = [
+    { id: "wf-1", name: "Send Welcome Email", params: [{ name: "userId", type: "string", required: true }, { name: "template", type: "string", required: false }] },
+    { id: "wf-2", name: "Process Payment", params: [{ name: "amount", type: "number", required: true }, { name: "currency", type: "string", required: true }] },
+    { id: "wf-3", name: "Enrich Lead", params: [{ name: "email", type: "string", required: true }] },
+  ];
+  const selected = mockWorkflows.find(w => w.id === selectedWf);
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Target workflow" description="Select a workflow to call">
+        <select value={selectedWf} onChange={e => setSelectedWf(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all">
+          <option value="">— Select workflow —</option>
+          {mockWorkflows.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+        </select>
+      </FieldGroup>
+
+      {selected && (
+        <>
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Parameters</p>
+            <div className="rounded-lg border border-zinc-200 overflow-hidden">
+              <div className="grid grid-cols-3 gap-0 text-[9px] font-medium text-zinc-400 bg-zinc-50 px-2.5 py-1.5 border-b border-zinc-100">
+                <span>Name</span><span>Type</span><span>Value</span>
+              </div>
+              {selected.params.map(p => (
+                <div key={p.name} className="grid grid-cols-3 gap-0 items-center px-2.5 py-2 border-b border-zinc-50 last:border-0">
+                  <span className="text-[10px] text-zinc-700 font-medium flex items-center gap-1">{p.name} {p.required && <span className="text-red-400">*</span>}</span>
+                  <span className="text-[9px] text-zinc-400 font-mono">{p.type}</span>
+                  <input placeholder={`={{ $json.${p.name} }}`} className="h-6 w-full rounded border border-zinc-200 bg-white px-1.5 text-[10px] text-zinc-700 font-mono focus:outline-none" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <FieldGroup label="Timeout" description="Max time to wait for sub-workflow">
+            <select defaultValue="300" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+              <option value="60">1 minute</option><option value="300">5 minutes</option><option value="600">10 minutes</option><option value="1800">30 minutes</option>
+            </select>
+          </FieldGroup>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Form Builder Params ── */
+function FormBuilderParams({ nodeName }: { nodeName: string }) {
+  const [fields, setFields] = useState([
+    { id: "f1", type: "text", label: "Full Name", required: true, placeholder: "John Doe" },
+    { id: "f2", type: "email", label: "Email", required: true, placeholder: "john@example.com" },
+    { id: "f3", type: "textarea", label: "Message", required: false, placeholder: "Tell us more…" },
+  ]);
+  const [showPreview, setShowPreview] = useState(false);
+  const fieldTypes = ["text", "email", "number", "textarea", "select", "checkbox", "date", "file", "phone", "url", "password", "hidden"];
+
+  const addField = () => setFields(f => [...f, { id: `f${Date.now()}`, type: "text", label: "New Field", required: false, placeholder: "" }]);
+  const removeField = (id: string) => setFields(f => f.filter(ff => ff.id !== id));
+  const updateField = (id: string, key: string, val: unknown) => setFields(f => f.map(ff => ff.id === id ? { ...ff, [key]: val } : ff));
+
+  return (
+    <div className="space-y-3">
+      {nodeName === "Form Trigger" && (
+        <div className="space-y-2">
+          <FieldGroup label="Form title">
+            <input type="text" defaultValue="Contact Form" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+          </FieldGroup>
+          <FieldGroup label="Submit button text">
+            <input type="text" defaultValue="Submit" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+          </FieldGroup>
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Form Fields</p>
+          <button onClick={() => setShowPreview(p => !p)} className="text-[9px] text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-0.5">
+            <Eye size={9} /> {showPreview ? "Hide" : "Preview"}
+          </button>
+        </div>
+
+        <div className="space-y-1">
+          {fields.map((f, i) => (
+            <div key={f.id} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 group">
+              <span className="cursor-grab text-zinc-300 hover:text-zinc-500">⠿</span>
+              <select value={f.type} onChange={e => updateField(f.id, "type", e.target.value)} className="h-6 rounded border border-zinc-100 bg-zinc-50 px-1 text-[9px] text-zinc-500 w-16 focus:outline-none">
+                {fieldTypes.map(t => <option key={t}>{t}</option>)}
+              </select>
+              <input value={f.label} onChange={e => updateField(f.id, "label", e.target.value)} className="flex-1 h-6 border-0 bg-transparent text-[11px] text-zinc-700 font-medium focus:outline-none min-w-0" />
+              <button onClick={() => updateField(f.id, "required", !f.required)} className={cn("text-[8px] font-bold px-1 rounded", f.required ? "text-red-500 bg-red-50" : "text-zinc-300 hover:text-zinc-500")}>
+                {f.required ? "REQ" : "OPT"}
+              </button>
+              <button onClick={() => removeField(f.id)} className="text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Trash2 size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={addField} className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-200 py-1.5 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-colors">
+          <Plus size={10} /> Add field
+        </button>
+      </div>
+
+      {showPreview && (
+        <div className="rounded-lg border border-cyan-200 bg-white p-3 space-y-2">
+          <p className="text-[11px] font-semibold text-zinc-700 mb-2">Form Preview</p>
+          {fields.map(f => (
+            <div key={f.id}>
+              <label className="text-[10px] text-zinc-500 font-medium">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
+              {f.type === "textarea" ? (
+                <textarea rows={2} placeholder={f.placeholder} className="mt-0.5 w-full rounded border border-zinc-200 px-2 py-1 text-[11px] resize-none focus:outline-none" />
+              ) : f.type === "checkbox" ? (
+                <div className="mt-0.5 flex items-center gap-1.5"><input type="checkbox" className="rounded" /><span className="text-[10px] text-zinc-500">{f.label}</span></div>
+              ) : f.type === "select" ? (
+                <select className="mt-0.5 h-7 w-full rounded border border-zinc-200 px-2 text-[11px] focus:outline-none"><option>Option 1</option></select>
+              ) : (
+                <input type={f.type} placeholder={f.placeholder} className="mt-0.5 h-7 w-full rounded border border-zinc-200 px-2 text-[11px] focus:outline-none" />
+              )}
+            </div>
+          ))}
+          <button className="mt-1 w-full rounded-md bg-cyan-600 py-1.5 text-[11px] font-medium text-white hover:bg-cyan-700 transition-colors">Submit</button>
+        </div>
+      )}
+
+      <FieldGroup label="On submit" description="What to show after form submission">
+        <select defaultValue="message" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="message">Show success message</option>
+          <option value="redirect">Redirect to URL</option>
+          <option value="form">Show another form</option>
+        </select>
+      </FieldGroup>
+    </div>
+  );
+}
+
+/* ── Chat Trigger Params ── */
+function ChatTriggerParams() {
+  const [showPreview, setShowPreview] = useState(false);
+  const chatUrl = "https://app.flowholt.com/chat/wf-abc123";
+  const mockMessages = [
+    { role: "user" as const, text: "Hi, I need help with my order" },
+    { role: "assistant" as const, text: "Hello! I'd be happy to help. Could you share your order ID?" },
+    { role: "user" as const, text: "It's #12345" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Welcome message" description="First message shown to users">
+        <textarea rows={2} defaultValue="Hi! How can I help you today?" className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-700 focus:outline-none transition-all resize-none" />
+      </FieldGroup>
+
+      <FieldGroup label="Chat URL" description="Public URL for this chat interface">
+        <div className="flex items-center gap-1.5 rounded-md border border-purple-200 bg-purple-50 px-2.5 py-1.5">
+          <code className="text-[10px] font-mono text-purple-700 flex-1 truncate">{chatUrl}</code>
+          <button className="text-purple-500 hover:text-purple-700"><Copy size={10} /></button>
+        </div>
+      </FieldGroup>
+
+      <FieldGroup label="Authentication">
+        <select defaultValue="none" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="none">None (public)</option>
+          <option value="basic">Basic Auth</option>
+          <option value="header">Header Auth</option>
+          <option value="user">FlowHolt User Auth</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="Session timeout">
+        <select defaultValue="7d" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="1h">1 hour</option><option value="24h">24 hours</option><option value="7d">7 days</option><option value="30d">30 days</option>
+        </select>
+      </FieldGroup>
+
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Chat Preview</p>
+        <button onClick={() => setShowPreview(p => !p)} className="text-[9px] text-purple-600 hover:text-purple-700 font-medium flex items-center gap-0.5">
+          <Eye size={9} /> {showPreview ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {showPreview && (
+        <div className="rounded-lg border border-purple-200 bg-zinc-900 overflow-hidden">
+          <div className="px-3 py-2 border-b border-zinc-800 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-purple-500" />
+            <span className="text-[10px] font-medium text-white">FlowHolt Assistant</span>
+            <span className="ml-auto text-[8px] text-zinc-500">Online</span>
+          </div>
+          <div className="p-3 space-y-2 max-h-40 overflow-y-auto">
+            {mockMessages.map((m, i) => (
+              <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
+                <div className={cn("rounded-lg px-2.5 py-1.5 max-w-[80%] text-[10px]", m.role === "user" ? "bg-purple-600 text-white" : "bg-zinc-800 text-zinc-300")}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="px-3 py-2 border-t border-zinc-800 flex items-center gap-2">
+            <input placeholder="Type a message…" className="flex-1 h-7 rounded-md bg-zinc-800 border border-zinc-700 px-2 text-[10px] text-zinc-300 placeholder:text-zinc-600 focus:outline-none" />
+            <button className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-600 text-white hover:bg-purple-700"><Send size={10} /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const expressionVars = [
   { name: "$json", desc: "Current item data" },
   { name: "$json.email", desc: "Email field" },

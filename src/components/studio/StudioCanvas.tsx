@@ -151,6 +151,7 @@ function CanvasNode({
   showOverlay,
   isPinned,
   comment,
+  partialState,
   onCommentClick,
   onClick,
   onContextMenu,
@@ -167,6 +168,7 @@ function CanvasNode({
   showOverlay: boolean;
   isPinned: boolean;
   comment?: string;
+  partialState?: "executed" | "skipped" | "target";
   onCommentClick?: () => void;
   onClick: (e?: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -198,6 +200,9 @@ function CanvasNode({
         execState === "running" && "ring-2 ring-blue-500/20",
         execState === "success" && !selected && "border-green-200",
         execState === "error" && "border-red-300 ring-2 ring-red-500/10",
+        partialState === "target" && "ring-2 ring-blue-500/40 border-blue-400",
+        partialState === "skipped" && "opacity-30 border-dashed",
+        partialState === "executed" && "ring-1 ring-green-400/30",
       )}
       style={{ top: node.top, left: node.left }}
     >
@@ -257,7 +262,8 @@ type CtxMenuItem = { label: string; icon: typeof Edit2; shortcut?: string; dange
 
 const nodeContextItems: CtxMenuItem[] = [
   { label: "Open / Edit",          icon: Edit2,              shortcut: "Enter" },
-  { label: "Run from here",        icon: Play,               shortcut: "R" },
+  { label: "Execute up to here",   icon: ArrowRight,         shortcut: "Shift+R" },
+  { label: "Execute from here",    icon: Play,               shortcut: "R" },
   null,
   { label: "Copy",                 icon: Copy,               shortcut: "Ctrl+C" },
   { label: "Cut",                  icon: Scissors,           shortcut: "Ctrl+X" },
@@ -892,6 +898,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
   const [replacePickerNode, setReplacePickerNode] = useState<string | null>(null);
   const [nodeComments, setNodeComments] = useState<Record<string, string>>({ n2: "Check scoring threshold", n4: "Consider retry logic" });
   const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [partialExec, setPartialExec] = useState<{ target: string; mode: "up-to" | "from"; executed: Set<string>; skipped: Set<string> } | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [alignGuides, setAlignGuides] = useState<{ x?: number; y?: number }>({});
 
@@ -977,6 +984,22 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
       }
       if (label === "Add comment") {
         setEditingComment(nodeId);
+      }
+      if (label === "Execute up to here") {
+        const idx = nodes.findIndex(n => n.id === nodeId);
+        const executed = new Set(nodes.slice(0, idx + 1).map(n => n.id));
+        const skipped = new Set(nodes.slice(idx + 1).map(n => n.id));
+        setPartialExec({ target: nodeId, mode: "up-to", executed, skipped });
+        setShowOverlay(true);
+        setTimeout(() => setPartialExec(null), 4000);
+      }
+      if (label === "Execute from here") {
+        const idx = nodes.findIndex(n => n.id === nodeId);
+        const skipped = new Set(nodes.slice(0, idx).map(n => n.id));
+        const executed = new Set(nodes.slice(idx).map(n => n.id));
+        setPartialExec({ target: nodeId, mode: "from", executed, skipped });
+        setShowOverlay(true);
+        setTimeout(() => setPartialExec(null), 4000);
       }
     } else {
       // Canvas background actions
@@ -1437,6 +1460,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           showOverlay={showOverlay}
           isPinned={store.pinnedNodes.has(node.id)}
           comment={nodeComments[node.id]}
+          partialState={partialExec ? (partialExec.target === node.id ? "target" : partialExec.executed.has(node.id) ? "executed" : partialExec.skipped.has(node.id) ? "skipped" : undefined) : undefined}
           onCommentClick={() => setEditingComment(editingComment === node.id ? null : node.id)}
           onClick={(e?: React.MouseEvent) => {
             if (e?.shiftKey) {

@@ -149,6 +149,7 @@ function CanvasNode({
   hovered,
   searchMatch,
   showOverlay,
+  isPinned,
   onClick,
   onContextMenu,
   onMouseEnter,
@@ -162,6 +163,7 @@ function CanvasNode({
   hovered: boolean;
   searchMatch: boolean;
   showOverlay: boolean;
+  isPinned: boolean;
   onClick: (e?: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onMouseEnter: () => void;
@@ -215,6 +217,7 @@ function CanvasNode({
         <div className="flex items-center gap-2">
           <span className={cn("h-2 w-2 rounded-full flex-shrink-0", colors.dot)} />
           <span className="text-[13px] font-medium text-zinc-800 truncate">{node.name}</span>
+          {isPinned && <Pin size={9} className="text-amber-500 flex-shrink-0" />}
         </div>
         <p className="mt-0.5 pl-4 text-[11px] text-zinc-400">{node.subtitle}</p>
       </div>
@@ -1334,6 +1337,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
           hovered={hoveredNodeId === node.id}
           searchMatch={searchQuery ? searchResults.some(r => r.id === node.id) : false}
           showOverlay={showOverlay}
+          isPinned={store.pinnedNodes.has(node.id)}
           onClick={(e?: React.MouseEvent) => {
             if (e?.shiftKey) {
               setSelectedNodeIds(prev => {

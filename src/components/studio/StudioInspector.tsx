@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CanvasNodeData, familyColors } from "./StudioCanvas";
+import { useCanvasStore } from "./useCanvasStore";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";
 
@@ -159,7 +160,8 @@ interface StudioInspectorProps {
 export function StudioInspector({ node, onClose }: StudioInspectorProps) {
   const [activeTab, setActiveTab] = useState("Parameters");
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
-  const [pinned, setPinned] = useState(false);
+  const store = useCanvasStore();
+  const pinned = store.pinnedNodes.has(node.id);
   const colors = familyColors[node.family];
   const config = nodeConfigs[node.id] || { fields: [] };
 
@@ -200,7 +202,7 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
                 : runStatus === "error" ? <><AlertTriangle size={10} /> Error</>
                 : <><Play size={10} /> Run</>}
             </button>
-            <button onClick={() => setPinned(!pinned)} className={cn("rounded-md p-1.5 transition-colors", pinned ? "text-amber-500 bg-amber-50" : "text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600")} title={pinned ? "Unpin data" : "Pin data"}>
+            <button onClick={() => store.togglePin(node.id)} className={cn("rounded-md p-1.5 transition-colors", pinned ? "text-amber-500 bg-amber-50" : "text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600")} title={pinned ? "Unpin data" : "Pin data"}>
               {pinned ? <PinOff size={11} /> : <Pin size={11} />}
             </button>
             <button className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 transition-colors">
@@ -239,7 +241,7 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "Parameters" && <ParametersContent config={config} nodeFamily={node.family} nodeName={node.name} />}
-        {activeTab === "Input" && <DataPanel nodeId={node.id} direction="input" pinned={pinned} />}
+        {activeTab === "Input" && <InputPanel nodeId={node.id} pinned={pinned} />}
         {activeTab === "Output" && <DataPanel nodeId={node.id} direction="output" pinned={pinned} />}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
         {activeTab === "Settings" && <SettingsContent />}
@@ -248,8 +250,74 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
   );
 }
 
+/* ── INPUT panel — upstream node selector + data viewer ── */
+const upstreamNodes: Record<string, { id: string; name: string; family: string }[]> = {
+  n2: [{ id: "n1", name: "Typeform Trigger", family: "trigger" }],
+  n3: [{ id: "n2", name: "Clearbit Enrich", family: "integration" }],
+  n4: [{ id: "n3", name: "Score Lead (GPT-4o)", family: "ai" }],
+  n5: [{ id: "n4", name: "IF Score > 70", family: "logic" }],
+};
+
+function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
+  const upstream = upstreamNodes[nodeId] ?? [];
+  const [selectedUpstream, setSelectedUpstream] = useState(upstream[0]?.id ?? "");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyExpression = (fieldPath: string) => {
+    const expr = `{{ $node["${upstream.find(u => u.id === selectedUpstream)?.name ?? ""}"].json["${fieldPath}"] }}`;
+    navigator.clipboard.writeText(expr);
+    setCopiedField(fieldPath);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  if (upstream.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <ChevronLeft size={24} className="text-zinc-200 mb-2" />
+        <p className="text-[12px] text-zinc-400">This is the first node</p>
+        <p className="text-[11px] text-zinc-300 mt-1">No upstream data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Upstream node selector */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Input from</p>
+        <div className="flex gap-1">
+          {upstream.map((u) => (
+            <button
+              key={u.id}
+              onClick={() => setSelectedUpstream(u.id)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all",
+                selectedUpstream === u.id
+                  ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                  : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
+              )}
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full", familyColors[u.family as keyof typeof familyColors]?.dot ?? "bg-zinc-400")} />
+              {u.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Drag hint */}
+      <div className="rounded-md bg-blue-50 border border-blue-100 px-2.5 py-1.5 flex items-center gap-1.5">
+        <Copy size={10} className="text-blue-500" />
+        <span className="text-[9px] text-blue-600">Click a field name to copy its expression reference</span>
+      </div>
+
+      {/* Data viewer using existing DataPanel */}
+      <DataPanel nodeId={selectedUpstream} direction="output" pinned={pinned} onFieldClick={copyExpression} copiedField={copiedField} />
+    </div>
+  );
+}
+
 /* ── DATA panel with pagination, pin, views ── */
-function DataPanel({ nodeId, direction, pinned }: { nodeId: string; direction: "input" | "output"; pinned: boolean }) {
+function DataPanel({ nodeId, direction, pinned, onFieldClick, copiedField }: { nodeId: string; direction: "input" | "output"; pinned: boolean; onFieldClick?: (field: string) => void; copiedField?: string | null }) {
   const [view, setView] = useState<DataView>("schema");
   const [page, setPage] = useState(1);
   const [searchFilter, setSearchFilter] = useState("");
@@ -343,7 +411,7 @@ function DataPanel({ nodeId, direction, pinned }: { nodeId: string; direction: "
           </button>
         </div>
       ) : view === "schema" ? (
-        <SchemaView rows={filteredSchema} />
+        <SchemaView rows={filteredSchema} onFieldClick={onFieldClick} copiedField={copiedField} />
       ) : view === "table" ? (
         <TableView rows={filteredSchema} />
       ) : view === "html" && data.html ? (
@@ -402,7 +470,7 @@ const typeIcons: Record<string, string> = {
   boolean: "01",
 };
 
-function SchemaView({ rows }: { rows: DataRow[] }) {
+function SchemaView({ rows, onFieldClick, copiedField }: { rows: DataRow[]; onFieldClick?: (field: string) => void; copiedField?: string | null }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   return (
     <div className="rounded-lg border border-zinc-100 divide-y divide-zinc-100 overflow-hidden">
@@ -417,9 +485,19 @@ function SchemaView({ rows }: { rows: DataRow[] }) {
             <span className={cn("flex h-4 w-5 items-center justify-center rounded text-[7px] font-bold flex-shrink-0", typeColors[row.type] || "text-zinc-500 bg-zinc-100")}>
               {typeIcons[row.type] || "?"}
             </span>
-            <span className="text-[11px] font-medium text-zinc-700 flex-1 truncate">{row.key}</span>
+            <span
+              className={cn(
+                "text-[11px] font-medium flex-1 truncate",
+                onFieldClick ? "text-blue-600 hover:text-blue-800 hover:underline" : "text-zinc-700",
+                copiedField === row.key && "text-green-600"
+              )}
+              onClick={(e) => { if (onFieldClick) { e.stopPropagation(); onFieldClick(row.key); } }}
+              title={onFieldClick ? `Click to copy expression for "${row.key}"` : undefined}
+            >
+              {copiedField === row.key ? "✓ Copied!" : row.key}
+            </span>
             <span className="text-[10px] text-zinc-400 max-w-[100px] truncate flex-shrink-0 font-mono">{row.value}</span>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); }}>
+            <button className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); onFieldClick?.(row.key); }}>
               <Copy size={9} className="text-zinc-400 hover:text-zinc-600" />
             </button>
           </div>

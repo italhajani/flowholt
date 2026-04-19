@@ -4,7 +4,7 @@ import {
   Play, Clock, GitBranch, CheckCircle2, XCircle, RefreshCw,
   ChevronRight, Terminal, AlertTriangle, Copy, ExternalLink,
   Activity, Code2, FileJson, Bug, Cpu, Braces, ChevronDown,
-  Layers, ArrowRight, Zap,
+  Layers, ArrowRight, Zap, GitCompareArrows,
 } from "lucide-react";
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
@@ -114,6 +114,7 @@ const stepTypeIcons: Record<string, React.ElementType> = {
 const tabs = [
   { id: "trace", label: "Trace", icon: <Terminal size={13} /> },
   { id: "waterfall", label: "Waterfall", icon: <Activity size={13} /> },
+  { id: "compare", label: "Compare", icon: <GitCompareArrows size={13} /> },
   { id: "overview", label: "Overview", icon: <Play size={13} /> },
   { id: "logs", label: "Logs", icon: <Code2 size={13} /> },
 ];
@@ -489,6 +490,8 @@ export function ExecutionDetailPage() {
         </div>
       )}
 
+      {activeTab === "compare" && <ExecutionComparePanel />}
+
       {activeTab === "overview" && (
         <div className="space-y-5">
           <div className="grid grid-cols-5 gap-3">
@@ -559,6 +562,160 @@ export function ExecutionDetailPage() {
         </div>
       )}
     </EntityDetailLayout>
+  );
+}
+
+/* ── Execution comparison panel ─────────────────────── */
+
+const compareExecutions = [
+  { id: "exec-1246", date: "3 min ago", status: "success" as const, duration: "4.2s" },
+  { id: "exec-1245", date: "18 min ago", status: "failed" as const, duration: "2.8s" },
+  { id: "exec-1244", date: "1 hr ago", status: "success" as const, duration: "3.9s" },
+  { id: "exec-1243", date: "3 hrs ago", status: "success" as const, duration: "5.1s" },
+];
+
+const compareNodes = [
+  {
+    name: "Webhook Trigger",
+    current: { status: "success" as const, duration: "12ms", output: '{ "event": "lead.created", "email": "jane@acme.com" }' },
+    compare: { status: "success" as const, duration: "11ms", output: '{ "event": "lead.created", "email": "bob@corp.io" }' },
+    diff: "input",
+  },
+  {
+    name: "Enrich Contact",
+    current: { status: "success" as const, duration: "340ms", output: '{ "name": "Jane Doe", "company": "Acme", "score": 85 }' },
+    compare: { status: "success" as const, duration: "410ms", output: '{ "name": "Bob Smith", "company": "Corp", "score": 42 }' },
+    diff: "values",
+  },
+  {
+    name: "AI Qualify",
+    current: { status: "success" as const, duration: "1.2s", output: '{ "qualified": true, "confidence": 0.92, "reason": "High intent signals" }' },
+    compare: { status: "failed" as const, duration: "0.8s", output: '{ "error": "Rate limit exceeded", "retryAfter": 30 }' },
+    diff: "status",
+  },
+  {
+    name: "Send to CRM",
+    current: { status: "success" as const, duration: "280ms", output: '{ "crmId": "sf-4821", "synced": true }' },
+    compare: { status: "skipped" as const, duration: "—", output: "—" },
+    diff: "skipped",
+  },
+];
+
+const diffColors: Record<string, string> = {
+  input: "border-l-blue-400",
+  values: "border-l-amber-400",
+  status: "border-l-red-400",
+  skipped: "border-l-zinc-300",
+  none: "border-l-transparent",
+};
+
+const diffLabels: Record<string, { label: string; color: string }> = {
+  input: { label: "Input differs", color: "text-blue-600 bg-blue-50" },
+  values: { label: "Output differs", color: "text-amber-600 bg-amber-50" },
+  status: { label: "Status differs", color: "text-red-600 bg-red-50" },
+  skipped: { label: "Skipped in compare", color: "text-zinc-500 bg-zinc-100" },
+};
+
+function ExecutionComparePanel() {
+  const [compareTarget, setCompareTarget] = useState(compareExecutions[0].id);
+  const [expandedNode, setExpandedNode] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-4">
+      {/* Selector */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Current</p>
+          <div className="flex items-center gap-2">
+            <StatusDot status="success" />
+            <span className="text-[13px] font-semibold text-zinc-800">{execution.id}</span>
+            <span className="text-[11px] text-zinc-400">{execution.duration}</span>
+          </div>
+        </div>
+        <GitCompareArrows size={16} className="text-zinc-300 flex-shrink-0" />
+        <div className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2">
+          <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Compare with</p>
+          <select
+            value={compareTarget}
+            onChange={(e) => setCompareTarget(e.target.value)}
+            className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-[12px] text-zinc-700 outline-none focus:border-zinc-400"
+          >
+            {compareExecutions.map((ex) => (
+              <option key={ex.id} value={ex.id}>{ex.id} — {ex.status} — {ex.date}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Summary bar */}
+      <div className="flex items-center gap-3 text-[11px]">
+        <span className="text-zinc-500">{compareNodes.length} nodes compared</span>
+        <span className="text-zinc-300">|</span>
+        <span className="flex items-center gap-1 text-red-500">
+          <XCircle size={10} /> {compareNodes.filter((n) => n.diff === "status").length} status diff
+        </span>
+        <span className="flex items-center gap-1 text-amber-500">
+          <AlertTriangle size={10} /> {compareNodes.filter((n) => n.diff === "values").length} output diff
+        </span>
+        <span className="flex items-center gap-1 text-blue-500">
+          <Braces size={10} /> {compareNodes.filter((n) => n.diff === "input").length} input diff
+        </span>
+      </div>
+
+      {/* Node-by-node comparison */}
+      <div className="space-y-1">
+        {compareNodes.map((node, i) => {
+          const isExpanded = expandedNode === i;
+          const dl = diffLabels[node.diff];
+          return (
+            <div key={i} className={cn("rounded-lg border border-zinc-100 bg-white overflow-hidden border-l-[3px]", diffColors[node.diff])}>
+              <button
+                onClick={() => setExpandedNode(isExpanded ? null : i)}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-zinc-50 transition-colors"
+              >
+                <ChevronRight size={11} className={cn("text-zinc-400 transition-transform", isExpanded && "rotate-90")} />
+                <span className="text-[12px] font-medium text-zinc-800 flex-1">{node.name}</span>
+                {dl && (
+                  <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", dl.color)}>{dl.label}</span>
+                )}
+                <span className="text-[10px] text-zinc-400 w-16 text-right">{node.current.duration}</span>
+                <span className="text-[10px] text-zinc-300">vs</span>
+                <span className="text-[10px] text-zinc-400 w-16">{node.compare.duration}</span>
+              </button>
+              {isExpanded && (
+                <div className="grid grid-cols-2 gap-0 border-t border-zinc-100">
+                  {/* Current */}
+                  <div className="border-r border-zinc-100 p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <StatusDot status={node.current.status} />
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">Current</span>
+                      <span className="text-[10px] text-zinc-400">{node.current.duration}</span>
+                    </div>
+                    <pre className="rounded-md bg-zinc-900 p-2.5 text-[10px] text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap">{node.current.output}</pre>
+                  </div>
+                  {/* Compare */}
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <StatusDot status={node.compare.status} />
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase">Compare</span>
+                      <span className="text-[10px] text-zinc-400">{node.compare.duration}</span>
+                    </div>
+                    <pre className={cn(
+                      "rounded-md p-2.5 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap",
+                      node.diff === "status" ? "bg-red-950 text-red-300" : node.diff === "values" ? "bg-amber-950 text-amber-200" : "bg-zinc-900 text-zinc-300"
+                    )}>{node.compare.output}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-[10px] text-zinc-400 italic">
+        Compare executions side-by-side to identify regressions, data drift, and performance changes.
+      </p>
+    </div>
   );
 }
 

@@ -6,6 +6,7 @@ import {
   History,
   StickyNote,
   HelpCircle,
+  Variable,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export type LeftRailContext =
   | "assets"
   | "versions"
   | "notes"
+  | "variables"
   | "help";
 
 const items: { id: LeftRailContext; icon: React.ElementType; label: string }[] = [
@@ -23,6 +25,7 @@ const items: { id: LeftRailContext; icon: React.ElementType; label: string }[] =
   { id: "outline", icon: List, label: "Outline" },
   { id: "connections", icon: GitBranch, label: "Connections" },
   { id: "assets", icon: KeyRound, label: "Assets" },
+  { id: "variables", icon: Variable, label: "Variables" },
   { id: "versions", icon: History, label: "Versions" },
   { id: "notes", icon: StickyNote, label: "Notes" },
   { id: "help", icon: HelpCircle, label: "Help" },

@@ -16,6 +16,8 @@ interface CanvasStore {
   nodes: CanvasNodeData[];
   edges: [string, string][];
   execStates: Record<string, NodeExecState>;
+  pinnedNodes: Set<string>;
+  togglePin: (nodeId: string) => void;
   addNode: (node: CanvasNodeData) => void;
   removeNode: (id: string) => void;
   updateNode: (id: string, patch: Partial<CanvasNodeData>) => void;
@@ -48,9 +50,18 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   const [nodes, setNodes] = useState<CanvasNodeData[]>(canvasNodes);
   const [edges, setEdges] = useState<[string, string][]>(defaultEdges);
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(defaultExecStates);
+  const [pinnedNodes, setPinnedNodes] = useState<Set<string>>(new Set(["n2"])); // n2 pre-pinned for demo
   const undoStackRef = useRef<CanvasAction[][]>([]);
   const redoStackRef = useRef<CanvasAction[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
+
+  const togglePin = useCallback((nodeId: string) => {
+    setPinnedNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId); else next.add(nodeId);
+      return next;
+    });
+  }, []);
 
   const addNode = useCallback((node: CanvasNodeData) => {
     setNodes(prev => [...prev, node]);
@@ -196,6 +207,7 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   return (
     <CanvasStoreCtx.Provider value={{
       nodes, edges, execStates,
+      pinnedNodes, togglePin,
       addNode, removeNode, updateNode,
       setNodes, setEdges, setExecStates,
       addEdge, removeEdge,

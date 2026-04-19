@@ -13,6 +13,7 @@ const contextTitles: Record<string, string> = {
   outline: "Outline",
   connections: "Connections",
   assets: "Assets",
+  variables: "Variables",
   versions: "Versions",
   notes: "Notes",
   help: "Help",
@@ -209,6 +210,7 @@ export function StudioInsertPane({
       {context === "outline" && <OutlinePane />}
       {context === "connections" && <ConnectionsPane />}
       {context === "assets" && <AssetsPane />}
+      {context === "variables" && <VariablesPane />}
       {context === "versions" && <VersionsPane />}
       {context === "notes" && <NotesPane noteText={noteText} setNoteText={setNoteText} />}
       {context === "help" && <HelpPane />}
@@ -380,6 +382,135 @@ function AssetsPane() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ─── VARIABLES pane ─── */
+
+interface WorkflowVar {
+  key: string;
+  value: string;
+  env: boolean; // from environment
+  usedBy: number; // how many nodes reference it
+}
+
+const mockVars: WorkflowVar[] = [
+  { key: "API_BASE_URL", value: "https://api.acme.com/v2", env: true, usedBy: 4 },
+  { key: "MAX_RETRIES", value: "3", env: false, usedBy: 2 },
+  { key: "BATCH_SIZE", value: "50", env: false, usedBy: 1 },
+  { key: "NOTIFY_EMAIL", value: "ops@acme.com", env: false, usedBy: 3 },
+  { key: "TIMEOUT_MS", value: "30000", env: true, usedBy: 2 },
+];
+
+function VariablesPane() {
+  const [vars, setVars] = useState<WorkflowVar[]>(mockVars);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [newKey, setNewKey] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+
+  function addVar() {
+    if (!newKey.trim()) return;
+    setVars([...vars, { key: newKey.trim(), value: newValue, env: false, usedBy: 0 }]);
+    setNewKey(""); setNewValue(""); setShowAdd(false);
+  }
+
+  function removeVar(i: number) {
+    setVars(vars.filter((_, idx) => idx !== i));
+  }
+
+  function updateVar(i: number, value: string) {
+    setVars(vars.map((v, idx) => idx === i ? { ...v, value } : v));
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="p-3 space-y-2">
+        <p className="text-[10px] text-zinc-400">
+          Define key-value pairs accessible across all nodes via <code className="bg-zinc-100 px-1 rounded text-[10px]">{"{{$vars.KEY}}"}</code>
+        </p>
+
+        <div className="space-y-1">
+          {vars.map((v, i) => (
+            <div
+              key={v.key}
+              className={cn(
+                "rounded-lg border bg-white px-3 py-2 group transition-all",
+                editingIdx === i ? "border-zinc-300 shadow-xs" : "border-zinc-100 hover:border-zinc-200"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono font-semibold text-zinc-700 flex-1 truncate">{v.key}</span>
+                {v.env && (
+                  <span className="rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-600">ENV</span>
+                )}
+                {v.usedBy > 0 && (
+                  <span className="text-[9px] text-zinc-400">{v.usedBy} refs</span>
+                )}
+                <button
+                  onClick={() => setEditingIdx(editingIdx === i ? null : i)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-100 transition-all"
+                >
+                  <Eye size={10} className="text-zinc-400" />
+                </button>
+                <button
+                  onClick={() => removeVar(i)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 transition-all"
+                >
+                  <X size={10} className="text-red-400" />
+                </button>
+              </div>
+              {editingIdx === i ? (
+                <input
+                  className="mt-1.5 w-full rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-mono outline-none focus:border-zinc-400"
+                  value={v.value}
+                  onChange={(e) => updateVar(i, e.target.value)}
+                  onBlur={() => setEditingIdx(null)}
+                  onKeyDown={(e) => { if (e.key === "Enter") setEditingIdx(null); }}
+                  autoFocus
+                />
+              ) : (
+                <p className="mt-0.5 text-[10px] text-zinc-400 font-mono truncate">{v.env ? "••••••••" : v.value}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {showAdd ? (
+          <div className="rounded-lg border border-zinc-200 bg-white p-2.5 space-y-1.5">
+            <input
+              className="w-full rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-mono outline-none focus:border-zinc-400"
+              placeholder="VARIABLE_NAME"
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ""))}
+              autoFocus
+            />
+            <input
+              className="w-full rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-mono outline-none focus:border-zinc-400"
+              placeholder="value"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addVar(); }}
+            />
+            <div className="flex items-center gap-1.5 justify-end">
+              <button onClick={() => setShowAdd(false)} className="rounded px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-50">Cancel</button>
+              <button onClick={addVar} className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-white hover:bg-zinc-700">Add</button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="w-full rounded-lg border border-dashed border-zinc-200 py-2 text-[11px] text-zinc-400 hover:border-zinc-300 hover:text-zinc-600 transition-colors"
+          >
+            + Add variable
+          </button>
+        )}
+
+        <p className="text-[9px] text-zinc-400 italic pt-1">
+          Variables marked ENV inherit from workspace environment settings.
+        </p>
+      </div>
     </div>
   );
 }

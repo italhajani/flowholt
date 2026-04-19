@@ -26,6 +26,8 @@ import {
   FileJson,
   BookOpen,
   CheckCircle2,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -371,6 +373,8 @@ export function StudioHeader({ onBack }: { onBack: () => void }) {
   const [envMenuOpen, setEnvMenuOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [workflowActive, setWorkflowActive] = useState(false);
+  const [activationConfirm, setActivationConfirm] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const envRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -503,6 +507,35 @@ export function StudioHeader({ onBack }: { onBack: () => void }) {
 
       {/* Right */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Activation toggle */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              if (workflowActive) { setWorkflowActive(false); }
+              else { setActivationConfirm(true); }
+            }}
+            className={cn(
+              "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium transition-colors",
+              workflowActive
+                ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                : "border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
+            )}
+          >
+            {workflowActive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+            {workflowActive ? "Active" : "Inactive"}
+          </button>
+          {activationConfirm && (
+            <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded-lg border border-zinc-200 bg-white shadow-lg p-3">
+              <p className="text-[12px] font-medium text-zinc-800 mb-1">Activate workflow?</p>
+              <p className="text-[11px] text-zinc-500 mb-3">This workflow will start listening for trigger events and run automatically.</p>
+              <div className="flex items-center gap-2 justify-end">
+                <button onClick={() => setActivationConfirm(false)} className="rounded-md px-2.5 py-1 text-[11px] font-medium text-zinc-500 hover:bg-zinc-50 border border-zinc-200 transition-colors">Cancel</button>
+                <button onClick={() => { setWorkflowActive(true); setActivationConfirm(false); }} className="rounded-md px-2.5 py-1 text-[11px] font-medium text-white bg-green-600 hover:bg-green-700 transition-colors">Activate</button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <button onClick={() => setShareOpen(true)} className="inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-200 px-3 text-[12px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
           <Share2 size={12} />
           Share

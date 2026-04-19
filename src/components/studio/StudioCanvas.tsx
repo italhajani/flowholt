@@ -3,7 +3,7 @@ import {
   Plus, Minus, Maximize2, Map, CheckCircle2, XCircle,
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
   Search, X, Play, Pause, Eye, Zap, ArrowRight, Pin,
-  ChevronRight, GitBranch, Clock, Hash,
+  ChevronRight, GitBranch, Clock, Hash, Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "./useCanvasStore";
@@ -360,23 +360,45 @@ function CanvasSearch({ query, onChange, results, onSelect, onClose }: {
 }
 
 /* ── Minimap ── */
-function Minimap({ nodes, edges, execStates, selectedNodeId, canvasW, canvasH }: {
+function Minimap({ nodes, edges, execStates, selectedNodeId, canvasW, canvasH, zoom, pan, onPan }: {
   nodes: CanvasNodeData[];
   edges: [string, string][];
   execStates: Record<string, NodeExecState>;
   selectedNodeId: string | null;
   canvasW: number;
   canvasH: number;
+  zoom: number;
+  pan: { x: number; y: number };
+  onPan: (x: number, y: number) => void;
 }) {
   const scale = 0.12;
   const w = canvasW * scale;
   const h = canvasH * scale;
 
+  /* Viewport rectangle in minimap coords */
+  const containerRef = useRef<HTMLDivElement>(null);
+  const vpW = (window.innerWidth / zoom) * scale;
+  const vpH = (window.innerHeight / zoom) * scale;
+  const vpX = (-pan.x / zoom) * scale + 8;
+  const vpY = (-pan.y / zoom) * scale + 8;
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const clickX = e.clientX - rect.left - 8;
+    const clickY = e.clientY - rect.top - 8;
+    const canvasX = clickX / scale;
+    const canvasY = clickY / scale;
+    onPan(-canvasX * zoom + window.innerWidth / 2, -canvasY * zoom + window.innerHeight / 2);
+  };
+
   return (
     <div
-      className="rounded-lg border border-zinc-200 bg-white/90 shadow-sm overflow-hidden backdrop-blur-sm"
+      ref={containerRef}
+      className="rounded-lg border border-zinc-200 bg-white/90 shadow-sm overflow-hidden backdrop-blur-sm cursor-crosshair"
       style={{ width: w + 16, height: h + 16 }}
-      onClick={(e) => e.stopPropagation()}
+      onClick={handleClick}
     >
       <svg width={w + 16} height={h + 16} className="block">
         {edges.map(([fromId, toId]) => {
@@ -407,6 +429,19 @@ function Minimap({ nodes, edges, execStates, selectedNodeId, canvasW, canvasH }:
             />
           );
         })}
+        {/* Viewport rectangle */}
+        <rect
+          x={Math.max(0, vpX)}
+          y={Math.max(0, vpY)}
+          width={Math.min(vpW, w + 16)}
+          height={Math.min(vpH, h + 16)}
+          fill="rgba(99,102,241,0.06)"
+          stroke="#6366f1"
+          strokeWidth={1}
+          strokeDasharray="3 2"
+          rx={2}
+          className="pointer-events-none"
+        />
       </svg>
     </div>
   );
@@ -705,6 +740,17 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
         backgroundPosition: `${pan.x}px ${pan.y}px`,
       }}
     >
+      {/* Breadcrumb trail */}
+      <div className="absolute top-3 left-3 z-20 flex items-center gap-1 rounded-lg border border-zinc-200 bg-white/95 backdrop-blur-sm px-3 py-1.5 shadow-sm" onClick={(e) => e.stopPropagation()}>
+        <Home size={11} className="text-zinc-400" />
+        <ChevronRight size={10} className="text-zinc-300" />
+        <span className="text-[10px] text-zinc-400 hover:text-zinc-600 cursor-pointer">Workflows</span>
+        <ChevronRight size={10} className="text-zinc-300" />
+        <span className="text-[10px] font-medium text-zinc-700">Lead Qualification Pipeline</span>
+        <ChevronRight size={10} className="text-zinc-300" />
+        <span className="text-[10px] text-zinc-500">Editor</span>
+      </div>
+
       {/* Transformed canvas layer */}
       <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: "0 0" }}>
 
@@ -896,6 +942,9 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: St
             selectedNodeId={selectedNodeId}
             canvasW={CANVAS_W}
             canvasH={CANVAS_H}
+            zoom={zoom}
+            pan={pan}
+            onPan={(x, y) => setPan({ x, y })}
           />
         </div>
       )}

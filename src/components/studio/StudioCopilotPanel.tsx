@@ -4,14 +4,15 @@ import {
   GitBranch, Play, ArrowRight, Wrench, AlertTriangle, CheckCircle2, Lightbulb,
   Zap, FileJson, Settings, Eye, MessageSquare, Hammer, RotateCcw, Diff,
   ChevronRight, Hash, AtSign, Braces, Cpu, Target, Layers, Check, XCircle,
-  ThumbsUp, ThumbsDown, RefreshCw, Maximize2, Minimize2,
+  ThumbsUp, ThumbsDown, RefreshCw, Maximize2, Minimize2, KeyRound, Shield,
+  ExternalLink, CircleDot, Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import type { CanvasNodeData } from "./StudioCanvas";
 
 /* ── Types ── */
-type CopilotMode = "ask" | "build" | "builder";
+type CopilotMode = "ask" | "build" | "builder" | "credentials";
 type ReviewStatus = "pending" | "accepted" | "rejected";
 
 interface CopilotMessage {
@@ -107,6 +108,15 @@ const builderActions = [
   { label: "Daily report aggregator", icon: Code2 },
 ];
 
+const credentialActions = [
+  { label: "Set up Slack OAuth", icon: KeyRound },
+  { label: "Configure OpenAI API key", icon: Shield },
+  { label: "Connect Google Sheets", icon: Link2 },
+  { label: "Set up Salesforce integration", icon: ExternalLink },
+  { label: "Configure SMTP email", icon: Settings },
+  { label: "Test all my credentials", icon: CircleDot },
+];
+
 /* ── Context ── */
 const contextInfo = {
   workflowName: "Lead Qualification Pipeline",
@@ -143,6 +153,11 @@ const assistantGreetings: Record<CopilotMode, CopilotMessage> = {
     id: "greet-builder",
     role: "assistant",
     content: "🏗️ **AI Workflow Builder**\n\nDescribe the workflow you want and I'll build it end-to-end — selecting nodes, configuring them, and wiring everything together.\n\nI'll show you each phase in real-time:\n**Planning** → **Generating nodes** → **Connecting** → **Configuring**\n\nTry: *\"Build a Slack bot that uses GPT to answer questions and saves conversations to Notion\"*",
+  },
+  credentials: {
+    id: "greet-creds",
+    role: "assistant",
+    content: "🔑 **Credential Helper**\n\nI'll guide you through setting up integrations step by step. Tell me which service you want to connect and I'll walk you through:\n\n• **OAuth flows** — Redirect URLs, scopes, client setup\n• **API keys** — Where to find them, how to configure\n• **Testing** — Verify your credentials are working\n• **Troubleshooting** — Fix auth errors and expired tokens\n\nWhich integration do you need help with?",
   },
 };
 
@@ -327,7 +342,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
     if (inputRef.current) inputRef.current.style.height = "auto";
 
     // Simulate thinking delay then stream
-    const thinkDelay = mode === "builder" ? 1200 + Math.random() * 800 : mode === "build" ? 800 + Math.random() * 600 : 400 + Math.random() * 400;
+    const thinkDelay = mode === "builder" ? 1200 + Math.random() * 800 : mode === "build" ? 800 + Math.random() * 600 : mode === "credentials" ? 600 + Math.random() * 500 : 400 + Math.random() * 400;
 
     setTimeout(() => {
       let response: Partial<CopilotMessage> = { content: "I'll analyze your workflow and get back to you with specific suggestions." };
@@ -538,6 +553,96 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
             tokenUsage: { input: 2100, output: 1420, cost: "$0.018" },
           };
         }
+      } else if (mode === "credentials") {
+        // Credential helper mode — guided setup with checklists
+        if (text.toLowerCase().includes("slack")) {
+          response = {
+            content: "🔑 **Slack OAuth Setup**\n\nLet me walk you through connecting Slack:\n\n**Step 1 of 4 — Create Slack App**\n- Go to [api.slack.com/apps](https://api.slack.com/apps)\n- Click **Create New App** → **From scratch**\n- Name: `FlowHolt Integration`\n- Select your workspace\n\n**Step 2 — Configure OAuth Scopes**\n- Navigate to **OAuth & Permissions**\n- Add Bot Token Scopes:\n  - `chat:write` — Send messages\n  - `channels:read` — List channels\n  - `channels:history` — Read messages\n  - `users:read` — Get user info\n\n**Step 3 — Set Redirect URL**\n- Add redirect URL: `https://app.flowholt.com/oauth/callback/slack`\n- Copy your **Client ID** and **Client Secret**\n\n**Step 4 — Enter Credentials in FlowHolt**\n- Open **Vault** → **New Credential** → **Slack**\n- Paste Client ID, Client Secret\n- Click **Connect** to complete OAuth flow",
+            actions: [
+              { label: "Open Vault → New Credential", icon: KeyRound, variant: "primary" },
+              { label: "Test Slack connection", icon: CircleDot, variant: "secondary" },
+              { label: "View Slack API docs", icon: ExternalLink, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "check_credential", args: 'provider="slack"', result: "No Slack credential found", duration: "18ms" },
+              { tool: "fetch_oauth_config", args: 'provider="slack"', result: "OAuth2 with Bot Token, 4 scopes required", duration: "24ms" },
+            ],
+            tokenUsage: { input: 640, output: 520, cost: "$0.005" },
+          };
+        } else if (text.toLowerCase().includes("openai") || text.toLowerCase().includes("api key") || text.toLowerCase().includes("gpt")) {
+          response = {
+            content: "🔑 **OpenAI API Key Setup**\n\nThis is a simple API key credential:\n\n**Step 1 — Get your API Key**\n- Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)\n- Click **Create new secret key**\n- Name it `FlowHolt Production`\n- ⚠️ Copy immediately — you can't see it again!\n\n**Step 2 — Enter in FlowHolt**\n- Open **Vault** → **New Credential** → **OpenAI**\n- Paste your API key\n- Optionally set an **Organization ID**\n\n**Step 3 — Verify**\n- I'll test the key with a simple completion call\n\n✅ **Recommended model settings:**\n| Use Case | Model | Cost |\n|----------|-------|------|\n| Classification | gpt-4o-mini | $0.15/1M tokens |\n| Analysis | gpt-4o | $2.50/1M tokens |\n| Code generation | gpt-4o | $2.50/1M tokens |",
+            actions: [
+              { label: "Open Vault → New Credential", icon: KeyRound, variant: "primary" },
+              { label: "Test API key", icon: CircleDot, variant: "secondary" },
+            ],
+            toolCalls: [
+              { tool: "check_credential", args: 'provider="openai"', result: "Existing key found (sk-...7xQ), last tested 3h ago", duration: "15ms" },
+              { tool: "test_api_key", args: 'provider="openai", model="gpt-4o-mini"', result: "✅ Valid — 148K tokens remaining in quota", duration: "342ms" },
+            ],
+            tokenUsage: { input: 380, output: 440, cost: "$0.003" },
+          };
+        } else if (text.toLowerCase().includes("google") || text.toLowerCase().includes("sheets") || text.toLowerCase().includes("gmail")) {
+          response = {
+            content: "🔑 **Google OAuth Setup**\n\nGoogle uses OAuth 2.0 with a service account or user consent flow:\n\n**Step 1 — Google Cloud Console**\n- Go to [console.cloud.google.com](https://console.cloud.google.com)\n- Create a project (or select existing)\n- Enable APIs: **Sheets API**, **Gmail API**, **Drive API**\n\n**Step 2 — Create OAuth Credentials**\n- Go to **APIs & Services** → **Credentials**\n- Click **Create Credentials** → **OAuth client ID**\n- Application type: **Web application**\n- Redirect URI: `https://app.flowholt.com/oauth/callback/google`\n\n**Step 3 — Configure Consent Screen**\n- Add scopes:\n  - `spreadsheets` — Read/write Sheets\n  - `gmail.send` — Send emails\n  - `drive.readonly` — Access files\n\n**Step 4 — Connect in FlowHolt**\n- **Vault** → **New Credential** → **Google**\n- Paste Client ID & Secret → Click **Authorize**\n- Grant access in Google popup",
+            actions: [
+              { label: "Open Vault → New Credential", icon: KeyRound, variant: "primary" },
+              { label: "Test Google connection", icon: CircleDot, variant: "secondary" },
+              { label: "Use Service Account instead", icon: Shield, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "check_credential", args: 'provider="google"', result: "No Google credential found", duration: "14ms" },
+              { tool: "fetch_oauth_config", args: 'provider="google"', result: "OAuth2 with consent screen, 3 API scopes", duration: "28ms" },
+            ],
+            tokenUsage: { input: 720, output: 580, cost: "$0.006" },
+          };
+        } else if (text.toLowerCase().includes("salesforce")) {
+          response = {
+            content: "🔑 **Salesforce Connected App Setup**\n\nSalesforce uses OAuth 2.0 with a Connected App:\n\n**Step 1 — Create Connected App**\n- Go to **Setup** → **App Manager** → **New Connected App**\n- Enable OAuth, add callback: `https://app.flowholt.com/oauth/callback/salesforce`\n- Scopes: `api`, `refresh_token`, `offline_access`\n\n**Step 2 — Enter in FlowHolt**\n- **Vault** → **New Credential** → **Salesforce**\n- Paste Consumer Key & Secret\n- Select environment: **Production** or **Sandbox**\n- Click **Authorize** → Log in to Salesforce\n\n**Step 3 — Verify**\n- Test with a simple SOQL query\n\n⚡ **Tip:** Use a dedicated integration user, not your admin account.",
+            actions: [
+              { label: "Open Vault → New Credential", icon: KeyRound, variant: "primary" },
+              { label: "Test connection", icon: CircleDot, variant: "secondary" },
+            ],
+            toolCalls: [
+              { tool: "check_credential", args: 'provider="salesforce"', result: "No Salesforce credential found", duration: "16ms" },
+            ],
+            tokenUsage: { input: 520, output: 460, cost: "$0.004" },
+          };
+        } else if (text.toLowerCase().includes("smtp") || text.toLowerCase().includes("email")) {
+          response = {
+            content: "🔑 **SMTP Email Setup**\n\nSMTP is a simple username/password credential:\n\n**Common providers:**\n| Provider | Host | Port | Auth |\n|----------|------|------|------|\n| Gmail | smtp.gmail.com | 587 | App Password |\n| Outlook | smtp.office365.com | 587 | OAuth or App Password |\n| SendGrid | smtp.sendgrid.net | 587 | API Key as password |\n| Amazon SES | email-smtp.{region}.amazonaws.com | 587 | IAM credentials |\n\n**For Gmail:**\n1. Enable 2FA on your Google account\n2. Generate an **App Password** at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)\n3. Use that as the SMTP password (not your real password)\n\n**Enter in FlowHolt:**\n- **Vault** → **New Credential** → **SMTP**\n- Host, Port, Username, Password\n- Enable **STARTTLS**",
+            actions: [
+              { label: "Open Vault → New Credential", icon: KeyRound, variant: "primary" },
+              { label: "Send test email", icon: CircleDot, variant: "secondary" },
+            ],
+            tokenUsage: { input: 340, output: 380, cost: "$0.003" },
+          };
+        } else if (text.toLowerCase().includes("test") || text.toLowerCase().includes("verify") || text.toLowerCase().includes("check")) {
+          response = {
+            content: "🔍 **Credential Health Check**\n\nTesting all configured credentials:\n\n| Credential | Provider | Status | Last Used |\n|-----------|----------|--------|-----------|\n| OpenAI Production | OpenAI | ✅ Valid | 3 min ago |\n| Slack Bot | Slack | ✅ Valid | 1 hour ago |\n| Clearbit Enrichment | Clearbit | ⚠️ Rate limited | 12 min ago |\n| Salesforce Prod | Salesforce | ❌ Token expired | 2 days ago |\n| Google Sheets | Google | ✅ Valid | 5 min ago |\n\n**Issues found:**\n- **Salesforce**: Refresh token expired. Re-authorize to fix.\n- **Clearbit**: Approaching daily limit (92/100 used). Consider upgrading plan.\n\nWould you like me to fix the Salesforce credential?",
+            actions: [
+              { label: "Re-authorize Salesforce", icon: RefreshCw, variant: "primary" },
+              { label: "View Clearbit usage", icon: Target, variant: "secondary" },
+              { label: "Export credential report", icon: ArrowRight, variant: "ghost" },
+            ],
+            toolCalls: [
+              { tool: "test_all_credentials", args: "scope=all", result: "5 tested: 3 valid, 1 warning, 1 expired", duration: "1.2s" },
+              { tool: "check_rate_limits", args: 'provider="clearbit"', result: "92/100 daily, resets in 4h", duration: "89ms" },
+            ],
+            tokenUsage: { input: 280, output: 360, cost: "$0.003" },
+          };
+        } else {
+          const service = text.trim().split(/\s+/).pop() ?? "this service";
+          response = {
+            content: `🔑 **Setting up ${service}**\n\nI'll help you configure credentials for **${service}**. Here's what I need to know:\n\n1. **Auth type** — OAuth 2.0, API Key, or Basic Auth?\n2. **Environment** — Production or Sandbox?\n3. **Existing credentials** — Do you already have API keys/secrets?\n\nOnce I know these details, I'll generate a step-by-step guide specific to your setup.\n\n💡 **Tip:** You can also browse all supported integrations in **Vault** → **New Credential** to see available auth methods.`,
+            actions: [
+              { label: "It uses OAuth", icon: Link2, variant: "secondary" },
+              { label: "It uses API Key", icon: KeyRound, variant: "secondary" },
+              { label: "Browse integrations", icon: ExternalLink, variant: "ghost" },
+            ],
+            tokenUsage: { input: 220, output: 280, cost: "$0.002" },
+          };
+        }
       } else {
         // Ask mode responses
         if (text.includes("@") && mentionedNodes.length > 0) {
@@ -670,7 +775,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
 
       {/* Mode tabs */}
       <div className="flex items-center border-b px-4" style={{ borderColor: "var(--color-border-default)" }}>
-        {(["ask", "build", "builder"] as const).map((m) => (
+        {(["ask", "build", "builder", "credentials"] as const).map((m) => (
           <button
             key={m}
             onClick={() => switchMode(m)}
@@ -679,8 +784,8 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
               mode === m ? "border-zinc-800 text-zinc-800" : "border-transparent text-zinc-400 hover:text-zinc-600"
             )}
           >
-            {m === "ask" ? <MessageSquare size={11} /> : m === "build" ? <Hammer size={11} /> : <Wand2 size={11} />}
-            {m === "ask" ? "Ask" : m === "build" ? "Build" : "Builder"}
+            {m === "ask" ? <MessageSquare size={11} /> : m === "build" ? <Hammer size={11} /> : m === "builder" ? <Wand2 size={11} /> : <KeyRound size={11} />}
+            {m === "ask" ? "Ask" : m === "build" ? "Build" : m === "builder" ? "Builder" : "Creds"}
           </button>
         ))}
         <div className="ml-auto flex items-center gap-1.5 py-2 relative">
@@ -950,7 +1055,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
                   <div className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
                   <div className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
-                <span>{mode === "build" ? "Building…" : "Thinking…"}</span>
+                <span>{mode === "build" ? "Building…" : mode === "credentials" ? "Checking…" : "Thinking…"}</span>
               </div>
             </div>
           </div>
@@ -962,10 +1067,10 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
       {messages.length <= 1 && (
         <div className="px-4 pb-2">
           <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
-            {mode === "ask" ? "Quick Questions" : mode === "build" ? "Quick Builds" : "Example Workflows"}
+            {mode === "ask" ? "Quick Questions" : mode === "build" ? "Quick Builds" : mode === "builder" ? "Example Workflows" : "Common Setups"}
           </p>
           <div className="flex flex-wrap gap-1">
-            {(mode === "ask" ? askActions : mode === "build" ? buildActions : builderActions).map((action) => {
+            {(mode === "ask" ? askActions : mode === "build" ? buildActions : mode === "builder" ? builderActions : credentialActions).map((action) => {
               const Icon = action.icon;
               return (
                 <button key={action.label} onClick={() => send(action.label)}
@@ -1023,7 +1128,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={mode === "ask" ? "Ask about your workflow… (@ to mention nodes)" : "Describe what to build or change…"}
+            placeholder={mode === "ask" ? "Ask about your workflow… (@ to mention nodes)" : mode === "credentials" ? "Which service do you need to connect?" : "Describe what to build or change…"}
             rows={1}
             className="flex-1 resize-none bg-transparent text-[12px] text-zinc-800 placeholder:text-zinc-400 outline-none leading-relaxed"
             style={{ maxHeight: "80px" }}

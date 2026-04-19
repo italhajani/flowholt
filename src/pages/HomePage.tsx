@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { GitBranch, Bot, Play, AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock, Zap, Key, Webhook, TrendingUp, Activity } from "lucide-react";
+import { GitBranch, Bot, Play, AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock, Zap, Key, Webhook, TrendingUp, Activity, DollarSign, Cpu, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,45 @@ const triggerIcons: Record<string, React.ReactNode> = {
   webhook: <Zap size={10} className="text-amber-400" />,
   schedule: <Clock size={10} className="text-blue-400" />,
 };
+
+/* ── 7-day execution trend ── */
+const executionTrend = [
+  { day: "Mon", success: 128, failed: 4 },
+  { day: "Tue", success: 145, failed: 2 },
+  { day: "Wed", success: 137, failed: 8 },
+  { day: "Thu", success: 162, failed: 3 },
+  { day: "Fri", success: 151, failed: 5 },
+  { day: "Sat", success: 68, failed: 1 },
+  { day: "Sun", success: 42, failed: 0 },
+];
+const trendMax = Math.max(...executionTrend.map(d => d.success + d.failed));
+
+/* ── Top workflows by execution count ── */
+const topWorkflows = [
+  { name: "Lead Qualification Pipeline", executions: 482, successRate: 96.5, avgDuration: "3.8s" },
+  { name: "Invoice Processing Pipeline", executions: 341, successRate: 91.2, avgDuration: "12.1s" },
+  { name: "Error Alert Handler", executions: 287, successRate: 99.3, avgDuration: "1.1s" },
+  { name: "Customer Onboarding Flow", executions: 156, successRate: 88.4, avgDuration: "8.2s" },
+  { name: "Daily Report Generator", executions: 93, successRate: 97.8, avgDuration: "14.6s" },
+];
+
+/* ── Cost breakdown ── */
+const costBreakdown = {
+  total: "$47.20",
+  period: "This month",
+  items: [
+    { label: "AI / LLM", amount: "$28.40", pct: 60, color: "bg-violet-500" },
+    { label: "Compute", amount: "$12.80", pct: 27, color: "bg-blue-500" },
+    { label: "Storage", amount: "$4.10", pct: 9, color: "bg-emerald-500" },
+    { label: "API calls", amount: "$1.90", pct: 4, color: "bg-amber-500" },
+  ],
+};
+
+/* ── Slow workflow alerts ── */
+const slowWorkflows = [
+  { name: "Invoice Processing Pipeline", avg: "12.1s", p95: "28.4s", trend: "up" as const },
+  { name: "Daily Report Generator", avg: "14.6s", p95: "22.1s", trend: "stable" as const },
+];
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -71,6 +110,40 @@ export function HomePage() {
           delta="2 active"
           icon={<Bot size={14} className="text-zinc-400" />}
         />
+      </div>
+
+      {/* 7-day execution trend */}
+      <div className="mb-6 rounded-lg border border-zinc-100 bg-white p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={14} className="text-zinc-400" />
+            <span className="text-[12px] font-semibold uppercase tracking-wider text-zinc-400">Execution Trend (7 days)</span>
+          </div>
+          <div className="flex items-center gap-4 text-[10px]">
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-green-500" /> Success</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm bg-red-400" /> Failed</span>
+          </div>
+        </div>
+        <div className="flex items-end gap-2 h-[80px]">
+          {executionTrend.map((d) => {
+            const total = d.success + d.failed;
+            const h = Math.max((total / trendMax) * 100, 4);
+            const failH = d.failed > 0 ? Math.max((d.failed / total) * h, 2) : 0;
+            return (
+              <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full flex flex-col items-center" style={{ height: `${h}%` }}>
+                  {failH > 0 && <div className="w-full rounded-t bg-red-400 transition-all" style={{ height: `${failH}%`, minHeight: 2 }} />}
+                  <div className="w-full flex-1 rounded-t bg-green-500 transition-all" style={{ borderRadius: failH > 0 ? "0" : "4px 4px 0 0" }} />
+                </div>
+                <span className="text-[9px] text-zinc-400">{d.day}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-400">
+          <span>Total: {executionTrend.reduce((s, d) => s + d.success + d.failed, 0)} executions</span>
+          <span>Avg success rate: {(executionTrend.reduce((s, d) => s + d.success, 0) / executionTrend.reduce((s, d) => s + d.success + d.failed, 0) * 100).toFixed(1)}%</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-[1fr_300px] gap-6">
@@ -119,6 +192,46 @@ export function HomePage() {
               ))}
             </div>
           </section>
+
+          {/* Top workflows */}
+          <section>
+            <SectionHeader title="Top Workflows (30 days)" action="View all" />
+            <div className="mt-3 rounded-lg border border-zinc-100 bg-white overflow-hidden shadow-xs divide-y divide-zinc-50">
+              {topWorkflows.map((wf, i) => (
+                <div key={wf.name} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50/50 transition-colors cursor-pointer">
+                  <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold text-zinc-400 bg-zinc-50">{i + 1}</span>
+                  <span className="flex-1 text-[13px] font-medium text-zinc-800 truncate">{wf.name}</span>
+                  <span className="text-[11px] font-mono text-zinc-500">{wf.executions}</span>
+                  <span className={cn("text-[10px] font-medium rounded px-1.5 py-0.5", wf.successRate >= 95 ? "bg-green-50 text-green-600" : wf.successRate >= 90 ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-600")}>
+                    {wf.successRate}%
+                  </span>
+                  <span className="text-[10px] text-zinc-400 w-12 text-right">{wf.avgDuration}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Slow workflow alerts */}
+          {slowWorkflows.length > 0 && (
+            <section>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={13} className="text-amber-500" />
+                  <span className="text-[12px] font-semibold text-amber-800">Slow Workflows Detected</span>
+                </div>
+                <div className="space-y-2">
+                  {slowWorkflows.map((sw) => (
+                    <div key={sw.name} className="flex items-center gap-2 text-[11px]">
+                      <span className="flex-1 text-amber-700 font-medium truncate">{sw.name}</span>
+                      <span className="text-amber-600">avg {sw.avg}</span>
+                      <span className="text-amber-500">p95 {sw.p95}</span>
+                      {sw.trend === "up" && <TrendingUp size={10} className="text-red-500" />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Right column */}
@@ -182,6 +295,33 @@ export function HomePage() {
                   <StatusDot status={item.status} label={item.status === "active" ? "4 queued" : item.status === "warning" ? "1 idle" : "operational"} />
                 </div>
               ))}
+            </div>
+          </section>
+
+          {/* Cost breakdown */}
+          <section>
+            <SectionHeader title="Cost Breakdown" />
+            <div className="mt-3 rounded-lg border border-zinc-100 bg-white p-4 shadow-xs">
+              <div className="flex items-baseline justify-between mb-3">
+                <span className="text-[22px] font-semibold text-zinc-800">{costBreakdown.total}</span>
+                <span className="text-[10px] text-zinc-400">{costBreakdown.period}</span>
+              </div>
+              {/* Stacked bar */}
+              <div className="flex h-2 rounded-full overflow-hidden mb-3">
+                {costBreakdown.items.map((item) => (
+                  <div key={item.label} className={cn("transition-all", item.color)} style={{ width: `${item.pct}%` }} />
+                ))}
+              </div>
+              <div className="space-y-1.5">
+                {costBreakdown.items.map((item) => (
+                  <div key={item.label} className="flex items-center gap-2 text-[11px]">
+                    <span className={cn("h-2 w-2 rounded-sm flex-shrink-0", item.color)} />
+                    <span className="flex-1 text-zinc-600">{item.label}</span>
+                    <span className="font-medium text-zinc-700">{item.amount}</span>
+                    <span className="text-zinc-400 w-8 text-right">{item.pct}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         </div>

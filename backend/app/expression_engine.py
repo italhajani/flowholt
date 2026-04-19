@@ -37,6 +37,13 @@ from typing import Any
 
 EXPRESSION_PATTERN = re.compile(r"\{\{\s*(.+?)\s*\}\}")
 
+# Save builtins before they get shadowed by class methods
+builtins_round = round
+builtins_abs = abs
+builtins_sum = sum
+builtins_min = min
+builtins_max = max
+
 
 # ── FlowItem helpers ──────────────────────────────────────────────────────────
 
@@ -240,6 +247,19 @@ def build_expression_context(
         "DateTime": _DateTimeHelper,
         "JSON": _JSONHelper(),
         "Math": _MathHelper(),
+        "Object": _ObjectHelper(),
+
+        # Root-level helper functions (spec 53 §4.7)
+        "$if": lambda cond, then, else_val=None: then if cond else else_val,
+        "$ifEmpty": lambda val, fallback: fallback if val is None or val == "" or val == [] or val == {} else val,
+        "$min": lambda *vals: builtins_min(vals),
+        "$max": lambda *vals: builtins_max(vals),
+        "$sum": lambda *vals: builtins_sum(vals),
+        "$average": lambda *vals: builtins_sum(vals) / len(vals) if vals else 0,
+        "$randomInt": lambda lo, hi: __import__("random").randint(lo, hi),
+        "$parseDate": lambda s, fmt=None: _DateTimeHelper(datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)) if fmt else _DateTimeHelper(datetime.fromisoformat(s.replace("Z", "+00:00"))),
+        "$lookup": lambda arr, key, val: next((item for item in (arr._data if isinstance(arr, _AttrList) else arr) if (item.get(key) if isinstance(item, dict) else getattr(item, key, None)) == val), None),
+        "$not": lambda val: not val,
     }
 
     return ctx
@@ -295,9 +315,28 @@ class _AttrDict:
     def _raw(self) -> dict:
         return object.__getattribute__(self, "_data")
 
+    # FlowHolt object extension methods (spec 53 §4.5)
+    def hasField(self, key: str) -> bool:  # noqa: N802
+        return key in object.__getattribute__(self, "_data")
+
+    def isEmpty(self) -> bool:  # noqa: N802
+        return len(object.__getattribute__(self, "_data")) == 0
+
+    def isNotEmpty(self) -> bool:  # noqa: N802
+        return len(object.__getattribute__(self, "_data")) > 0
+
+    def removeField(self, key: str) -> "_AttrDict":  # noqa: N802
+        data = dict(object.__getattribute__(self, "_data"))
+        data.pop(key, None)
+        return _AttrDict(data)
+
+    def removeFieldsContaining(self, substr: str) -> "_AttrDict":  # noqa: N802
+        data = object.__getattribute__(self, "_data")
+        return _AttrDict({k: v for k, v in data.items() if substr not in k})
+
 
 class _AttrList:
-    """List wrapper that wraps nested dicts as _AttrDict for dot access."""
+    """List wrapper that wraps nested dicts as _AttrDict for dot access, with FlowHolt extensions."""
 
     def __init__(self, data: list) -> None:
         self._data = data
@@ -317,23 +356,370 @@ class _AttrList:
     def __repr__(self) -> str:
         return repr(self._data)
 
+    # Native JS array methods
     def includes(self, value: Any) -> bool:
         return value in self._data
 
     def join(self, sep: str = ",") -> str:
         return sep.join(str(x) for x in self._data)
 
+    def indexOf(self, value: Any, from_index: int = 0) -> int:  # noqa: N802
+        try:
+            return self._data.index(value, from_index)
+        except ValueError:
+            return -1
+
+    def lastIndexOf(self, value: Any) -> int:  # noqa: N802
+        for i in range(len(self._data) - 1, -1, -1):
+            if self._data[i] == value:
+                return i
+        return -1
+
+    def concat(self, *arrays: list) -> "_AttrList":
+        result = list(self._data)
+        for arr in arrays:
+            result.extend(arr._data if isinstance(arr, _AttrList) else arr)
+        return _AttrList(result)
+
+    def slice(self, start: int = 0, end: int | None = None) -> "_AttrList":
+        return _AttrList(self._data[start:end])
+
+    def reverse(self) -> "_AttrList":
+        return _AttrList(list(reversed(self._data)))
+
+    def flat(self, depth: int = 1) -> "_AttrList":
+        def _flatten(lst: list, d: int) -> list:
+            result = []
+            for item in lst:
+                if isinstance(item, list | _AttrList) and d > 0:
+                    data = item._data if isinstance(item, _AttrList) else item
+                    result.extend(_flatten(data, d - 1))
+                else:
+                    result.append(item)
+            return result
+        return _AttrList(_flatten(self._data, depth))
+
+    # FlowHolt extension methods
+    def first(self) -> Any:
+        if not self._data:
+            raise IndexError("Cannot get first element of empty array")
+        return _wrap(self._data[0])
+
+    def last(self) -> Any:
+        if not self._data:
+            raise IndexError("Cannot get last element of empty array")
+        return _wrap(self._data[-1])
+
+    def isEmpty(self) -> bool:  # noqa: N802
+        return len(self._data) == 0
+
+    def isNotEmpty(self) -> bool:  # noqa: N802
+        return len(self._data) > 0
+
+    def unique(self) -> "_AttrList":
+        seen: list = []
+        for item in self._data:
+            if item not in seen:
+                seen.append(item)
+        return _AttrList(seen)
+
+    def sum(self) -> int | float:
+        return builtins_sum(x for x in self._data if isinstance(x, int | float))
+
+    def average(self) -> float:
+        nums = [x for x in self._data if isinstance(x, int | float)]
+        return builtins_sum(nums) / len(nums) if nums else 0.0
+
+    def min(self) -> int | float:
+        nums = [x for x in self._data if isinstance(x, int | float)]
+        return builtins_min(nums) if nums else 0
+
+    def max(self) -> int | float:
+        nums = [x for x in self._data if isinstance(x, int | float)]
+        return builtins_max(nums) if nums else 0
+
+    def compact(self) -> "_AttrList":
+        return _AttrList([x for x in self._data if x is not None and x != ""])
+
+    def chunk(self, size: int) -> "_AttrList":
+        return _AttrList([self._data[i:i + size] for i in range(0, len(self._data), size)])
+
+    def toJsonString(self) -> str:  # noqa: N802
+        return json.dumps(self._data)
+
+    def pluck(self, key: str) -> "_AttrList":
+        return _AttrList([item.get(key) if isinstance(item, dict) else getattr(item, key, None) for item in self._data])
+
+    def smartJoin(self, sep: str = ", ", last_sep: str | None = None) -> str:  # noqa: N802
+        items = [str(x) for x in self._data]
+        if len(items) <= 1:
+            return items[0] if items else ""
+        if last_sep is None:
+            return sep.join(items)
+        return sep.join(items[:-1]) + last_sep + items[-1]
+
     @property
     def length(self) -> int:
         return len(self._data)
 
 
+# ── FlowHolt String extensions ───────────────────────────────────────────────
+
+class _FlowStr(str):
+    """String subclass with FlowHolt extension methods (spec 53 §4.1)."""
+
+    @property
+    def length(self) -> int:
+        return len(self)
+
+    def toNumber(self) -> int | float:  # noqa: N802
+        s = self.strip()
+        try:
+            return int(s) if "." not in s else float(s)
+        except ValueError:
+            raise ValueError(f"Cannot convert '{self}' to number") from None
+
+    def toBoolean(self) -> bool:  # noqa: N802
+        return self.lower().strip() in {"true", "1", "yes"}
+
+    def toDateTime(self, fmt: str | None = None) -> "_DateTimeHelper":  # noqa: N802
+        from datetime import datetime as _dt, timezone as _tz
+        if fmt:
+            return _DateTimeHelper(_dt.strptime(self, fmt).replace(tzinfo=_tz.utc))
+        return _DateTimeHelper(_dt.fromisoformat(self.replace("Z", "+00:00")))
+
+    def isEmpty(self) -> bool:  # noqa: N802
+        return len(self.strip()) == 0
+
+    def isNotEmpty(self) -> bool:  # noqa: N802
+        return len(self.strip()) > 0
+
+    def isEmail(self) -> bool:  # noqa: N802
+        return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", self))
+
+    def isUrl(self) -> bool:  # noqa: N802
+        return bool(re.match(r"^https?://\S+$", self, re.I))
+
+    def isNumeric(self) -> bool:  # noqa: N802
+        try:
+            float(self)
+            return True
+        except ValueError:
+            return False
+
+    def hash(self, algo: str = "sha256") -> str:
+        import hashlib
+        h = hashlib.new(algo)
+        h.update(self.encode())
+        return h.hexdigest()
+
+    def urlEncode(self) -> str:  # noqa: N802
+        from urllib.parse import quote
+        return quote(self, safe="")
+
+    def urlDecode(self) -> str:  # noqa: N802
+        from urllib.parse import unquote
+        return unquote(self)
+
+    def base64Encode(self) -> str:  # noqa: N802
+        import base64
+        return base64.b64encode(self.encode()).decode()
+
+    def base64Decode(self) -> str:  # noqa: N802
+        import base64
+        return base64.b64decode(self.encode()).decode()
+
+    def removeTags(self) -> str:  # noqa: N802
+        return re.sub(r"<[^>]+>", "", self)
+
+    def removeMarkdown(self) -> str:  # noqa: N802
+        text = re.sub(r"\*\*(.+?)\*\*", r"\1", self)
+        text = re.sub(r"\*(.+?)\*", r"\1", text)
+        text = re.sub(r"__(.+?)__", r"\1", text)
+        text = re.sub(r"_(.+?)_", r"\1", text)
+        text = re.sub(r"~~(.+?)~~", r"\1", text)
+        text = re.sub(r"`(.+?)`", r"\1", text)
+        text = re.sub(r"^#{1,6}\s+", "", text, flags=re.M)
+        text = re.sub(r"^\s*[-*+]\s+", "", text, flags=re.M)
+        text = re.sub(r"\[(.+?)\]\(.+?\)", r"\1", text)
+        return text
+
+    def escapeHtml(self) -> str:  # noqa: N802
+        import html
+        return html.escape(self)
+
+    def extractEmail(self) -> str:  # noqa: N802
+        m = re.search(r"[^@\s]+@[^@\s]+\.[^@\s]+", self)
+        return m.group(0) if m else ""
+
+    def extractUrl(self) -> str:  # noqa: N802
+        m = re.search(r"https?://\S+", self)
+        return m.group(0) if m else ""
+
+    def quote(self) -> str:
+        return f'"{self}"'
+
+
+# ── FlowHolt Number extensions ──────────────────────────────────────────────
+
+class _FlowNum:
+    """Number wrapper with FlowHolt extension methods (spec 53 §4.3)."""
+
+    def __init__(self, value: int | float) -> None:
+        self._value = value
+
+    # Arithmetic operators — return raw numbers to avoid wrapping chains
+    def __add__(self, other: Any) -> int | float:
+        return self._value + (other._value if isinstance(other, _FlowNum) else other)
+    def __radd__(self, other: Any) -> int | float:
+        return (other._value if isinstance(other, _FlowNum) else other) + self._value
+    def __sub__(self, other: Any) -> int | float:
+        return self._value - (other._value if isinstance(other, _FlowNum) else other)
+    def __rsub__(self, other: Any) -> int | float:
+        return (other._value if isinstance(other, _FlowNum) else other) - self._value
+    def __mul__(self, other: Any) -> int | float:
+        return self._value * (other._value if isinstance(other, _FlowNum) else other)
+    def __rmul__(self, other: Any) -> int | float:
+        return (other._value if isinstance(other, _FlowNum) else other) * self._value
+    def __truediv__(self, other: Any) -> float:
+        return self._value / (other._value if isinstance(other, _FlowNum) else other)
+    def __rtruediv__(self, other: Any) -> float:
+        return (other._value if isinstance(other, _FlowNum) else other) / self._value
+    def __floordiv__(self, other: Any) -> int:
+        return self._value // (other._value if isinstance(other, _FlowNum) else other)
+    def __mod__(self, other: Any) -> int | float:
+        return self._value % (other._value if isinstance(other, _FlowNum) else other)
+    def __pow__(self, other: Any) -> int | float:
+        return self._value ** (other._value if isinstance(other, _FlowNum) else other)
+    def __neg__(self) -> int | float:
+        return -self._value
+    def __pos__(self) -> int | float:
+        return +self._value
+
+    # Comparison
+    def __eq__(self, other: Any) -> bool:
+        return self._value == (other._value if isinstance(other, _FlowNum) else other)
+    def __ne__(self, other: Any) -> bool:
+        return self._value != (other._value if isinstance(other, _FlowNum) else other)
+    def __lt__(self, other: Any) -> bool:
+        return self._value < (other._value if isinstance(other, _FlowNum) else other)
+    def __le__(self, other: Any) -> bool:
+        return self._value <= (other._value if isinstance(other, _FlowNum) else other)
+    def __gt__(self, other: Any) -> bool:
+        return self._value > (other._value if isinstance(other, _FlowNum) else other)
+    def __ge__(self, other: Any) -> bool:
+        return self._value >= (other._value if isinstance(other, _FlowNum) else other)
+
+    # Conversion
+    def __int__(self) -> int:
+        return int(self._value)
+    def __float__(self) -> float:
+        return float(self._value)
+    def __bool__(self) -> bool:
+        return bool(self._value)
+    def __repr__(self) -> str:
+        return repr(self._value)
+    def __str__(self) -> str:
+        return str(self._value)
+    def __hash__(self) -> int:
+        return hash(self._value)
+    def __index__(self) -> int:
+        return int(self._value)
+
+    # FlowHolt extension methods
+    def floor(self) -> int:
+        import math
+        return math.floor(self._value)
+
+    def ceil(self) -> int:
+        import math
+        return math.ceil(self._value)
+
+    def round(self, decimals: int = 0) -> int | float:
+        return builtins_round(float(self._value), decimals) if decimals else builtins_round(float(self._value))
+
+    def abs(self) -> int | float:
+        return builtins_abs(self._value)
+
+    def isEven(self) -> bool:  # noqa: N802
+        return int(self._value) % 2 == 0
+
+    def isOdd(self) -> bool:  # noqa: N802
+        return int(self._value) % 2 != 0
+
+    def toBoolean(self) -> bool:  # noqa: N802
+        return self._value != 0
+
+    def toDateTime(self) -> "_DateTimeHelper":  # noqa: N802
+        from datetime import datetime as _dt, timezone as _tz
+        return _DateTimeHelper(_dt.fromtimestamp(float(self._value), tz=_tz.utc))
+
+    def toCurrency(self, locale: str = "en-US", currency: str = "USD") -> str:  # noqa: N802
+        return f"${float(self._value):,.2f}"
+
+    def format(self, locale: str | None = None) -> str:
+        return f"{float(self._value):,.2f}" if isinstance(self._value, float) else f"{int(self._value):,}"
+
+    def isEmpty(self) -> bool:  # noqa: N802
+        return False
+
+    def toFixed(self, digits: int = 0) -> str:  # noqa: N802
+        return f"{float(self._value):.{digits}f}"
+
+    @property
+    def length(self) -> None:
+        return None
+
+
+# ── FlowHolt Boolean extensions ─────────────────────────────────────────────
+
+class _FlowBool:
+    """Boolean wrapper with FlowHolt extension methods (spec 53 §4.4)."""
+
+    def __init__(self, value: bool) -> None:
+        self._value = bool(value)
+
+    def toNumber(self) -> int:  # noqa: N802
+        return 1 if self._value else 0
+
+    def toString(self) -> str:  # noqa: N802
+        return "true" if self._value else "false"
+
+    def isEmpty(self) -> bool:  # noqa: N802
+        return False
+
+    def __bool__(self) -> bool:
+        return self._value
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, _FlowBool):
+            return self._value == other._value
+        return self._value == other
+
+    def __repr__(self) -> str:
+        return "true" if self._value else "false"
+
+    def __str__(self) -> str:
+        return "true" if self._value else "false"
+
+    def __hash__(self) -> int:
+        return hash(self._value)
+
+
 def _wrap(value: Any) -> Any:
-    """Wrap dicts and lists in attribute-access proxies; leave other values as-is."""
+    """Wrap dicts, lists, strings, and numbers in proxies with extension methods."""
+    if isinstance(value, _AttrDict | _AttrList | _FlowStr | _FlowNum | _FlowBool):
+        return value  # already wrapped
     if isinstance(value, dict):
         return _AttrDict(value)
     if isinstance(value, list):
         return _AttrList(value)
+    if isinstance(value, bool):
+        return _FlowBool(value)
+    if isinstance(value, str):
+        return _FlowStr(value)
+    if isinstance(value, int | float):
+        return _FlowNum(value)
     return value
 
 
@@ -349,17 +735,53 @@ class _JSONHelper:
 
 class _MathHelper:
     """Provides Math.* functions in expression context."""
-    abs = staticmethod(abs)
-    max = staticmethod(max)
-    min = staticmethod(min)
+    abs = staticmethod(builtins_abs)
+    max = staticmethod(builtins_max)
+    min = staticmethod(builtins_min)
     pow = staticmethod(pow)
     sqrt = staticmethod(lambda x: x ** 0.5)
     floor = staticmethod(lambda x: int(x) if x >= 0 else int(x) - 1)
     ceil = staticmethod(lambda x: int(x) + (1 if x != int(x) else 0))
-    round = staticmethod(round)
+    round = staticmethod(builtins_round)
     random = staticmethod(__import__("random").random)
     pi = 3.141592653589793
     e = 2.718281828459045
+
+
+class _ObjectHelper:
+    """Provides Object.keys/values/entries/assign/fromEntries in expression context."""
+
+    @staticmethod
+    def keys(obj: Any) -> list:
+        if isinstance(obj, _AttrDict):
+            return list(object.__getattribute__(obj, "_data").keys())
+        return list(obj.keys()) if isinstance(obj, dict) else []
+
+    @staticmethod
+    def values(obj: Any) -> list:
+        if isinstance(obj, _AttrDict):
+            return list(object.__getattribute__(obj, "_data").values())
+        return list(obj.values()) if isinstance(obj, dict) else []
+
+    @staticmethod
+    def entries(obj: Any) -> list:
+        if isinstance(obj, _AttrDict):
+            return list(object.__getattribute__(obj, "_data").items())
+        return list(obj.items()) if isinstance(obj, dict) else []
+
+    @staticmethod
+    def assign(target: dict, *sources: dict) -> dict:
+        result = dict(target)
+        for src in sources:
+            if isinstance(src, _AttrDict):
+                result.update(object.__getattribute__(src, "_data"))
+            elif isinstance(src, dict):
+                result.update(src)
+        return result
+
+    @staticmethod
+    def fromEntries(entries: list) -> dict:  # noqa: N802
+        return dict(entries)
 
 
 # ── Expression evaluator ──────────────────────────────────────────────────────
@@ -409,6 +831,16 @@ def _preprocess_expression(expr: str) -> str:
         ("$binary", "_binary"),
         ("$fromAI", "_fromAI"),
         ("$jmespath", "_jmespath"),
+        ("$if", "_if"),
+        ("$ifEmpty", "_ifEmpty"),
+        ("$min", "_min"),
+        ("$max", "_max"),
+        ("$sum", "_sum"),
+        ("$average", "_average"),
+        ("$randomInt", "_randomInt"),
+        ("$parseDate", "_parseDate"),
+        ("$lookup", "_lookup"),
+        ("$not", "_not"),
     ]
     for dollar_var, py_var in _dollar_map:
         expr = expr.replace(dollar_var, py_var)
@@ -442,7 +874,29 @@ def _preprocess_expression(expr: str) -> str:
 
 def evaluate_expression(expr: str, context: dict[str, Any]) -> Any:
     """Evaluate a single expression string (without {{ }}) against context."""
-    expr = _preprocess_expression(expr.strip())
+    from .errors import (
+        ExpressionReferenceError,
+        ExpressionSecurityError,
+        ExpressionSyntaxError,
+    )
+
+    raw_expr = expr.strip()
+    if not raw_expr:
+        return ""
+
+    # Security lint: block dangerous patterns before eval
+    _FORBIDDEN = ("__proto__", "__import__", "constructor", "prototype", "process.",
+                  "require(", "eval(", "exec(", "compile(", "globals(", "locals(",
+                  "getattr(", "setattr(", "delattr(", "open(", "import ")
+    expr_lower = raw_expr.lower()
+    for forbidden in _FORBIDDEN:
+        if forbidden in expr_lower:
+            raise ExpressionSecurityError(
+                f"Expression contains forbidden construct: '{forbidden}'",
+                expression=raw_expr,
+            )
+
+    expr = _preprocess_expression(raw_expr)
     if not expr:
         return ""
 
@@ -456,6 +910,16 @@ def evaluate_expression(expr: str, context: dict[str, Any]) -> Any:
 
     try:
         return eval(expr, {"__builtins__": {}}, local_vars)  # noqa: S307
+    except SyntaxError as e:
+        raise ExpressionSyntaxError(
+            f"Expression syntax error: {e}",
+            expression=raw_expr,
+        ) from e
+    except NameError as e:
+        raise ExpressionReferenceError(
+            str(e),
+            expression=raw_expr,
+        ) from e
     except Exception:
         # Attempt dot-navigation fallback for simple $json.path.to.field expressions
         return _navigate_path(expr, context)

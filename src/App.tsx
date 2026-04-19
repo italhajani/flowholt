@@ -1,132 +1,126 @@
-import { Suspense, lazy, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import DashboardRouteLoader from "@/components/dashboard/DashboardRouteLoader";
-import StudioRouteLoader from "@/components/studio/StudioRouteLoader";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import NotFound from "./pages/NotFound.tsx";
-import { AuthProvider } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AppShellLayout } from "@/layouts/AppShellLayout";
+import { AuthLayout } from "@/layouts/AuthLayout";
+import { SettingsLayout } from "@/layouts/SettingsLayout";
+import { HomePage } from "@/pages/HomePage";
+import { WorkflowsPage } from "@/pages/WorkflowsPage";
+import { AIAgentsPage } from "@/pages/AIAgentsPage";
+import { TemplatesPage } from "@/pages/TemplatesPage";
+import { ExecutionsPage } from "@/pages/ExecutionsPage";
+import { VaultPage } from "@/pages/VaultPage";
+import { WebhooksPage } from "@/pages/WebhooksPage";
+import { DataPage } from "@/pages/DataPage";
+import { ProvidersPage } from "@/pages/ProvidersPage";
+import { OperationsPage } from "@/pages/OperationsPage";
+import { EnvironmentPage } from "@/pages/EnvironmentPage";
+import { HelpPage } from "@/pages/HelpPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { SignupPage } from "@/pages/SignupPage";
+import { ProfileSettings } from "@/pages/settings/ProfileSettings";
+import { PreferencesSettings } from "@/pages/settings/PreferencesSettings";
+import { NotificationSettings } from "@/pages/settings/NotificationSettings";
+import { ApiAccessSettings } from "@/pages/settings/ApiAccessSettings";
+import { WorkspaceGeneralSettings } from "@/pages/settings/WorkspaceGeneralSettings";
+import { MembersSettings } from "@/pages/settings/MembersSettings";
+import { RuntimeSettings } from "@/pages/settings/RuntimeSettings";
+import { IntegrationsSettings } from "@/pages/settings/IntegrationsSettings";
+import { DomainsSettings } from "@/pages/settings/DomainsSettings";
+import { SecuritySettings } from "@/pages/settings/SecuritySettings";
+import { BillingSettings } from "@/pages/settings/BillingSettings";
+import { WorkflowDetailPage } from "@/pages/detail/WorkflowDetailPage";
+import { CredentialDetailPage } from "@/pages/detail/CredentialDetailPage";
+import { ConnectionDetailPage } from "@/pages/detail/ConnectionDetailPage";
+import { AgentDetailPage } from "@/pages/detail/AgentDetailPage";
+import { ProviderDetailPage } from "@/pages/detail/ProviderDetailPage";
+import { TemplateDetailPage } from "@/pages/detail/TemplateDetailPage";
+import { ExecutionDetailPage } from "@/pages/detail/ExecutionDetailPage";
+import { WebhookDetailPage } from "@/pages/detail/WebhookDetailPage";
+import { HumanTasksPage } from "@/pages/HumanTasksPage";
+import { ApiPlaygroundPage } from "@/pages/ApiPlaygroundPage";
+import { ChatHubPage } from "@/pages/ChatHubPage";
+import { StudioLayout } from "@/layouts/StudioLayout";
+import { PublicChatPage } from "@/pages/public/PublicChatPage";
+import { PublicFormPage } from "@/pages/public/PublicFormPage";
+import { ModelDirectoryPage } from "@/pages/ModelDirectoryPage";
+import { InviteAcceptPage } from "@/pages/InviteAcceptPage";
+import { CommandPalette } from "@/components/ui/command-palette";
+import { ToastProvider } from "@/components/ui/toast";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const AuthPage = lazy(() => import("@/pages/AuthPage"));
-const PublicChatPage = lazy(() => import("@/pages/PublicChatPage"));
-
-const WorkflowsPage = lazy(() => import("@/pages/dashboard/WorkflowsPage"));
-const OverviewPage = lazy(() => import("@/pages/dashboard/OverviewPage"));
-const TemplatesPage = lazy(() => import("@/pages/dashboard/TemplatesPage"));
-const ExecutionsPage = lazy(() => import("@/pages/dashboard/ExecutionsPage"));
-const IntegrationsPage = lazy(() => import("@/pages/dashboard/IntegrationsPage"));
-const ApiPlaygroundPage = lazy(() => import("@/pages/dashboard/ApiPlaygroundPage"));
-const CredentialsPage = lazy(() => import("@/pages/dashboard/CredentialsPageLive"));
-const HelpCenterPage = lazy(() => import("@/pages/dashboard/HelpCenterPage"));
-const SettingsPage = lazy(() => import("@/pages/dashboard/SettingsPage"));
-const SystemStatusPage = lazy(() => import("@/pages/dashboard/SystemStatusPage"));
-const ProvidersPage = lazy(() => import("@/pages/dashboard/ProvidersPage"));
-const WebhooksPage = lazy(() => import("@/pages/dashboard/WebhooksPage"));
-const AuditLogPage = lazy(() => import("@/pages/dashboard/AuditLogPage"));
-const ExecutionDetailPage = lazy(() => import("@/pages/dashboard/ExecutionDetailPage"));
-const EnvironmentPage = lazy(() => import("@/pages/dashboard/EnvironmentPage"));
-const ChatPage = lazy(() => import("@/pages/dashboard/ChatPage"));
-const AIAgentsPage = lazy(() => import("@/pages/dashboard/AIAgentsPage"));
-const AIAgentDetailPage = lazy(() => import("@/pages/dashboard/AIAgentDetailPage"));
-const WorkflowStudio = lazy(() => import("@/components/studio/WorkflowStudio"));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
-const lazyDashboardPage = (pathname: string, element: ReactNode) => (
-  <ErrorBoundary>
-    <Suspense fallback={<DashboardRouteLoader pathname={pathname} />}>{element}</Suspense>
-  </ErrorBoundary>
-);
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
+export function App() {
+  return (
+    <ThemeProvider>
+    <HashRouter>
+      <ToastProvider>
+        <ConfirmProvider>
+          <CommandPalette />
           <Routes>
-            {/* Public auth page */}
-            <Route
-              path="/"
-              element={
-                <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
-                  <AuthPage />
-                </Suspense>
-              }
-            />
+            {/* Auth routes */}
+            <Route element={<AuthLayout />}>
+              <Route path="/auth/login" element={<LoginPage />} />
+              <Route path="/auth/signup" element={<SignupPage />} />
+              <Route path="/auth/invite/:token" element={<InviteAcceptPage />} />
+            </Route>
 
-            <Route
-              path="/chat/:workspaceId/:workflowId"
-              element={
-                <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background text-foreground"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/30 border-t-primary" /></div>}>
-                  <PublicChatPage />
-                </Suspense>
-              }
-            />
+            {/* Studio — full-screen layout, no shell */}
+            <Route path="/studio/:workflowId" element={<StudioLayout />} />
 
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              {/* Dashboard */}
-              <Route path="/dashboard" element={<ErrorBoundary fallbackTitle="Dashboard error"><DashboardLayout /></ErrorBoundary>}>
-                <Route index element={<Navigate to="/dashboard/workflows" replace />} />
-            <Route path="workflows" element={lazyDashboardPage("/dashboard/workflows", <WorkflowsPage />)} />
-            <Route path="overview" element={lazyDashboardPage("/dashboard/overview", <OverviewPage />)} />
-            <Route path="templates" element={lazyDashboardPage("/dashboard/templates", <TemplatesPage />)} />
-            <Route path="executions" element={lazyDashboardPage("/dashboard/executions", <ExecutionsPage />)} />
-            <Route path="integrations" element={lazyDashboardPage("/dashboard/integrations", <IntegrationsPage />)} />
-            <Route path="credentials" element={lazyDashboardPage("/dashboard/credentials", <CredentialsPage />)} />
-            <Route path="vault" element={<Navigate to="/dashboard/credentials" replace />} />
-            <Route path="connections" element={<Navigate to="/dashboard/credentials" replace />} />
-            <Route path="variables" element={<Navigate to="/dashboard/credentials" replace />} />
-            <Route path="settings" element={lazyDashboardPage("/dashboard/settings", <SettingsPage />)} />
-            <Route path="system" element={lazyDashboardPage("/dashboard/system", <SystemStatusPage />)} />
-            <Route path="providers" element={lazyDashboardPage("/dashboard/providers", <ProvidersPage />)} />
-            <Route path="webhooks" element={lazyDashboardPage("/dashboard/webhooks", <WebhooksPage />)} />
-            <Route path="audit" element={lazyDashboardPage("/dashboard/audit", <AuditLogPage />)} />
-            <Route path="executions/:executionId" element={lazyDashboardPage("/dashboard/executions", <ExecutionDetailPage />)} />
-            <Route path="environment" element={lazyDashboardPage("/dashboard/environment", <EnvironmentPage />)} />
-            <Route path="help" element={lazyDashboardPage("/dashboard/help", <HelpCenterPage />)} />
-            <Route path="api" element={lazyDashboardPage("/dashboard/api", <ApiPlaygroundPage />)} />
-            <Route path="chat" element={lazyDashboardPage("/dashboard/chat", <ChatPage />)} />
-            <Route path="ai-agents" element={lazyDashboardPage("/dashboard/ai-agents", <AIAgentsPage />)} />
-            <Route path="ai-agents/:workflowId/:nodeId" element={lazyDashboardPage("/dashboard/ai-agents", <AIAgentDetailPage />)} />
-          </Route>
+            {/* Public trigger layouts — no shell, standalone */}
+            <Route path="/public/chat/:id" element={<PublicChatPage />} />
+            <Route path="/public/form/:id" element={<PublicFormPage />} />
 
-          {/* Studio Editor */}
-          <Route
-            path="/studio/:id"
-            element={
-              <ErrorBoundary fallbackTitle="Studio editor error">
-                <Suspense fallback={<StudioRouteLoader />}>
-                  <WorkflowStudio />
-                </Suspense>
-              </ErrorBoundary>
-            }
-          />
-            </Route>{/* end ProtectedRoute */}
+            {/* Main app shell — all signed-in routes */}
+            <Route element={<AppShellLayout />}>
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/workflows" element={<WorkflowsPage />} />
+              <Route path="/workflows/:id" element={<WorkflowDetailPage />} />
+              <Route path="/ai-agents" element={<AIAgentsPage />} />
+              <Route path="/ai-agents/:id" element={<AgentDetailPage />} />
+              <Route path="/templates" element={<TemplatesPage />} />
+              <Route path="/templates/:id" element={<TemplateDetailPage />} />
+              <Route path="/executions" element={<ExecutionsPage />} />
+              <Route path="/executions/:id" element={<ExecutionDetailPage />} />
+              <Route path="/vault/credentials/:id" element={<CredentialDetailPage />} />
+              <Route path="/vault/connections/:id" element={<ConnectionDetailPage />} />
+              <Route path="/vault/*" element={<VaultPage />} />
+              <Route path="/webhooks" element={<WebhooksPage />} />
+              <Route path="/webhooks/:id" element={<WebhookDetailPage />} />
+              <Route path="/data/*" element={<DataPage />} />
+              <Route path="/providers" element={<ProvidersPage />} />
+              <Route path="/providers/:id" element={<ProviderDetailPage />} />
+              <Route path="/models" element={<ModelDirectoryPage />} />
+              <Route path="/operations/*" element={<OperationsPage />} />
+              <Route path="/environment/*" element={<EnvironmentPage />} />
+              <Route path="/help/api" element={<ApiPlaygroundPage />} />
+              <Route path="/help" element={<HelpPage />} />
+              <Route path="/human-tasks" element={<HumanTasksPage />} />
+              <Route path="/chat" element={<ChatHubPage />} />
 
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+              {/* Settings with nested layout */}
+              <Route path="/settings" element={<SettingsLayout />}>
+                <Route index element={<Navigate to="/settings/profile" replace />} />
+                <Route path="profile" element={<ProfileSettings />} />
+                <Route path="preferences" element={<PreferencesSettings />} />
+                <Route path="notifications" element={<NotificationSettings />} />
+                <Route path="api-access" element={<ApiAccessSettings />} />
+                <Route path="workspace/general" element={<WorkspaceGeneralSettings />} />
+                <Route path="workspace/members" element={<MembersSettings />} />
+                <Route path="workspace/runtime" element={<RuntimeSettings />} />
+                <Route path="workspace/integrations" element={<IntegrationsSettings />} />
+                <Route path="workspace/domains" element={<DomainsSettings />} />
+                <Route path="workspace/security" element={<SecuritySettings />} />
+                <Route path="workspace/billing" element={<BillingSettings />} />
+              </Route>
+            </Route>
 
-export default App;
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
+          </Routes>
+        </ConfirmProvider>
+      </ToastProvider>
+    </HashRouter>
+    </ThemeProvider>
+  );
+}
+

@@ -1,145 +1,81 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
-  prefix: "",
+  content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
     extend: {
-      fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        display: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-      },
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        /* Core palette — file 61 tokens */
+        page: "var(--color-bg-page)",
+        surface: {
+          DEFAULT: "var(--color-bg-surface)",
+          strong: "var(--color-bg-surface-strong)",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+        fg: {
+          DEFAULT: "var(--color-fg-default)",
+          secondary: "var(--color-fg-secondary)",
+          muted: "var(--color-fg-muted)",
         },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+        border: {
+          DEFAULT: "var(--color-border-default)",
+          strong: "var(--color-border-strong)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          green: "var(--color-accent-green)",
+          "green-soft": "var(--color-accent-green-soft)",
         },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+        danger: "var(--color-danger)",
+        warning: "var(--color-warning)",
+        info: "var(--color-info)",
+        primary: {
+          DEFAULT: "var(--color-primary-black)",
+          hover: "var(--color-primary-black-hover)",
         },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
-        },
-        studio: {
-          bg: "hsl(var(--studio-bg))",
-          surface: "hsl(var(--studio-surface))",
-          "surface-hover": "hsl(var(--studio-surface-hover))",
-          sidebar: "hsl(var(--studio-sidebar))",
-          divider: "hsl(var(--studio-divider))",
-          "text-primary": "hsl(var(--studio-text-primary))",
-          "text-secondary": "hsl(var(--studio-text-secondary))",
-          "text-tertiary": "hsl(var(--studio-text-tertiary))",
-          success: "hsl(var(--studio-success))",
-          warning: "hsl(var(--studio-warning))",
-          orange: "hsl(var(--studio-orange))",
-          teal: "hsl(var(--studio-teal))",
-          navy: "hsl(var(--studio-navy))",
-        },
-        blue: {
-          500: "#29d47c",
-        },
-        slate: {
-          "100": "#cccccc30",
-        },
-        teal: {
-          400: "#29d47c",
-        },
-        accent2: "rgb(55 55 55)",
-        primary2: "#34d394",
-        "gray-2": "#373737",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-        "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(4px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "slide-in-right": {
-          "0%": { transform: "translateX(100%)", opacity: "0" },
-          "100%": { transform: "translateX(0)", opacity: "1" },
-        },
-        "slide-in-left": {
-          "0%": { transform: "translateX(-100%)", opacity: "0" },
-          "100%": { transform: "translateX(0)", opacity: "1" },
-        },
-        "scale-in": {
-          "0%": { transform: "scale(0.96)", opacity: "0" },
-          "100%": { transform: "scale(1)", opacity: "1" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.25s ease-out",
-        "slide-in-right": "slide-in-right 0.3s ease-out",
-        "slide-in-left": "slide-in-left 0.3s ease-out",
-        "scale-in": "scale-in 0.2s ease-out",
+        xs:   "var(--radius-xs)",
+        sm:   "var(--radius-sm)",
+        md:   "var(--radius-md)",
+        lg:   "var(--radius-lg)",
+        xl:   "var(--radius-xl)",
+        "2xl":"var(--radius-2xl)",
+        pill: "var(--radius-pill)",
       },
       boxShadow: {
-        "inset-teal": "inset 2px 0 0 #29d47c",
+        xs:      "var(--shadow-xs)",
+        sm:      "var(--shadow-sm)",
+        md:      "var(--shadow-md)",
+        lg:      "var(--shadow-lg)",
+        overlay: "var(--shadow-overlay)",
       },
-      backgroundImage: {
-        "gradient-text": "linear-gradient(to right, #373737 8%, #373737 13%, #29cd89 77%)",
+      fontSize: {
+        xs: ["11px", { lineHeight: "1.4" }],
+        sm: ["13px", { lineHeight: "1.5" }],
+        base: ["14px", { lineHeight: "1.5" }],
+        md: ["15px", { lineHeight: "1.4" }],
+        lg: ["18px", { lineHeight: "1.35" }],
+        xl: ["24px", { lineHeight: "1.25" }],
+        "2xl": ["30px", { lineHeight: "1.2" }],
+      },
+      fontFamily: {
+        sans: [
+          "Inter",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "sans-serif",
+        ],
+        mono: [
+          "JetBrains Mono",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace",
+        ],
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 } satisfies Config;
-
-
-// linear-gradient(to right, #29cd89 8%, #373737 50%, 67% #29cd89 82%)
-
-// linear-gradient(to right, #373737 8%, #373737 13% 2%, #29cd89 77%)

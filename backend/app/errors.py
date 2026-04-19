@@ -70,6 +70,58 @@ WARNING_TYPES: frozenset[str] = frozenset({
 })
 
 
+# ---------------------------------------------------------------------------
+# Expression error types (spec 53 §5)
+# ---------------------------------------------------------------------------
+
+class ExpressionError(Exception):
+    """Base class for all expression evaluation errors."""
+
+    def __init__(self, message: str, *, expression: str = "", position: int | None = None) -> None:
+        super().__init__(message)
+        self.expression = expression
+        self.position = position
+
+
+class ExpressionSyntaxError(ExpressionError):
+    """Expression has invalid syntax."""
+
+
+class ExpressionSecurityError(ExpressionError):
+    """Expression contains a forbidden construct (e.g. __proto__, eval, import)."""
+
+
+class ExpressionTimeoutError(ExpressionError):
+    """Expression exceeded the CPU time limit."""
+
+
+class ExpressionMemoryError(ExpressionError):
+    """Expression exceeded memory limit."""
+
+
+class ExpressionReferenceError(ExpressionError):
+    """Expression references an undefined variable."""
+
+
+class ExpressionTypeError(ExpressionError):
+    """Expression invokes a method on an incompatible type."""
+
+
+class ExpressionResultTooLarge(ExpressionError):
+    """Expression result exceeds the maximum allowed size."""
+
+
+EXPRESSION_ERROR_TYPES: frozenset[str] = frozenset({
+    "ExpressionSyntaxError",
+    "ExpressionSecurityError",
+    "ExpressionTimeoutError",
+    "ExpressionMemoryError",
+    "ExpressionReferenceError",
+    "ExpressionTypeError",
+    "ExpressionResultTooLarge",
+})
+
+
 def classify_error(error_type: str) -> dict[str, bool]:
     """Return classification flags for a given error type."""
     return {

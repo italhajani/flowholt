@@ -471,7 +471,7 @@ def run_workflow_definition(
 
                 filtered: list[Any] = []
                 for item in filter_items:
-                    actual = item.get(field) if isinstance(item, dict) else item
+                    actual = _lookup_path_value(item, field) if field else item
                     if operator == "equals" and str(actual) == str(compare_value):
                         filtered.append(item)
                     elif operator == "not_equals" and str(actual) != str(compare_value):
@@ -487,6 +487,56 @@ def run_workflow_definition(
 
                 output = {"original_count": len(filter_items), "filtered_count": len(filtered), "items": filtered}
                 context["filtered"] = filtered
+                context.update(output)
+
+            # ── Aggregate node ──────────────────────────────────────
+            elif step_type == "aggregate":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                value_field = str(config.get("value_field") or "").strip()
+                aggregate_field = str(config.get("aggregate_field") or "items").strip() or "items"
+                output_key = str(config.get("output_key") or "aggregated").strip() or "aggregated"
+                aggregated_values = [
+                    _lookup_path_value(item, value_field) if value_field else item
+                    for item in source_items
+                ]
+
+                output = {
+                    aggregate_field: aggregated_values,
+                    "source_count": len(source_items),
+                }
+                if config.get("include_count", True):
+                    output["count"] = len(aggregated_values)
+
+                context[output_key] = output
+                context.update(output)
+
+            # ── Split Out node ──────────────────────────────────────
+            elif step_type == "split_out":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                field = str(config.get("field") or "").strip()
+                output_field = str(config.get("output_field") or "item").strip() or "item"
+                output_key = str(config.get("output_key") or "split_items").strip() or "split_items"
+                include_parent_fields = bool(config.get("include_parent_fields"))
+
+                split_items: list[Any] = []
+                if field:
+                    for source_item in source_items:
+                        array_value = _lookup_path_value(source_item, field)
+                        if not isinstance(array_value, list):
+                            continue
+                        parent_fields = _split_parent_fields(source_item, field) if include_parent_fields else {}
+                        for entry in array_value:
+                            split_items.append(_normalize_split_entry(entry, output_field, parent_fields))
+                else:
+                    for entry in source_items:
+                        split_items.append(_normalize_split_entry(entry, output_field))
+
+                output = {
+                    "items": split_items,
+                    "count": len(split_items),
+                    "source_count": len(source_items),
+                }
+                context[output_key] = output
                 context.update(output)
 
             # ── Merge / Aggregate node ──────────────────────────────
@@ -634,6 +684,68 @@ def run_workflow_definition(
         "result": result,
         "context": context,
     }
+
+
+def _resolve_collection_source(source: Any, context: dict[str, Any], payload: dict[str, Any]) -> list[Any]:
+    if isinstance(source, list):
+        return source
+    if source is None:
+        return []
+    if isinstance(source, str):
+        source_key = source.strip()
+        resolved = context.get(source_key)
+        if resolved is None:
+            resolved = payload.get(source_key)
+        if isinstance(resolved, list):
+            return resolved
+        if resolved is not None:
+            return [resolved]
+        if source_key.startswith("["):
+            try:
+                parsed = json.loads(source_key)
+            except (json.JSONDecodeError, ValueError):
+                return []
+            return parsed if isinstance(parsed, list) else [parsed]
+        return []
+    return [source]
+
+
+def _lookup_path_value(value: Any, path: str) -> Any:
+    current = value
+    for part in [segment for segment in path.split(".") if segment]:
+        if isinstance(current, dict):
+            current = current.get(part)
+            continue
+        if isinstance(current, list):
+            try:
+                index = int(part)
+            except ValueError:
+                return None
+            current = current[index] if 0 <= index < len(current) else None
+            continue
+        current = getattr(current, part, None)
+        if current is None:
+            return None
+    return current
+
+
+def _split_parent_fields(source_item: Any, field: str) -> dict[str, Any]:
+    if not isinstance(source_item, dict):
+        return {}
+    parent = dict(source_item)
+    if "." not in field and "[" not in field:
+        parent.pop(field, None)
+    return parent
+
+
+def _normalize_split_entry(entry: Any, output_field: str, parent_fields: dict[str, Any] | None = None) -> dict[str, Any]:
+    base = dict(parent_fields or {})
+    if isinstance(entry, dict):
+        merged = dict(base)
+        merged.update(entry)
+        return merged
+    base[output_field] = entry
+    return base
 
 
 def _resolve_next_step(

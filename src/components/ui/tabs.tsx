@@ -1,53 +1,54 @@
-import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs";
-
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+interface Tab {
+  id: string;
+  label: string;
+  content?: ReactNode;
+}
 
-const TabsList = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsList.displayName = TabsPrimitive.List.displayName;
+interface TabsProps {
+  tabs: Tab[];
+  defaultTab?: string;
+  className?: string;
+  children?: (activeTab: string) => ReactNode;
+}
 
-const TabsTrigger = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
+export function Tabs({ tabs, defaultTab, className, children }: TabsProps) {
+  const [active, setActive] = useState(defaultTab ?? tabs[0]?.id);
 
-const TabsContent = React.forwardRef<
-  React.ElementRef<typeof TabsPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn(
-      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-      className,
-    )}
-    {...props}
-  />
-));
-TabsContent.displayName = TabsPrimitive.Content.displayName;
+  return (
+    <div className={cn("flex flex-col", className)}>
+      {/* Tab strip */}
+      <div
+        className="flex items-center gap-0.5 border-b border-zinc-100"
+        role="tablist"
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            role="tab"
+            aria-selected={active === tab.id}
+            onClick={() => setActive(tab.id)}
+            className={cn(
+              "relative px-3 py-2 text-[13px] font-medium transition-all duration-150",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-1 rounded-sm",
+              active === tab.id
+                ? "text-zinc-900 after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-zinc-900"
+                : "text-zinc-400 hover:text-zinc-700"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+      {/* Tab content */}
+      <div className="flex-1 pt-4">
+        {children
+          ? children(active)
+          : tabs.find((t) => t.id === active)?.content}
+      </div>
+    </div>
+  );
+}

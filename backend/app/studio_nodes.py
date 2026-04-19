@@ -862,6 +862,28 @@ def _group_fields(node_type: str, fields: list[dict[str, Any]]) -> list[dict[str
         if config_fields:
             secs.append({"id": "other", "title": "Other", "description": None, "fields": config_fields})
         return secs
+    if node_type == "aggregate":
+        aggregate_fields = _pick(config_fields, keys={"items", "value_field", "aggregate_field"})
+        option_fields = _pick(config_fields, group="Options")
+        secs = [
+            {"id": "aggregate", "title": "Aggregation", "description": "Collect many items into one array field.", "fields": aggregate_fields},
+        ]
+        if option_fields:
+            secs.append({"id": "options", "title": "Options", "description": "Control result storage and count metadata.", "fields": option_fields})
+        if config_fields:
+            secs.append({"id": "other", "title": "Other", "description": None, "fields": config_fields})
+        return secs
+    if node_type == "split_out":
+        split_fields = _pick(config_fields, keys={"items", "field", "output_field"})
+        option_fields = _pick(config_fields, group="Options")
+        secs = [
+            {"id": "split", "title": "Split", "description": "Expand list values into one item per element.", "fields": split_fields},
+        ]
+        if option_fields:
+            secs.append({"id": "options", "title": "Options", "description": "Control parent-field carryover and result storage.", "fields": option_fields})
+        if config_fields:
+            secs.append({"id": "other", "title": "Other", "description": None, "fields": config_fields})
+        return secs
     if node_type == "transform":
         op_fields = _pick(config_fields, keys={"operation", "template", "fields_map", "rename_map", "remove_keys", "json_field", "output_key"})
         option_fields = _pick(config_fields, group="Options")
@@ -916,6 +938,12 @@ def _sample_output(node_type: str, config: dict[str, Any]) -> dict[str, Any]:
         return {"wait_type": "human", "choices": config.get("choices") or ["approved", "rejected"]}
     if node_type == "callback":
         return {"wait_type": "callback", "mode": config.get("mode") or "payload"}
+    if node_type == "aggregate":
+        aggregate_field = config.get("aggregate_field") or "items"
+        return {aggregate_field: [{"id": "item-1"}, {"id": "item-2"}], "count": 2, "source_count": 2}
+    if node_type == "split_out":
+        output_field = config.get("output_field") or "item"
+        return {"items": [{output_field: "a"}, {output_field: "b"}], "count": 2, "source_count": 1}
     return {}
 
 

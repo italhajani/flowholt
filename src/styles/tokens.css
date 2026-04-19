@@ -1,0 +1,117 @@
+/* =============================================================
+   FlowHolt Design Tokens — Claude/Cursor aesthetic
+   Source: 61-FLOWHOLT-DESIGN-TOKENS-AND-COMPONENT-LIBRARY.md
+   ============================================================= */
+
+:root {
+  /* ── Background layers ── */
+  --color-bg-page:           #ffffff;   /* Main content */
+  --color-bg-surface:        #fafafa;   /* Panels, sidebars */
+  --color-bg-surface-strong: #f4f4f5;   /* Elevated surface */
+  --color-bg-overlay:        #ffffff;   /* Modals, popovers */
+  --color-bg-hover:          #f4f4f5;   /* Item hover */
+  --color-bg-active:         #ebebec;   /* Item pressed */
+  --color-bg-selected:       #f4f4f5;   /* Nav selected */
+
+  /* ── Text ── */
+  --color-fg-default:   #18181b;  /* Primary text */
+  --color-fg-secondary: #71717a;  /* Supporting labels */
+  --color-fg-muted:     #a1a1aa;  /* Disabled, placeholders */
+  --color-fg-inverse:   #ffffff;  /* Text on dark bg */
+
+  /* ── Borders ── */
+  --color-border-default: #e4e4e7;
+  --color-border-strong:  #d4d4d8;
+  --color-border-focus:   #18181b;
+
+  /* ── Accent green — sparse: status/health only ── */
+  --color-accent-green:     #16a34a;  /* Text/icon success */
+  --color-accent-green-dot: #22c55e;  /* Active status dot */
+  --color-accent-green-bg:  #dcfce7;  /* Success chip bg */
+  --color-accent-green-soft: #d1fae5; /* Kept for compat */
+
+  /* ── Semantic status ── */
+  --color-danger:     #dc2626;
+  --color-danger-bg:  #fee2e2;
+  --color-warning:    #d97706;
+  --color-warning-bg: #fef3c7;
+  --color-info:       #2563eb;
+  --color-info-bg:    #dbeafe;
+
+  /* ── Primary CTAs (black) ── */
+  --color-primary-black:       #18181b;
+  --color-primary-black-hover: #27272a;
+
+  /* ── Radius scale ── */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-pill: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:      0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg:      0 8px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.14), 0 8px 16px rgba(0, 0, 0, 0.08);
+
+  /* ── Shell dimensions ── */
+  --sidebar-width:   68px;    /* Single Make-style sidebar */
+  --header-height:   44px;
+  --page-max-width:  1280px;
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', 'Cascadia Code', monospace;
+
+  /* ── Animation ── */
+  --duration-fast: 100ms;
+  --duration-base: 150ms;
+  --duration-slow: 250ms;
+  --ease-out:    cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Dark Mode ── */
+[data-theme="dark"] {
+  --color-bg-page:           #0a0a0b;
+  --color-bg-surface:        #111113;
+  --color-bg-surface-strong: #1a1a1e;
+  --color-bg-overlay:        #18181b;
+  --color-bg-hover:          #1f1f23;
+  --color-bg-active:         #27272b;
+  --color-bg-selected:       #1f1f23;
+
+  --color-fg-default:   #fafafa;
+  --color-fg-secondary: #a1a1aa;
+  --color-fg-muted:     #71717a;
+  --color-fg-inverse:   #18181b;
+
+  --color-border-default: #27272a;
+  --color-border-strong:  #3f3f46;
+  --color-border-focus:   #d4d4d8;
+
+  --color-accent-green:     #4ade80;
+  --color-accent-green-dot: #22c55e;
+  --color-accent-green-bg:  #052e16;
+  --color-accent-green-soft: #064e3b;
+
+  --color-danger:     #f87171;
+  --color-danger-bg:  #450a0a;
+  --color-warning:    #fbbf24;
+  --color-warning-bg: #451a03;
+  --color-info:       #60a5fa;
+  --color-info-bg:    #172554;
+
+  --color-primary-black:       #fafafa;
+  --color-primary-black-hover: #e4e4e7;
+
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:      0 4px 8px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg:      0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.4);
+}

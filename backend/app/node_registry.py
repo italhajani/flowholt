@@ -1790,10 +1790,10 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
             },
         ],
     },
-    # ── Merge / Aggregate ───────────────────────────────────────
+    # ── Merge ───────────────────────────────────────────────────
     {
         "type": "merge",
-        "label": "Merge / Aggregate",
+        "label": "Merge",
         "category": "Data",
         "description": "Combine data from multiple context sources into a single output.",
         "icon": "merge",
@@ -1847,6 +1847,108 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
                 "type": "string",
                 "required": False,
                 "default": "merged",
+                "group": "Options",
+            },
+        ],
+    },
+    # ── Aggregate ───────────────────────────────────────────────
+    {
+        "type": "aggregate",
+        "label": "Aggregate",
+        "category": "Data",
+        "description": "Combine many items into one item with an array field.",
+        "icon": "package",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "items",
+                "label": "Items Source",
+                "type": "string",
+                "required": True,
+                "help": "Context or payload key holding the list to aggregate.",
+            },
+            {
+                "key": "value_field",
+                "label": "Value Field",
+                "type": "string",
+                "required": False,
+                "help": "Optional field to extract from each item before aggregating. Supports dot notation.",
+            },
+            {
+                "key": "aggregate_field",
+                "label": "Array Field Name",
+                "type": "string",
+                "required": False,
+                "default": "items",
+                "help": "Field name that will hold the aggregated array in the output item.",
+            },
+            {
+                "key": "include_count",
+                "label": "Include Count",
+                "type": "boolean",
+                "required": False,
+                "default": True,
+                "help": "Attach the total number of aggregated values.",
+                "group": "Options",
+            },
+            {
+                "key": "output_key",
+                "label": "Store Result As",
+                "type": "string",
+                "required": False,
+                "default": "aggregated",
+                "help": "Context key that stores the full aggregate result object.",
+                "group": "Options",
+            },
+        ],
+    },
+    # ── Split Out ────────────────────────────────────────────────
+    {
+        "type": "split_out",
+        "label": "Split Out",
+        "category": "Data",
+        "description": "Expand an array into separate items for downstream processing.",
+        "icon": "rows-3",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "items",
+                "label": "Source",
+                "type": "string",
+                "required": True,
+                "help": "Context or payload key holding a list, or holding objects that contain the array field to split.",
+            },
+            {
+                "key": "field",
+                "label": "Array Field",
+                "type": "string",
+                "required": False,
+                "help": "Optional dot-notation field path to the array inside each source item.",
+            },
+            {
+                "key": "output_field",
+                "label": "Output Field",
+                "type": "string",
+                "required": False,
+                "default": "item",
+                "help": "Field name to use when split elements are primitives instead of objects.",
+            },
+            {
+                "key": "include_parent_fields",
+                "label": "Include Parent Fields",
+                "type": "boolean",
+                "required": False,
+                "default": False,
+                "help": "Keep the parent object's sibling fields on each emitted item.",
+                "group": "Options",
+            },
+            {
+                "key": "output_key",
+                "label": "Store Result As",
+                "type": "string",
+                "required": False,
+                "default": "split_items",
+                "help": "Context key that stores the full split result object.",
                 "group": "Options",
             },
         ],
@@ -2978,6 +3080,10 @@ def _infer_field_default(
     if node_type == "http_request" and key == "url":
         return "https://api.example.com"
     if node_type == "filter" and key == "items":
+        return "items"
+    if node_type == "aggregate" and key == "items":
+        return "items"
+    if node_type == "split_out" and key == "items":
         return "items"
     return None
 

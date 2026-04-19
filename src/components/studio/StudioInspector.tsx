@@ -952,6 +952,22 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  if (name === "Schedule Trigger" || name === "Schedule" || name === "Cron") {
+    return (
+      <div className="rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 text-[8px] font-bold text-blue-700">⏰</span>
+          <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">Schedule Trigger</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">Weekdays 9 AM</span>
+          <span className="rounded bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[9px] text-blue-600 font-mono">0 9 * * 1-5</span>
+        </div>
+        <p className="mt-1.5 text-[9px] text-blue-500">Next run: Mon, Jan 6, 2025 09:00 UTC</p>
+      </div>
+    );
+  }
+
   if (family === "trigger") {
     const method = config.fields?.find((f) => f.label === "Method")?.value || "POST";
     const path = config.fields?.find((f) => f.label === "Path")?.value || "/webhook";
@@ -1171,6 +1187,7 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
       {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
       {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
       {nodeName === "Chat Trigger" && <ChatTriggerParams />}
+      {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
 
       <button
         onClick={() => setAdvanced((o) => !o)}
@@ -1486,6 +1503,189 @@ function ChatTriggerParams() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Schedule Builder Params ── */
+function ScheduleBuilderParams() {
+  const [mode, setMode] = useState<"interval" | "cron" | "specific">("interval");
+  const [intervalAmount, setIntervalAmount] = useState("5");
+  const [intervalUnit, setIntervalUnit] = useState("minutes");
+  const [cronExpression, setCronExpression] = useState("0 9 * * 1-5");
+  const [timezone, setTimezone] = useState("UTC");
+
+  const cronPresets = [
+    { label: "Every minute", cron: "* * * * *" },
+    { label: "Every hour", cron: "0 * * * *" },
+    { label: "Daily at 9 AM", cron: "0 9 * * *" },
+    { label: "Weekdays at 9 AM", cron: "0 9 * * 1-5" },
+    { label: "Weekly on Monday", cron: "0 9 * * 1" },
+    { label: "Monthly on 1st", cron: "0 0 1 * *" },
+  ];
+
+  const describeCron = (c: string): string => {
+    const parts = c.split(" ");
+    if (parts.length !== 5) return "Invalid cron expression";
+    const preset = cronPresets.find(p => p.cron === c);
+    if (preset) return preset.label;
+    return `Custom: ${c}`;
+  };
+
+  const nextRuns = [
+    "Mon, Jan 6, 2025 09:00 UTC",
+    "Tue, Jan 7, 2025 09:00 UTC",
+    "Wed, Jan 8, 2025 09:00 UTC",
+    "Thu, Jan 9, 2025 09:00 UTC",
+    "Fri, Jan 10, 2025 09:00 UTC",
+  ];
+
+  return (
+    <div className="space-y-3">
+      {/* Mode selector */}
+      <FieldGroup label="Trigger mode">
+        <div className="flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
+          {([
+            { key: "interval", label: "Interval" },
+            { key: "cron", label: "Cron" },
+            { key: "specific", label: "Specific Times" },
+          ] as const).map(m => (
+            <button
+              key={m.key}
+              onClick={() => setMode(m.key)}
+              className={cn("flex-1 rounded-md px-2.5 py-1.5 text-[10px] font-medium transition-all",
+                mode === m.key ? "bg-white text-zinc-800 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {/* Interval mode */}
+      {mode === "interval" && (
+        <>
+          <FieldGroup label="Run every">
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={intervalAmount}
+                onChange={e => setIntervalAmount(e.target.value)}
+                min={1}
+                className="h-8 w-20 rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all"
+              />
+              <select
+                value={intervalUnit}
+                onChange={e => setIntervalUnit(e.target.value)}
+                className="h-8 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all"
+              >
+                <option value="seconds">Seconds</option>
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+              </select>
+            </div>
+          </FieldGroup>
+          <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+            <p className="text-[10px] text-blue-700">Runs every {intervalAmount} {intervalUnit}</p>
+          </div>
+        </>
+      )}
+
+      {/* Cron mode */}
+      {mode === "cron" && (
+        <>
+          <FieldGroup label="Cron expression" description="Standard 5-part cron: min hour day month weekday">
+            <input
+              value={cronExpression}
+              onChange={e => setCronExpression(e.target.value)}
+              className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] font-mono text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all"
+              placeholder="* * * * *"
+            />
+          </FieldGroup>
+
+          <FieldGroup label="Quick presets">
+            <div className="flex flex-wrap gap-1">
+              {cronPresets.map(p => (
+                <button
+                  key={p.cron}
+                  onClick={() => setCronExpression(p.cron)}
+                  className={cn("rounded-md border px-2 py-1 text-[9px] font-medium transition-all",
+                    cronExpression === p.cron
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </FieldGroup>
+
+          <div className="rounded-lg bg-green-50 border border-green-100 px-3 py-2">
+            <p className="text-[10px] font-medium text-green-700">{describeCron(cronExpression)}</p>
+            <div className="flex items-center gap-1 mt-1">
+              {cronExpression.split(" ").map((part, i) => (
+                <span key={i} className="rounded bg-green-100 px-1.5 py-0.5 text-[8px] font-mono text-green-800">{part}</span>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Specific times mode */}
+      {mode === "specific" && (
+        <FieldGroup label="Run at specific times">
+          <div className="space-y-1.5">
+            {["09:00", "12:00", "17:00"].map((time, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input type="time" defaultValue={time} className="h-8 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all" />
+                <select defaultValue={i === 0 ? "weekdays" : "daily"} className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-[10px] text-zinc-600 focus:outline-none">
+                  <option value="daily">Daily</option>
+                  <option value="weekdays">Weekdays</option>
+                  <option value="weekends">Weekends</option>
+                  <option value="monday">Monday</option>
+                </select>
+                <button className="text-zinc-300 hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
+              </div>
+            ))}
+            <button className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-600 transition-colors mt-1">
+              <Plus size={10} /> Add time
+            </button>
+          </div>
+        </FieldGroup>
+      )}
+
+      {/* Timezone */}
+      <FieldGroup label="Timezone">
+        <select
+          value={timezone}
+          onChange={e => setTimezone(e.target.value)}
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all"
+        >
+          <option value="UTC">UTC</option>
+          <option value="America/New_York">America/New_York (EST)</option>
+          <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+          <option value="Europe/London">Europe/London (GMT)</option>
+          <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+          <option value="Asia/Karachi">Asia/Karachi (PKT)</option>
+        </select>
+      </FieldGroup>
+
+      {/* Next 5 runs preview */}
+      <div>
+        <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Next 5 runs</p>
+        <div className="rounded-lg border border-zinc-100 bg-zinc-50 divide-y divide-zinc-100">
+          {nextRuns.map((run, i) => (
+            <div key={i} className="flex items-center gap-2 px-2.5 py-1.5">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[7px] font-bold text-zinc-500">{i + 1}</span>
+              <span className="text-[10px] text-zinc-500 font-mono">{run}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

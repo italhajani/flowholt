@@ -46,6 +46,8 @@ import { PublicFormPage } from "@/pages/public/PublicFormPage";
 import { ModelDirectoryPage } from "@/pages/ModelDirectoryPage";
 import { EvaluationsPage } from "@/pages/EvaluationsPage";
 import { CommunityNodesMarketplace } from "@/pages/CommunityNodesMarketplace";
+import { WorkflowVersionsPage } from "@/pages/WorkflowVersionsPage";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { InviteAcceptPage } from "@/pages/InviteAcceptPage";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ToastProvider } from "@/components/ui/toast";
@@ -69,6 +71,9 @@ export function App() {
               <Route path="/auth/invite/:token" element={<InviteAcceptPage />} />
             </Route>
 
+            {/* Onboarding */}
+            <Route path="/onboarding" element={<OnboardingWizard onComplete={() => window.location.hash = "#/home"} />} />
+
             {/* Studio — full-screen layout, no shell */}
             <Route path="/studio/:workflowId" element={<StudioLayout />} />
 
@@ -81,6 +86,7 @@ export function App() {
               <Route path="/home" element={<HomePage />} />
               <Route path="/workflows" element={<WorkflowsPage />} />
               <Route path="/workflows/:id" element={<WorkflowDetailPage />} />
+              <Route path="/workflows/:id/versions" element={<WorkflowVersionsPage />} />
               <Route path="/ai-agents" element={<AIAgentsPage />} />
               <Route path="/ai-agents/:id" element={<AgentDetailPage />} />
               <Route path="/templates" element={<TemplatesPage />} />

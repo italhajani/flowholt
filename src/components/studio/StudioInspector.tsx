@@ -10,6 +10,7 @@ import { type CanvasNodeData, familyColors } from "./StudioCanvas";
 import { useCanvasStore } from "./useCanvasStore";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";
+import { CodeEditorPanel as CodeEditorPanelInline } from "./CodeEditorPanel";
 
 type DataView = "schema" | "table" | "json" | "html" | "binary";
 type ParamFieldType = "select" | "text" | "number" | "textarea" | "code" | "expression";
@@ -1468,6 +1469,16 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
       {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
       {nodeName === "Chat Trigger" && <ChatTriggerParams />}
       {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
+      {(nodeName === "Code" || nodeName === "Function" || nodeName === "JavaScript" || nodeName === "Python") && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 360 }}>
+          <CodeEditorPanelInline nodeType="Code" />
+        </div>
+      )}
+      {(nodeName === "HTTP Request" || nodeName === "HTTP") && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 280 }}>
+          <CodeEditorPanelInline nodeType="HTTP Request" />
+        </div>
+      )}
 
       <button
         onClick={() => setAdvanced((o) => !o)}

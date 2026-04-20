@@ -53,6 +53,19 @@ import {
   type StudioUpdateStepPayload,
   type AssistantDraftRequest,
   type HumanTaskCompleteRequest,
+  fetchAgentThreads,
+  createAgentThread,
+  deleteAgentThread,
+  fetchThreadMessages,
+  fetchKnowledgeBases,
+  createKnowledgeBase,
+  fetchKnowledgeBase,
+  deleteKnowledgeBase,
+  fetchKnowledgeDocuments,
+  uploadKnowledgeDocument,
+  deleteKnowledgeDocument,
+  searchKnowledge,
+  type KnowledgeBaseCreatePayload,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -428,5 +441,91 @@ export function useAgentChat() {
   return useMutation({
     mutationFn: (opts: { agentId: string; payload: AgentChatRequest }) =>
       chatWithAgent(opts.agentId, opts.payload),
+  });
+}
+
+// ── Chat Thread hooks ──
+
+export function useAgentThreads(agentId: string) {
+  return useQuery({ queryKey: ["agent-threads", agentId], queryFn: () => fetchAgentThreads(agentId), enabled: !!agentId });
+}
+
+export function useCreateThread() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { agentId: string; title?: string }) => createAgentThread(opts.agentId, opts.title),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ["agent-threads", v.agentId] }),
+  });
+}
+
+export function useDeleteThread() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (threadId: string) => deleteAgentThread(threadId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["agent-threads"] }),
+  });
+}
+
+export function useThreadMessages(threadId: string) {
+  return useQuery({ queryKey: ["thread-messages", threadId], queryFn: () => fetchThreadMessages(threadId), enabled: !!threadId });
+}
+
+// ── Knowledge Base hooks ──
+
+export function useKnowledgeBases() {
+  return useQuery({ queryKey: ["knowledge-bases"], queryFn: fetchKnowledgeBases });
+}
+
+export function useKnowledgeBase(kbId: string) {
+  return useQuery({ queryKey: ["knowledge-base", kbId], queryFn: () => fetchKnowledgeBase(kbId), enabled: !!kbId });
+}
+
+export function useCreateKnowledgeBase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: KnowledgeBaseCreatePayload) => createKnowledgeBase(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["knowledge-bases"] }),
+  });
+}
+
+export function useDeleteKnowledgeBase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (kbId: string) => deleteKnowledgeBase(kbId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["knowledge-bases"] }),
+  });
+}
+
+export function useKnowledgeDocuments(kbId: string) {
+  return useQuery({ queryKey: ["knowledge-docs", kbId], queryFn: () => fetchKnowledgeDocuments(kbId), enabled: !!kbId });
+}
+
+export function useUploadKnowledgeDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { kbId: string; filename: string; content: string }) =>
+      uploadKnowledgeDocument(opts.kbId, opts.filename, opts.content),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["knowledge-docs", v.kbId] });
+      qc.invalidateQueries({ queryKey: ["knowledge-bases"] });
+    },
+  });
+}
+
+export function useDeleteKnowledgeDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (docId: string) => deleteKnowledgeDocument(docId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["knowledge-docs"] });
+      qc.invalidateQueries({ queryKey: ["knowledge-bases"] });
+    },
+  });
+}
+
+export function useSearchKnowledge() {
+  return useMutation({
+    mutationFn: (opts: { kbId: string; query: string; topK?: number }) =>
+      searchKnowledge(opts.kbId, opts.query, opts.topK),
   });
 }

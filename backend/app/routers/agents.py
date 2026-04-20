@@ -181,3 +181,31 @@ def api_agent_chat(
         iterations=1,
         tools_used=[],
     )
+
+
+# ── Thread Management ──
+
+from ..models import ChatThreadSummary, ChatMessageOut
+from ..repository import create_thread, list_threads, get_thread, delete_thread, save_message, get_messages
+
+
+@router.get("/agents/{agent_id}/threads", response_model=list[ChatThreadSummary])
+async def api_list_threads(agent_id: str):
+    return list_threads(agent_id)
+
+
+@router.post("/agents/{agent_id}/threads", response_model=ChatThreadSummary, status_code=201)
+async def api_create_thread(agent_id: str, title: str | None = None):
+    row = create_thread(agent_id, title=title)
+    return {**row, "message_count": 0, "last_message_at": None}
+
+
+@router.delete("/agents/threads/{thread_id}", status_code=204)
+async def api_delete_thread(thread_id: str):
+    if not delete_thread(thread_id):
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+
+@router.get("/agents/threads/{thread_id}/messages", response_model=list[ChatMessageOut])
+async def api_get_messages(thread_id: str, limit: int = 50):
+    return get_messages(thread_id, limit=limit)

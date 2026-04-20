@@ -1341,6 +1341,71 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  /* ── Vector Store hero ── */
+  if (name === "Vector Store") {
+    return (
+      <div className="rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-violet-100 text-[8px] font-bold text-violet-700">🗄</span>
+          <span className="text-[10px] font-semibold text-violet-700 uppercase tracking-wider">Vector Store</span>
+        </div>
+        <p className="text-[10px] text-violet-600">Store and retrieve document embeddings. Insert, search, or delete documents in your knowledge base.</p>
+      </div>
+    );
+  }
+
+  /* ── Knowledge Search hero ── */
+  if (name === "Knowledge Search" || name === "Retriever") {
+    return (
+      <div className="rounded-lg border border-emerald-100 bg-gradient-to-r from-emerald-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-100 text-[8px] font-bold text-emerald-700">📚</span>
+          <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">{name}</span>
+        </div>
+        <p className="text-[10px] text-emerald-600">Search your knowledge base and return relevant text chunks. Combine with LLM for RAG workflows.</p>
+      </div>
+    );
+  }
+
+  /* ── Document Loader hero ── */
+  if (name === "Document Loader") {
+    return (
+      <div className="rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-indigo-100 text-[8px] font-bold text-indigo-700">📄</span>
+          <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider">Document Loader</span>
+        </div>
+        <p className="text-[10px] text-indigo-600">Load documents from text, file, URL, or JSON. Prepares content for chunking and embedding.</p>
+      </div>
+    );
+  }
+
+  /* ── Embeddings hero ── */
+  if (name === "Embeddings") {
+    return (
+      <div className="rounded-lg border border-pink-100 bg-gradient-to-r from-pink-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-pink-100 text-[8px] font-bold text-pink-700">🧠</span>
+          <span className="text-[10px] font-semibold text-pink-700 uppercase tracking-wider">Embeddings</span>
+        </div>
+        <p className="text-[10px] text-pink-600">Generate vector embeddings from text using OpenAI, Ollama, Gemini, or mock provider for testing.</p>
+      </div>
+    );
+  }
+
+  /* ── Text Splitter hero ── */
+  if (name === "Text Splitter") {
+    return (
+      <div className="rounded-lg border border-purple-100 bg-gradient-to-r from-purple-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-purple-100 text-[8px] font-bold text-purple-700">✂️</span>
+          <span className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">Text Splitter</span>
+        </div>
+        <p className="text-[10px] text-purple-600">Split documents into smaller chunks for embedding. Supports recursive, character, and token strategies.</p>
+      </div>
+    );
+  }
+
   if (family === "trigger") {
     const method = config.fields?.find((f) => f.label === "Method")?.value || "POST";
     const path = config.fields?.find((f) => f.label === "Path")?.value || "/webhook";
@@ -1568,6 +1633,8 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
       {nodeName === "Chat Trigger" && <ChatTriggerParams />}
       {(nodeName === "RSS Feed Trigger" || nodeName === "RSS Trigger") && <RssTriggerParams />}
       {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
+      {nodeName === "Vector Store" && <VectorStoreParams />}
+      {(nodeName === "Knowledge Search" || nodeName === "Retriever") && <KnowledgeSearchParams />}
       {(nodeName === "Code" || nodeName === "Function" || nodeName === "JavaScript" || nodeName === "Python") && (
         <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 360 }}>
           <CodeEditorPanelInline nodeType="Code" />
@@ -2561,6 +2628,85 @@ function RssTriggerParams() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Vector Store Params ── */
+function VectorStoreParams() {
+  const [operation, setOperation] = useState<"search" | "insert" | "delete">("search");
+  const [kbId, setKbId] = useState("");
+  const [query, setQuery] = useState("");
+  const [topK, setTopK] = useState("5");
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Operation">
+        <select value={operation} onChange={e => setOperation(e.target.value as typeof operation)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="search">Search (Get Many)</option>
+          <option value="insert">Insert Documents</option>
+          <option value="delete">Delete</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="Knowledge Base ID">
+        <input value={kbId} onChange={e => setKbId(e.target.value)} placeholder="kb-..." className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none transition-all" />
+      </FieldGroup>
+
+      {operation === "search" && (
+        <>
+          <FieldGroup label="Search Query">
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="What is..." className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/20 transition-all" />
+          </FieldGroup>
+          <FieldGroup label="Top K Results">
+            <input type="number" value={topK} onChange={e => setTopK(e.target.value)} min="1" max="50" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+          </FieldGroup>
+        </>
+      )}
+
+      {operation === "insert" && (
+        <FieldGroup label="Content Field" description="Field name containing text to embed">
+          <input defaultValue="content" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+        </FieldGroup>
+      )}
+    </div>
+  );
+}
+
+/* ── Knowledge Search Params ── */
+function KnowledgeSearchParams() {
+  const [query, setQuery] = useState("");
+  const [topK, setTopK] = useState("5");
+  const [outputFormat, setOutputFormat] = useState("chunks");
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Knowledge Base ID">
+        <input placeholder="kb-..." className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="Query" description="Search query (supports expressions)">
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="{{ $json.question }}" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 font-mono focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="Max Results">
+        <input type="number" value={topK} onChange={e => setTopK(e.target.value)} min="1" max="50" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="Output Format">
+        <select value={outputFormat} onChange={e => setOutputFormat(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="chunks">Individual Chunks</option>
+          <option value="combined">Combined Text</option>
+          <option value="json">JSON with Metadata</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="Summarize Results">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" className="rounded border-zinc-300" />
+          <span className="text-[11px] text-zinc-600">Use LLM to summarize chunks into a single answer</span>
+        </label>
+      </FieldGroup>
     </div>
   );
 }

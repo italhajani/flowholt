@@ -959,6 +959,65 @@ def run_workflow_definition(
                     status = "paused"
                     context.update(output)
 
+            # ── Knowledge / RAG nodes ─────────────────────────────────
+            elif step_type == "vector_store":
+                from .repository import search_knowledge_chunks, add_knowledge_document
+                operation = config.get("operation", "search")
+                kb_id = _render_template(str(config.get("knowledge_base_id", "")), expression_scope)
+                if operation == "search":
+                    query = _render_template(str(config.get("query", "")), expression_scope)
+                    top_k = int(config.get("top_k") or 5)
+                    results = search_knowledge_chunks(kb_id, query, top_k=top_k)
+                    output = {"items": results, "count": len(results)}
+                elif operation == "insert":
+                    content_field = config.get("content_field", "content")
+                    items = context.get("items", [context])
+                    for item in (items if isinstance(items, list) else [items]):
+                        text = str(item.get(content_field, ""))
+                        if text:
+                            add_knowledge_document(kb_id, filename="auto-insert", content=text)
+                    output = {"inserted": len(items) if isinstance(items, list) else 1}
+                else:
+                    output = {"status": "delete_not_implemented"}
+                context.update(output)
+
+            elif step_type == "document_loader":
+                source_type = config.get("source_type", "text")
+                if source_type == "text":
+                    text = _render_template(str(config.get("text_content", "")), expression_scope)
+                elif source_type == "json":
+                    json_field = config.get("json_field", "content")
+                    text = str(context.get(json_field, ""))
+                elif source_type == "url":
+                    url = _render_template(str(config.get("url", "")), expression_scope)
+                    text = f"[URL content from {url} — fetch not implemented in executor]"
+                else:
+                    text = str(context.get("binary_data", ""))
+                output = {"document_text": text, "char_count": len(text), "source_type": source_type}
+                context.update(output)
+
+            elif step_type == "text_splitter":
+                text = str(context.get("document_text", ""))
+                chunk_size = int(config.get("chunk_size") or 500)
+                chunk_overlap = int(config.get("chunk_overlap") or 50)
+                from .repository import _split_text
+                chunks = _split_text(text, chunk_size, chunk_overlap)
+                output = {"chunks": chunks, "chunk_count": len(chunks)}
+                context.update(output)
+
+            elif step_type in ("embedding", "retriever", "knowledge_search"):
+                from .repository import search_knowledge_chunks
+                kb_id = _render_template(str(config.get("knowledge_base_id", "")), expression_scope)
+                query = _render_template(str(config.get("query", "")), expression_scope)
+                top_k = int(config.get("top_k") or 5)
+                results = search_knowledge_chunks(kb_id, query, top_k=top_k)
+                if step_type == "knowledge_search" and config.get("output_format") == "combined":
+                    combined = "\n\n".join(r["content"] for r in results)
+                    output = {"text": combined, "source_count": len(results)}
+                else:
+                    output = {"items": results, "count": len(results)}
+                context.update(output)
+
             # ── AI Agent node (reasoning loop) ───────────────────────
             elif step_type == "ai_agent":
                 agent_type = config.get("agent_type", "tools_agent")

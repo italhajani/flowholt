@@ -50,6 +50,12 @@ WorkflowStepType = Literal[
     "ai_memory",
     "ai_tool",
     "ai_output_parser",
+    "vector_store",
+    "document_loader",
+    "text_splitter",
+    "embedding",
+    "retriever",
+    "knowledge_search",
 ]
 
 
@@ -1735,3 +1741,94 @@ class AgentChatResponse(BaseModel):
     agent_type: str
     iterations: int
     tools_used: list[str]
+
+
+# ── Chat Memory ──
+
+class ChatThreadCreate(BaseModel):
+    agent_id: str
+    title: str | None = None
+    resource_id: str = "default"
+
+class ChatThreadSummary(BaseModel):
+    id: str
+    agent_id: str
+    resource_id: str
+    title: str | None
+    message_count: int = 0
+    last_message_at: str | None = None
+    created_at: str
+    updated_at: str
+
+class ChatMessageCreate(BaseModel):
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str
+    tool_call_json: dict | None = None
+
+class ChatMessageOut(BaseModel):
+    id: str
+    thread_id: str
+    role: str
+    content: str
+    tool_call_json: dict | None = None
+    created_at: str
+
+
+# ── Knowledge Base ──
+
+class KnowledgeBaseCreate(BaseModel):
+    name: str
+    description: str = ""
+    embedding_model: str = "mock"
+    chunk_size: int = 500
+    chunk_overlap: int = 50
+
+class KnowledgeBaseUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    embedding_model: str | None = None
+    chunk_size: int | None = None
+    chunk_overlap: int | None = None
+
+class KnowledgeBaseSummary(BaseModel):
+    id: str
+    workspace_id: str
+    name: str
+    description: str
+    embedding_model: str
+    chunk_size: int
+    chunk_overlap: int
+    status: str
+    document_count: int
+    created_at: str
+    updated_at: str
+
+class KnowledgeDocumentOut(BaseModel):
+    id: str
+    kb_id: str
+    filename: str
+    content_type: str
+    char_count: int
+    chunk_count: int
+    status: str
+    created_at: str
+
+class KnowledgeChunkOut(BaseModel):
+    id: str
+    doc_id: str
+    chunk_index: int
+    content: str
+    metadata: dict = {}
+    created_at: str
+
+class KnowledgeSearchRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+class KnowledgeSearchResult(BaseModel):
+    chunk_id: str
+    doc_id: str
+    filename: str
+    chunk_index: int
+    content: str
+    score: float

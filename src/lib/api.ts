@@ -826,3 +826,131 @@ export function chatWithAgent(agentId: string, payload: AgentChatRequest) {
     body: JSON.stringify(payload),
   });
 }
+
+
+// ── Chat Threads ──
+
+export interface ChatThread {
+  id: string;
+  agent_id: string;
+  resource_id: string;
+  title: string | null;
+  message_count: number;
+  last_message_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  thread_id: string;
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_call_json: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export function fetchAgentThreads(agentId: string) {
+  return apiFetch<ChatThread[]>(`/api/agents/${agentId}/threads`);
+}
+
+export function createAgentThread(agentId: string, title?: string) {
+  return apiFetch<ChatThread>(`/api/agents/${agentId}/threads`, {
+    method: "POST",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export function deleteAgentThread(threadId: string) {
+  return apiFetch<void>(`/api/agents/threads/${threadId}`, { method: "DELETE" });
+}
+
+export function fetchThreadMessages(threadId: string, limit = 50) {
+  return apiFetch<ChatMessage[]>(`/api/agents/threads/${threadId}/messages?limit=${limit}`);
+}
+
+
+// ── Knowledge Base ──
+
+export interface KnowledgeBase {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  embedding_model: string;
+  chunk_size: number;
+  chunk_overlap: number;
+  status: string;
+  document_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  kb_id: string;
+  filename: string;
+  content_type: string;
+  char_count: number;
+  chunk_count: number;
+  status: string;
+  created_at: string;
+}
+
+export interface KnowledgeSearchResult {
+  chunk_id: string;
+  doc_id: string;
+  filename: string;
+  chunk_index: number;
+  content: string;
+  score: number;
+}
+
+export interface KnowledgeBaseCreatePayload {
+  name: string;
+  description?: string;
+  embedding_model?: string;
+  chunk_size?: number;
+  chunk_overlap?: number;
+}
+
+export function fetchKnowledgeBases() {
+  return apiFetch<KnowledgeBase[]>("/api/knowledge");
+}
+
+export function createKnowledgeBase(payload: KnowledgeBaseCreatePayload) {
+  return apiFetch<KnowledgeBase>("/api/knowledge", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchKnowledgeBase(kbId: string) {
+  return apiFetch<KnowledgeBase>(`/api/knowledge/${kbId}`);
+}
+
+export function deleteKnowledgeBase(kbId: string) {
+  return apiFetch<void>(`/api/knowledge/${kbId}`, { method: "DELETE" });
+}
+
+export function fetchKnowledgeDocuments(kbId: string) {
+  return apiFetch<KnowledgeDocument[]>(`/api/knowledge/${kbId}/documents`);
+}
+
+export function uploadKnowledgeDocument(kbId: string, filename: string, content: string) {
+  return apiFetch<KnowledgeDocument>(`/api/knowledge/${kbId}/documents`, {
+    method: "POST",
+    body: JSON.stringify({ filename, content }),
+  });
+}
+
+export function deleteKnowledgeDocument(docId: string) {
+  return apiFetch<void>(`/api/knowledge/documents/${docId}`, { method: "DELETE" });
+}
+
+export function searchKnowledge(kbId: string, query: string, topK = 5) {
+  return apiFetch<KnowledgeSearchResult[]>(`/api/knowledge/${kbId}/search`, {
+    method: "POST",
+    body: JSON.stringify({ query, top_k: topK }),
+  });
+}

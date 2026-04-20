@@ -490,6 +490,77 @@ CREATE TABLE IF NOT EXISTS agents (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agents_workspace ON agents(workspace_id, updated_at DESC);
+
+-- ── Chat Memory ──
+CREATE TABLE IF NOT EXISTS chat_threads (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    resource_id TEXT NOT NULL DEFAULT 'default',
+    title TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_chat_threads_agent ON chat_threads(agent_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT NOT NULL UNIQUE,
+    thread_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('system','user','assistant','tool')),
+    content TEXT NOT NULL,
+    tool_call_json TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(thread_id) REFERENCES chat_threads(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, seq);
+
+-- ── Knowledge Base ──
+CREATE TABLE IF NOT EXISTS knowledge_bases (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    embedding_model TEXT NOT NULL DEFAULT 'mock',
+    chunk_size INTEGER NOT NULL DEFAULT 500,
+    chunk_overlap INTEGER NOT NULL DEFAULT 50,
+    status TEXT NOT NULL DEFAULT 'active',
+    document_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
+);
+CREATE INDEX IF NOT EXISTS idx_kb_workspace ON knowledge_bases(workspace_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+    id TEXT PRIMARY KEY,
+    kb_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    content_type TEXT NOT NULL DEFAULT 'text/plain',
+    char_count INTEGER NOT NULL DEFAULT 0,
+    chunk_count INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(kb_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_kb_docs ON knowledge_documents(kb_id);
+
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+    id TEXT PRIMARY KEY,
+    doc_id TEXT NOT NULL,
+    kb_id TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    embedding_json TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(doc_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE,
+    FOREIGN KEY(kb_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_kb_chunks_doc ON knowledge_chunks(doc_id, chunk_index);
+CREATE INDEX IF NOT EXISTS idx_kb_chunks_kb ON knowledge_chunks(kb_id);
 """
 
 

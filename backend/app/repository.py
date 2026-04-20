@@ -22,7 +22,7 @@ def create_user_with_workspace(
     workspace_id = f"ws-{uuid.uuid4().hex[:12]}"
     slug = f"{name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
     membership_id = f"wm-{uuid.uuid4().hex[:12]}"
-    now = utc_now()
+    now = utcutc_now()
 
     with get_db() as conn:
         conn.execute(
@@ -97,7 +97,7 @@ def upsert_user_identity(*, user_id: str, provider: str, provider_subject: str, 
                 user_id = excluded.user_id,
                 email = excluded.email
             """,
-            (identity_id, user_id, provider, provider_subject, email, utc_now()),
+            (identity_id, user_id, provider, provider_subject, email, utcutc_now()),
         )
         row = conn.execute(
             "SELECT * FROM user_identities WHERE provider = ? AND provider_subject = ?",
@@ -337,7 +337,7 @@ def invite_workspace_member(*, workspace_id: str, email: str, role: str) -> dict
             raise ValueError("A member or invite with this email already exists in the workspace")
 
         user_row = conn.execute("SELECT * FROM users WHERE lower(email) = lower(?)", (normalized_email,)).fetchone()
-        now = utc_now()
+        now = utcutc_now()
 
         if user_row is None:
             local_part = normalized_email.split("@", 1)[0]
@@ -434,7 +434,7 @@ def create_audit_event(
     actor_email: str | None = None,
 ) -> dict[str, Any]:
     event_id = f"ae-{uuid.uuid4().hex[:10]}"
-    created_at = utc_now()
+    created_at = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -516,7 +516,7 @@ def get_workspace_settings(workspace_id: str) -> dict[str, Any]:
             "notify_on_failure": True,
             "notify_on_success": False,
             "notify_on_approval_requests": True,
-            "updated_at": utc_now(),
+            "updated_at": utcutc_now(),
         }
     item = row_to_dict(row)
     item["require_webhook_signature"] = bool(item.get("require_webhook_signature", 0))
@@ -573,7 +573,7 @@ def update_workspace_settings(
     notify_on_success: bool = False,
     notify_on_approval_requests: bool = True,
 ) -> dict[str, Any]:
-    now = utc_now()
+    now = utcutc_now()
     current = get_workspace_settings(workspace_id)
     next_secret = webhook_signing_secret if webhook_signing_secret is not None else current.get("webhook_signing_secret")
     with get_db() as conn:
@@ -832,7 +832,7 @@ def create_workflow_job(
     max_attempts: int = 3,
 ) -> dict[str, Any]:
     job_id = f"job-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -894,7 +894,7 @@ def get_workflow_job(job_id: str, *, workspace_id: str | None = None) -> dict[st
 
 
 def cancel_workflow_job(job_id: str, *, workspace_id: str) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         row = conn.execute(
             "SELECT * FROM workflow_jobs WHERE id = ? AND workspace_id = ?",
@@ -921,7 +921,7 @@ def cancel_workflow_job(job_id: str, *, workspace_id: str) -> dict[str, Any] | N
 
 
 def claim_pending_workflow_jobs(*, limit: int, lease_seconds: int) -> list[dict[str, Any]]:
-    now = utc_now()
+    now = utcutc_now()
     claimed: list[dict[str, Any]] = []
     with get_db() as conn:
         rows = conn.execute(
@@ -955,7 +955,7 @@ def claim_pending_workflow_jobs(*, limit: int, lease_seconds: int) -> list[dict[
 
 
 def complete_workflow_job(job_id: str, *, execution_id: str | None) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -970,7 +970,7 @@ def complete_workflow_job(job_id: str, *, execution_id: str | None) -> dict[str,
 
 
 def fail_workflow_job(job_id: str, *, error_text: str, retry_delay_seconds: int = 30) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         row = conn.execute("SELECT * FROM workflow_jobs WHERE id = ?", (job_id,)).fetchone()
         if row is None:
@@ -1068,7 +1068,7 @@ def get_vault_asset_by_name(*, kind: str, name: str, workspace_id: str | None = 
 def create_vault_asset(payload: VaultAssetCreate, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
     from .encryption import encrypt_secret
     asset_id = f"va-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     secret_str = json.dumps(payload.secret)
     encrypted_secret = encrypt_secret(secret_str)
     with get_db() as conn:
@@ -1134,7 +1134,7 @@ def update_vault_asset(asset_id: str, payload: VaultAssetUpdate, *, workspace_id
                 payload.status,
                 payload.workflows_count,
                 payload.people_with_access,
-                utc_now(),
+                utcutc_now(),
                 1 if payload.masked else 0,
                 encrypted_secret,
                 asset_id,
@@ -1167,7 +1167,7 @@ def update_vault_asset_access(
                 visibility,
                 json.dumps(allowed_roles),
                 json.dumps(allowed_user_ids),
-                utc_now(),
+                utcutc_now(),
                 asset_id,
                 workspace_id,
             ),
@@ -1262,7 +1262,7 @@ def delete_workflow(workflow_id: str, *, workspace_id: str) -> bool:
 
 def create_workflow(payload: WorkflowCreate, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
     workflow_id = f"w-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1307,7 +1307,7 @@ def create_workflow_version(
     notes: str | None = None,
 ) -> dict[str, Any]:
     version_id = f"wv-{uuid.uuid4().hex[:10]}"
-    created_at = utc_now()
+    created_at = utcutc_now()
     next_version_number = int(workflow.get("current_version_number") or 0) + 1
 
     with get_db() as conn:
@@ -1380,7 +1380,7 @@ def create_workflow_deployment(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     deployment_id = f"wd-{uuid.uuid4().hex[:10]}"
-    created_at = utc_now()
+    created_at = utcutc_now()
     payload = metadata or {}
     with get_db() as conn:
         conn.execute(
@@ -1423,7 +1423,7 @@ def create_workflow_deployment_review(
     notes: str | None = None,
 ) -> dict[str, Any]:
     review_id = f"wr-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1495,7 +1495,7 @@ def update_workflow_deployment_review(
     reviewed_by_user_id: str | None = None,
     review_comment: str | None = None,
 ) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     reviewed_at = now if status in {"approved", "rejected", "cancelled"} else None
     with get_db() as conn:
         conn.execute(
@@ -1688,7 +1688,7 @@ def create_execution_record(
     environment: str = "draft",
 ) -> dict[str, Any]:
     execution_id = f"e-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     record = {
         "id": execution_id,
         "workspace_id": workflow["workspace_id"],
@@ -1746,7 +1746,7 @@ def finish_execution_record(
     result: dict[str, Any] | None,
     error_text: str | None,
 ) -> dict[str, Any]:
-    finished_at = utc_now()
+    finished_at = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1772,7 +1772,7 @@ def finish_execution_record(
 
 def touch_workflow_run(workflow_id: str) -> None:
     with get_db() as conn:
-        conn.execute("UPDATE workflows SET last_run_at = ? WHERE id = ?", (utc_now(), workflow_id))
+        conn.execute("UPDATE workflows SET last_run_at = ? WHERE id = ?", (utcutc_now(), workflow_id))
 
 
 def create_trigger_event(
@@ -1786,7 +1786,7 @@ def create_trigger_event(
 ) -> dict[str, Any]:
     event_id = f"te-{uuid.uuid4().hex[:10]}"
     payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
-    created_at = utc_now()
+    created_at = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1849,7 +1849,7 @@ def create_execution_pause(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pause_id = f"ep-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1914,7 +1914,7 @@ def get_execution_pause_by_token(*, token: str, token_kind: str) -> dict[str, An
 
 
 def update_execution_pause_status(pause_id: str, *, status: str) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             "UPDATE execution_pauses SET status = ?, updated_at = ? WHERE id = ?",
@@ -1925,7 +1925,7 @@ def update_execution_pause_status(pause_id: str, *, status: str) -> dict[str, An
 
 
 def list_due_execution_pauses(*, limit: int = 25) -> list[dict[str, Any]]:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         rows = conn.execute(
             """
@@ -1960,7 +1960,7 @@ def create_human_task(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     task_id = f"ht-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2048,7 +2048,7 @@ def complete_human_task(
     comment: str | None,
     response_payload: dict[str, Any],
 ) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2063,7 +2063,7 @@ def complete_human_task(
 
 
 def cancel_human_task(task_id: str, *, comment: str | None = None) -> dict[str, Any] | None:
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2090,7 +2090,7 @@ def create_execution_event(
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     event_id = f"ee-{uuid.uuid4().hex[:10]}"
-    created_at = utc_now()
+    created_at = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2164,7 +2164,7 @@ def create_execution_artifact(
                 direction,
                 encoded,
                 len(encoded.encode("utf-8")),
-                utc_now(),
+                utcutc_now(),
             ),
         )
         row = conn.execute("SELECT * FROM execution_artifacts WHERE id = ?", (artifact_id,)).fetchone()
@@ -2375,7 +2375,7 @@ def create_user_notification(
 ) -> dict[str, Any]:
     _ensure_notifications_table()
     notif_id = f"notif-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             "INSERT INTO notifications (id, workspace_id, user_id, title, body, kind, link, read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)",
@@ -2442,7 +2442,7 @@ def resume_execution_record(execution_id: str) -> dict[str, Any] | None:
 
 def create_agent(payload: Any, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
     agent_id = f"ag-{uuid.uuid4().hex[:10]}"
-    now = utc_now()
+    now = utcutc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2533,7 +2533,7 @@ def update_agent(agent_id: str, payload: Any, *, workspace_id: str) -> dict[str,
         return get_agent(agent_id, workspace_id=workspace_id)
 
     fields.append("updated_at = ?")
-    values.append(utc_now())
+    values.append(utcutc_now())
     values.extend([agent_id, workspace_id])
 
     with get_db() as conn:
@@ -2555,3 +2555,213 @@ def delete_agent(agent_id: str, *, workspace_id: str) -> bool:
             (agent_id, workspace_id),
         )
     return cur.rowcount > 0
+
+
+# ── Chat Memory ──
+
+def create_thread(agent_id: str, *, thread_id: str | None = None, title: str | None = None, resource_id: str = "default") -> dict:
+    tid = thread_id or str(uuid.uuid4())
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO chat_threads (id, agent_id, resource_id, title, created_at, updated_at) VALUES (?,?,?,?,?,?)",
+            (tid, agent_id, resource_id, title, now, now),
+        )
+    return {"id": tid, "agent_id": agent_id, "resource_id": resource_id, "title": title, "created_at": now, "updated_at": now}
+
+
+def list_threads(agent_id: str, *, limit: int = 50) -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT t.*, (SELECT COUNT(*) FROM chat_messages m WHERE m.thread_id = t.id) AS message_count,
+                      (SELECT MAX(m.created_at) FROM chat_messages m WHERE m.thread_id = t.id) AS last_message_at
+               FROM chat_threads t WHERE t.agent_id = ? ORDER BY t.updated_at DESC LIMIT ?""",
+            (agent_id, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_thread(thread_id: str) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM chat_threads WHERE id = ?", (thread_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def delete_thread(thread_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM chat_threads WHERE id = ?", (thread_id,))
+    return cur.rowcount > 0
+
+
+def save_message(thread_id: str, role: str, content: str, *, msg_id: str | None = None, tool_call_json: str | None = None) -> dict:
+    mid = msg_id or str(uuid.uuid4())
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO chat_messages (id, thread_id, role, content, tool_call_json, created_at) VALUES (?,?,?,?,?,?)",
+            (mid, thread_id, role, content, tool_call_json, now),
+        )
+        conn.execute("UPDATE chat_threads SET updated_at = ? WHERE id = ?", (now, thread_id))
+    return {"id": mid, "thread_id": thread_id, "role": role, "content": content, "tool_call_json": tool_call_json, "created_at": now}
+
+
+def get_messages(thread_id: str, *, limit: int = 50, before_seq: int | None = None) -> list[dict]:
+    with get_db() as conn:
+        if before_seq is not None:
+            rows = conn.execute(
+                "SELECT * FROM chat_messages WHERE thread_id = ? AND seq < ? ORDER BY seq DESC LIMIT ?",
+                (thread_id, before_seq, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM chat_messages WHERE thread_id = ? ORDER BY seq DESC LIMIT ?",
+                (thread_id, limit),
+            ).fetchall()
+    return [dict(r) for r in reversed(rows)]
+
+
+def get_windowed_messages(thread_id: str, *, window_size: int = 10) -> list[dict]:
+    """Get last N message pairs (user+assistant) for context window."""
+    return get_messages(thread_id, limit=window_size * 2)
+
+
+# ── Knowledge Base ──
+
+def create_knowledge_base(workspace_id: str, *, name: str, description: str = "", embedding_model: str = "mock", chunk_size: int = 500, chunk_overlap: int = 50) -> dict:
+    kid = str(uuid.uuid4())
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO knowledge_bases (id, workspace_id, name, description, embedding_model, chunk_size, chunk_overlap, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (kid, workspace_id, name, description, embedding_model, chunk_size, chunk_overlap, now, now),
+        )
+    return {"id": kid, "workspace_id": workspace_id, "name": name, "description": description,
+            "embedding_model": embedding_model, "chunk_size": chunk_size, "chunk_overlap": chunk_overlap,
+            "status": "active", "document_count": 0, "created_at": now, "updated_at": now}
+
+
+def list_knowledge_bases(workspace_id: str) -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM knowledge_bases WHERE workspace_id = ? ORDER BY updated_at DESC",
+            (workspace_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_knowledge_base(kb_id: str) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM knowledge_bases WHERE id = ?", (kb_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def update_knowledge_base(kb_id: str, **updates) -> dict | None:
+    sets = []
+    vals = []
+    for k, v in updates.items():
+        if v is not None:
+            sets.append(f"{k} = ?")
+            vals.append(v)
+    if not sets:
+        return get_knowledge_base(kb_id)
+    sets.append("updated_at = ?")
+    vals.append(utc_now())
+    vals.append(kb_id)
+    with get_db() as conn:
+        conn.execute(f"UPDATE knowledge_bases SET {', '.join(sets)} WHERE id = ?", vals)
+    return get_knowledge_base(kb_id)
+
+
+def delete_knowledge_base(kb_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM knowledge_bases WHERE id = ?", (kb_id,))
+    return cur.rowcount > 0
+
+
+def add_knowledge_document(kb_id: str, *, filename: str, content: str, content_type: str = "text/plain", metadata: dict | None = None) -> dict:
+    doc_id = str(uuid.uuid4())
+    now = utc_now()
+    meta_json = json.dumps(metadata or {})
+
+    kb = get_knowledge_base(kb_id)
+    chunk_size = kb["chunk_size"] if kb else 500
+    chunk_overlap = kb["chunk_overlap"] if kb else 50
+    chunks = _split_text(content, chunk_size, chunk_overlap)
+
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO knowledge_documents (id, kb_id, filename, content_type, char_count, chunk_count, status, metadata_json, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (doc_id, kb_id, filename, content_type, len(content), len(chunks), "ready", meta_json, now),
+        )
+        for i, chunk_text in enumerate(chunks):
+            conn.execute(
+                """INSERT INTO knowledge_chunks (id, doc_id, kb_id, chunk_index, content, metadata_json, created_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (str(uuid.uuid4()), doc_id, kb_id, i, chunk_text, "{}", now),
+            )
+        conn.execute(
+            "UPDATE knowledge_bases SET document_count = document_count + 1, updated_at = ? WHERE id = ?",
+            (now, kb_id),
+        )
+    return {"id": doc_id, "kb_id": kb_id, "filename": filename, "content_type": content_type,
+            "char_count": len(content), "chunk_count": len(chunks), "status": "ready", "created_at": now}
+
+
+def list_knowledge_documents(kb_id: str) -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM knowledge_documents WHERE kb_id = ? ORDER BY created_at DESC", (kb_id,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_knowledge_document(doc_id: str) -> bool:
+    with get_db() as conn:
+        row = conn.execute("SELECT kb_id FROM knowledge_documents WHERE id = ?", (doc_id,)).fetchone()
+        if not row:
+            return False
+        conn.execute("DELETE FROM knowledge_documents WHERE id = ?", (doc_id,))
+        conn.execute(
+            "UPDATE knowledge_bases SET document_count = MAX(0, document_count - 1), updated_at = ? WHERE id = ?",
+            (utc_now(), row["kb_id"]),
+        )
+    return True
+
+
+def search_knowledge_chunks(kb_id: str, query: str, *, top_k: int = 5) -> list[dict]:
+    """Simple keyword-based search (FTS fallback). Returns scored chunks."""
+    query_lower = query.lower()
+    query_words = query_lower.split()
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT c.id AS chunk_id, c.doc_id, d.filename, c.chunk_index, c.content
+               FROM knowledge_chunks c JOIN knowledge_documents d ON c.doc_id = d.id
+               WHERE c.kb_id = ?""",
+            (kb_id,),
+        ).fetchall()
+
+    scored = []
+    for r in rows:
+        content_lower = r["content"].lower()
+        score = sum(1 for w in query_words if w in content_lower) / max(len(query_words), 1)
+        if score > 0:
+            scored.append({**dict(r), "score": round(score, 3)})
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:top_k]
+
+
+def _split_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
+    """Split text into chunks with overlap."""
+    if len(text) <= chunk_size:
+        return [text]
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end]
+        if chunk.strip():
+            chunks.append(chunk)
+        start = end - chunk_overlap
+    return chunks

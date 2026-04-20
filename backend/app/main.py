@@ -43,6 +43,7 @@ from .routers.executions import router as executions_router
 from .routers.triggers import router as triggers_router
 from .routers.misc import router as misc_router
 from .routers.agents import router as agents_router
+from .routers.knowledge import router as knowledge_router
 
 settings = get_settings()
 
@@ -75,6 +76,7 @@ app.include_router(executions_router)
 app.include_router(triggers_router)
 app.include_router(misc_router)
 app.include_router(agents_router)
+app.include_router(knowledge_router)
 
 
 # ── Middleware ─────────────────────────────────────────────────────────

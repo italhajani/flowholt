@@ -165,6 +165,9 @@ import {
   fetchEnvironmentStages,
   fetchDeployments,
   promoteStage,
+  fetchProviderDetail,
+  fetchDomainConfig,
+  updateDomainConfig,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1394,5 +1397,27 @@ export function usePromoteStage() {
       qc.invalidateQueries({ queryKey: ["environment-stages"] });
       qc.invalidateQueries({ queryKey: ["deployments"] });
     },
+  });
+}
+
+/* ── Provider Detail ── */
+export function useProviderDetail(id: string | undefined) {
+  return useQuery({
+    queryKey: ["provider", id],
+    queryFn: () => fetchProviderDetail(id!),
+    enabled: !!id,
+  });
+}
+
+/* ── Domain Config ── */
+export function useDomainConfig() {
+  return useQuery({ queryKey: ["domain-config"], queryFn: fetchDomainConfig });
+}
+
+export function useUpdateDomainConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: updateDomainConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-config"] }),
   });
 }

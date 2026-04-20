@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import {
   Eye, Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSourceControlConfig } from "@/hooks/useApi";
 
 /* Mock connected repo */
 const connectedRepo = {
@@ -40,6 +41,17 @@ const syncMappings = [
 export function SourceControlSettings() {
   const [syncing, setSyncing] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
+  const { data: scConfig } = useSourceControlConfig();
+
+  const repo = useMemo(() => {
+    if (scConfig && scConfig.connected) return {
+      ...connectedRepo,
+      branch: scConfig.branch,
+      url: scConfig.repoUrl,
+      lastSync: scConfig.lastSync ?? connectedRepo.lastSync,
+    };
+    return connectedRepo;
+  }, [scConfig]);
 
   const handleSync = () => {
     setSyncing(true);
@@ -62,11 +74,11 @@ export function SourceControlSettings() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[14px] font-semibold text-zinc-800">{connectedRepo.owner}/{connectedRepo.name}</span>
-                <Badge variant="neutral">{connectedRepo.branch}</Badge>
+                <span className="text-[14px] font-semibold text-zinc-800">{repo.owner}/{repo.name}</span>
+                <Badge variant="neutral">{repo.branch}</Badge>
                 <StatusDot status="active" label="Synced" />
               </div>
-              <p className="text-[12px] text-zinc-400 mt-0.5">Last synced {connectedRepo.lastSync}</p>
+              <p className="text-[12px] text-zinc-400 mt-0.5">Last synced {repo.lastSync}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -87,11 +99,11 @@ export function SourceControlSettings() {
         <div className="grid grid-cols-3 gap-4 rounded-md bg-zinc-50 p-3">
           <div>
             <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Provider</p>
-            <p className="text-[13px] font-medium text-zinc-700 mt-0.5">{connectedRepo.provider}</p>
+            <p className="text-[13px] font-medium text-zinc-700 mt-0.5">{repo.provider}</p>
           </div>
           <div>
             <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Default Branch</p>
-            <p className="text-[13px] font-medium text-zinc-700 mt-0.5">{connectedRepo.branch}</p>
+            <p className="text-[13px] font-medium text-zinc-700 mt-0.5">{repo.branch}</p>
           </div>
           <div>
             <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Auto-Sync</p>

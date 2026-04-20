@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import {
   AlertTriangle, User, Globe, Code2, Zap, Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCommunityNodes } from "@/hooks/useApi";
 
 /* Mock community nodes */
 interface CommunityNode {
@@ -62,7 +63,14 @@ export function CommunityNodesSettings() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [filter, setFilter] = useState<"all" | "installed">("all");
 
-  const filtered = mockNodes.filter((n) => {
+  const { data: apiNodes } = useCommunityNodes();
+  const allNodes: CommunityNode[] = useMemo(() => {
+    if (apiNodes && apiNodes.length > 0)
+      return apiNodes.map((n) => ({ ...n, displayName: undefined } as unknown as CommunityNode));
+    return mockNodes;
+  }, [apiNodes]);
+
+  const filtered = allNodes.filter((n) => {
     if (filter === "installed" && !n.installed) return false;
     if (activeCategory !== "All" && !n.tags.includes(activeCategory)) return false;
     if (search && !n.name.toLowerCase().includes(search.toLowerCase()) && !n.description.toLowerCase().includes(search.toLowerCase())) return false;
@@ -80,11 +88,11 @@ export function CommunityNodesSettings() {
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
           <p className="text-[10px] font-semibold text-zinc-400 uppercase">Installed</p>
-          <p className="text-[18px] font-semibold text-zinc-800">{mockNodes.filter((n) => n.installed).length}</p>
+          <p className="text-[18px] font-semibold text-zinc-800">{allNodes.filter((n) => n.installed).length}</p>
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
           <p className="text-[10px] font-semibold text-zinc-400 uppercase">Available</p>
-          <p className="text-[18px] font-semibold text-zinc-800">{mockNodes.length}</p>
+          <p className="text-[18px] font-semibold text-zinc-800">{allNodes.length}</p>
         </div>
         <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
           <p className="text-[10px] font-semibold text-zinc-400 uppercase">Updates</p>

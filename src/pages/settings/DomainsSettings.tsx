@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Copy, Info } from "lucide-react";
+import { useDomainConfig, useUpdateDomainConfig } from "@/hooks/useApi";
 
 export function DomainsSettings() {
+  const { data: domainData } = useDomainConfig();
+  const updateMut = useUpdateDomainConfig();
   const [baseUrl, setBaseUrl] = useState("https://hooks.flowholt.com");
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     webhookSig: true,
@@ -14,6 +17,19 @@ export function DomainsSettings() {
   });
   const [queueAlert, setQueueAlert] = useState(1000);
   const [expireAfter, setExpireAfter] = useState(5);
+
+  useEffect(() => {
+    if (domainData) {
+      setBaseUrl(domainData.baseUrl);
+      setToggles({
+        webhookSig: domainData.webhookSignature,
+        publicWebhooks: domainData.publicWebhooks,
+        publicChat: domainData.publicChat,
+      });
+      setQueueAlert(domainData.queueAlertThreshold);
+      setExpireAfter(domainData.expireAfterDays);
+    }
+  }, [domainData]);
 
   const toggle = (key: string) => setToggles((v) => ({ ...v, [key]: !v[key] }));
 

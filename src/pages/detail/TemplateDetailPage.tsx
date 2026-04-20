@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   LayoutTemplate, Download, Eye, FileText, Clock, Key,
@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UseTemplateWizardModal } from "@/components/modals/UseTemplateWizardModal";
 import { cn } from "@/lib/utils";
+import { useTemplate } from "@/hooks/useApi";
 
-const template = {
+const mockTemplate = {
   id: "tpl-001",
   name: "Lead Scoring with OpenAI",
   category: "Sales",
@@ -65,6 +66,21 @@ export function TemplateDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
   const [showWizard, setShowWizard] = useState(false);
+  const { data: apiTemplate } = useTemplate(id);
+
+  const template = useMemo(() => {
+    if (apiTemplate) return {
+      id: apiTemplate.id ?? mockTemplate.id,
+      name: apiTemplate.name ?? mockTemplate.name,
+      category: apiTemplate.category ?? mockTemplate.category,
+      uses: apiTemplate.use_count ?? mockTemplate.uses,
+      author: apiTemplate.author ?? mockTemplate.author,
+      version: mockTemplate.version,
+      updatedAt: mockTemplate.updatedAt,
+      description: apiTemplate.description ?? mockTemplate.description,
+    };
+    return mockTemplate;
+  }, [apiTemplate]);
 
   return (
     <EntityDetailLayout

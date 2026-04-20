@@ -2005,3 +2005,42 @@ export function promoteStage(from: string, to: string) {
     body: JSON.stringify({ from, to }),
   });
 }
+
+/* ── Provider Detail ── */
+export interface ProviderDetail {
+  id: string;
+  name: string;
+  type: string;
+  status: "healthy" | "degraded" | "error";
+  authMode: string;
+  models: number;
+  lastVerified: string;
+  usageOps: string;
+  createdAt: string;
+  baseUrl: string;
+}
+
+export function fetchProviderDetail(id: string) {
+  return apiFetch<ProviderDetail>(`/api/providers/${id}`);
+}
+
+/* ── Domain / Webhook Config ── */
+export interface DomainConfig {
+  baseUrl: string;
+  webhookSignature: boolean;
+  publicWebhooks: boolean;
+  publicChat: boolean;
+  queueAlertThreshold: number;
+  expireAfterDays: number;
+}
+
+export function fetchDomainConfig() {
+  return apiFetch<DomainConfig>("/api/settings/domains");
+}
+
+export function updateDomainConfig(payload: Partial<DomainConfig>) {
+  return apiFetch<DomainConfig>("/api/settings/domains", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}

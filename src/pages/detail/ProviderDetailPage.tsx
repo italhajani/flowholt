@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   Cpu, Shield, Layers, BarChart3, Clock, FileText,
@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useProviderDetail } from "@/hooks/useApi";
 
-const provider = {
+const mockProvider = {
   id: "prov-001",
   name: "OpenAI",
   type: "AI Model",
@@ -67,6 +68,12 @@ const tabs = [
 export function ProviderDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
+  const { data: apiProvider } = useProviderDetail(id);
+
+  const provider = useMemo(() => {
+    if (apiProvider) return apiProvider;
+    return mockProvider;
+  }, [apiProvider]);
 
   return (
     <EntityDetailLayout

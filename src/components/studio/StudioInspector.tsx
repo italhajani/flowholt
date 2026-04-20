@@ -191,7 +191,7 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
   };
 
   return (
-    <div className="flex w-[400px] flex-col border-l border-zinc-100 bg-white overflow-hidden">
+    <div className="flex w-[540px] flex-col border-l border-zinc-100 bg-white overflow-hidden">
       {/* Header */}
       <div className="border-b border-zinc-100 px-4 py-2.5 flex-shrink-0">
         <div className="flex items-center justify-between">

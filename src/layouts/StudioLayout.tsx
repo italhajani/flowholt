@@ -10,6 +10,7 @@ import { StudioInspector } from "@/components/studio/StudioInspector";
 import { StudioRuntimeBar } from "@/components/studio/StudioRuntimeBar";
 import { StudioRuntimeDrawer } from "@/components/studio/StudioRuntimeDrawer";
 import { StudioCopilotPanel, StudioCopilotButton } from "@/components/studio/StudioCopilotPanel";
+import { WorkflowSettingsPanel } from "@/components/studio/WorkflowSettingsPanel";
 import { CanvasStoreProvider, useCanvasStore } from "@/components/studio/useCanvasStore";
 
 function StudioLayoutInner() {
@@ -65,42 +66,79 @@ function StudioLayoutInner() {
 
       {/* Middle section — fills remaining space */}
       <div className="flex flex-1 min-h-0">
-        {/* Left rail — 56px */}
-        <StudioLeftRail
-          activeContext={leftPaneContext}
-          onContextChange={setLeftPaneContext}
-          paneOpen={leftPaneOpen}
-          onTogglePane={handleTogglePane}
-        />
+        {activeTab === "Workflow" && (
+          <>
+            {/* Left rail — 56px */}
+            <StudioLeftRail
+              activeContext={leftPaneContext}
+              onContextChange={setLeftPaneContext}
+              paneOpen={leftPaneOpen}
+              onTogglePane={handleTogglePane}
+            />
 
-        {/* Insert pane — 280px, collapsible */}
-        {leftPaneOpen && (
-          <StudioInsertPane
-            context={leftPaneContext}
-            onClose={() => setLeftPaneOpen(false)}
-          />
+            {/* Insert pane — 280px, collapsible */}
+            {leftPaneOpen && (
+              <StudioInsertPane
+                context={leftPaneContext}
+                onClose={() => setLeftPaneOpen(false)}
+              />
+            )}
+
+            {/* Canvas — flex-1 */}
+            <StudioCanvas
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={handleNodeSelect}
+              onCanvasClick={handleCanvasClick}
+              workflowId={workflowId}
+            />
+
+            {/* Inspector — 540px, collapsible */}
+            {inspectorOpen && selectedNode && (
+              <StudioInspector
+                node={selectedNode}
+                onClose={() => { setInspectorOpen(false); setSelectedNodeId(null); }}
+                workflowId={workflowId}
+              />
+            )}
+
+            {/* AI Copilot panel — 380px, collapsible */}
+            {copilotOpen && !inspectorOpen && (
+              <StudioCopilotPanel onClose={() => { setCopilotOpen(false); setCopilotPrompt(""); }} initialPrompt={copilotPrompt} />
+            )}
+          </>
         )}
 
-        {/* Canvas — flex-1 */}
-        <StudioCanvas
-          selectedNodeId={selectedNodeId}
-          onNodeSelect={handleNodeSelect}
-          onCanvasClick={handleCanvasClick}
-          workflowId={workflowId}
-        />
-
-        {/* Inspector — 380px, collapsible */}
-        {inspectorOpen && selectedNode && (
-          <StudioInspector
-            node={selectedNode}
-            onClose={() => { setInspectorOpen(false); setSelectedNodeId(null); }}
-            workflowId={workflowId}
-          />
+        {activeTab === "Executions" && (
+          <div className="flex-1 overflow-auto">
+            <div className="mx-auto max-w-[720px] py-8 px-6">
+              <h2 className="text-[15px] font-semibold text-zinc-900">Executions</h2>
+              <p className="text-[12px] text-zinc-500 mt-1">View past runs, retry failed executions, and inspect step outputs.</p>
+              <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
+                <p className="text-[13px] text-zinc-400">No executions yet — run the workflow to see results here.</p>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* AI Copilot panel — 380px, collapsible */}
-        {copilotOpen && !inspectorOpen && (
-          <StudioCopilotPanel onClose={() => { setCopilotOpen(false); setCopilotPrompt(""); }} initialPrompt={copilotPrompt} />
+        {activeTab === "Evaluation" && (
+          <div className="flex-1 overflow-auto">
+            <div className="mx-auto max-w-[720px] py-8 px-6">
+              <h2 className="text-[15px] font-semibold text-zinc-900">Evaluation</h2>
+              <p className="text-[12px] text-zinc-500 mt-1">Test payloads, expected outputs, cost tracking, and compare runs.</p>
+              <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
+                <p className="text-[13px] text-zinc-400">Create test scenarios to validate workflow behavior.</p>
+                <button className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-zinc-700 transition-colors">
+                  + New Test Scenario
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "Settings" && (
+          <div className="flex-1 overflow-auto">
+            <WorkflowSettingsPanel workflowId={workflowId} />
+          </div>
         )}
       </div>
 

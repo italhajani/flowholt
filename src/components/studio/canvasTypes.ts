@@ -5,7 +5,7 @@ export interface CanvasNodeData {
   id: string;
   name: string;
   subtitle: string;
-  family: "trigger" | "integration" | "logic" | "ai" | "data";
+  family: "trigger" | "integration" | "logic" | "ai" | "data" | "code" | "human" | "error";
   top: number;
   left: number;
 }
@@ -13,11 +13,14 @@ export interface CanvasNodeData {
 export type NodeExecState = "idle" | "running" | "success" | "error" | "disabled";
 
 export const familyColors: Record<string, { border: string; dot: string; accent: string; bg: string }> = {
-  trigger:     { border: "border-l-green-500", dot: "bg-green-500", accent: "#22c55e", bg: "bg-green-50" },
-  integration: { border: "border-l-zinc-400",  dot: "bg-zinc-400",  accent: "#a1a1aa", bg: "bg-zinc-50" },
-  logic:       { border: "border-l-blue-500",  dot: "bg-blue-500",  accent: "#3b82f6", bg: "bg-blue-50" },
-  ai:          { border: "border-l-violet-600",dot: "bg-violet-600",accent: "#7c3aed", bg: "bg-violet-50" },
-  data:        { border: "border-l-teal-500",  dot: "bg-teal-500",  accent: "#14b8a6", bg: "bg-teal-50" },
+  trigger:     { border: "border-l-green-500",  dot: "bg-green-500",  accent: "#22c55e", bg: "bg-green-50" },
+  integration: { border: "border-l-zinc-400",   dot: "bg-zinc-400",   accent: "#a1a1aa", bg: "bg-zinc-50" },
+  logic:       { border: "border-l-blue-500",   dot: "bg-blue-500",   accent: "#3b82f6", bg: "bg-blue-50" },
+  ai:          { border: "border-l-zinc-900",   dot: "bg-zinc-900",   accent: "#18181b", bg: "bg-zinc-100" },
+  data:        { border: "border-l-teal-500",   dot: "bg-teal-500",   accent: "#14b8a6", bg: "bg-teal-50" },
+  code:        { border: "border-l-amber-500",  dot: "bg-amber-500",  accent: "#f59e0b", bg: "bg-amber-50" },
+  human:       { border: "border-l-rose-500",   dot: "bg-rose-500",   accent: "#f43f5e", bg: "bg-rose-50" },
+  error:       { border: "border-l-red-500",    dot: "bg-red-500",    accent: "#ef4444", bg: "bg-red-50" },
 };
 
 export const canvasNodes: CanvasNodeData[] = [

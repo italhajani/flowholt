@@ -1384,6 +1384,18 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
                   <animateMotion dur="2s" repeatCount="indefinite" path={pathD} />
                 </circle>
               )}
+              {/* Plus button on hovered edge — click to insert node between */}
+              {hoveredEdge === edgeKey && (
+                <g
+                  className="cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); handleQuickAddNode(fromId, toId); }}
+                  onMouseEnter={() => setHoveredEdge(edgeKey)}
+                >
+                  <circle cx={midX} cy={midY} r={10} fill="white" stroke="#a1a1aa" strokeWidth={1.5} />
+                  <line x1={midX - 4} y1={midY} x2={midX + 4} y2={midY} stroke="#71717a" strokeWidth={1.5} strokeLinecap="round" />
+                  <line x1={midX} y1={midY - 4} x2={midX} y2={midY + 4} stroke="#71717a" strokeWidth={1.5} strokeLinecap="round" />
+                </g>
+              )}
             </g>
           );
         })}

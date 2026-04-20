@@ -5,7 +5,43 @@
 
 ---
 
-## Session 43 — Sprint 42-43: Webhook Security & Phase 5 Completion (Latest)
+## Session 44 — Sprints 54-55: Execution Wiring & Copilot AI (Latest)
+
+**Sprints completed:** 54, 55
+**Todos done:** 370+ total
+**Build:** 578.32 KB main | 0 errors
+**Commits:** `4e197ec8` (Sprint 54), `d6b4a606` (Sprint 55)
+
+### Sprint 54 — Real-Time Execution Wiring + Undo/Redo Bar
+- Wired undo/redo buttons in RuntimeBar to canvas store (with disabled state)
+- RuntimeBar "Run Once" emits onExecutionStart/onExecutionComplete callbacks
+- StudioLayout manages execution state, maps step results → canvas execStates
+- RuntimeDrawer accepts executionData prop, renders real trace/output/logs
+- Falls back to mock data when no execution data available
+- LIVE/SAMPLE DATA badge in drawer tab bar
+- Expanded trace nodes show real output JSON and pinned data indicator
+
+**Files:** StudioRuntimeBar.tsx, StudioRuntimeDrawer.tsx, StudioLayout.tsx
+
+### Sprint 55 — Wire Copilot AI to Real Backend LLM Streaming
+- Added POST /api/assistant/chat endpoint with SSE streaming
+- Uses LLM router (auto-fallback: Gemini > Groq > OpenAI > Anthropic > Mock)
+- System prompts per mode: ask, build, code, credentials
+- Model-to-provider mapping for frontend model selector
+- Frontend streamCopilotChat() async generator with SSE parsing
+- Copilot panel tries real AI streaming first, falls back to mock
+
+**Files:** backend/app/routers/assistant.py, src/lib/api.ts, StudioCopilotPanel.tsx
+
+### Next Priorities
+- Sprint 56: Executions tab (wire real execution list to Studio Executions tab)
+- Credential management UI improvements
+- Expression editor live preview with backend
+- User requested: Supabase integration, auth/login, free tier tokens, .env template
+
+---
+
+## Session 43 — Sprint 42-43: Webhook Security & Phase 5 Completion
 
 **Sprints completed:** 42, 43
 **Todos done:** 319 total

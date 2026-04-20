@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppShellLayout } from "@/layouts/AppShellLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { SettingsLayout } from "@/layouts/SettingsLayout";
-import { StudioLayout } from "@/layouts/StudioLayout";
+const StudioLayout = lazy(() => import("@/layouts/StudioLayout").then(m => ({ default: m.StudioLayout })));
 import { CommandPalette } from "@/components/ui/command-palette";
 import { ToastProvider } from "@/components/ui/toast";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
@@ -92,7 +92,7 @@ export function App() {
             <Route path="/onboarding" element={<PageSuspense><OnboardingWizard onComplete={() => window.location.hash = "#/home"} /></PageSuspense>} />
 
             {/* Studio — full-screen layout, no shell */}
-            <Route path="/studio/:workflowId" element={<StudioLayout />} />
+            <Route path="/studio/:workflowId" element={<PageSuspense><StudioLayout /></PageSuspense>} />
 
             {/* Public trigger layouts — no shell, standalone */}
             <Route path="/public/chat/:id" element={<PageSuspense><PublicChatPage /></PageSuspense>} />

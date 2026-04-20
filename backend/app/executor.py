@@ -183,31 +183,107 @@ def run_workflow_definition(
                     output["choices"] = config.get("choices")
                 status = "paused"
             elif step_type == "wait":
-                timeout_hours = config.get("timeout_hours") or 0
-                resume_after = None
-                if timeout_hours and float(timeout_hours) > 0:
-                    resume_after = (datetime.now(UTC) + timedelta(hours=float(timeout_hours))).isoformat()
-                output = {
-                    "wait_type": "webhook",
-                    "auth_mode": config.get("auth_mode") or "token",
-                    "timeout_action": config.get("timeout_action") or "fail",
-                }
-                if resume_after:
-                    output["resume_after"] = resume_after
+                resume_mode = config.get("resume_mode", "time_interval")
+                timeout_hours = config.get("timeout_hours") or 168  # default 7 days
+                timeout_action = config.get("timeout_action", "continue")
+
+                if resume_mode == "time_interval":
+                    resume_after = _compute_resume_after(config, expression_scope)
+                    output = {
+                        "wait_type": "delay",
+                        "resume_mode": "time_interval",
+                        "resume_after": resume_after,
+                    }
+                elif resume_mode == "exact_time":
+                    resume_at = _render_template(str(config.get("resume_at", "")), expression_scope)
+                    output = {
+                        "wait_type": "delay",
+                        "resume_mode": "exact_time",
+                        "resume_after": str(resume_at),
+                    }
+                elif resume_mode == "webhook":
+                    resume_after = None
+                    if timeout_hours and float(timeout_hours) > 0:
+                        resume_after = (datetime.now(UTC) + timedelta(hours=float(timeout_hours))).isoformat()
+                    output = {
+                        "wait_type": "webhook",
+                        "resume_mode": "webhook",
+                        "auth_mode": config.get("webhook_auth", "none"),
+                        "webhook_suffix": config.get("webhook_suffix", ""),
+                        "timeout_action": timeout_action,
+                    }
+                    if resume_after:
+                        output["resume_after"] = resume_after
+                elif resume_mode == "form_submission":
+                    resume_after = None
+                    if timeout_hours and float(timeout_hours) > 0:
+                        resume_after = (datetime.now(UTC) + timedelta(hours=float(timeout_hours))).isoformat()
+                    output = {
+                        "wait_type": "form",
+                        "resume_mode": "form_submission",
+                        "timeout_action": timeout_action,
+                    }
+                    if resume_after:
+                        output["resume_after"] = resume_after
+                else:
+                    resume_after = _compute_resume_after(config, expression_scope)
+                    output = {"wait_type": "delay", "resume_after": resume_after}
+
                 status = "paused"
-            elif step_type == "wait":
-                timeout_hours = config.get("timeout_hours") or 0
-                resume_after = None
-                if timeout_hours and float(timeout_hours) > 0:
-                    resume_after = (datetime.now(UTC) + timedelta(hours=float(timeout_hours))).isoformat()
-                output = {
-                    "wait_type": "webhook",
-                    "auth_mode": config.get("auth_mode") or "token",
-                    "timeout_action": config.get("timeout_action") or "fail",
-                }
-                if resume_after:
-                    output["resume_after"] = resume_after
-                status = "paused"
+
+            # ── Switch node (multi-branch routing) ───────────────────
+            elif step_type == "switch":
+                routing_mode = config.get("routing_mode", "rules")
+                fallback_output = config.get("fallback_output", "none")
+
+                if routing_mode == "expression":
+                    expr_raw = str(config.get("expression", ""))
+                    route_value = str(_render_template(expr_raw, expression_scope)).strip()
+                    output = {
+                        "routing_mode": "expression",
+                        "expression_result": route_value,
+                        "routed_to": route_value,
+                    }
+                    next_label = route_value
+                else:
+                    branches = config.get("branches") or []
+                    matched_branch: str | None = None
+                    for branch in branches:
+                        cond = branch.get("condition", {})
+                        field_name = cond.get("field", "")
+                        operator = cond.get("operator", "equals")
+                        expected_val = cond.get("value", "")
+                        actual_val = _lookup_path_value(context, field_name) if field_name else None
+                        if actual_val is None and field_name:
+                            actual_val = _lookup_path_value(payload, field_name)
+
+                        if _evaluate_condition(operator, actual_val, expected_val):
+                            matched_branch = branch.get("name", f"Branch {branches.index(branch) + 1}")
+                            break
+
+                    if matched_branch:
+                        output = {
+                            "routing_mode": "rules",
+                            "matched_branch": matched_branch,
+                            "routed_to": matched_branch,
+                        }
+                        next_label = matched_branch
+                    elif fallback_output == "extra_output":
+                        output = {
+                            "routing_mode": "rules",
+                            "matched_branch": None,
+                            "routed_to": "fallback",
+                        }
+                        next_label = "fallback"
+                    else:
+                        output = {
+                            "routing_mode": "rules",
+                            "matched_branch": None,
+                            "routed_to": None,
+                            "discarded": True,
+                        }
+
+                context.update(output)
 
             # ── Execute Workflow node ────────────────────────────────
             elif step_type == "execute_workflow":
@@ -543,16 +619,69 @@ def run_workflow_definition(
             elif step_type == "merge":
                 mode = config.get("mode", "append")
                 sources = config.get("sources") or []
-                merged: list[Any] = []
-                for src in sources:
-                    resolved = context.get(src) or payload.get(src)
-                    if isinstance(resolved, list):
-                        merged.extend(resolved)
-                    elif resolved is not None:
-                        merged.append(resolved)
+                combine_by = config.get("combine_by_field", "")
 
-                if mode == "object":
-                    # Merge dicts instead of appending
+                source_a: list[Any] = []
+                source_b: list[Any] = []
+                for i, src in enumerate(sources[:2]):
+                    resolved = context.get(src) or payload.get(src)
+                    items = resolved if isinstance(resolved, list) else ([resolved] if resolved is not None else [])
+                    if i == 0:
+                        source_a = items
+                    else:
+                        source_b = items
+
+                if mode == "append":
+                    merged_items = list(source_a) + list(source_b)
+                    output = {"items": merged_items, "count": len(merged_items)}
+
+                elif mode == "combine_by_field":
+                    lookup: dict[str, dict[str, Any]] = {}
+                    for item in source_a:
+                        if isinstance(item, dict):
+                            key = str(item.get(combine_by, ""))
+                            lookup[key] = dict(item)
+                    for item in source_b:
+                        if isinstance(item, dict):
+                            key = str(item.get(combine_by, ""))
+                            if key in lookup:
+                                lookup[key].update(item)
+                            else:
+                                lookup[key] = dict(item)
+                    merged_items = list(lookup.values())
+                    output = {"items": merged_items, "count": len(merged_items)}
+
+                elif mode == "zip":
+                    merged_items = []
+                    for a, b in zip(source_a, source_b):
+                        if isinstance(a, dict) and isinstance(b, dict):
+                            merged_items.append({**a, **b})
+                        else:
+                            merged_items.append({"input_1": a, "input_2": b})
+                    output = {"items": merged_items, "count": len(merged_items)}
+
+                elif mode == "cross_product":
+                    merged_items = []
+                    for a in source_a:
+                        for b in source_b:
+                            if isinstance(a, dict) and isinstance(b, dict):
+                                merged_items.append({**a, **b})
+                            else:
+                                merged_items.append({"input_1": a, "input_2": b})
+                    output = {"items": merged_items, "count": len(merged_items)}
+
+                elif mode == "multiplex":
+                    # Round-robin interleave
+                    merged_items = []
+                    max_len = max(len(source_a), len(source_b))
+                    for i in range(max_len):
+                        if i < len(source_a):
+                            merged_items.append(source_a[i])
+                        if i < len(source_b):
+                            merged_items.append(source_b[i])
+                    output = {"items": merged_items, "count": len(merged_items)}
+
+                elif mode == "object":
                     merged_obj: dict[str, Any] = {}
                     for src in sources:
                         resolved = context.get(src) or payload.get(src)
@@ -560,10 +689,29 @@ def run_workflow_definition(
                             merged_obj.update(resolved)
                     output = merged_obj
                 else:
-                    output = {"items": merged, "count": len(merged)}
+                    merged_items = list(source_a) + list(source_b)
+                    output = {"items": merged_items, "count": len(merged_items)}
 
                 context["merged"] = output
                 context.update(output if isinstance(output, dict) else {"merged": output})
+
+            # ── Execute Workflow Trigger ──────────────────────────────
+            elif step_type == "execute_workflow_trigger":
+                input_source = config.get("input_source", "passthrough")
+                if input_source == "passthrough":
+                    output = dict(payload)
+                elif input_source == "define_below":
+                    input_fields = config.get("input_fields") or []
+                    output = {}
+                    for field_def in input_fields:
+                        fname = field_def.get("name", "")
+                        if fname:
+                            output[fname] = payload.get(fname)
+                elif input_source == "json_schema":
+                    output = dict(payload)
+                else:
+                    output = dict(payload)
+                context.update(output)
             else:
                 output = {"note": f"Unsupported step type '{step_type}' skipped."}
                 status = "skipped"
@@ -746,6 +894,48 @@ def _normalize_split_entry(entry: Any, output_field: str, parent_fields: dict[st
         return merged
     base[output_field] = entry
     return base
+
+
+def _evaluate_condition(operator: str, actual: Any, expected: Any) -> bool:
+    """Evaluate a condition operator for Switch rules and Filter nodes."""
+    try:
+        if operator == "equals":
+            return str(actual) == str(expected)
+        if operator == "not_equals":
+            return str(actual) != str(expected)
+        if operator == "contains":
+            return str(expected) in str(actual)
+        if operator == "not_contains":
+            return str(expected) not in str(actual)
+        if operator == "starts_with":
+            return str(actual).startswith(str(expected))
+        if operator == "ends_with":
+            return str(actual).endswith(str(expected))
+        if operator == "gt":
+            return float(actual or 0) > float(expected or 0)
+        if operator == "gte":
+            return float(actual or 0) >= float(expected or 0)
+        if operator == "lt":
+            return float(actual or 0) < float(expected or 0)
+        if operator == "lte":
+            return float(actual or 0) <= float(expected or 0)
+        if operator == "exists":
+            return actual is not None
+        if operator == "not_exists":
+            return actual is None
+        if operator == "is_empty":
+            return actual is None or actual == "" or actual == [] or actual == {}
+        if operator == "is_not_empty":
+            return actual is not None and actual != "" and actual != [] and actual != {}
+        if operator == "regex":
+            return bool(re.search(str(expected), str(actual or "")))
+        if operator == "is_true":
+            return bool(actual)
+        if operator == "is_false":
+            return not bool(actual)
+    except (ValueError, TypeError):
+        return False
+    return str(actual) == str(expected)
 
 
 def _resolve_next_step(

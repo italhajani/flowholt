@@ -5,23 +5,33 @@
 
 ---
 
-## Session 26 — Sprint 25 (Latest)
+## Session 26 — Sprint 25-26 (Latest)
 
-**Sprints completed:** 25
-**Commit:** `766b3bb`
-**Theme:** Studio API Integration — wire all Studio components to real backend
+**Sprints completed:** 26
+**Commits:** `766b3bb` (Sprint 25), `f84b79a` (Sprint 26)
+**Theme:** Full API Integration — Studio + Assistant + Search + Webhooks + Human Tasks
 
 ### Sprint 25: Studio API Integration
 | File | Change |
 |------|--------|
-| `src/lib/api.ts` | MODIFIED — Added ~150 lines: mutation helpers (createWorkflow, updateWorkflow, deleteWorkflow, runWorkflow, publishWorkflow, queueWorkflowRun, retryExecution, deleteExecution), studio helpers (fetchStudioBundle, fetchStepEditor, insertWorkflowStep, updateWorkflowStep, testWorkflowStep), new TS interfaces (StudioWorkflowBundle, NodeEditorResponse, etc.) |
-| `src/hooks/useApi.ts` | MODIFIED — Rewrite: 3 new query hooks (useStudioBundle, useStepEditor, useWorkflowExecutions), 9 mutation hooks with cache invalidation (useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow, useRunWorkflow, usePublishWorkflow, etc.) |
-| `src/components/studio/useCanvasStore.tsx` | MODIFIED — Added loadWorkflow(), familyFromType mapping, stepToCanvasNode/apiEdgeToTuple helpers, loadedWorkflowId state |
-| `src/components/studio/StudioCanvas.tsx` | MODIFIED — Added workflowId prop, useStudioBundle hook, useEffect to load real workflow into canvas store |
-| `src/components/studio/StudioHeader.tsx` | MODIFIED — Added workflowId prop, wired publish button to usePublishWorkflow with fallback |
-| `src/components/studio/StudioRuntimeBar.tsx` | MODIFIED — Added workflowId prop, wired Run→useRunWorkflow, Save→useUpdateWorkflow with definition serialization |
-| `src/components/studio/StudioInspector.tsx` | MODIFIED — Added workflowId prop, wired test-step to testWorkflowStep API, added useStepEditor + useUpdateWorkflowStep hooks |
-| `src/layouts/StudioLayout.tsx` | MODIFIED — Pass workflowId to StudioCanvas, StudioHeader, StudioRuntimeBar, StudioInspector |
+| `src/lib/api.ts` | Added mutation helpers (workflow CRUD, execution, studio bundle/step) + TS interfaces |
+| `src/hooks/useApi.ts` | 3 new query hooks + 9 mutation hooks with cache invalidation |
+| `src/components/studio/useCanvasStore.tsx` | loadWorkflow(), familyFromType, stepToCanvasNode helpers |
+| `src/components/studio/StudioCanvas.tsx` | workflowId prop, useStudioBundle hook, loadWorkflow useEffect |
+| `src/components/studio/StudioHeader.tsx` | workflowId prop, publish button → usePublishWorkflow |
+| `src/components/studio/StudioRuntimeBar.tsx` | workflowId prop, run→useRunWorkflow, save→useUpdateWorkflow |
+| `src/components/studio/StudioInspector.tsx` | workflowId prop, test-step→testWorkflowStep, useStepEditor |
+| `src/layouts/StudioLayout.tsx` | Pass workflowId to all Studio components |
+
+### Sprint 26: Assistant & Search API Integration
+| File | Change |
+|------|--------|
+| `src/lib/api.ts` | Added AI draft, global search, templates, notifications, webhooks, human tasks helpers + interfaces |
+| `src/hooks/useApi.ts` | 14 new hooks (7 queries + 7 mutations) for all Sprint 26 features |
+| `src/components/studio/StudioCopilotPanel.tsx` | Builder mode → POST /api/assistant/draft-workflow with mock fallback |
+| `src/components/modals/UseTemplateWizardModal.tsx` | templateId prop, useInstantiateTemplate wiring |
+| `src/pages/WebhooksPage.tsx` | useWebhookEndpoints hook wiring |
+| `src/pages/HumanTasksPage.tsx` | useHumanTasks + useCompleteHumanTask hook wiring |
 
 ---
 

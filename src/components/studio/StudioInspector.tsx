@@ -1208,6 +1208,32 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  /* ── Switch node hero ── */
+  if (name === "Switch") {
+    return (
+      <div className="rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 text-[8px] font-bold text-blue-700">⑂</span>
+          <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">Switch</span>
+        </div>
+        <p className="text-[10px] text-blue-600">Route items to different outputs based on rules or an expression value. Supports fallback output.</p>
+      </div>
+    );
+  }
+
+  /* ── Merge node hero ── */
+  if (name === "Merge") {
+    return (
+      <div className="rounded-lg border border-emerald-100 bg-gradient-to-r from-emerald-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-100 text-[8px] font-bold text-emerald-700">⊕</span>
+          <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">Merge</span>
+        </div>
+        <p className="text-[10px] text-emerald-600">Combine data from multiple branches using append, combine by field, zip, cross product, or multiplex.</p>
+      </div>
+    );
+  }
+
   /* ── Sub-workflow hero ── */
   if (name === "Sub-workflow" || name === "Execute Workflow") {
     return (
@@ -1479,6 +1505,8 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
 
       {/* ── Node-specific parameter sections ── */}
       {nodeName === "Wait" && <WaitNodeParams />}
+      {nodeName === "Switch" && <SwitchNodeParams />}
+      {nodeName === "Merge" && <MergeNodeParams />}
       {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
       {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
       {nodeName === "Chat Trigger" && <ChatTriggerParams />}
@@ -1647,6 +1675,210 @@ function ExecuteWorkflowParams() {
           </FieldGroup>
         </>
       )}
+    </div>
+  );
+}
+
+/* ── Switch Node Params ── */
+function SwitchNodeParams() {
+  const [mode, setMode] = useState<"rules" | "expression">("rules");
+  const [branches, setBranches] = useState([
+    { id: "b1", name: "Branch 1", field: "", operator: "equals", value: "" },
+    { id: "b2", name: "Branch 2", field: "", operator: "equals", value: "" },
+  ]);
+  const [expression, setExpression] = useState("{{ $json.status }}");
+  const [fallback, setFallback] = useState<"none" | "extra_output">("none");
+
+  const operators = [
+    { value: "equals", label: "Equals" },
+    { value: "not_equals", label: "Not Equals" },
+    { value: "contains", label: "Contains" },
+    { value: "gt", label: "Greater Than" },
+    { value: "lt", label: "Less Than" },
+    { value: "exists", label: "Exists" },
+    { value: "is_empty", label: "Is Empty" },
+    { value: "regex", label: "Regex Match" },
+  ];
+
+  const addBranch = () =>
+    setBranches((b) => [...b, { id: `b${Date.now()}`, name: `Branch ${b.length + 1}`, field: "", operator: "equals", value: "" }]);
+  const removeBranch = (id: string) => setBranches((b) => b.filter((br) => br.id !== id));
+  const updateBranch = (id: string, key: string, val: string) =>
+    setBranches((b) => b.map((br) => (br.id === id ? { ...br, [key]: val } : br)));
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Routing Mode">
+        <div className="grid grid-cols-2 gap-1">
+          {(["rules", "expression"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={cn(
+                "rounded-lg border px-2 py-1.5 text-[10px] font-medium transition-all text-center capitalize",
+                mode === m ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
+              )}
+            >
+              {m === "rules" ? "Rules" : "Expression"}
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {mode === "expression" && (
+        <FieldGroup label="Routing Expression" description="Result is matched against branch edge labels">
+          <input
+            value={expression}
+            onChange={(e) => setExpression(e.target.value)}
+            className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 font-mono focus:outline-none transition-all"
+            placeholder='={{ $json.status }}'
+          />
+        </FieldGroup>
+      )}
+
+      {mode === "rules" && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Branches</p>
+          {branches.map((br, idx) => (
+            <div key={br.id} className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <input
+                  value={br.name}
+                  onChange={(e) => updateBranch(br.id, "name", e.target.value)}
+                  className="h-6 w-32 rounded border border-zinc-200 bg-white px-2 text-[10px] font-medium text-zinc-700 focus:outline-none"
+                />
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] text-zinc-400">Output {idx}</span>
+                  {branches.length > 2 && (
+                    <button onClick={() => removeBranch(br.id)} className="text-zinc-300 hover:text-red-500 transition-colors">
+                      <XCircle size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <input
+                  value={br.field}
+                  onChange={(e) => updateBranch(br.id, "field", e.target.value)}
+                  placeholder="field.path"
+                  className="h-7 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+                />
+                <select
+                  value={br.operator}
+                  onChange={(e) => updateBranch(br.id, "operator", e.target.value)}
+                  className="h-7 rounded border border-zinc-200 bg-white px-1 text-[10px] text-zinc-700 focus:outline-none"
+                >
+                  {operators.map((op) => (
+                    <option key={op.value} value={op.value}>
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={br.value}
+                  onChange={(e) => updateBranch(br.id, "value", e.target.value)}
+                  placeholder="value"
+                  className="h-7 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={addBranch}
+            className="flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-3 py-1.5 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-all w-full justify-center"
+          >
+            <Plus size={10} /> Add Branch
+          </button>
+        </div>
+      )}
+
+      <FieldGroup label="Fallback Output" description="What happens to unmatched items">
+        <select
+          value={fallback}
+          onChange={(e) => setFallback(e.target.value as typeof fallback)}
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all"
+        >
+          <option value="none">Discard unmatched items</option>
+          <option value="extra_output">Send to extra output</option>
+        </select>
+      </FieldGroup>
+    </div>
+  );
+}
+
+/* ── Merge Node Params ── */
+function MergeNodeParams() {
+  const [strategy, setStrategy] = useState<"append" | "combine_by_field" | "zip" | "cross_product" | "multiplex" | "object">("append");
+  const [combineField, setCombineField] = useState("");
+
+  const strategies = [
+    { value: "append", label: "Append", desc: "Combine all items into one list" },
+    { value: "combine_by_field", label: "Combine by Field", desc: "Merge matching items by a shared key" },
+    { value: "zip", label: "Zip", desc: "Pair items by position (1-to-1)" },
+    { value: "cross_product", label: "Cross Product", desc: "Every combination of items" },
+    { value: "multiplex", label: "Multiplex", desc: "Round-robin interleave" },
+    { value: "object", label: "Merge Objects", desc: "Deep merge dict objects" },
+  ] as const;
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Merge Strategy" description="How to combine data from input branches">
+        <div className="space-y-1">
+          {strategies.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setStrategy(s.value)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-all",
+                strategy === s.value
+                  ? "border-emerald-300 bg-emerald-50/80 ring-1 ring-emerald-200"
+                  : "border-zinc-200 hover:border-zinc-300"
+              )}
+            >
+              <div
+                className={cn(
+                  "h-3 w-3 rounded-full border-2 flex-shrink-0 transition-all",
+                  strategy === s.value ? "border-emerald-500 bg-emerald-500" : "border-zinc-300"
+                )}
+              />
+              <div>
+                <span className={cn("text-[11px] font-medium", strategy === s.value ? "text-emerald-700" : "text-zinc-600")}>
+                  {s.label}
+                </span>
+                <p className="text-[9px] text-zinc-400">{s.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {strategy === "combine_by_field" && (
+        <FieldGroup label="Match Field" description="The key used to match items between inputs">
+          <input
+            value={combineField}
+            onChange={(e) => setCombineField(e.target.value)}
+            placeholder="e.g. id, email, userId"
+            className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 font-mono focus:outline-none transition-all"
+          />
+        </FieldGroup>
+      )}
+
+      <div className="rounded-md border border-zinc-200 bg-zinc-50/50 p-2.5">
+        <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider mb-1">Input Preview</p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded border border-zinc-200 bg-white p-1.5 text-center">
+            <span className="text-[9px] text-zinc-500">Input 1</span>
+          </div>
+          <span className="text-[10px] text-zinc-400">+</span>
+          <div className="flex-1 rounded border border-zinc-200 bg-white p-1.5 text-center">
+            <span className="text-[9px] text-zinc-500">Input 2</span>
+          </div>
+          <span className="text-[10px] text-zinc-400">→</span>
+          <div className="flex-1 rounded border border-emerald-200 bg-emerald-50 p-1.5 text-center">
+            <span className="text-[9px] text-emerald-600 font-medium">Merged</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

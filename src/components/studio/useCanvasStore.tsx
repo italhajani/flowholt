@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useMemo, type ReactNode } from "react";
 import { canvasNodes, type CanvasNodeData, type NodeExecState } from "./canvasTypes";
-import type { WorkflowDetail, WorkflowStep, WorkflowEdge as ApiEdge } from "@/lib/api";
+import type { WorkflowDetail, WorkflowStep, WorkflowEdge as ApiEdge, WorkflowDefinition } from "@/lib/api";
 
 /* ── Helpers: map backend definition → canvas state ── */
 
@@ -62,6 +62,9 @@ interface CanvasStore {
   canUndo: boolean;
   canRedo: boolean;
   historyIndex: number;
+  isDirty: boolean;
+  markClean: () => void;
+  toDefinition: () => WorkflowDefinition;
 }
 
 const CanvasStoreCtx = createContext<CanvasStore | null>(null);
@@ -255,6 +258,30 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [addNode, removeNode, updateNode, addEdge, removeEdge]);
 
+  /* Track dirty state: incremented on every applyActions, reset on markClean */
+  const cleanHistoryRef = useRef(0);
+  const isDirty = historyIndex !== cleanHistoryRef.current;
+  const markClean = useCallback(() => {
+    cleanHistoryRef.current = historyIndex;
+  }, [historyIndex]);
+
+  /* Serialize canvas → WorkflowDefinition for API persistence */
+  const toDefinition = useCallback((): WorkflowDefinition => {
+    const steps: WorkflowStep[] = nodes.map(n => ({
+      id: n.id,
+      type: n.subtitle || "unknown",
+      name: n.name,
+      config: {},
+    }));
+    const defEdges: ApiEdge[] = edges.map(([src, tgt], i) => ({
+      id: `e${i}`,
+      source: src,
+      target: tgt,
+      label: null,
+    }));
+    return { steps, edges: defEdges, settings: {} };
+  }, [nodes, edges]);
+
   return (
     <CanvasStoreCtx.Provider value={{
       nodes, edges, execStates,
@@ -270,6 +297,9 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
       canUndo: undoStackRef.current.length > 0,
       canRedo: redoStackRef.current.length > 0,
       historyIndex,
+      isDirty,
+      markClean,
+      toDefinition,
     }}>
       {children}
     </CanvasStoreCtx.Provider>

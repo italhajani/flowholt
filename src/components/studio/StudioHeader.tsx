@@ -677,7 +677,7 @@ function WorkflowSettingsModal({ open, onClose }: { open: boolean; onClose: () =
   );
 }
 
-export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workflowId?: string }) {
+export function StudioHeader({ onBack, workflowId, saveState = "clean", onSave }: { onBack: () => void; workflowId?: string; saveState?: "clean" | "dirty" | "saving" | "saved" | "error"; onSave?: () => void }) {
   const [workflowName, setWorkflowName] = useState("Lead Qualification Pipeline");
   const [editingName, setEditingName] = useState(false);
   const [publishState, setPublishState] = useState<PublishState>("unsaved");
@@ -866,6 +866,24 @@ export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workf
             </div>
           )}
         </div>
+
+        {/* Save button with state indicator */}
+        <button
+          onClick={onSave}
+          disabled={saveState === "saving" || saveState === "clean"}
+          className={cn(
+            "inline-flex h-7 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-all",
+            saveState === "dirty" && "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100",
+            saveState === "saving" && "border-blue-200 bg-blue-50 text-blue-600 cursor-wait",
+            saveState === "saved" && "border-green-200 bg-green-50 text-green-600",
+            saveState === "error" && "border-red-300 bg-red-50 text-red-600 hover:bg-red-100",
+            saveState === "clean" && "border-zinc-200 bg-white text-zinc-400 cursor-default",
+          )}
+          title={saveState === "dirty" ? "Save changes (Ctrl+S)" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "All changes saved" : saveState === "error" ? "Save failed — click to retry" : "No unsaved changes"}
+        >
+          {saveState === "saving" ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+          {saveState === "dirty" ? "Save" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Retry" : "Saved"}
+        </button>
 
         <button onClick={() => setShareOpen(true)} className="inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-200 px-3 text-[12px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
           <Share2 size={12} />

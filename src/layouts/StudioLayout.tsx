@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { StudioHeader } from "@/components/studio/StudioHeader";
 import { StudioTabBar } from "@/components/studio/StudioTabBar";
@@ -13,11 +13,68 @@ import { StudioCopilotPanel, StudioCopilotButton } from "@/components/studio/Stu
 import { WorkflowSettingsPanel } from "@/components/studio/WorkflowSettingsPanel";
 import { EvaluationPanel } from "@/components/studio/EvaluationPanel";
 import { CanvasStoreProvider, useCanvasStore } from "@/components/studio/useCanvasStore";
+import { useUpdateWorkflow, useStudioBundle } from "@/hooks/useApi";
 
 function StudioLayoutInner() {
   const navigate = useNavigate();
   const { workflowId } = useParams();
   const canvasStore = useCanvasStore();
+
+  // Auto-save: debounce canvas changes → backend
+  const updateMutation = useUpdateWorkflow(workflowId ?? "");
+  const { data: bundle } = useStudioBundle(workflowId);
+  const [saveState, setSaveState] = useState<"clean" | "dirty" | "saving" | "saved" | "error">("clean");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHistoryRef = useRef(0);
+
+  // Track dirty state from canvas store
+  useEffect(() => {
+    if (canvasStore.isDirty && canvasStore.historyIndex !== lastHistoryRef.current) {
+      setSaveState("dirty");
+      // Debounce auto-save: 2 seconds after last change
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        if (!workflowId || !bundle?.workflow) return;
+        const def = canvasStore.toDefinition();
+        setSaveState("saving");
+        updateMutation.mutate({
+          name: bundle.workflow.name,
+          trigger_type: bundle.workflow.trigger_type,
+          status: bundle.workflow.status,
+          definition: def,
+        }, {
+          onSuccess: () => {
+            setSaveState("saved");
+            canvasStore.markClean();
+            lastHistoryRef.current = canvasStore.historyIndex;
+            setTimeout(() => setSaveState(prev => prev === "saved" ? "clean" : prev), 2000);
+          },
+          onError: () => setSaveState("error"),
+        });
+      }, 2000);
+    }
+  }, [canvasStore.historyIndex, canvasStore.isDirty]);
+
+  const handleManualSave = useCallback(() => {
+    if (!workflowId || !bundle?.workflow) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const def = canvasStore.toDefinition();
+    setSaveState("saving");
+    updateMutation.mutate({
+      name: bundle.workflow.name,
+      trigger_type: bundle.workflow.trigger_type,
+      status: bundle.workflow.status,
+      definition: def,
+    }, {
+      onSuccess: () => {
+        setSaveState("saved");
+        canvasStore.markClean();
+        lastHistoryRef.current = canvasStore.historyIndex;
+        setTimeout(() => setSaveState(prev => prev === "saved" ? "clean" : prev), 2000);
+      },
+      onError: () => setSaveState("error"),
+    });
+  }, [workflowId, bundle, canvasStore, updateMutation]);
 
   const [activeTab, setActiveTab] = useState("Workflow");
   const [leftPaneOpen, setLeftPaneOpen] = useState(true);
@@ -27,6 +84,18 @@ function StudioLayoutInner() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [copilotPrompt, setCopilotPrompt] = useState("");
+
+  // Ctrl+S to save
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+        handleManualSave();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleManualSave]);
 
   const handleAskAI = useCallback((context: string) => {
     setCopilotPrompt(context);
@@ -60,7 +129,7 @@ function StudioLayoutInner() {
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
       {/* Header — 48px */}
-      <StudioHeader onBack={() => navigate("/workflows")} workflowId={workflowId} />
+      <StudioHeader onBack={() => navigate("/workflows")} workflowId={workflowId} saveState={saveState} onSave={handleManualSave} />
 
       {/* Tab bar — 36px */}
       <StudioTabBar activeTab={activeTab} onTabChange={setActiveTab} />

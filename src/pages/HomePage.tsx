@@ -4,7 +4,7 @@ import { GitBranch, Bot, Play, AlertTriangle, ArrowRight, CheckCircle2, Circle, 
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
-import { useWorkflows, useExecutions, useHealth } from "@/hooks/useApi";
+import { useWorkflows, useExecutions, useHealth, useSystemStatus } from "@/hooks/useApi";
 
 /* ── Mock data for a populated dashboard ── */
 const recentExecutions = [
@@ -77,13 +77,14 @@ export function HomePage() {
   const { data: apiWorkflows, isLoading: wfLoading } = useWorkflows({ limit: 50 });
   const { data: apiExecutions, isLoading: exLoading } = useExecutions({ limit: 10 });
   const { data: health } = useHealth();
+  const { data: sysStatus } = useSystemStatus();
 
   const isLoading = wfLoading || exLoading;
 
-  // Derive metric card values from real data
-  const activeWfCount = useMemo(() => apiWorkflows?.filter(w => w.status === "active").length ?? 7, [apiWorkflows]);
-  const totalExToday = useMemo(() => apiExecutions?.length ?? 142, [apiExecutions]);
-  const failedCount = useMemo(() => apiExecutions?.filter(e => e.status === "failed").length ?? 3, [apiExecutions]);
+  // Derive metric card values — prefer system status, fallback to list counts, then mock
+  const activeWfCount = useMemo(() => sysStatus?.workflows?.active ?? apiWorkflows?.filter(w => w.status === "active").length ?? 7, [sysStatus, apiWorkflows]);
+  const totalExToday = useMemo(() => sysStatus?.executions?.total ?? apiExecutions?.length ?? 142, [sysStatus, apiExecutions]);
+  const failedCount = useMemo(() => sysStatus?.executions?.failed ?? apiExecutions?.filter(e => e.status === "failed").length ?? 3, [sysStatus, apiExecutions]);
 
   // Map real executions to recent executions display format
   const liveRecentExecutions = useMemo(() => {

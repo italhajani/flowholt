@@ -137,6 +137,14 @@ import {
   oauthCallback,
   refreshOAuthToken,
   type OAuthProvider,
+  fetchWorkspaceMembers,
+  inviteWorkspaceMember,
+  updateMemberRole,
+  removeMember,
+  type WorkspaceRole,
+  fetchWorkspaceSettings,
+  updateWorkspaceSettings,
+  fetchSystemStatus,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1163,5 +1171,68 @@ export function useOAuthCallback() {
 export function useRefreshOAuth() {
   return useMutation({
     mutationFn: (connectionId: string) => refreshOAuthToken(connectionId),
+  });
+}
+
+// ── Workspace Members ──
+
+export function useWorkspaceMembers() {
+  return useQuery({
+    queryKey: ["workspace-members"],
+    queryFn: () => fetchWorkspaceMembers(),
+    staleTime: 30_000,
+  });
+}
+
+export function useInviteMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ email, role }: { email: string; role: WorkspaceRole }) => inviteWorkspaceMember(email, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workspace-members"] }),
+  });
+}
+
+export function useUpdateMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: WorkspaceRole }) => updateMemberRole(userId, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workspace-members"] }),
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => removeMember(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workspace-members"] }),
+  });
+}
+
+// ── Workspace Settings ──
+
+export function useWorkspaceSettings() {
+  return useQuery({
+    queryKey: ["workspace-settings"],
+    queryFn: () => fetchWorkspaceSettings(),
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdateWorkspaceSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Partial<import("@/lib/api").WorkspaceSettingsData>) => updateWorkspaceSettings(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["workspace-settings"] }),
+  });
+}
+
+// ── System Status ──
+
+export function useSystemStatus() {
+  return useQuery({
+    queryKey: ["system-status"],
+    queryFn: () => fetchSystemStatus(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 }

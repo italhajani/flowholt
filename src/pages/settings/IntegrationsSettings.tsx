@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Copy, Trash2, MoreHorizontal, Plus, MessageSquare, Mail, CreditCard, Github } from "lucide-react";
+import { useOAuthProviders, useApiKeys } from "@/hooks/useApi";
 
 /* ── Connected Services ── */
 interface Service {
@@ -88,8 +89,37 @@ const mockCreds: ApiCred[] = [
 ];
 
 export function IntegrationsSettings() {
-  const [services] = useState(mockServices);
-  const [creds] = useState(mockCreds);
+  const { data: apiProviders } = useOAuthProviders();
+  const { data: apiKeys } = useApiKeys();
+
+  const services: Service[] = useMemo(() => {
+    if (apiProviders && apiProviders.length > 0) {
+      const iconMap: Record<string, React.ReactNode> = { slack: <MessageSquare size={14} />, gmail: <Mail size={14} />, stripe: <CreditCard size={14} />, github: <Github size={14} /> };
+      return apiProviders.map(p => ({
+        id: p.id,
+        name: p.name,
+        icon: iconMap[p.id.toLowerCase()] ?? <MessageSquare size={14} />,
+        authType: "OAuth 2.0",
+        status: (p as any).status === "error" ? "error" as const : "active" as const,
+        lastUsed: "—",
+        workflows: 0,
+      }));
+    }
+    return mockServices;
+  }, [apiProviders]);
+
+  const creds: ApiCred[] = useMemo(() => {
+    if (apiKeys && apiKeys.length > 0) {
+      return apiKeys.map(k => ({
+        id: k.id,
+        provider: k.name ?? "Custom",
+        label: k.scope ?? k.name,
+        maskedKey: k.key_prefix ? `${k.key_prefix}****` : "****",
+        created: new Date(k.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      }));
+    }
+    return mockCreds;
+  }, [apiKeys]);
 
   return (
     <div>

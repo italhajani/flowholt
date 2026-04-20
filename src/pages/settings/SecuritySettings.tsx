@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, ExternalLink } from "lucide-react";
+import { useAuditEvents } from "@/hooks/useApi";
 
 /* ── IP Allowlist ── */
 interface IpEntry {
@@ -81,6 +82,24 @@ const mockSessions: Session[] = [
 export function SecuritySettings() {
   const [sessionTimeout, setSessionTimeout] = useState(24);
   const [newCidr, setNewCidr] = useState("");
+  const { data: apiAudit } = useAuditEvents();
+
+  const auditRows: AuditEvent[] = useMemo(() => {
+    if (apiAudit && apiAudit.length > 0) {
+      return apiAudit.slice(0, 10).map(e => {
+        const ago = Math.round((Date.now() - new Date(e.created_at).getTime()) / 60000);
+        const timeStr = ago < 1 ? "Just now" : ago < 60 ? `${ago} min ago` : ago < 1440 ? `${Math.round(ago / 60)} hrs ago` : `${Math.round(ago / 1440)} days ago`;
+        return {
+          id: e.id,
+          actor: e.actor_email ?? "System",
+          action: e.action.replace(/_/g, " "),
+          target: e.target_type + (e.target_id ? ` ${e.target_id.slice(0, 8)}` : ""),
+          time: timeStr,
+        };
+      });
+    }
+    return mockAudit;
+  }, [apiAudit]);
 
   return (
     <div>
@@ -143,7 +162,7 @@ export function SecuritySettings() {
           <p className="text-[12px] text-zinc-400 mb-4">Recent security events for this workspace.</p>
           <DataTable
             columns={auditColumns}
-            data={mockAudit}
+            data={auditRows}
             getRowId={(e) => e.id}
             emptyState={<p className="py-8 text-center text-[13px] text-zinc-400">No events recorded.</p>}
           />

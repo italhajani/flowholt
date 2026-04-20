@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Search, Plus, Mail, MoreHorizontal, UserCircle } from "lucide-react";
+import { useWorkspaceMembers, useInviteMember, useRemoveMember } from "@/hooks/useApi";
+import type { WorkspaceRole } from "@/lib/api";
 
 interface Member {
   id: string;
@@ -72,10 +74,37 @@ const columns: Column<Member>[] = [
 export function MembersSettings() {
   const [search, setSearch] = useState("");
   const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<WorkspaceRole>("viewer");
+  const { data: apiMembers } = useWorkspaceMembers();
+  const inviteMutation = useInviteMember();
 
-  const filtered = mockMembers.filter(
+  const roleMap: Record<string, Member["role"]> = { owner: "Owner", admin: "Admin", builder: "Editor", viewer: "Viewer" };
+
+  const members: Member[] = useMemo(() => {
+    if (apiMembers && apiMembers.length > 0) {
+      return apiMembers.map(m => ({
+        id: m.user_id,
+        name: m.name,
+        email: m.email,
+        role: roleMap[m.role] ?? "Viewer",
+        status: m.status === "active" ? "active" as const : "inactive" as const,
+        lastActive: "—",
+      }));
+    }
+    return mockMembers;
+  }, [apiMembers]);
+
+  const filtered = members.filter(
     (m) => !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleInvite = () => {
+    if (!inviteEmail) return;
+    inviteMutation.mutate({ email: inviteEmail, role: inviteRole }, {
+      onSuccess: () => { setInviteEmail(""); setShowInvite(false); },
+    });
+  };
 
   return (
     <div>
@@ -101,13 +130,15 @@ export function MembersSettings() {
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 mb-4">
             <p className="text-[12px] font-medium text-zinc-700 mb-2">Invite a new member</p>
             <div className="flex items-center gap-2">
-              <Input placeholder="Email address" className="flex-1" />
-              <select className="rounded-md border border-zinc-200 bg-white px-2 py-2 text-[12px] text-zinc-700">
-                <option>Viewer</option>
-                <option>Editor</option>
-                <option>Admin</option>
+              <Input placeholder="Email address" className="flex-1" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+              <select className="rounded-md border border-zinc-200 bg-white px-2 py-2 text-[12px] text-zinc-700" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as WorkspaceRole)}>
+                <option value="viewer">Viewer</option>
+                <option value="builder">Editor</option>
+                <option value="admin">Admin</option>
               </select>
-              <Button variant="primary" size="sm">Send Invite</Button>
+              <Button variant="primary" size="sm" onClick={handleInvite} disabled={inviteMutation.isPending}>
+                {inviteMutation.isPending ? "Sending…" : "Send Invite"}
+              </Button>
             </div>
           </div>
         )}

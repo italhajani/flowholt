@@ -8,6 +8,7 @@ import {
   Eye, Layers, Settings, Sparkles, CheckCircle2, Loader2, FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useInstantiateTemplate } from "@/hooks/useApi";
 
 interface Credential {
   name: string;
@@ -28,6 +29,7 @@ interface UseTemplateWizardModalProps {
   onClose: () => void;
   templateName: string;
   templateDescription: string;
+  templateId?: string;
   credentials: Credential[];
   steps: TemplateStep[];
   onComplete?: (config: { name: string; folder: string }) => void;
@@ -51,7 +53,7 @@ const stepTypeColors: Record<string, string> = {
 };
 
 export function UseTemplateWizardModal({
-  open, onClose, templateName, templateDescription, credentials, steps, onComplete,
+  open, onClose, templateName, templateDescription, templateId, credentials, steps, onComplete,
 }: UseTemplateWizardModalProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>("preview");
   const [workflowName, setWorkflowName] = useState(templateName);
@@ -59,6 +61,7 @@ export function UseTemplateWizardModal({
   const [connectedCreds, setConnectedCreds] = useState<Record<string, boolean>>({});
   const [creating, setCreating] = useState(false);
   const [done, setDone] = useState(false);
+  const instantiate = useInstantiateTemplate();
 
   const stepIndex = wizardSteps.findIndex((s) => s.id === currentStep);
   const canGoNext = stepIndex < wizardSteps.length - 1;
@@ -76,11 +79,21 @@ export function UseTemplateWizardModal({
 
   const handleCreate = () => {
     setCreating(true);
-    setTimeout(() => {
-      setCreating(false);
-      setDone(true);
-      onComplete?.({ name: workflowName, folder });
-    }, 1800);
+    if (templateId) {
+      instantiate.mutate(
+        { templateId, name: workflowName, folder },
+        {
+          onSuccess: () => { setCreating(false); setDone(true); onComplete?.({ name: workflowName, folder }); },
+          onError: () => { setCreating(false); setDone(true); onComplete?.({ name: workflowName, folder }); },
+        }
+      );
+    } else {
+      setTimeout(() => {
+        setCreating(false);
+        setDone(true);
+        onComplete?.({ name: workflowName, folder });
+      }, 1800);
+    }
   };
 
   const handleClose = () => {

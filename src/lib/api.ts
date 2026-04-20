@@ -510,3 +510,198 @@ export function fetchHealth() {
 export function fetchWorkspaces() {
   return apiFetch<WorkspaceSummary[]>("/api/workspaces");
 }
+
+// ---------------------------------------------------------------------------
+// Assistant / AI endpoints
+// ---------------------------------------------------------------------------
+
+export interface AssistantDraftRequest {
+  prompt: string;
+  template_id?: string | null;
+}
+
+export interface AssistantDraftResponse {
+  workflow_definition: WorkflowDefinition;
+  template_match?: { template_id: string; name: string; score: number } | null;
+  validation_issues: { field: string; message: string; severity: string }[];
+  repair_actions: string[];
+}
+
+export interface AssistantCapabilities {
+  models: string[];
+  tools: string[];
+  max_steps: number;
+}
+
+export function draftWorkflowWithAI(payload: AssistantDraftRequest) {
+  return apiFetch<AssistantDraftResponse>("/api/assistant/draft-workflow", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchAssistantCapabilities() {
+  return apiFetch<AssistantCapabilities>("/api/assistant/capabilities");
+}
+
+// ---------------------------------------------------------------------------
+// Global Search
+// ---------------------------------------------------------------------------
+
+export interface SearchResults {
+  workflows: { id: string; name: string; status: string; category: string }[];
+  executions: { id: string; workflow_name: string; status: string; started_at: string }[];
+  vault_assets: { id: string; name: string; kind: string }[];
+}
+
+export function globalSearch(query: string) {
+  return apiFetch<SearchResults>(`/api/system/search?q=${encodeURIComponent(query)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Template endpoints
+// ---------------------------------------------------------------------------
+
+export interface TemplateDetail {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  definition: WorkflowDefinition;
+  credentials_required: { service: string; required: boolean }[];
+  author: string;
+  rating: number;
+  use_count: number;
+}
+
+export function fetchTemplate(templateId: string) {
+  return apiFetch<TemplateDetail>(`/api/templates/${templateId}`);
+}
+
+export function instantiateTemplate(templateId: string, config: { name: string; folder?: string }) {
+  return apiFetch<WorkflowSummary>("/api/workflows", {
+    method: "POST",
+    body: JSON.stringify({ name: config.name, template_id: templateId, trigger_type: "manual", category: "Custom", status: "draft", definition: {} }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Notification endpoints
+// ---------------------------------------------------------------------------
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  severity: "error" | "warning" | "info";
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  related_id?: string;
+  action_url?: string;
+}
+
+export function fetchNotifications(params?: { limit?: number; offset?: number; read?: boolean }) {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  if (params?.read !== undefined) qs.set("read", String(params.read));
+  const q = qs.toString();
+  return apiFetch<NotificationItem[]>(`/api/notifications${q ? `?${q}` : ""}`);
+}
+
+export function markNotificationRead(id: string) {
+  return apiFetch<NotificationItem>(`/api/notifications/${id}/read`, { method: "POST" });
+}
+
+// ---------------------------------------------------------------------------
+// Webhook endpoints
+// ---------------------------------------------------------------------------
+
+export interface WebhookEndpoint {
+  id: string;
+  name: string;
+  path: string;
+  method: string;
+  workflow_id: string;
+  status: "active" | "paused" | "disabled";
+  signing_secret: string | null;
+  created_at: string;
+  last_triggered: string | null;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  endpoint_id: string;
+  status: "success" | "failed" | "pending";
+  status_code: number;
+  duration_ms: number;
+  timestamp: string;
+}
+
+export function fetchWebhookEndpoints() {
+  return apiFetch<WebhookEndpoint[]>("/api/webhooks");
+}
+
+export function createWebhookEndpoint(payload: { name: string; workflow_id: string; method?: string }) {
+  return apiFetch<WebhookEndpoint>("/api/webhooks", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updateWebhookEndpoint(id: string, payload: Partial<WebhookEndpoint>) {
+  return apiFetch<WebhookEndpoint>(`/api/webhooks/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+
+export function deleteWebhookEndpoint(id: string) {
+  return apiFetch<void>(`/api/webhooks/${id}`, { method: "DELETE" });
+}
+
+export function fetchWebhookDeliveries(webhookId: string, limit?: number) {
+  const qs = limit ? `?limit=${limit}` : "";
+  return apiFetch<WebhookDelivery[]>(`/api/webhooks/${webhookId}/deliveries${qs}`);
+}
+
+// ---------------------------------------------------------------------------
+// Human Task / Inbox endpoints
+// ---------------------------------------------------------------------------
+
+export interface HumanTaskSummary {
+  id: string;
+  workflow_id: string;
+  execution_id: string;
+  node_id: string;
+  node_name: string;
+  workflow_name: string;
+  task_type: "approval" | "form" | "confirmation";
+  assigned_to: string | null;
+  created_at: string;
+  expires_at: string | null;
+  status: "active" | "completed" | "expired";
+  priority: "high" | "medium" | "low";
+  payload: Record<string, unknown>;
+  previous_node_output: Record<string, unknown>;
+}
+
+export interface HumanTaskCompleteRequest {
+  decision: "approve" | "reject" | "complete";
+  form_values?: Record<string, unknown>;
+  comment?: string;
+}
+
+export function fetchHumanTasks(params?: { mine?: boolean; status?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.mine) qs.set("mine", "true");
+  if (params?.status) qs.set("status", params.status);
+  const q = qs.toString();
+  return apiFetch<HumanTaskSummary[]>(`/api/inbox/tasks${q ? `?${q}` : ""}`);
+}
+
+export function fetchHumanTask(taskId: string) {
+  return apiFetch<HumanTaskSummary>(`/api/inbox/tasks/${taskId}`);
+}
+
+export function completeHumanTask(taskId: string, payload: HumanTaskCompleteRequest) {
+  return apiFetch<ExecutionSummary>(`/api/inbox/tasks/${taskId}/complete`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

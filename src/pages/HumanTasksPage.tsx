@@ -12,6 +12,7 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { useHumanTasks, useCompleteHumanTask } from "@/hooks/useApi";
 
 const tabsList = ["All", "My Tasks", "Overdue"] as const;
 type Tab = (typeof tabsList)[number];
@@ -110,6 +111,9 @@ export function HumanTasksPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [search, setSearch] = useState("");
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const { data: _apiTasks } = useHumanTasks();
+  const _completeMutation = useCompleteHumanTask();
+  // Use mock data while API isn't connected; swap to _apiTasks when backend is live
 
   const filtered = mockTasks.filter((t) => {
     if (search && !t.workflowName.toLowerCase().includes(search.toLowerCase()) && !t.nodeName.toLowerCase().includes(search.toLowerCase())) return false;

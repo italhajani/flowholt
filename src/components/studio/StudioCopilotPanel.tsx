@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import type { CanvasNodeData } from "./StudioCanvas";
+import { useDraftWorkflowWithAI } from "@/hooks/useApi";
 
 /* ── Types ── */
 type CopilotMode = "ask" | "build" | "builder" | "credentials" | "code";
@@ -191,6 +192,7 @@ const modelOptions = [
 
 export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPanelProps) {
   const canvasStore = useCanvasStore();
+  const draftMutation = useDraftWorkflowWithAI();
   const [mode, setMode] = useState<CopilotMode>("ask");
   const [messages, setMessages] = useState<CopilotMessage[]>([assistantGreetings.ask]);
   const [input, setInput] = useState(initialPrompt ?? "");
@@ -355,7 +357,38 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
     setIsTyping(true);
     if (inputRef.current) inputRef.current.style.height = "auto";
 
-    // Simulate thinking delay then stream
+    // For builder mode, try real AI draft API first
+    if (mode === "builder") {
+      draftMutation.mutate({ prompt: text.trim() }, {
+        onSuccess: (resp) => {
+          setIsTyping(false);
+          const stepNames = resp.workflow_definition?.steps?.map((s: Record<string, unknown>) => (s as { name?: string }).name || "Step") ?? [];
+          const aiMsg: CopilotMessage = {
+            id: `a-${Date.now()}`,
+            role: "assistant",
+            content: `🏗️ **AI Workflow Generated!**\n\n✅ ${stepNames.length} nodes created from your prompt.\n\n${resp.validation_issues?.length ? `⚠️ ${resp.validation_issues.length} validation issue(s) found.` : "No validation issues."}${resp.repair_actions?.length ? `\n🔧 ${resp.repair_actions.length} auto-repair(s) applied.` : ""}`,
+            nodePreview: stepNames.map((n: string) => ({ name: n, type: "integration", status: "new" as const })),
+            actions: [
+              { label: "Apply to canvas", icon: Check, variant: "primary" as const },
+              { label: "Refine workflow", icon: Wrench, variant: "secondary" as const },
+            ],
+          };
+          setMessages((p) => [...p, aiMsg]);
+        },
+        onError: () => {
+          // Fallback to mock response on API error — continues below
+          fireMockResponse(text);
+        },
+      });
+      return;
+    }
+
+    // Mock response path for all modes
+    fireMockResponse(text);
+  };
+
+  const fireMockResponse = (text: string) => {
+    setIsTyping(true);
     const thinkDelay = mode === "builder" ? 1200 + Math.random() * 800 : mode === "build" ? 800 + Math.random() * 600 : mode === "credentials" ? 600 + Math.random() * 500 : mode === "code" ? 700 + Math.random() * 500 : 400 + Math.random() * 400;
 
     setTimeout(() => {

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useWebhookEndpoints } from "@/hooks/useApi";
 
 const tabs = ["Endpoints", "Delivery Log", "Queue"] as const;
 type Tab = (typeof tabs)[number];
@@ -168,6 +169,8 @@ export function WebhooksPage() {
   const [search, setSearch] = useState("");
   const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { data: _apiEndpoints } = useWebhookEndpoints();
+  // Use mock data while API isn't connected; swap to _apiEndpoints when backend is live
 
   const totalDeliveries = mockEndpoints.reduce((s, e) => s + e.deliveries24h, 0);
   const avgSuccess = Math.round(mockEndpoints.filter(e => e.status === "active").reduce((s, e) => s + e.successRate, 0) / mockEndpoints.filter(e => e.status === "active").length * 10) / 10;

@@ -22,12 +22,28 @@ import {
   updateWorkflowStep,
   retryExecution,
   deleteExecution,
+  draftWorkflowWithAI,
+  fetchAssistantCapabilities,
+  globalSearch,
+  fetchTemplate,
+  instantiateTemplate,
+  fetchNotifications,
+  markNotificationRead,
+  fetchWebhookEndpoints,
+  createWebhookEndpoint,
+  updateWebhookEndpoint,
+  deleteWebhookEndpoint,
+  fetchWebhookDeliveries,
+  fetchHumanTasks,
+  completeHumanTask,
   type ExecutionStatus,
   type ExecutionEnvironment,
   type WorkflowCreatePayload,
   type WorkflowUpdatePayload,
   type StudioInsertStepPayload,
   type StudioUpdateStepPayload,
+  type AssistantDraftRequest,
+  type HumanTaskCompleteRequest,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -212,6 +228,138 @@ export function useDeleteExecution() {
     onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: ["executions"] });
       qc.removeQueries({ queryKey: ["execution", id] });
+    },
+  });
+}
+
+// ── Sprint 26: Assistant / AI ───────────────────────────────────────
+
+export function useDraftWorkflowWithAI() {
+  return useMutation({
+    mutationFn: (payload: AssistantDraftRequest) => draftWorkflowWithAI(payload),
+  });
+}
+
+export function useAssistantCapabilities() {
+  return useQuery({
+    queryKey: ["assistant-capabilities"],
+    queryFn: fetchAssistantCapabilities,
+    staleTime: 5 * 60_000,
+  });
+}
+
+// ── Sprint 26: Global Search ────────────────────────────────────────
+
+export function useGlobalSearch(query: string) {
+  return useQuery({
+    queryKey: ["globalSearch", query],
+    queryFn: () => globalSearch(query),
+    enabled: query.length >= 2,
+    staleTime: 10_000,
+  });
+}
+
+// ── Sprint 26: Templates ────────────────────────────────────────────
+
+export function useTemplate(templateId: string | undefined) {
+  return useQuery({
+    queryKey: ["template", templateId],
+    queryFn: () => fetchTemplate(templateId!),
+    enabled: !!templateId,
+    staleTime: 60_000,
+  });
+}
+
+export function useInstantiateTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { templateId: string; name: string; folder?: string }) =>
+      instantiateTemplate(opts.templateId, { name: opts.name, folder: opts.folder }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["workflows"] }); },
+  });
+}
+
+// ── Sprint 26: Notifications ────────────────────────────────────────
+
+export function useNotifications(params?: { limit?: number; offset?: number; read?: boolean }) {
+  return useQuery({
+    queryKey: ["notifications", params],
+    queryFn: () => fetchNotifications(params),
+    staleTime: 15_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => markNotificationRead(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["notifications"] }); },
+  });
+}
+
+// ── Sprint 26: Webhooks ─────────────────────────────────────────────
+
+export function useWebhookEndpoints() {
+  return useQuery({
+    queryKey: ["webhookEndpoints"],
+    queryFn: fetchWebhookEndpoints,
+    staleTime: 30_000,
+  });
+}
+
+export function useWebhookDeliveries(webhookId: string | undefined, limit?: number) {
+  return useQuery({
+    queryKey: ["webhookDeliveries", webhookId, limit],
+    queryFn: () => fetchWebhookDeliveries(webhookId!, limit),
+    enabled: !!webhookId,
+    staleTime: 15_000,
+  });
+}
+
+export function useCreateWebhookEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { name: string; workflow_id: string; method?: string }) =>
+      createWebhookEndpoint(payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookEndpoints"] }); },
+  });
+}
+
+export function useUpdateWebhookEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { id: string; payload: Record<string, unknown> }) =>
+      updateWebhookEndpoint(opts.id, opts.payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookEndpoints"] }); },
+  });
+}
+
+export function useDeleteWebhookEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteWebhookEndpoint(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookEndpoints"] }); },
+  });
+}
+
+// ── Sprint 26: Human Tasks / Inbox ──────────────────────────────────
+
+export function useHumanTasks(params?: { mine?: boolean; status?: string }) {
+  return useQuery({
+    queryKey: ["humanTasks", params],
+    queryFn: () => fetchHumanTasks(params),
+    staleTime: 15_000,
+  });
+}
+
+export function useCompleteHumanTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { taskId: string; payload: HumanTaskCompleteRequest }) =>
+      completeHumanTask(opts.taskId, opts.payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["humanTasks"] });
+      qc.invalidateQueries({ queryKey: ["executions"] });
     },
   });
 }

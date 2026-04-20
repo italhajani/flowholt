@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   GitBranch, Play, Clock, Zap, Settings, BarChart3,
@@ -13,6 +13,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { ShareWorkflowModal } from "@/components/modals/ShareWorkflowModal";
 import { ExportWorkflowModal } from "@/components/modals/ImportExportWorkflowModals";
 import { cn } from "@/lib/utils";
+import { useWorkflow, useWorkflowExecutions } from "@/hooks/useApi";
 
 /* ── Mock data — would come from API via :id ── */
 const workflow = {
@@ -138,14 +139,34 @@ export function WorkflowDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showShare, setShowShare] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const { data: apiWf } = useWorkflow(id);
+  const { data: apiExecs } = useWorkflowExecutions(id ?? "");
+
+  // Merge real data with mock fallback
+  const wf = useMemo(() => {
+    if (!apiWf) return workflow;
+    return {
+      ...workflow,
+      id: apiWf.id,
+      name: apiWf.name,
+      status: apiWf.status as "active" | "inactive",
+      description: apiWf.description ?? workflow.description,
+      tags: apiWf.tags ?? workflow.tags,
+      nodes: apiWf.node_count ?? workflow.nodes,
+      version: `v${apiWf.version ?? 1}`,
+      totalRuns: apiWf.total_executions ?? workflow.totalRuns,
+      createdAt: new Date(apiWf.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      updatedAt: apiWf.updated_at ? new Date(apiWf.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : workflow.updatedAt,
+    };
+  }, [apiWf]);
 
   return (
     <EntityDetailLayout
       backLabel="Workflows"
       backTo="/workflows"
-      name={workflow.name}
-      status={{ label: workflow.status, variant: "success" }}
-      subtitle={`${workflow.trigger} trigger • ${workflow.nodes} nodes • ${workflow.version}`}
+      name={wf.name}
+      status={{ label: wf.status, variant: "success" }}
+      subtitle={`${wf.trigger} trigger • ${wf.nodes} nodes • ${wf.version}`}
       icon={<GitBranch size={18} className="text-zinc-500" />}
       tabs={tabs}
       activeTab={activeTab}
@@ -164,8 +185,8 @@ export function WorkflowDetailPage() {
       {activeTab === "history" && <VersionHistoryTab />}
       {activeTab === "evaluation" && <EvaluationTab />}
       {activeTab === "settings" && <SettingsTab />}
-      <ShareWorkflowModal open={showShare} onClose={() => setShowShare(false)} workflowName={workflow.name} />
-      <ExportWorkflowModal open={showExport} onClose={() => setShowExport(false)} workflowName={workflow.name} />
+      <ShareWorkflowModal open={showShare} onClose={() => setShowShare(false)} workflowName={wf.name} />
+      <ExportWorkflowModal open={showExport} onClose={() => setShowExport(false)} workflowName={wf.name} />
     </EntityDetailLayout>
   );
 }

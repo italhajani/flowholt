@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Play, Clock, GitBranch, CheckCircle2, XCircle, RefreshCw,
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useExecution } from "@/hooks/useApi";
 
 const execution = {
   id: "exec-1247",
@@ -322,6 +323,24 @@ export function ExecutionDetailPage() {
   const [copied, setCopied] = useState(false);
   const [retryingStep, setRetryingStep] = useState<number | null>(null);
   const [retryConfirm, setRetryConfirm] = useState<number | null>(null);
+  const { data: apiExec } = useExecution(id);
+
+  const exec = useMemo(() => {
+    if (!apiExec) return execution;
+    const durMs = apiExec.duration_ms ?? execution.durationMs;
+    return {
+      ...execution,
+      id: apiExec.id,
+      workflow: apiExec.workflow_name ?? execution.workflow,
+      workflowId: apiExec.workflow_id ?? execution.workflowId,
+      status: apiExec.status as typeof execution.status,
+      trigger: apiExec.trigger_type ?? execution.trigger,
+      startedAt: new Date(apiExec.started_at).toLocaleString(),
+      finishedAt: apiExec.finished_at ? new Date(apiExec.finished_at).toLocaleString() : "—",
+      duration: durMs ? `${(durMs / 1000).toFixed(1)}s` : execution.duration,
+      durationMs: durMs,
+    };
+  }, [apiExec]);
 
   const copyJson = (data: unknown) => {
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
@@ -333,9 +352,9 @@ export function ExecutionDetailPage() {
     <EntityDetailLayout
       backLabel="Executions"
       backTo="/executions"
-      name={`Execution #${execution.id.split("-")[1]}`}
-      status={{ label: execution.status, variant: "success" }}
-      subtitle={`${execution.workflow} • ${execution.trigger} • ${execution.duration}`}
+      name={`Execution #${exec.id.split("-").pop()}`}
+      status={{ label: exec.status, variant: "success" }}
+      subtitle={`${exec.workflow} • ${exec.trigger} • ${exec.duration}`}
       icon={<Play size={18} className="text-green-500" />}
       tabs={tabs}
       activeTab={activeTab}
@@ -343,7 +362,7 @@ export function ExecutionDetailPage() {
       actions={
         <>
           <Button variant="secondary" size="sm"><RefreshCw size={12} /> Retry</Button>
-          <Button variant="secondary" size="sm" onClick={() => navigate(`/studio/${execution.workflowId}`)}>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/studio/${exec.workflowId}`)}>
             <ExternalLink size={12} /> Open Workflow
           </Button>
         </>
@@ -353,12 +372,12 @@ export function ExecutionDetailPage() {
         <div className="space-y-5">
           {/* Summary strip */}
           <div className="flex gap-4 text-[12px] flex-wrap">
-            <span className="text-zinc-400">Nodes <span className="font-semibold text-green-600">{execution.nodesPassed}/{execution.nodes} passed</span></span>
-            <span className="text-zinc-400">Duration <span className="font-semibold text-zinc-700">{execution.duration}</span></span>
-            <span className="text-zinc-400">Tokens <span className="font-semibold text-zinc-700">{execution.tokens}</span></span>
-            <span className="text-zinc-400">Cost <span className="font-semibold text-zinc-700">{execution.cost}</span></span>
-            <span className="text-zinc-400">Data <span className="font-semibold text-zinc-700">{execution.dataSize}</span></span>
-            <span className="text-zinc-400">Env <Badge variant="success" className="ml-0.5 text-[9px]">{execution.env}</Badge></span>
+            <span className="text-zinc-400">Nodes <span className="font-semibold text-green-600">{exec.nodesPassed}/{exec.nodes} passed</span></span>
+            <span className="text-zinc-400">Duration <span className="font-semibold text-zinc-700">{exec.duration}</span></span>
+            <span className="text-zinc-400">Tokens <span className="font-semibold text-zinc-700">{exec.tokens}</span></span>
+            <span className="text-zinc-400">Cost <span className="font-semibold text-zinc-700">{exec.cost}</span></span>
+            <span className="text-zinc-400">Data <span className="font-semibold text-zinc-700">{exec.dataSize}</span></span>
+            <span className="text-zinc-400">Env <Badge variant="success" className="ml-0.5 text-[9px]">{exec.env}</Badge></span>
           </div>
 
           {/* Step trace with rich I/O */}

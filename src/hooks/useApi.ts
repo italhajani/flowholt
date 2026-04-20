@@ -145,6 +145,12 @@ import {
   fetchWorkspaceSettings,
   updateWorkspaceSettings,
   fetchSystemStatus,
+  fetchVariables,
+  createVariable,
+  updateVariable,
+  deleteVariable,
+  type VariableCreate,
+  fetchModels,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1234,5 +1240,49 @@ export function useSystemStatus() {
     queryFn: () => fetchSystemStatus(),
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+}
+
+// ── Variables ──
+
+export function useVariables() {
+  return useQuery({
+    queryKey: ["variables"],
+    queryFn: () => fetchVariables(),
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateVariable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: VariableCreate) => createVariable(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["variables"] }),
+  });
+}
+
+export function useUpdateVariable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: Partial<VariableCreate> & { id: string }) => updateVariable(id, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["variables"] }),
+  });
+}
+
+export function useDeleteVariable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteVariable(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["variables"] }),
+  });
+}
+
+// ── Model Directory ──
+
+export function useModels() {
+  return useQuery({
+    queryKey: ["models"],
+    queryFn: () => fetchModels(),
+    staleTime: 120_000,
   });
 }

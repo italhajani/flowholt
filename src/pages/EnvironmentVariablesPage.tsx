@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Plus, Search, Eye, EyeOff, Trash2, Copy, Check, ChevronRight, ChevronDown,
   Shield, Globe, Server, Code2, Clock, AlertTriangle, Settings, RefreshCw,
   Lock, Unlock, Filter, Download, Upload, MoreHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useVariables, useCreateVariable, useDeleteVariable } from "@/hooks/useApi";
+import type { VariableOut } from "@/lib/api";
 
-/* ── mock data ── */
-const envVars = [
+/* ── mock data (fallback) ── */
+const mockEnvVars = [
   { id: "ev1", name: "API_KEY", value: "sk-prod-abc123...xyz", secret: true, scope: "production", type: "string", lastModified: "2 hours ago", owner: "Gouhar Ali", usedIn: ["Lead Scoring", "Email Sender"] },
   { id: "ev2", name: "DATABASE_URL", value: "postgresql://user:pass@db.example.com/prod", secret: true, scope: "production", type: "connection", lastModified: "3 days ago", owner: "Gouhar Ali", usedIn: ["Data Sync", "Report Generator"] },
   { id: "ev3", name: "WEBHOOK_SECRET", value: "whsec_abc123def456", secret: true, scope: "shared", type: "string", lastModified: "1 week ago", owner: "Admin", usedIn: ["Webhook Handler"] },
@@ -53,9 +55,30 @@ export function EnvironmentVariablesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [scopeFilter, setScopeFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedVar, setSelectedVar] = useState<typeof envVars[0] | null>(null);
+  const [selectedVar, setSelectedVar] = useState<typeof mockEnvVars[0] | null>(null);
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const { data: apiVars } = useVariables();
+  const createVarMutation = useCreateVariable();
+  const deleteVarMutation = useDeleteVariable();
+
+  const envVars = useMemo(() => {
+    if (apiVars && apiVars.length > 0) {
+      return apiVars.map((v: VariableOut) => ({
+        id: v.id,
+        name: v.name,
+        value: v.value,
+        secret: v.secret,
+        scope: v.scope,
+        type: v.type,
+        lastModified: v.updated_at ? new Date(v.updated_at).toLocaleDateString() : "—",
+        owner: "You",
+        usedIn: [] as string[],
+      }));
+    }
+    return mockEnvVars;
+  }, [apiVars]);
 
   const filtered = envVars.filter(v => {
     if (scopeFilter !== "all" && v.scope !== scopeFilter) return false;

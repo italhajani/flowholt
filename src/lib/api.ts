@@ -1722,3 +1722,139 @@ export function refreshOAuthToken(connectionId: string) {
     body: JSON.stringify({ connection_id: connectionId }),
   });
 }
+
+// ── Workspace Members ──
+
+export interface WorkspaceMember {
+  user_id: string;
+  name: string;
+  email: string;
+  avatar_initials: string;
+  role: WorkspaceRole;
+  status: "active" | "pending" | "inactive";
+}
+
+export function fetchWorkspaceMembers() {
+  return apiFetch<WorkspaceMember[]>("/api/workspaces/current/members");
+}
+
+export function inviteWorkspaceMember(email: string, role: WorkspaceRole) {
+  return apiFetch<WorkspaceMember>("/api/workspaces/current/members/invite", {
+    method: "POST",
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+export function updateMemberRole(userId: string, role: WorkspaceRole) {
+  return apiFetch<WorkspaceMember>(`/api/workspaces/current/members/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+}
+
+export function removeMember(userId: string) {
+  return apiFetch<{ status: string }>(`/api/workspaces/current/members/${userId}`, {
+    method: "DELETE",
+  });
+}
+
+// ── Workspace Settings ──
+
+export interface WorkspaceSettingsData {
+  execution_timeout_seconds: number;
+  save_failed_executions: boolean;
+  save_successful_executions: boolean;
+  max_concurrent_executions: number;
+  require_staging_before_publish: boolean;
+  require_staging_approval: boolean;
+  require_production_approval: boolean;
+  require_webhook_signature: boolean;
+  allow_public_webhooks: boolean;
+  allow_public_chat_triggers: boolean;
+  notify_on_execution_failure: boolean;
+  notify_on_execution_success: boolean;
+  [key: string]: unknown;
+}
+
+export function fetchWorkspaceSettings() {
+  return apiFetch<WorkspaceSettingsData>("/api/workspaces/current/settings");
+}
+
+export function updateWorkspaceSettings(payload: Partial<WorkspaceSettingsData>) {
+  return apiFetch<WorkspaceSettingsData>("/api/workspaces/current/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── System Status (Dashboard analytics) ──
+
+export interface SystemStatus {
+  platform: { version: string; environment: string; database_backend: string; execution_mode: string };
+  llm: { configured_provider: string; available_providers: string[]; default_provider: string };
+  jobs: { pending: number; processing: number; failed: number; completed: number };
+  executions: { total: number; success: number; failed: number; running: number };
+  workflows: { total: number; active: number };
+  integrations: { builtin_count: number; plugin_count: number; total: number };
+}
+
+export function fetchSystemStatus() {
+  return apiFetch<SystemStatus>("/api/system/status");
+}
+
+// ── Variables (Environment Variables) ──
+
+export interface VariableOut {
+  id: string;
+  name: string;
+  value: string;
+  type: string;
+  scope: string;
+  secret: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VariableCreate {
+  name: string;
+  value?: string;
+  type?: string;
+  scope?: string;
+  secret?: boolean;
+}
+
+export function fetchVariables() {
+  return apiFetch<VariableOut[]>("/api/variables");
+}
+
+export function createVariable(body: VariableCreate) {
+  return apiFetch<VariableOut>("/api/variables", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateVariable(id: string, body: Partial<VariableCreate>) {
+  return apiFetch<VariableOut>(`/api/variables/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function deleteVariable(id: string) {
+  return apiFetch<void>(`/api/variables/${id}`, { method: "DELETE" });
+}
+
+// ── Model Directory ──
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: string;
+  modality: string[];
+  contextWindow: string;
+  maxOutput: string;
+  latencyTier: "fast" | "standard" | "slow";
+  costTier: "free" | "low" | "medium" | "high" | "premium";
+  status: "available" | "limited" | "deprecated";
+  description: string;
+  featured?: boolean;
+}
+
+export function fetchModels() {
+  return apiFetch<ModelInfo[]>("/api/models");
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Sparkles,
   Search,
@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useModels } from "@/hooks/useApi";
+import type { ModelInfo } from "@/lib/api";
 
 /* ── Types ── */
 interface AIModel {
@@ -41,7 +43,7 @@ interface AIModel {
   badge?: string;
 }
 
-const models: AIModel[] = [
+const mockModels: AIModel[] = [
   {
     id: "gpt-4o",
     name: "GPT-4o",
@@ -251,6 +253,31 @@ export function ModelDirectoryPage() {
   const [search, setSearch] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<string>("All");
   const [selectedModality, setSelectedModality] = useState<string>("all");
+
+  const { data: apiModels } = useModels();
+
+  const models: AIModel[] = useMemo(() => {
+    if (apiModels && apiModels.length > 0) {
+      return apiModels.map((m: ModelInfo) => ({
+        id: m.id,
+        name: m.name,
+        provider: m.provider,
+        providerIcon: m.provider === "OpenAI" ? "🟢" : m.provider === "Anthropic" ? "🟠" : m.provider === "Google" ? "🔵" : m.provider === "Groq" ? "⚡" : "🟣",
+        modality: m.modality as AIModel["modality"],
+        contextWindow: m.contextWindow,
+        maxOutput: m.maxOutput,
+        latencyTier: m.latencyTier,
+        costTier: m.costTier,
+        status: m.status,
+        description: m.description,
+        usedByAgents: 0,
+        usedByWorkflows: 0,
+        featured: m.featured,
+        badge: m.featured ? "Free" : undefined,
+      }));
+    }
+    return mockModels;
+  }, [apiModels]);
 
   const filtered = models.filter((m) => {
     if (search && !m.name.toLowerCase().includes(search.toLowerCase()) && !m.provider.toLowerCase().includes(search.toLowerCase())) return false;

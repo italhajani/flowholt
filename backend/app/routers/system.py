@@ -560,3 +560,37 @@ def analytics_timeline(
             (ws_id, f"-{days}"),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Model Directory — lists available LLM models from config
+# ---------------------------------------------------------------------------
+
+@router.get(f"{settings.api_prefix}/models")
+def list_models() -> list[dict[str, Any]]:
+    """Return all known LLM models with availability status."""
+    llm_router = get_llm_router()
+    available = set(llm_router.available_providers)
+
+    models = [
+        {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "provider": "Google", "modality": ["text", "code", "vision"], "contextWindow": "1M", "maxOutput": "8192", "latencyTier": "fast", "costTier": "free", "description": "Fast and free multimodal model from Google."},
+        {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro", "provider": "Google", "modality": ["text", "code", "vision", "audio"], "contextWindow": "2M", "maxOutput": "8192", "latencyTier": "standard", "costTier": "low", "description": "Long-context flagship model from Google."},
+        {"id": "llama-3.3-70b", "name": "Llama 3.3 70B", "provider": "Groq", "modality": ["text", "code"], "contextWindow": "128K", "maxOutput": "8192", "latencyTier": "fast", "costTier": "free", "description": "Meta's open model served ultra-fast via Groq."},
+        {"id": "llama-3.1-8b", "name": "Llama 3.1 8B", "provider": "Groq", "modality": ["text", "code"], "contextWindow": "128K", "maxOutput": "8192", "latencyTier": "fast", "costTier": "free", "description": "Lightweight fast model via Groq."},
+        {"id": "gpt-4o", "name": "GPT-4o", "provider": "OpenAI", "modality": ["text", "code", "vision", "audio"], "contextWindow": "128K", "maxOutput": "16384", "latencyTier": "standard", "costTier": "medium", "description": "OpenAI's flagship multimodal model."},
+        {"id": "gpt-4o-mini", "name": "GPT-4o Mini", "provider": "OpenAI", "modality": ["text", "code", "vision"], "contextWindow": "128K", "maxOutput": "16384", "latencyTier": "fast", "costTier": "low", "description": "Compact and affordable GPT-4 class model."},
+        {"id": "claude-sonnet-4", "name": "Claude Sonnet 4", "provider": "Anthropic", "modality": ["text", "code", "vision"], "contextWindow": "200K", "maxOutput": "8192", "latencyTier": "standard", "costTier": "medium", "description": "Anthropic's balanced model for coding and analysis."},
+        {"id": "claude-haiku-3.5", "name": "Claude Haiku 3.5", "provider": "Anthropic", "modality": ["text", "code", "vision"], "contextWindow": "200K", "maxOutput": "4096", "latencyTier": "fast", "costTier": "low", "description": "Fastest Anthropic model, great for quick tasks."},
+        {"id": "deepseek-v3", "name": "DeepSeek V3", "provider": "DeepSeek", "modality": ["text", "code"], "contextWindow": "128K", "maxOutput": "8192", "latencyTier": "standard", "costTier": "low", "description": "Powerful open model from DeepSeek for coding."},
+        {"id": "grok-3", "name": "Grok-3", "provider": "xAI", "modality": ["text", "code"], "contextWindow": "128K", "maxOutput": "8192", "latencyTier": "standard", "costTier": "medium", "description": "xAI's frontier model."},
+        {"id": "ollama-local", "name": "Ollama (Local)", "provider": "Ollama", "modality": ["text", "code"], "contextWindow": "varies", "maxOutput": "varies", "latencyTier": "standard", "costTier": "free", "description": "Self-hosted local models via Ollama."},
+    ]
+
+    # Mark availability based on configured providers
+    provider_map = {"Google": "gemini", "Groq": "groq", "OpenAI": "openai", "Anthropic": "anthropic", "DeepSeek": "openai", "xAI": "openai", "Ollama": "ollama"}
+    for m in models:
+        backend_key = provider_map.get(m["provider"], "")
+        m["status"] = "available" if backend_key in available else "limited"
+        m["featured"] = m["costTier"] == "free"
+
+    return models

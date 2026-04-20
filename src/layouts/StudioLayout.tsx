@@ -14,6 +14,7 @@ import { WorkflowSettingsPanel } from "@/components/studio/WorkflowSettingsPanel
 import { EvaluationPanel } from "@/components/studio/EvaluationPanel";
 import { CanvasStoreProvider, useCanvasStore } from "@/components/studio/useCanvasStore";
 import { useUpdateWorkflow, useStudioBundle } from "@/hooks/useApi";
+import type { ExecutionSummary } from "@/lib/api";
 
 function StudioLayoutInner() {
   const navigate = useNavigate();
@@ -84,6 +85,29 @@ function StudioLayoutInner() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [copilotPrompt, setCopilotPrompt] = useState("");
+  const [lastExecution, setLastExecution] = useState<ExecutionSummary | null>(null);
+
+  // When execution finishes, map step statuses to canvas exec states
+  const handleExecutionComplete = useCallback((exec: ExecutionSummary) => {
+    setLastExecution(exec);
+    setRuntimeDrawerOpen(true);
+    const newStates: Record<string, "idle" | "running" | "success" | "error" | "disabled"> = {};
+    for (const step of exec.steps) {
+      if (step.step_id) {
+        const s = step.status;
+        newStates[step.step_id] = s === "success" ? "success" : s === "failed" ? "error" : s === "running" ? "running" : s === "skipped" ? "disabled" : "idle";
+      }
+    }
+    canvasStore.setExecStates(prev => ({ ...prev, ...newStates }));
+  }, [canvasStore]);
+
+  const handleExecutionStart = useCallback(() => {
+    // Set all nodes to running state when execution begins
+    const runningStates: Record<string, "idle" | "running" | "success" | "error" | "disabled"> = {};
+    canvasStore.nodes.forEach(n => { runningStates[n.id] = "running"; });
+    canvasStore.setExecStates(runningStates);
+    setRuntimeDrawerOpen(true);
+  }, [canvasStore]);
 
   // Ctrl+S to save
   useEffect(() => {
@@ -210,13 +234,15 @@ function StudioLayoutInner() {
       />
 
       {/* Runtime drawer — 240px, shown above bar when open */}
-      {runtimeDrawerOpen && <StudioRuntimeDrawer onAskAI={handleAskAI} />}
+      {runtimeDrawerOpen && <StudioRuntimeDrawer onAskAI={handleAskAI} executionData={lastExecution} />}
 
       {/* Runtime bar — 44px */}
       <StudioRuntimeBar
         drawerOpen={runtimeDrawerOpen}
         onToggleDrawer={() => setRuntimeDrawerOpen((o) => !o)}
         workflowId={workflowId}
+        onExecutionStart={handleExecutionStart}
+        onExecutionComplete={handleExecutionComplete}
       />
     </div>
   );

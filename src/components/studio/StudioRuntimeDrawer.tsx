@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   CheckCircle2, XCircle, Clock, Loader2, ChevronDown, Copy,
   Search, Filter, Cpu, DollarSign, Zap, Brain, AlertTriangle,
   ArrowDown, ArrowUp, RefreshCw, BarChart3, Eye, Sparkles, Download, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ExecutionSummary, ExecutionStepResult } from "@/lib/api";
 
 const drawerTabs = [
   { key: "Output", badge: null },
@@ -89,23 +90,99 @@ const logLevelBg: Record<string, string> = {
 
 type LogLevel = "all" | "info" | "debug" | "warn" | "error";
 
-export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) => void }) {
+export function StudioRuntimeDrawer({ onAskAI, executionData }: { onAskAI?: (context: string) => void; executionData?: ExecutionSummary | null }) {
   const [activeTab, setActiveTab] = useState("Output");
-  const [expandedNode, setExpandedNode] = useState<string | null>("n2");
+  const [expandedNode, setExpandedNode] = useState<string | null>(null);
   const [logFilter, setLogFilter] = useState<LogLevel>("all");
   const [logSearch, setLogSearch] = useState("");
   const [showTokenPanel, setShowTokenPanel] = useState(true);
   const [liveTail, setLiveTail] = useState(true);
   const [expandedLogIdx, setExpandedLogIdx] = useState<number | null>(null);
 
-  const filteredLogs = mockLogs.filter(l => {
+  // Derive trace steps from real execution data or fall back to mock
+  const hasRealData = !!executionData?.steps?.length;
+  const activeTraceSteps = useMemo(() => {
+    if (!hasRealData) return traceSteps;
+    return executionData!.steps.map((s: ExecutionStepResult) => ({
+      id: s.step_id ?? s.name,
+      name: s.name,
+      status: s.status === "failed" ? "error" : s.status === "skipped" ? "pending" : s.status,
+      duration: s.duration_ms >= 1000 ? `${(s.duration_ms / 1000).toFixed(1)}s` : `${s.duration_ms}ms`,
+      items: s.output ? Object.keys(s.output).length : 0,
+      ts: executionData!.started_at ? new Date(executionData!.started_at).toLocaleTimeString() : "—",
+      input: 0,
+      output: s.output ? JSON.stringify(s.output).length : 0,
+      type: s.step_type ?? "integration",
+      error: s.status === "failed" && s.output?.error ? String(s.output.error) : "",
+      rawOutput: s.output,
+      pinnedDataUsed: s.pinned_data_used,
+    }));
+  }, [executionData, hasRealData]);
+
+  // Build output JSON from real data
+  const activeOutputJson = useMemo(() => {
+    if (!hasRealData) return outputJson;
+    const lastSuccess = [...executionData!.steps].reverse().find(s => s.status === "success" && s.output);
+    if (lastSuccess?.output) return JSON.stringify(lastSuccess.output, null, 2);
+    if (executionData!.error_text) return JSON.stringify({ error: executionData!.error_text }, null, 2);
+    return JSON.stringify({ status: executionData!.status, steps: executionData!.steps.length }, null, 2);
+  }, [executionData, hasRealData]);
+
+  // Build logs from real execution
+  const activeLogs = useMemo(() => {
+    if (!hasRealData) return mockLogs;
+    return executionData!.steps.flatMap((s: ExecutionStepResult) => {
+      const logs: typeof mockLogs = [];
+      const ts = executionData!.started_at ? new Date(executionData!.started_at).toLocaleTimeString() : "—";
+      logs.push({
+        ts,
+        level: s.status === "failed" ? "error" : "info",
+        msg: `[${s.name}] ${s.status === "failed" ? "Failed" : s.status === "success" ? "Completed" : s.status} in ${s.duration_ms}ms${s.pinned_data_used ? " (pinned data)" : ""}`,
+        node: s.step_id ?? "",
+        data: s.output ? JSON.stringify(s.output) : null,
+      });
+      return logs;
+    });
+  }, [executionData, hasRealData]);
+
+  // Execution summary stats for header
+  const execSummary = useMemo(() => {
+    if (!hasRealData) return tokenUsageSummary;
+    const totalMs = executionData!.duration_ms ?? executionData!.steps.reduce((sum, s) => sum + s.duration_ms, 0);
+    return {
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      model: executionData!.status,
+      cost: "—",
+      cacheHit: false,
+      latency: totalMs >= 1000 ? `${(totalMs / 1000).toFixed(1)}s` : `${totalMs}ms`,
+    };
+  }, [executionData, hasRealData]);
+
+  // Tab badges from real data
+  const drawerTabsActive = useMemo(() => {
+    if (!hasRealData) return drawerTabs;
+    const successCount = executionData!.steps.filter(s => s.status === "success").length;
+    const totalCount = executionData!.steps.length;
+    const logCount = activeLogs.length;
+    return [
+      { key: "Output", badge: null },
+      { key: "Trace", badge: `${successCount}/${totalCount}` },
+      { key: "AI Reasoning", badge: null },
+      { key: "Logs", badge: String(logCount) },
+      { key: "Human Tasks", badge: null },
+    ];
+  }, [executionData, hasRealData, activeLogs]);
+
+  const filteredLogs = activeLogs.filter(l => {
     if (logFilter !== "all" && l.level !== logFilter) return false;
     if (logSearch && !l.msg.toLowerCase().includes(logSearch.toLowerCase())) return false;
     return true;
   });
 
   // Total duration for timing bar proportions
-  const maxDurationMs = Math.max(...traceSteps.map(s => {
+  const maxDurationMs = Math.max(...activeTraceSteps.map(s => {
     const d = s.duration;
     if (d === "—") return 0;
     return parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1);
@@ -116,7 +193,7 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
       {/* Tab bar with token summary */}
       <div className="flex items-center border-b border-zinc-100 px-4 flex-shrink-0">
         <div className="flex items-end gap-3 flex-1">
-          {drawerTabs.map((tab) => (
+          {drawerTabsActive.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -132,21 +209,31 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
               {activeTab === tab.key && <span className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-zinc-900" />}
             </button>
           ))}
+          {hasRealData && (
+            <span className="ml-2 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[7px] font-semibold text-green-600">
+              LIVE · {executionData!.status}
+            </span>
+          )}
+          {!hasRealData && (
+            <span className="ml-2 rounded-full bg-zinc-50 border border-zinc-200 px-2 py-0.5 text-[7px] font-medium text-zinc-400">
+              SAMPLE DATA
+            </span>
+          )}
         </div>
 
         {/* Token usage mini-bar */}
         <div className="flex items-center gap-2 py-2">
           <div className="flex items-center gap-1 rounded border border-zinc-100 bg-zinc-50 px-2 py-0.5">
             <Cpu size={9} className="text-zinc-400" />
-            <span className="text-[8px] font-medium text-zinc-500">{tokenUsageSummary.totalTokens} tok</span>
+            <span className="text-[8px] font-medium text-zinc-500">{execSummary.totalTokens || "—"} tok</span>
           </div>
           <div className="flex items-center gap-1 rounded border border-zinc-100 bg-zinc-50 px-2 py-0.5">
             <DollarSign size={9} className="text-zinc-400" />
-            <span className="text-[8px] font-medium text-zinc-500">{tokenUsageSummary.cost}</span>
+            <span className="text-[8px] font-medium text-zinc-500">{execSummary.cost}</span>
           </div>
           <div className="flex items-center gap-1 rounded border border-zinc-100 bg-zinc-50 px-2 py-0.5">
             <Clock size={9} className="text-zinc-400" />
-            <span className="text-[8px] font-medium text-zinc-500">{tokenUsageSummary.latency}</span>
+            <span className="text-[8px] font-medium text-zinc-500">{execSummary.latency}</span>
           </div>
         </div>
       </div>
@@ -157,7 +244,7 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
         {activeTab === "Output" && (
           <div className="flex h-full">
             <div className="flex-1 relative group">
-              <pre className="p-3 text-[10px] font-mono text-zinc-700 leading-relaxed h-full overflow-auto">{outputJson}</pre>
+              <pre className="p-3 text-[10px] font-mono text-zinc-700 leading-relaxed h-full overflow-auto">{activeOutputJson}</pre>
               <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex h-6 w-6 items-center justify-center rounded border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-600">
                 <Copy size={9} />
               </button>
@@ -167,16 +254,16 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
               <div className="w-48 border-l border-zinc-100 bg-zinc-50/50 p-3 flex-shrink-0">
                 <p className="text-[9px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Execution Stats</p>
                 <div className="space-y-2">
-                  <StatRow icon={Cpu} label="Model" value={tokenUsageSummary.model} />
-                  <StatRow icon={ArrowUp} label="Input tokens" value={String(tokenUsageSummary.inputTokens)} />
-                  <StatRow icon={ArrowDown} label="Output tokens" value={String(tokenUsageSummary.outputTokens)} />
-                  <StatRow icon={Zap} label="Total tokens" value={String(tokenUsageSummary.totalTokens)} highlight />
-                  <StatRow icon={DollarSign} label="Cost" value={tokenUsageSummary.cost} highlight />
-                  <StatRow icon={Clock} label="Latency" value={tokenUsageSummary.latency} />
+                  <StatRow icon={Cpu} label="Model" value={execSummary.model} />
+                  <StatRow icon={ArrowUp} label="Input tokens" value={String(execSummary.inputTokens)} />
+                  <StatRow icon={ArrowDown} label="Output tokens" value={String(execSummary.outputTokens)} />
+                  <StatRow icon={Zap} label="Total tokens" value={String(execSummary.totalTokens)} highlight />
+                  <StatRow icon={DollarSign} label="Cost" value={execSummary.cost} highlight />
+                  <StatRow icon={Clock} label="Latency" value={execSummary.latency} />
                   <div className="pt-2 border-t border-zinc-100">
                     <div className="flex items-center gap-1 text-[8px] text-zinc-400">
                       <BarChart3 size={8} />
-                      <span>Cache: {tokenUsageSummary.cacheHit ? "Hit" : "Miss"}</span>
+                      <span>Cache: {execSummary.cacheHit ? "Hit" : "Miss"}</span>
                     </div>
                   </div>
                 </div>
@@ -197,12 +284,12 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
                 <Eye size={9} /> Compare with Last
               </button>
               <span className="ml-auto text-[8px] text-zinc-400">
-                Total: {traceSteps.filter(s => s.status === "success").length}/{traceSteps.length} passed · {traceSteps.reduce((sum, s) => { const d = s.duration; if (d === "—") return sum; return sum + parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1); }, 0).toFixed(0)}ms
+                Total: {activeTraceSteps.filter(s => s.status === "success").length}/{activeTraceSteps.length} passed · {activeTraceSteps.reduce((sum, s) => { const d = s.duration; if (d === "—") return sum; return sum + parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1); }, 0).toFixed(0)}ms
               </span>
             </div>
             {/* Timing bar visualization */}
             <div className="px-4 py-2 border-b border-zinc-50 flex items-center gap-0.5">
-              {traceSteps.map(step => {
+              {activeTraceSteps.map(step => {
                 const d = step.duration;
                 const ms = d === "—" ? 0 : parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1);
                 const pct = Math.max(4, (ms / maxDurationMs) * 100);
@@ -220,7 +307,7 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
               })}
             </div>
             <div className="divide-y divide-zinc-50">
-            {traceSteps.map((step) => (
+            {activeTraceSteps.map((step) => (
               <div key={step.id}>
                 <button
                   onClick={() => setExpandedNode(expandedNode === step.id ? null : step.id)}
@@ -249,6 +336,12 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
                       <span>In: {step.input}B</span>
                       <span className="text-zinc-200">·</span>
                       <span>Out: {step.output}B</span>
+                      {step.pinnedDataUsed && (
+                        <>
+                          <span className="text-zinc-200">·</span>
+                          <span className="text-amber-500 font-medium">Pinned data</span>
+                        </>
+                      )}
                       {step.type === "ai" && (
                         <>
                           <span className="text-zinc-200">·</span>
@@ -257,7 +350,7 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
                       )}
                     </div>
                     <pre className="text-[9px] font-mono text-zinc-600 leading-relaxed max-h-20 overflow-y-auto rounded bg-white border border-zinc-100 p-2">
-                      {"{\n  \"email\": \"alex@acme.com\",\n  \"name\": \"Alex Chen\"\n}"}
+                      {step.rawOutput ? JSON.stringify(step.rawOutput, null, 2) : "{\n  \"email\": \"alex@acme.com\",\n  \"name\": \"Alex Chen\"\n}"}
                     </pre>
                   </div>
                 )}

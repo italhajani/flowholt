@@ -6,14 +6,17 @@ import {
 import { cn } from "@/lib/utils";
 import { useRunWorkflow, useUpdateWorkflow } from "@/hooks/useApi";
 import { useCanvasStore } from "./useCanvasStore";
+import type { ExecutionSummary } from "@/lib/api";
 
 interface Props {
   drawerOpen: boolean;
   onToggleDrawer: () => void;
   workflowId?: string;
+  onExecutionStart?: () => void;
+  onExecutionComplete?: (exec: ExecutionSummary) => void;
 }
 
-export function StudioRuntimeBar({ drawerOpen, onToggleDrawer, workflowId }: Props) {
+export function StudioRuntimeBar({ drawerOpen, onToggleDrawer, workflowId, onExecutionStart, onExecutionComplete }: Props) {
   const [isRunning, setIsRunning] = useState(false);
   const [scheduleOn, setScheduleOn] = useState(false);
   const [savedState, setSavedState] = useState<"saved" | "saving" | "unsaved">("saved");
@@ -25,7 +28,13 @@ export function StudioRuntimeBar({ drawerOpen, onToggleDrawer, workflowId }: Pro
   function handleRun() {
     if (workflowId) {
       setIsRunning(true);
+      onExecutionStart?.();
       runMutation.mutate({ payload: {}, environment: "draft" }, {
+        onSuccess: (data) => {
+          setIsRunning(false);
+          onExecutionComplete?.(data);
+        },
+        onError: () => setIsRunning(false),
         onSettled: () => setIsRunning(false),
       });
     } else {
@@ -110,10 +119,30 @@ export function StudioRuntimeBar({ drawerOpen, onToggleDrawer, workflowId }: Pro
         <span className="mx-1 h-5 w-px bg-zinc-200" />
 
         {/* Undo / Redo */}
-        <button title="Undo" className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors">
+        <button
+          title="Undo (Ctrl+Z)"
+          onClick={() => store.undo()}
+          disabled={store.undoStack.length === 0}
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+            store.undoStack.length > 0
+              ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+              : "text-zinc-300 cursor-not-allowed"
+          )}
+        >
           <RotateCcw size={13} />
         </button>
-        <button title="Redo" className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors">
+        <button
+          title="Redo (Ctrl+Shift+Z)"
+          onClick={() => store.redo()}
+          disabled={store.redoStack.length === 0}
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-md transition-colors",
+            store.redoStack.length > 0
+              ? "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
+              : "text-zinc-300 cursor-not-allowed"
+          )}
+        >
           <RotateCw size={13} />
         </button>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Activity, Search, HeartPulse, Clock, AlertTriangle, Users, GitBranch, XCircle, FileText, Bell, BarChart3, RefreshCw, Download, ChevronDown, ChevronRight, Filter, Shield, Gauge } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
-import { useAuditEvents, useAnalyticsOverview } from "@/hooks/useApi";
+import { useAuditEvents, useAnalyticsOverview, useErrorTrackedWorkflows, useDeadLetters } from "@/hooks/useApi";
 import type { AuditEventOut } from "@/lib/api";
 
 /* ── Per research 65: 6 sub-tabs ── */
@@ -166,6 +166,37 @@ export function OperationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("runtime");
   const [search, setSearch] = useState("");
   const { data: analytics } = useAnalyticsOverview();
+  const { data: apiErrors } = useErrorTrackedWorkflows();
+  const { data: apiQueue } = useDeadLetters(50, 0);
+
+  // Map backend error-tracked workflows to failures UI with mock fallback
+  const failures: Failure[] = useMemo(() => {
+    if (apiErrors && apiErrors.length > 0) {
+      return apiErrors.map((e: Record<string, unknown>, i: number) => ({
+        id: String(e.workflow_id ?? `f${i}`),
+        workflow: String(e.workflow_name ?? e.workflow_id ?? "Unknown"),
+        errorCount: Number(e.error_count ?? 0),
+        lastError: String(e.last_error ?? "Unknown error"),
+        lastOccurred: String(e.last_occurred ?? "—"),
+        status: Number(e.error_count ?? 0) > 5 ? "critical" as const : "warning" as const,
+      }));
+    }
+    return mockFailures;
+  }, [apiErrors]);
+
+  // Map backend dead letters to queue UI with mock fallback
+  const queueItems: QueueItem[] = useMemo(() => {
+    if (apiQueue && apiQueue.length > 0) {
+      return apiQueue.map((q: Record<string, unknown>, i: number) => ({
+        id: String(q.id ?? `q${i}`),
+        workflowName: String(q.workflow_name ?? q.workflow_id ?? "Workflow"),
+        position: i + 1,
+        waitingSince: String(q.created_at ?? q.failed_at ?? "—"),
+        status: "active" as const,
+      }));
+    }
+    return mockQueue;
+  }, [apiQueue]);
 
   const errorRate = analytics?.executions?.error_rate_pct ?? 2.1;
   const totalExecs = analytics?.executions?.total ?? 0;
@@ -255,7 +286,7 @@ export function OperationsPage() {
         {activeTab === "queues" && (
           <DataTable
             columns={queueColumns}
-            data={mockQueue}
+            data={queueItems}
             getRowId={(q) => q.id}
             emptyState={<EmptyState icon={<Clock size={32} strokeWidth={1.25} />} title="Queue empty" description="No workflows are waiting." />}
           />
@@ -264,7 +295,7 @@ export function OperationsPage() {
         {activeTab === "failures" && (
           <DataTable
             columns={failureColumns}
-            data={mockFailures.filter((f) => !search || f.workflow.toLowerCase().includes(search.toLowerCase()))}
+            data={failures.filter((f) => !search || f.workflow.toLowerCase().includes(search.toLowerCase()))}
             getRowId={(f) => f.id}
             emptyState={<EmptyState icon={<XCircle size={32} strokeWidth={1.25} />} title="No recent failures" description="All systems running smoothly." />}
           />

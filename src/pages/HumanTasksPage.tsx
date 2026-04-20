@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ClipboardList, Search, AlertCircle, CheckCircle2, XCircle, Clock,
   User, ArrowRight, MessageSquare, ChevronDown, ChevronRight, FileText,
@@ -111,20 +111,40 @@ export function HumanTasksPage() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [search, setSearch] = useState("");
   const [reviewingId, setReviewingId] = useState<string | null>(null);
-  const { data: _apiTasks } = useHumanTasks();
-  const _completeMutation = useCompleteHumanTask();
-  // Use mock data while API isn't connected; swap to _apiTasks when backend is live
+  const { data: apiTasks } = useHumanTasks();
+  const completeMutation = useCompleteHumanTask();
 
-  const filtered = mockTasks.filter((t) => {
+  // Use real backend data when available, fallback to mock
+  const tasks: HumanTask[] = useMemo(() => {
+    if (apiTasks && apiTasks.length > 0) {
+      return apiTasks.map((t: Record<string, unknown>) => ({
+        id: String(t.id ?? ""),
+        workflowName: String(t.workflow_name ?? t.workflowName ?? "Unknown"),
+        nodeName: String(t.step_name ?? t.nodeName ?? "Task"),
+        taskType: (String(t.task_type ?? t.taskType ?? "approval")) as HumanTask["taskType"],
+        assignedTo: t.assignee ? String(t.assignee) : null,
+        isMe: String(t.assignee ?? "").toLowerCase() === "me",
+        created: String(t.created_at ?? t.created ?? ""),
+        expires: t.expires_at ? String(t.expires_at) : null,
+        isOverdue: Boolean(t.is_overdue ?? false),
+        status: (String(t.status ?? "active") === "completed" ? "success" : "active") as HumanTask["status"],
+        statusLabel: String(t.status ?? "open"),
+        priority: (String(t.priority ?? "medium")) as HumanTask["priority"],
+      }));
+    }
+    return mockTasks;
+  }, [apiTasks]);
+
+  const filtered = tasks.filter((t) => {
     if (search && !t.workflowName.toLowerCase().includes(search.toLowerCase()) && !t.nodeName.toLowerCase().includes(search.toLowerCase())) return false;
     if (activeTab === "My Tasks") return t.isMe && t.statusLabel === "open";
     if (activeTab === "Overdue") return t.isOverdue;
     return true;
   });
 
-  const openCount = mockTasks.filter((t) => t.statusLabel === "open").length;
-  const myCount = mockTasks.filter((t) => t.isMe && t.statusLabel === "open").length;
-  const overdueCount = mockTasks.filter((t) => t.isOverdue).length;
+  const openCount = tasks.filter((t) => t.statusLabel === "open").length;
+  const myCount = tasks.filter((t) => t.isMe && t.statusLabel === "open").length;
+  const overdueCount = tasks.filter((t) => t.isOverdue).length;
 
   return (
     <div className="mx-auto max-w-[960px] px-8 py-8">
@@ -179,16 +199,18 @@ export function HumanTasksPage() {
 
       {/* Full task review panel */}
       {reviewingId && (() => {
-        const task = mockTasks.find(t => t.id === reviewingId);
+        const task = tasks.find(t => t.id === reviewingId);
         if (!task) return null;
-        return <TaskReviewPanel task={task} onClose={() => setReviewingId(null)} />;
+        return <TaskReviewPanel task={task} onClose={() => setReviewingId(null)} onComplete={(action, cmt) => {
+          completeMutation.mutate({ taskId: task.id, payload: { decision: action, comment: cmt } });
+        }} />;
       })()}
     </div>
   );
 }
 
 /* ── Task Review Panel ── */
-function TaskReviewPanel({ task, onClose }: { task: HumanTask; onClose: () => void }) {
+function TaskReviewPanel({ task, onClose, onComplete }: { task: HumanTask; onClose: () => void; onComplete?: (action: "approve" | "reject", comment: string) => void }) {
   const [comment, setComment] = useState("");
   const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
   const [showContext, setShowContext] = useState(true);
@@ -216,6 +238,7 @@ function TaskReviewPanel({ task, onClose }: { task: HumanTask; onClose: () => vo
 
   const handleSubmit = (action: "approve" | "reject") => {
     setDecision(action);
+    onComplete?.(action, comment);
   };
 
   return (

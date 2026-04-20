@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Database, Plus, Search, Table2, Brain, Server, FileCode, HardDrive, Hash,
   ChevronRight, X, Eye, Pencil, Trash2, RefreshCw, CheckCircle2, AlertCircle,
@@ -14,7 +14,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 import { KnowledgeUploadModal } from "@/components/modals/KnowledgeUploadModal";
 import { MCPServerWizard } from "@/components/modals/MCPServerWizard";
-import { useMCPServers } from "@/hooks/useApi";
+import { useMCPServers, useKnowledgeBases } from "@/hooks/useApi";
 import type { MCPServer as APIMCPServer } from "@/lib/api";
 
 const tabs = ["Data Stores", "Schemas", "Knowledge", "MCP Servers"] as const;
@@ -492,6 +492,23 @@ export function DataPage() {
   const [showKnowledgeUpload, setShowKnowledgeUpload] = useState(false);
   const [showMCPWizard, setShowMCPWizard] = useState(false);
   const { data: mcpServers = [] } = useMCPServers();
+  const { data: apiKnowledge } = useKnowledgeBases();
+
+  // Map backend knowledge bases to our UI interface with mock fallback
+  const knowledgeItems: KnowledgeAsset[] = useMemo(() => {
+    if (apiKnowledge && apiKnowledge.length > 0) {
+      return apiKnowledge.map((kb: Record<string, unknown>) => ({
+        id: String(kb.id ?? ""),
+        name: String(kb.name ?? "Untitled"),
+        type: (String(kb.type ?? "documents")) as KnowledgeAsset["type"],
+        itemCount: Number(kb.document_count ?? kb.itemCount ?? 0),
+        size: String(kb.size ?? "0 KB"),
+        lastUpdated: String(kb.updated_at ?? kb.lastUpdated ?? "—"),
+        status: (String(kb.status ?? "active")) as KnowledgeAsset["status"],
+      }));
+    }
+    return mockKnowledge;
+  }, [apiKnowledge]);
 
   return (
     <div className="mx-auto max-w-[960px] px-8 py-8">
@@ -522,7 +539,7 @@ export function DataPage() {
           Schemas <span className="font-semibold text-zinc-700">{mockSchemas.length}</span>
         </span>
         <span className="text-zinc-400">
-          Knowledge <span className="font-semibold text-zinc-700">{mockKnowledge.length}</span>
+          Knowledge <span className="font-semibold text-zinc-700">{knowledgeItems.length}</span>
         </span>
         <span className="text-zinc-400">
           MCP Servers <span className="font-semibold text-zinc-700">{mcpServers.length}</span>
@@ -597,7 +614,7 @@ export function DataPage() {
           <>
             <DataTable
               columns={knowledgeColumns}
-              data={mockKnowledge.filter((k) => !search || k.name.toLowerCase().includes(search.toLowerCase()))}
+              data={knowledgeItems.filter((k) => !search || k.name.toLowerCase().includes(search.toLowerCase()))}
               getRowId={(k) => k.id}
               selectable
               onRowClick={(row) => setSelectedKnowledge(selectedKnowledge?.id === row.id ? null : row)}

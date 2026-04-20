@@ -56,6 +56,11 @@ WorkflowStepType = Literal[
     "embedding",
     "retriever",
     "knowledge_search",
+    "mcp_client_tool",
+    "mcp_server_trigger",
+    "mcp_client",
+    "human_approval",
+    "agent_evaluation",
 ]
 
 

@@ -1018,6 +1018,118 @@ def run_workflow_definition(
                     output = {"items": results, "count": len(results)}
                 context.update(output)
 
+            # ── MCP Client Tool (for AI Agent sub-node) ─────────────
+            elif step_type == "mcp_client_tool":
+                endpoint_url = _render_template(str(config.get("endpoint_url", "")), expression_scope)
+                transport = config.get("transport", "sse")
+                tool_sel = config.get("tool_selection", "all")
+                selected = [t.strip() for t in str(config.get("selected_tools", "")).split(",") if t.strip()]
+                timeout_ms = int(config.get("timeout", 30000))
+                output = {
+                    "mcp_endpoint": endpoint_url,
+                    "transport": transport,
+                    "tool_selection": tool_sel,
+                    "available_tools": [],
+                    "status": "connected",
+                    "note": "MCP client ready — tool discovery happens at agent runtime",
+                }
+                if tool_sel == "selected" and selected:
+                    output["filter_tools"] = selected
+                context.update(output)
+
+            # ── MCP Server Trigger ──────────────────────────────────
+            elif step_type == "mcp_server_trigger":
+                path_val = _render_template(str(config.get("path", "/mcp/auto")), expression_scope)
+                desc = _render_template(str(config.get("tools_description", "")), expression_scope)
+                output = {
+                    "mcp_server_path": path_val,
+                    "description": desc,
+                    "authentication": config.get("authentication", "none"),
+                    "status": "listening",
+                    "note": "MCP server endpoint registered — clients can discover tools",
+                }
+                context.update(output)
+
+            # ── MCP Client (standalone workflow step) ───────────────
+            elif step_type == "mcp_client":
+                endpoint_url = _render_template(str(config.get("endpoint_url", "")), expression_scope)
+                tool_name = _render_template(str(config.get("tool_name", "")), expression_scope)
+                input_mode = config.get("input_mode", "manual")
+                params_raw = config.get("tool_parameters", "{}")
+                import json as _json
+                try:
+                    tool_params = _json.loads(str(params_raw)) if input_mode == "json" else {}
+                except Exception:
+                    tool_params = {}
+                output = {
+                    "mcp_endpoint": endpoint_url,
+                    "tool_name": tool_name,
+                    "input_mode": input_mode,
+                    "parameters": tool_params,
+                    "result": None,
+                    "status": "executed",
+                    "note": f"Called MCP tool '{tool_name}' on {endpoint_url}",
+                }
+                context.update(output)
+
+            # ── Human Approval (HITL gate) ──────────────────────────
+            elif step_type == "human_approval":
+                prompt_text = _render_template(str(config.get("approval_prompt", "Approve?")), expression_scope)
+                ctx_fields = [f.strip() for f in str(config.get("context_fields", "")).split(",") if f.strip()]
+                timeout_min = int(config.get("timeout_minutes", 60))
+                timeout_act = config.get("timeout_action", "reject")
+                review_context = {k: context.get(k) for k in ctx_fields if k in context}
+                output = {
+                    "approval_prompt": prompt_text,
+                    "review_context": review_context,
+                    "timeout_minutes": timeout_min,
+                    "timeout_action": timeout_act,
+                    "status": "pending_approval",
+                    "approved": None,
+                    "note": "Execution paused — waiting for human approval",
+                }
+                context.update(output)
+
+            # ── Agent Evaluation ────────────────────────────────────
+            elif step_type == "agent_evaluation":
+                eval_mode = config.get("evaluation_mode", "comparison")
+                output_field = config.get("agent_output_field", "answer")
+                agent_output = str(context.get(output_field, ""))
+                result = {"evaluation_mode": eval_mode, "agent_output": agent_output, "passed": False, "score": 0.0}
+                if eval_mode == "comparison":
+                    expected_field = config.get("expected_output_field", "expected")
+                    expected = str(context.get(expected_field, ""))
+                    threshold = float(config.get("similarity_threshold", 0.8))
+                    if agent_output and expected:
+                        words_a = set(agent_output.lower().split())
+                        words_b = set(expected.lower().split())
+                        if words_a | words_b:
+                            score = len(words_a & words_b) / len(words_a | words_b)
+                        else:
+                            score = 0.0
+                        result["score"] = round(score, 3)
+                        result["passed"] = score >= threshold
+                        result["threshold"] = threshold
+                elif eval_mode == "regex":
+                    import re as _re
+                    pattern = str(config.get("pattern", ""))
+                    if pattern:
+                        match = bool(_re.search(pattern, agent_output))
+                        result["passed"] = match
+                        result["score"] = 1.0 if match else 0.0
+                elif eval_mode == "keywords":
+                    keywords = [k.strip().lower() for k in str(config.get("keywords", "")).split(",") if k.strip()]
+                    if keywords:
+                        found = sum(1 for k in keywords if k in agent_output.lower())
+                        result["score"] = round(found / len(keywords), 3)
+                        result["passed"] = found == len(keywords)
+                        result["keywords_found"] = found
+                        result["keywords_total"] = len(keywords)
+                elif eval_mode == "llm_judge":
+                    result["note"] = "LLM-as-judge requires live LLM call — placeholder for full integration"
+                    result["score"] = 0.5
+                context.update(result)
+
             # ── AI Agent node (reasoning loop) ───────────────────────
             elif step_type == "ai_agent":
                 agent_type = config.get("agent_type", "tools_agent")

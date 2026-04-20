@@ -1406,6 +1406,75 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  /* ── MCP Client Tool hero ── */
+  if (name === "MCP Client Tool") {
+    return (
+      <div className="rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 text-[8px] font-bold text-blue-700">🔌</span>
+          <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">MCP Client Tool</span>
+        </div>
+        <p className="text-[10px] text-blue-600">Connect to an external MCP server and expose its tools to your AI Agent. Supports SSE and Streamable HTTP transports.</p>
+      </div>
+    );
+  }
+
+  /* ── MCP Server Trigger hero ── */
+  if (name === "MCP Server Trigger") {
+    return (
+      <div className="rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-violet-100 text-[8px] font-bold text-violet-700">🖥️</span>
+          <span className="text-[10px] font-semibold text-violet-700 uppercase tracking-wider">MCP Server Trigger</span>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-md border border-violet-200 bg-white px-2 py-1.5 mt-1">
+          <code className="text-[11px] font-mono text-zinc-600 flex-1 truncate">/mcp/{'{path}'}</code>
+          <button className="text-zinc-300 hover:text-zinc-500"><Copy size={9} /></button>
+        </div>
+        <p className="mt-1.5 text-[9px] text-violet-600">Exposes this workflow as an MCP server — external clients can discover and call tools.</p>
+      </div>
+    );
+  }
+
+  /* ── MCP Client hero ── */
+  if (name === "MCP Client") {
+    return (
+      <div className="rounded-lg border border-cyan-100 bg-gradient-to-r from-cyan-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-cyan-100 text-[8px] font-bold text-cyan-700">🔗</span>
+          <span className="text-[10px] font-semibold text-cyan-700 uppercase tracking-wider">MCP Client</span>
+        </div>
+        <p className="text-[10px] text-cyan-600">Call a specific tool on an external MCP server as a regular workflow step. Select the tool and provide parameters.</p>
+      </div>
+    );
+  }
+
+  /* ── Human Approval hero ── */
+  if (name === "Human Approval") {
+    return (
+      <div className="rounded-lg border border-amber-100 bg-gradient-to-r from-amber-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-amber-100 text-[8px] font-bold text-amber-700">👤</span>
+          <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider">Human Approval</span>
+        </div>
+        <p className="text-[10px] text-amber-600">Pause execution and wait for human review. Supports timeout with auto-approve, reject, or fallback actions.</p>
+      </div>
+    );
+  }
+
+  /* ── Agent Evaluation hero ── */
+  if (name === "Agent Evaluation") {
+    return (
+      <div className="rounded-lg border border-emerald-100 bg-gradient-to-r from-emerald-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-emerald-100 text-[8px] font-bold text-emerald-700">✅</span>
+          <span className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">Agent Evaluation</span>
+        </div>
+        <p className="text-[10px] text-emerald-600">Test agent outputs against golden datasets. Compare using similarity, regex, keywords, or LLM-as-judge.</p>
+      </div>
+    );
+  }
+
   if (family === "trigger") {
     const method = config.fields?.find((f) => f.label === "Method")?.value || "POST";
     const path = config.fields?.find((f) => f.label === "Path")?.value || "/webhook";
@@ -1635,6 +1704,11 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
       {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
       {nodeName === "Vector Store" && <VectorStoreParams />}
       {(nodeName === "Knowledge Search" || nodeName === "Retriever") && <KnowledgeSearchParams />}
+      {nodeName === "MCP Client Tool" && <MCPClientToolParams />}
+      {nodeName === "MCP Server Trigger" && <MCPServerTriggerParams />}
+      {nodeName === "MCP Client" && <MCPClientToolParams />}
+      {nodeName === "Human Approval" && <HumanApprovalParams />}
+      {nodeName === "Agent Evaluation" && <AgentEvaluationParams />}
       {(nodeName === "Code" || nodeName === "Function" || nodeName === "JavaScript" || nodeName === "Python") && (
         <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 360 }}>
           <CodeEditorPanelInline nodeType="Code" />
@@ -2707,6 +2781,241 @@ function KnowledgeSearchParams() {
           <span className="text-[11px] text-zinc-600">Use LLM to summarize chunks into a single answer</span>
         </label>
       </FieldGroup>
+    </div>
+  );
+}
+
+/* ── MCP Client Tool Params ── */
+function MCPClientToolParams() {
+  const [transport, setTransport] = useState("sse");
+  const [endpoint, setEndpoint] = useState("");
+  const [auth, setAuth] = useState("none");
+  const [authToken, setAuthToken] = useState("");
+  const [toolSelection, setToolSelection] = useState("all");
+  const [selectedTools, setSelectedTools] = useState("");
+  const [timeout, setTimeout] = useState("30000");
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Server Transport">
+        <select value={transport} onChange={e => setTransport(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="sse">SSE (Server-Sent Events)</option>
+          <option value="streamable_http">Streamable HTTP</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="MCP Endpoint URL">
+        <input value={endpoint} onChange={e => setEndpoint(e.target.value)} placeholder="https://mcp.example.com/mcp" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 font-mono focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="Authentication">
+        <select value={auth} onChange={e => setAuth(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="none">None</option>
+          <option value="bearer">Bearer Token</option>
+          <option value="header">Header Auth</option>
+          <option value="oauth2">OAuth2</option>
+        </select>
+      </FieldGroup>
+
+      {auth === "bearer" && (
+        <FieldGroup label="Bearer Token">
+          <input type="password" value={authToken} onChange={e => setAuthToken(e.target.value)} placeholder="sk-..." className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 font-mono focus:outline-none transition-all" />
+        </FieldGroup>
+      )}
+
+      <FieldGroup label="Tools to Include">
+        <select value={toolSelection} onChange={e => setToolSelection(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="all">All Tools</option>
+          <option value="selected">Selected Only</option>
+          <option value="except">All Except</option>
+        </select>
+      </FieldGroup>
+
+      {toolSelection !== "all" && (
+        <FieldGroup label={toolSelection === "selected" ? "Tools to Include" : "Tools to Exclude"}>
+          <input value={selectedTools} onChange={e => setSelectedTools(e.target.value)} placeholder="tool_a, tool_b, ..." className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none transition-all" />
+        </FieldGroup>
+      )}
+
+      <FieldGroup label="Timeout (ms)">
+        <input type="number" value={timeout} onChange={e => setTimeout(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+      </FieldGroup>
+
+      {endpoint && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-2.5">
+          <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-wider mb-1">Connection</p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+              <code className="text-[9px] font-mono text-blue-700 truncate flex-1">{endpoint}</code>
+            </div>
+            <p className="text-[8px] text-blue-500">Transport: {transport === "sse" ? "SSE" : "Streamable HTTP"} · Auth: {auth}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── MCP Server Trigger Params ── */
+function MCPServerTriggerParams() {
+  const [path, setPath] = useState("/mcp/my-workflow");
+  const [auth, setAuth] = useState("none");
+  const [authToken, setAuthToken] = useState("");
+  const [description, setDescription] = useState("");
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="MCP URL Path">
+        <input value={path} onChange={e => setPath(e.target.value)} placeholder="/mcp/custom-path" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 font-mono focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/20 transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="Authentication">
+        <select value={auth} onChange={e => setAuth(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="none">None</option>
+          <option value="bearer">Bearer Auth</option>
+          <option value="header">Header Auth</option>
+        </select>
+      </FieldGroup>
+
+      {auth === "bearer" && (
+        <FieldGroup label="Expected Token">
+          <input type="password" value={authToken} onChange={e => setAuthToken(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 font-mono focus:outline-none transition-all" />
+        </FieldGroup>
+      )}
+
+      <FieldGroup label="Server Description">
+        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe what tools this MCP server exposes..." rows={3} className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/20 transition-all resize-none" />
+      </FieldGroup>
+
+      <div className="rounded-md border border-violet-200 bg-violet-50 p-2.5">
+        <p className="text-[9px] font-semibold text-violet-600 uppercase tracking-wider mb-1">MCP Endpoints</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="rounded px-1.5 py-0.5 text-[8px] font-bold bg-green-100 text-green-700">TEST</span>
+            <code className="text-[9px] font-mono text-violet-700 truncate flex-1">http://localhost:8001{path}</code>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded px-1.5 py-0.5 text-[8px] font-bold bg-blue-100 text-blue-700">PROD</span>
+            <code className="text-[9px] font-mono text-violet-700 truncate flex-1">https://api.flowholt.com{path}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Human Approval Params ── */
+function HumanApprovalParams() {
+  const [prompt, setPrompt] = useState("Please review and approve this action.");
+  const [contextFields, setContextFields] = useState("");
+  const [timeoutMin, setTimeoutMin] = useState("60");
+  const [timeoutAction, setTimeoutAction] = useState("reject");
+  const [notify, setNotify] = useState("in_app");
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Approval Prompt" description="Message shown to the reviewer">
+        <textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={3} className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20 transition-all resize-none" />
+      </FieldGroup>
+
+      <FieldGroup label="Context Fields" description="Data fields to show reviewer (comma-separated)">
+        <input value={contextFields} onChange={e => setContextFields(e.target.value)} placeholder="user_email, amount, action" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="Timeout (minutes)" description="0 = no timeout">
+        <input type="number" value={timeoutMin} onChange={e => setTimeoutMin(e.target.value)} min="0" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+      </FieldGroup>
+
+      <FieldGroup label="On Timeout">
+        <select value={timeoutAction} onChange={e => setTimeoutAction(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="reject">Reject (stop execution)</option>
+          <option value="approve">Approve (continue)</option>
+          <option value="fallback">Skip to fallback branch</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="Notification Channel">
+        <select value={notify} onChange={e => setNotify(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="in_app">In-App Only</option>
+          <option value="email">Email + In-App</option>
+          <option value="slack">Slack + In-App</option>
+        </select>
+      </FieldGroup>
+
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          <p className="text-[9px] font-semibold text-amber-700">Execution will pause here until approved</p>
+        </div>
+        <p className="text-[8px] text-amber-600 mt-1">Timeout: {timeoutMin === "0" ? "None" : `${timeoutMin}min → ${timeoutAction}`} · Notify: {notify.replace("_", "-")}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Agent Evaluation Params ── */
+function AgentEvaluationParams() {
+  const [evalMode, setEvalMode] = useState("comparison");
+  const [outputField, setOutputField] = useState("answer");
+  const [expectedField, setExpectedField] = useState("expected");
+  const [threshold, setThreshold] = useState("0.8");
+  const [pattern, setPattern] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [judgePrompt, setJudgePrompt] = useState("");
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Evaluation Mode">
+        <select value={evalMode} onChange={e => setEvalMode(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="comparison">Golden Dataset Comparison</option>
+          <option value="llm_judge">LLM-as-Judge</option>
+          <option value="regex">Regex Match</option>
+          <option value="keywords">Contains Keywords</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="Agent Output Field">
+        <input value={outputField} onChange={e => setOutputField(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 font-mono focus:outline-none transition-all" />
+      </FieldGroup>
+
+      {evalMode === "comparison" && (
+        <>
+          <FieldGroup label="Expected Output Field">
+            <input value={expectedField} onChange={e => setExpectedField(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 font-mono focus:outline-none transition-all" />
+          </FieldGroup>
+          <FieldGroup label="Similarity Threshold" description="0-1 (Jaccard word overlap)">
+            <input type="number" value={threshold} onChange={e => setThreshold(e.target.value)} min="0" max="1" step="0.05" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all" />
+          </FieldGroup>
+        </>
+      )}
+
+      {evalMode === "regex" && (
+        <FieldGroup label="Pattern (regex)">
+          <input value={pattern} onChange={e => setPattern(e.target.value)} placeholder="^\\d{3}-\\d{4}$" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 font-mono focus:outline-none transition-all" />
+        </FieldGroup>
+      )}
+
+      {evalMode === "keywords" && (
+        <FieldGroup label="Keywords (comma-separated)">
+          <input value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="python, javascript, api" className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none transition-all" />
+        </FieldGroup>
+      )}
+
+      {evalMode === "llm_judge" && (
+        <FieldGroup label="Judge System Prompt">
+          <textarea value={judgePrompt} onChange={e => setJudgePrompt(e.target.value)} rows={4} placeholder="You are an evaluation judge. Rate the answer quality 1-5..." className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:outline-none transition-all resize-none" />
+        </FieldGroup>
+      )}
+
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-2.5">
+        <p className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wider mb-1">Evaluation Config</p>
+        <div className="space-y-0.5">
+          <p className="text-[8px] text-emerald-600">Mode: <span className="font-medium text-emerald-700">{evalMode === "comparison" ? "Golden Dataset" : evalMode === "llm_judge" ? "LLM Judge" : evalMode === "regex" ? "Regex" : "Keywords"}</span></p>
+          <p className="text-[8px] text-emerald-600">Output field: <code className="font-mono text-emerald-700">{outputField}</code></p>
+          {evalMode === "comparison" && <p className="text-[8px] text-emerald-600">Threshold: {threshold}</p>}
+        </div>
+      </div>
     </div>
   );
 }

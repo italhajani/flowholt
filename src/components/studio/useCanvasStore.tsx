@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
-import { canvasNodes, type CanvasNodeData, type NodeExecState } from "./StudioCanvas";
+import { canvasNodes, type CanvasNodeData, type NodeExecState } from "./canvasTypes";
 import type { WorkflowDetail, WorkflowStep, WorkflowEdge as ApiEdge } from "@/lib/api";
 
 /* ── Helpers: map backend definition → canvas state ── */

@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, Plus, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type CanvasNodeData, familyColors } from "./StudioCanvas";
+import { type CanvasNodeData, familyColors } from "./canvasTypes";
 import { useCanvasStore } from "./useCanvasStore";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";

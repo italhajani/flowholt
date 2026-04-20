@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
-import type { CanvasNodeData } from "./StudioCanvas";
+import type { CanvasNodeData } from "./canvasTypes";
 import { useDraftWorkflowWithAI } from "@/hooks/useApi";
 
 /* ── Types ── */

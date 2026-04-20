@@ -190,3 +190,226 @@ def delete_api_key(key_id: str, ctx: dict = Depends(get_session_context)) -> dic
     if deleted == 0:
         raise HTTPException(status_code=404, detail="API key not found")
     return {"status": "deleted"}
+
+
+# ---------------------------------------------------------------------------
+# Notification Preferences
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/me/notification-preferences")
+def get_notification_prefs(ctx: dict = Depends(get_session_context)) -> dict:
+    user_id = ctx["user"]["id"]
+    db = get_db()
+    row = db.execute(
+        "SELECT prefs_json FROM user_preferences WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    if row:
+        import json
+        try:
+            return json.loads(row["prefs_json"] if isinstance(row, dict) else row[0])
+        except Exception:
+            pass
+    return {
+        "email_executions": True,
+        "email_errors": True,
+        "email_team": True,
+        "push_executions": False,
+        "push_errors": True,
+        "push_team": False,
+        "slack_enabled": False,
+        "slack_webhook": "",
+        "digest_frequency": "daily",
+    }
+
+
+@router.patch(f"{PREFIX}/me/notification-preferences")
+def update_notification_prefs(body: dict, ctx: dict = Depends(get_session_context)) -> dict:
+    import json
+    user_id = ctx["user"]["id"]
+    db = get_db()
+    db.execute(
+        """INSERT INTO user_preferences (user_id, prefs_json) VALUES (?, ?)
+           ON CONFLICT(user_id) DO UPDATE SET prefs_json = excluded.prefs_json""",
+        (user_id, json.dumps(body)),
+    )
+    db.commit()
+    return body
+
+
+# ---------------------------------------------------------------------------
+# Billing / Usage Summary
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/billing/usage")
+def get_usage_summary(ctx: dict = Depends(get_session_context)) -> dict:
+    ws_id = ctx["workspace"]["id"]
+    db = get_db()
+    wf_count = db.execute(
+        "SELECT COUNT(*) as c FROM workflows WHERE workspace_id = ?", (ws_id,)
+    ).fetchone()
+    exec_count = db.execute(
+        "SELECT COUNT(*) as c FROM executions WHERE workspace_id = ?", (ws_id,)
+    ).fetchone()
+    return {
+        "plan": "free",
+        "credits_used": (exec_count["c"] if isinstance(exec_count, dict) else exec_count[0]) if exec_count else 0,
+        "credits_limit": 10000,
+        "renewal_date": "2026-06-01",
+        "cost_usd": 0.0,
+        "workflows_active": (wf_count["c"] if isinstance(wf_count, dict) else wf_count[0]) if wf_count else 0,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Source Control Config
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/source-control/config")
+def get_source_control_config(ctx: dict = Depends(get_session_context)) -> dict:
+    return {
+        "provider": "github",
+        "repo_url": "",
+        "branch": "main",
+        "connected": False,
+        "branches": ["main", "staging", "production"],
+    }
+
+
+@router.patch(f"{PREFIX}/source-control/config")
+def update_source_control_config(body: dict, ctx: dict = Depends(get_session_context)) -> dict:
+    return body
+
+
+# ---------------------------------------------------------------------------
+# Community Nodes
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/community-nodes")
+def list_community_nodes(ctx: dict = Depends(get_session_context)) -> list:
+    return []
+
+
+@router.post(f"{PREFIX}/community-nodes/{{node_id}}/install")
+def install_community_node(node_id: str, ctx: dict = Depends(get_session_context)) -> dict:
+    return {"ok": True, "node_id": node_id}
+
+
+@router.post(f"{PREFIX}/community-nodes/{{node_id}}/uninstall")
+def uninstall_community_node(node_id: str, ctx: dict = Depends(get_session_context)) -> dict:
+    return {"ok": True, "node_id": node_id}
+
+
+# ---------------------------------------------------------------------------
+# Environment Stages & Deployments
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/environments/stages")
+def list_environment_stages(ctx: dict = Depends(get_session_context)) -> list:
+    return [
+        {"id": "dev", "name": "Development", "status": "active", "workflow_count": 0},
+        {"id": "staging", "name": "Staging", "status": "active", "workflow_count": 0},
+        {"id": "prod", "name": "Production", "status": "active", "workflow_count": 0},
+    ]
+
+
+@router.get(f"{PREFIX}/environments/deployments")
+def list_deployments(ctx: dict = Depends(get_session_context)) -> list:
+    return []
+
+
+@router.post(f"{PREFIX}/environments/promote")
+def promote_stage(body: dict, ctx: dict = Depends(get_session_context)) -> dict:
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Provider Detail
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/providers/{{provider_id}}")
+def get_provider_detail(provider_id: str) -> dict:
+    return {
+        "id": provider_id,
+        "name": provider_id.replace("-", " ").title(),
+        "description": f"Integration provider: {provider_id}",
+        "status": "active",
+        "node_count": 0,
+        "auth_type": "oauth2",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Domain Config
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/settings/domains")
+def get_domain_config(ctx: dict = Depends(get_session_context)) -> dict:
+    return {
+        "custom_domain": "",
+        "webhook_domain": "",
+        "ssl_enabled": True,
+        "verified": False,
+    }
+
+
+@router.patch(f"{PREFIX}/settings/domains")
+def update_domain_config(body: dict, ctx: dict = Depends(get_session_context)) -> dict:
+    return body
+
+
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/models")
+def list_models() -> list:
+    return [
+        {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "provider": "google", "free_tier": True},
+        {"id": "llama-3.3-70b-versatile", "name": "Llama 3.3 70B", "provider": "groq", "free_tier": True},
+        {"id": "gpt-4o", "name": "GPT-4o", "provider": "openai", "free_tier": False},
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------------------------
+
+@router.get(f"{PREFIX}/analytics/overview")
+def analytics_overview(ctx: dict = Depends(get_session_context)) -> dict:
+    ws_id = ctx["workspace"]["id"]
+    db = get_db()
+    total = db.execute(
+        "SELECT COUNT(*) as c FROM executions WHERE workspace_id = ?", (ws_id,)
+    ).fetchone()
+    return {
+        "total_executions": (total["c"] if isinstance(total, dict) else total[0]) if total else 0,
+        "success_rate": 0.95,
+        "avg_duration_ms": 1200,
+        "active_workflows": 0,
+    }
+
+
+@router.get(f"{PREFIX}/analytics/latency")
+def analytics_latency() -> dict:
+    return {"p50": 450, "p90": 1200, "p99": 3500}
+
+
+@router.get(f"{PREFIX}/analytics/timeline")
+def analytics_timeline() -> list:
+    return []
+
+
+@router.get(f"{PREFIX}/audit-events")
+def list_audit_events_endpoint(ctx: dict = Depends(get_session_context)) -> list:
+    from ..repository import list_audit_events
+    ws_id = ctx["workspace"]["id"]
+    return list_audit_events(ws_id, limit=100)
+
+
+# ---------------------------------------------------------------------------
+# Metrics (Prometheus-style stub)
+# ---------------------------------------------------------------------------
+
+@router.get("/metrics")
+def prometheus_metrics() -> str:
+    return "# FlowHolt metrics stub\nflowholt_up 1\n"

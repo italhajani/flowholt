@@ -575,6 +575,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     keyboard_shortcuts TEXT DEFAULT 'default',
     language TEXT DEFAULT 'en',
     sidebar_collapsed BOOLEAN DEFAULT 0,
+    prefs_json TEXT DEFAULT '{}',
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );

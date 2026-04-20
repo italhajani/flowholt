@@ -223,24 +223,24 @@ def api_agent_chat(
 from ..models import ChatThreadSummary, ChatMessageOut
 
 
-@router.get("/agents/{agent_id}/threads", response_model=list[ChatThreadSummary])
+@router.get(f"{settings.api_prefix}/agents/{{agent_id}}/threads", response_model=list[ChatThreadSummary])
 async def api_list_threads(agent_id: str):
     return list_threads(agent_id)
 
 
-@router.post("/agents/{agent_id}/threads", response_model=ChatThreadSummary, status_code=201)
+@router.post(f"{settings.api_prefix}/agents/{{agent_id}}/threads", response_model=ChatThreadSummary, status_code=201)
 async def api_create_thread(agent_id: str, title: str | None = None):
     row = create_thread(agent_id, title=title)
     return {**row, "message_count": 0, "last_message_at": None}
 
 
-@router.delete("/agents/threads/{thread_id}", status_code=204)
+@router.delete(f"{settings.api_prefix}/agents/threads/{{thread_id}}", status_code=204)
 async def api_delete_thread(thread_id: str):
     if not delete_thread(thread_id):
         raise HTTPException(status_code=404, detail="Thread not found")
 
 
-@router.get("/agents/threads/{thread_id}/messages", response_model=list[ChatMessageOut])
+@router.get(f"{settings.api_prefix}/agents/threads/{{thread_id}}/messages", response_model=list[ChatMessageOut])
 async def api_get_messages(thread_id: str, limit: int = 50):
     return get_messages(thread_id, limit=limit)
 

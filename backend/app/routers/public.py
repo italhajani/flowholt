@@ -10,7 +10,10 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..deps import get_db
-from ..helpers import PREFIX
+from ..config import get_settings
+
+_settings = get_settings()
+PREFIX = _settings.api_prefix
 
 router = APIRouter(tags=["public"])
 

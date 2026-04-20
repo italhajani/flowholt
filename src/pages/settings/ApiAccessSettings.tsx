@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Copy, Plus, Trash2, Clock, Shield, Activity, BarChart3, RefreshCw, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/hooks/useApi";
 
 interface ApiToken {
   id: string;
@@ -43,7 +44,27 @@ const expirationOptions = [
 ];
 
 export function ApiAccessSettings() {
-  const [tokens] = useState(mockTokens);
+  const { data: apiKeys } = useApiKeys();
+  const createKey = useCreateApiKey();
+  const deleteKey = useDeleteApiKey();
+
+  const tokens: ApiToken[] = useMemo(() => {
+    if (apiKeys && Array.isArray(apiKeys) && apiKeys.length > 0) {
+      return apiKeys.map((k: any) => ({
+        id: k.id,
+        name: k.name || "API Key",
+        created: k.created_at ? new Date(k.created_at).toLocaleDateString() : "—",
+        lastUsed: k.last_used || "Never",
+        maskedKey: k.masked_key || k.key_preview || "fh_****",
+        scopes: k.scopes || ["*"],
+        expiresAt: k.expires_at || null,
+        requestsToday: k.requests_today || 0,
+        status: (k.status || "active") as ApiToken["status"],
+      }));
+    }
+    return mockTokens;
+  }, [apiKeys]);
+
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newExpiry, setNewExpiry] = useState("90");

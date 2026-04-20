@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Clock, Moon, Webhook, MessageSquare, AlertTriangle, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNotificationPreferences, useUpdateNotificationPreferences } from "@/hooks/useApi";
 
 interface NotifChannel {
   id: string;
@@ -28,6 +29,9 @@ const channels: NotifChannel[] = [
 ];
 
 export function NotificationSettings() {
+  const { data: savedPrefs } = useNotificationPreferences();
+  const updatePrefs = useUpdateNotificationPreferences();
+
   const [settings, setSettings] = useState<Record<string, NotifChannel>>(
     Object.fromEntries(channels.map((c) => [c.id, { ...c }]))
   );
@@ -37,6 +41,29 @@ export function NotificationSettings() {
   const [quietEnd, setQuietEnd] = useState("08:00");
   const [quietEnabled, setQuietEnabled] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
+
+  // Load from backend when available
+  useEffect(() => {
+    if (savedPrefs) {
+      if (savedPrefs.digest_frequency) setDigestFrequency(savedPrefs.digest_frequency);
+      if (savedPrefs.failure_threshold) setFailureThreshold(savedPrefs.failure_threshold);
+      if (savedPrefs.quiet_hours) {
+        setQuietEnabled(savedPrefs.quiet_hours.enabled);
+        setQuietStart(savedPrefs.quiet_hours.start);
+        setQuietEnd(savedPrefs.quiet_hours.end);
+      }
+      if (savedPrefs.webhook_url) setWebhookUrl(savedPrefs.webhook_url);
+      if (savedPrefs.channels) {
+        setSettings(prev => {
+          const next = { ...prev };
+          for (const [key, val] of Object.entries(savedPrefs.channels)) {
+            if (next[key]) Object.assign(next[key], val);
+          }
+          return next;
+        });
+      }
+    }
+  }, [savedPrefs]);
 
   const toggle = (id: string, field: "email" | "inApp" | "slack" | "webhook") => {
     setSettings((prev) => ({
@@ -184,7 +211,21 @@ export function NotificationSettings() {
       </div>
 
       <div className="pt-4 flex items-center gap-3" style={{ borderTop: "1px solid #f4f4f5" }}>
-        <Button variant="primary" size="md">Save Changes</Button>
+        <Button variant="primary" size="md" onClick={() => {
+          const channelData: Record<string, { email: boolean; inApp: boolean; slack: boolean; webhook: boolean }> = {};
+          for (const [key, val] of Object.entries(settings)) {
+            channelData[key] = { email: val.email, inApp: val.inApp, slack: val.slack, webhook: val.webhook };
+          }
+          updatePrefs.mutate({
+            channels: channelData,
+            digest_frequency: digestFrequency,
+            failure_threshold: failureThreshold,
+            quiet_hours: { enabled: quietEnabled, start: quietStart, end: quietEnd },
+            webhook_url: webhookUrl,
+          });
+        }}>
+          {updatePrefs.isPending ? "Saving..." : "Save Changes"}
+        </Button>
         <Button variant="ghost" size="md">Cancel</Button>
       </div>
     </div>

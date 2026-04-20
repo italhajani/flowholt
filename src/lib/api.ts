@@ -612,6 +612,22 @@ export function globalSearch(query: string) {
 // Template endpoints
 // ---------------------------------------------------------------------------
 
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  trigger_type: string;
+  node_count: number;
+  use_count: number;
+  tags?: string[];
+  is_featured?: boolean;
+}
+
+export function fetchTemplates() {
+  return apiFetch<TemplateSummary[]>("/api/templates");
+}
+
 export interface TemplateDetail {
   id: string;
   name: string;
@@ -1686,6 +1702,26 @@ export function createApiKey(name = "Default") {
 
 export function deleteApiKey(keyId: string) {
   return apiFetch<{ status: string }>(`/api/api-keys/${keyId}`, { method: "DELETE" });
+}
+
+/* ── Notification Preferences ── */
+export interface NotificationPreferences {
+  channels: Record<string, { email: boolean; inApp: boolean; slack: boolean; webhook: boolean }>;
+  digest_frequency: string;
+  failure_threshold: string;
+  quiet_hours: { enabled: boolean; start: string; end: string };
+  webhook_url: string;
+}
+
+export function fetchNotificationPreferences() {
+  return apiFetch<NotificationPreferences>("/api/me/notification-preferences");
+}
+
+export function updateNotificationPreferences(data: Partial<NotificationPreferences>) {
+  return apiFetch<NotificationPreferences>("/api/me/notification-preferences", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 /* ── OAuth / Integrations ── */

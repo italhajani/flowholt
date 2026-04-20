@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutTemplate, Search, Star, TrendingUp, ArrowRight,
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useTemplates } from "@/hooks/useApi";
 
 /* ── Category config ── */
 const categories = [
@@ -43,7 +44,7 @@ interface Template {
   isFree?: boolean;
 }
 
-const templates: Template[] = [
+const mockTemplates: Template[] = [
   {
     id: 1,
     title: "Lead Qualification & Scoring Pipeline",
@@ -218,9 +219,6 @@ const templates: Template[] = [
   },
 ];
 
-/* ── Featured templates (shown in hero strip) ── */
-const featuredTemplates = templates.filter((t) => t.isFeatured);
-
 /* ── Category icon mapping ── */
 const categoryIcons: Record<string, React.ElementType> = {
   "ai-ml": Bot,
@@ -237,9 +235,31 @@ const categoryIcons: Record<string, React.ElementType> = {
 
 export function TemplatesPage() {
   const navigate = useNavigate();
+  const { data: apiTemplates } = useTemplates();
   const [activeCategory, setActiveCategory] = useState<CategoryId>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("Most Popular");
+
+  const templates = useMemo(() => {
+    if (apiTemplates && apiTemplates.length > 0) {
+      return apiTemplates.map((t, i) => ({
+        id: Number(t.id) || i + 1,
+        title: t.name,
+        description: t.description,
+        category: (t.category || "all").toLowerCase().replace(/\s+/g, "-") as CategoryId,
+        tags: t.tags || [],
+        integrations: [] as string[],
+        uses: t.use_count || 0,
+        nodes: t.node_count || 0,
+        isFeatured: t.is_featured ?? false,
+        isFree: true,
+        isNew: false,
+      }));
+    }
+    return mockTemplates;
+  }, [apiTemplates]);
+
+  const featuredTemplates = templates.filter((t) => t.isFeatured);
 
   const filtered = templates
     .filter((t) => {

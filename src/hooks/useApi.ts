@@ -152,6 +152,10 @@ import {
   type VariableCreate,
   fetchModels,
   fetchWorkflowVersions,
+  fetchTemplates,
+  type TemplateSummary,
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -392,6 +396,14 @@ export function useTemplate(templateId: string | undefined) {
     queryKey: ["template", templateId],
     queryFn: () => fetchTemplate(templateId!),
     enabled: !!templateId,
+    staleTime: 60_000,
+  });
+}
+
+export function useTemplates() {
+  return useQuery({
+    queryKey: ["templates"],
+    queryFn: fetchTemplates,
     staleTime: 60_000,
   });
 }
@@ -1296,5 +1308,23 @@ export function useWorkflowVersions(workflowId: string | undefined) {
     queryFn: () => fetchWorkflowVersions(workflowId!),
     enabled: !!workflowId,
     staleTime: 30_000,
+  });
+}
+
+// ── Notification Preferences ──
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ["notification-preferences"],
+    queryFn: fetchNotificationPreferences,
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: updateNotificationPreferences,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notification-preferences"] }),
   });
 }

@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import {
   Clock, Play, CheckCircle2, XCircle, Pause, SkipForward,
   ChevronRight, ZoomIn, ZoomOut, Maximize2, Filter,
   AlertTriangle, Zap, Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useExecution } from "@/hooks/useApi";
 
 /* ── Mock execution timeline data ── */
 interface TimelineNode {
@@ -54,18 +56,50 @@ function formatMs(ms: number): string {
 }
 
 export function ExecutionTimelinePage() {
+  const { id } = useParams();
+  const { data: execution } = useExecution(id);
   const [zoom, setZoom] = useState(1);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [showCriticalPath, setShowCriticalPath] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
+  // Map real execution steps to timeline nodes, fall back to mock
+  const nodes = useMemo(() => {
+    if (execution?.step_results && Object.keys(execution.step_results).length > 0) {
+      let cumulativeMs = 0;
+      return Object.entries(execution.step_results).map(([stepId, result]: [string, any], i) => {
+        const dur = result.duration_ms ?? result.durationMs ?? 0;
+        const node: TimelineNode = {
+          id: stepId,
+          name: result.node_name || result.nodeName || stepId,
+          startMs: cumulativeMs,
+          durationMs: dur,
+          status: result.status === "success" ? "success" : result.status === "error" ? "error" : result.status === "skipped" ? "skipped" : "success",
+          depth: 0,
+          items: result.items_count ?? result.itemsCount ?? 1,
+        };
+        cumulativeMs += dur + 20;
+        return node;
+      });
+    }
+    return timelineNodes;
+  }, [execution]);
+
+  const totalMs = useMemo(() => {
+    if (execution?.duration_ms) return execution.duration_ms;
+    const last = nodes[nodes.length - 1];
+    return last ? last.startMs + last.durationMs : totalDurationMs;
+  }, [execution, nodes]);
+
+  const execLabel = execution ? `Execution #${execution.id} — ${execution.workflow_name || "Workflow"}` : "Execution #48291 — Lead Scoring Pipeline";
+
   const barWidth = 600 * zoom;
   const rowHeight = 32;
 
   // Execution stats
-  const successCount = timelineNodes.filter(n => n.status === "success").length;
-  const errorCount = timelineNodes.filter(n => n.status === "error").length;
-  const skippedCount = timelineNodes.filter(n => n.status === "skipped").length;
+  const successCount = nodes.filter(n => n.status === "success").length;
+  const errorCount = nodes.filter(n => n.status === "error").length;
+  const skippedCount = nodes.filter(n => n.status === "skipped").length;
 
   return (
     <div className="min-h-screen bg-zinc-50 p-6">
@@ -74,8 +108,8 @@ export function ExecutionTimelinePage() {
         <div>
           <h1 className="text-xl font-bold text-zinc-900">Execution Timeline</h1>
           <p className="text-sm text-zinc-500 mt-0.5">
-            Execution #48291 — Lead Scoring Pipeline —{" "}
-            <span className="text-emerald-600 font-medium">Completed in {formatMs(totalDurationMs)}</span>
+            {execLabel} —{" "}
+            <span className="text-emerald-600 font-medium">Completed in {formatMs(totalMs)}</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -107,8 +141,8 @@ export function ExecutionTimelinePage() {
       {/* Stats bar */}
       <div className="flex items-center gap-4 mb-6">
         {[
-          { label: "Total Time", value: formatMs(totalDurationMs), icon: Clock, color: "text-zinc-700" },
-          { label: "Nodes", value: timelineNodes.length.toString(), icon: Zap, color: "text-zinc-700" },
+          { label: "Total Time", value: formatMs(totalMs), icon: Clock, color: "text-zinc-700" },
+          { label: "Nodes", value: nodes.length.toString(), icon: Zap, color: "text-zinc-700" },
           { label: "Succeeded", value: successCount.toString(), icon: CheckCircle2, color: "text-emerald-600" },
           { label: "Failed", value: errorCount.toString(), icon: XCircle, color: "text-red-600" },
           { label: "Skipped", value: skippedCount.toString(), icon: SkipForward, color: "text-zinc-400" },
@@ -132,11 +166,11 @@ export function ExecutionTimelinePage() {
           </div>
           <div className="flex-1 relative overflow-x-auto">
             <div style={{ width: barWidth }} className="flex items-center h-8">
-              {Array.from({ length: Math.ceil(totalDurationMs / 1000) + 1 }).map((_, i) => (
+              {Array.from({ length: Math.ceil(totalMs / 1000) + 1 }).map((_, i) => (
                 <div
                   key={i}
                   className="absolute flex flex-col items-center"
-                  style={{ left: `${(i * 1000 / totalDurationMs) * barWidth}px` }}
+                  style={{ left: `${(i * 1000 / totalMs) * barWidth}px` }}
                 >
                   <div className="h-3 w-px bg-zinc-200" />
                   <span className="text-[7px] text-zinc-400 mt-0.5">{i}s</span>
@@ -148,7 +182,7 @@ export function ExecutionTimelinePage() {
 
         {/* Rows */}
         <div className="overflow-x-auto">
-          {timelineNodes.map(node => {
+          {nodes.map(node => {
             const cfg = statusConfig[node.status];
             const isCritical = showCriticalPath && criticalPath.includes(node.id);
             const isHovered = hoveredNode === node.id;
@@ -196,7 +230,7 @@ export function ExecutionTimelinePage() {
                   {isCritical && (
                     <div
                       className="absolute top-0 bottom-0 border-l border-dashed border-red-200"
-                      style={{ left: `${(node.startMs / totalDurationMs) * barWidth + 8}px` }}
+                      style={{ left: `${(node.startMs / totalMs) * barWidth + 8}px` }}
                     />
                   )}
 
@@ -210,8 +244,8 @@ export function ExecutionTimelinePage() {
                       node.status === "skipped" && "opacity-40"
                     )}
                     style={{
-                      left: `${(node.startMs / totalDurationMs) * barWidth + 8}px`,
-                      width: `${Math.max(4, (node.durationMs / totalDurationMs) * barWidth)}px`,
+                      left: `${(node.startMs / totalMs) * barWidth + 8}px`,
+                      width: `${Math.max(4, (node.durationMs / totalMs) * barWidth)}px`,
                       height: `${rowHeight * 0.5}px`,
                     }}
                   />
@@ -221,7 +255,7 @@ export function ExecutionTimelinePage() {
                     <span
                       className="absolute top-1/2 -translate-y-1/2 text-[8px] text-zinc-400 whitespace-nowrap"
                       style={{
-                        left: `${((node.startMs + node.durationMs) / totalDurationMs) * barWidth + 14}px`,
+                        left: `${((node.startMs + node.durationMs) / totalMs) * barWidth + 14}px`,
                       }}
                     >
                       {formatMs(node.durationMs)}
@@ -252,7 +286,7 @@ export function ExecutionTimelinePage() {
 
       {/* Selected node detail */}
       {selectedNode && (() => {
-        const node = timelineNodes.find(n => n.id === selectedNode);
+        const node = nodes.find(n => n.id === selectedNode);
         if (!node) return null;
         const cfg = statusConfig[node.status];
         return (
@@ -279,7 +313,7 @@ export function ExecutionTimelinePage() {
               </div>
               <div className="rounded-lg bg-zinc-50 p-3">
                 <p className="text-[9px] text-zinc-400 uppercase tracking-wider">% of Total</p>
-                <p className="text-sm font-bold text-zinc-700">{((node.durationMs / totalDurationMs) * 100).toFixed(1)}%</p>
+                <p className="text-sm font-bold text-zinc-700">{((node.durationMs / totalMs) * 100).toFixed(1)}%</p>
               </div>
             </div>
             {node.retries && (

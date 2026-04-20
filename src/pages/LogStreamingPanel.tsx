@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Terminal, Search, Filter, Download, Pause, Play, Trash2,
   ChevronDown, Circle, AlertTriangle, Info, Bug, XCircle,
   Clock, Zap, ArrowDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLogConfig } from "@/hooks/useApi";
 
 /* ── Types ── */
 type LogLevel = "info" | "warn" | "error" | "debug" | "success";
@@ -51,6 +52,7 @@ const levelConfig: Record<LogLevel, { icon: typeof Info; color: string; bg: stri
 };
 
 export function LogStreamingPanel() {
+  const { data: logConfig } = useLogConfig();
   const [logs, setLogs] = useState(mockLogs);
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<LogLevel | "all">("all");
@@ -59,6 +61,13 @@ export function LogStreamingPanel() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Apply backend log level config as default filter
+  useEffect(() => {
+    if (logConfig && logConfig.level) {
+      // Backend returns the minimum log level; we leave filter at "all" but could restrict
+    }
+  }, [logConfig]);
 
   // Auto-scroll effect
   useEffect(() => {

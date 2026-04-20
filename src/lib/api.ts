@@ -705,3 +705,124 @@ export function completeHumanTask(taskId: string, payload: HumanTaskCompleteRequ
     body: JSON.stringify(payload),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Agent types & endpoints
+// ---------------------------------------------------------------------------
+
+export type AgentStatus = "active" | "draft" | "disabled";
+export type AgentType = "tools_agent" | "conversational" | "react" | "plan_and_execute" | "custom";
+
+export interface AgentToolConfig {
+  name: string;
+  type: string;
+  description: string;
+  config: Record<string, unknown>;
+}
+
+export interface AgentMemoryConfig {
+  enabled: boolean;
+  type: string;
+  window_size: number;
+  session_key: string;
+}
+
+export interface AgentModelConfig {
+  provider: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  system_message: string;
+}
+
+export interface AgentSummary {
+  id: string;
+  name: string;
+  description: string;
+  agent_type: AgentType;
+  status: AgentStatus;
+  icon: string;
+  color: string;
+  tools_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentDetail extends AgentSummary {
+  tools: AgentToolConfig[];
+  memory: AgentMemoryConfig;
+  model_config_data: AgentModelConfig;
+  max_iterations: number;
+}
+
+export interface AgentCreate {
+  name: string;
+  description?: string;
+  agent_type?: AgentType;
+  status?: AgentStatus;
+  tools?: AgentToolConfig[];
+  memory?: Partial<AgentMemoryConfig>;
+  model_config_data?: Partial<AgentModelConfig>;
+  max_iterations?: number;
+  icon?: string;
+  color?: string;
+}
+
+export interface AgentUpdate {
+  name?: string;
+  description?: string;
+  agent_type?: AgentType;
+  status?: AgentStatus;
+  tools?: AgentToolConfig[];
+  memory?: Partial<AgentMemoryConfig>;
+  model_config_data?: Partial<AgentModelConfig>;
+  max_iterations?: number;
+  icon?: string;
+  color?: string;
+}
+
+export interface AgentChatRequest {
+  message: string;
+  session_key?: string;
+  context?: Record<string, unknown>;
+}
+
+export interface AgentChatResponse {
+  answer: string;
+  agent_type: string;
+  iterations: number;
+  tools_used: string[];
+}
+
+export function fetchAgents() {
+  return apiFetch<AgentSummary[]>("/api/agents");
+}
+
+export function fetchAgent(agentId: string) {
+  return apiFetch<AgentDetail>(`/api/agents/${agentId}`);
+}
+
+export function createAgent(payload: AgentCreate) {
+  return apiFetch<AgentDetail>("/api/agents", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAgent(agentId: string, payload: AgentUpdate) {
+  return apiFetch<AgentDetail>(`/api/agents/${agentId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAgent(agentId: string) {
+  return apiFetch<void>(`/api/agents/${agentId}`, { method: "DELETE" });
+}
+
+export function chatWithAgent(agentId: string, payload: AgentChatRequest) {
+  return apiFetch<AgentChatResponse>(`/api/agents/${agentId}/chat`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

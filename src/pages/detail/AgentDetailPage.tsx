@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useAgent, useUpdateAgent, useAgentChat } from "@/hooks/useApi";
 
 /* ── Mock agent data ── */
 const agent = {
@@ -109,15 +110,32 @@ const tabs = [
 
 export function AgentDetailPage() {
   const { id } = useParams();
+  const { data: apiAgent } = useAgent(id);
+  const updateMutation = useUpdateAgent();
+  const chatMutation = useAgentChat();
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Merge API data over mock defaults
+  const agentData = apiAgent
+    ? {
+        ...agent,
+        id: apiAgent.id,
+        name: apiAgent.name,
+        status: apiAgent.status === "disabled" ? "inactive" as const : apiAgent.status,
+        description: apiAgent.description || agent.description,
+        toolCount: apiAgent.tools_count,
+        provider: apiAgent.model_config_data?.provider || agent.provider,
+        model: apiAgent.model_config_data?.model || agent.model,
+      }
+    : agent;
 
   return (
     <EntityDetailLayout
       backLabel="AI Agents"
       backTo="/ai-agents"
-      name={agent.name}
-      status={{ label: agent.status, variant: "success" }}
-      subtitle={`${agent.provider} / ${agent.model} • ${agent.knowledgeCount} knowledge • ${agent.toolCount} tools`}
+      name={agentData.name}
+      status={{ label: agentData.status, variant: "success" }}
+      subtitle={`${agentData.provider} / ${agentData.model} • ${agentData.knowledgeCount} knowledge • ${agentData.toolCount} tools`}
       icon={
         <div className="!bg-zinc-900 !rounded-lg flex items-center justify-center h-10 w-10">
           <Bot size={18} className="text-white" />

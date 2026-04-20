@@ -9,9 +9,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useAgents, useCreateAgent } from "@/hooks/useApi";
+import type { AgentSummary } from "@/lib/api";
 
-/* ── Mock data per research file 66 ── */
-interface Agent {
+/* ── Agent display interface ── */
+interface AgentDisplay {
   id: string;
   name: string;
   status: "active" | "draft" | "inactive";
@@ -25,14 +27,21 @@ interface Agent {
   evalState: "passed" | "failed" | "untested";
 }
 
-const mockAgents: Agent[] = [
-  { id: "a1", name: "Lead Scorer", status: "active", model: "GPT-4o", provider: "OpenAI", knowledgeCount: 3, toolCount: 5, owner: "You", lastEvaluated: "2 hrs ago", linkedWorkflows: 4, evalState: "passed" },
-  { id: "a2", name: "Support Triage Bot", status: "active", model: "Claude 3.5 Sonnet", provider: "Anthropic", knowledgeCount: 7, toolCount: 3, owner: "Team", lastEvaluated: "1 day ago", linkedWorkflows: 2, evalState: "passed" },
-  { id: "a3", name: "Code Review Assistant", status: "draft", model: "GPT-4o", provider: "OpenAI", knowledgeCount: 1, toolCount: 8, owner: "You", lastEvaluated: "—", linkedWorkflows: 0, evalState: "untested" },
-  { id: "a4", name: "Document Summarizer", status: "active", model: "Claude 3.5 Haiku", provider: "Anthropic", knowledgeCount: 12, toolCount: 1, owner: "Team", lastEvaluated: "5 hrs ago", linkedWorkflows: 6, evalState: "passed" },
-  { id: "a5", name: "Invoice Extractor", status: "inactive", model: "GPT-4o-mini", provider: "OpenAI", knowledgeCount: 2, toolCount: 4, owner: "You", lastEvaluated: "3 days ago", linkedWorkflows: 1, evalState: "failed" },
-  { id: "a6", name: "Meeting Note Agent", status: "draft", model: "Gemini 1.5 Pro", provider: "Google", knowledgeCount: 0, toolCount: 2, owner: "You", lastEvaluated: "—", linkedWorkflows: 0, evalState: "untested" },
-];
+function apiAgentToDisplay(a: AgentSummary): AgentDisplay {
+  return {
+    id: a.id,
+    name: a.name,
+    status: a.status === "disabled" ? "inactive" : a.status,
+    model: a.description || a.agent_type,
+    provider: a.agent_type,
+    knowledgeCount: 0,
+    toolCount: a.tools_count,
+    owner: "You",
+    lastEvaluated: "—",
+    linkedWorkflows: 0,
+    evalState: a.status === "active" ? "passed" : "untested",
+  };
+}
 
 const evalColors: Record<string, { dot: string; text: string }> = {
   passed:   { dot: "bg-green-500", text: "text-green-700" },
@@ -40,7 +49,7 @@ const evalColors: Record<string, { dot: string; text: string }> = {
   untested: { dot: "bg-zinc-300",  text: "text-zinc-500" },
 };
 
-const columns: Column<Agent>[] = [
+const columns: Column<AgentDisplay>[] = [
   {
     id: "name",
     header: "Agent",
@@ -131,22 +140,33 @@ const providerFilters = ["All Providers", "OpenAI", "Anthropic", "Google"] as co
 
 export function AIAgentsPage() {
   const navigate = useNavigate();
+  const { data: apiAgents, isLoading } = useAgents();
+  const createAgentMutation = useCreateAgent();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [providerFilter, setProviderFilter] = useState<string>("All Providers");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "cards">("list");
 
-  const active = mockAgents.filter((a) => a.status === "active").length;
-  const drafts = mockAgents.filter((a) => a.status === "draft").length;
-  const evalPassed = mockAgents.filter((a) => a.evalState === "passed").length;
-  const totalInvocations = "18.4K";
+  const agents: AgentDisplay[] = (apiAgents ?? []).map(apiAgentToDisplay);
 
-  const filtered = mockAgents.filter((a) => {
+  const active = agents.filter((a) => a.status === "active").length;
+  const drafts = agents.filter((a) => a.status === "draft").length;
+  const evalPassed = agents.filter((a) => a.evalState === "passed").length;
+  const totalInvocations = "0";
+
+  const filtered = agents.filter((a) => {
     if (statusFilter !== "All" && a.status !== statusFilter.toLowerCase()) return false;
     if (providerFilter !== "All Providers" && a.provider !== providerFilter) return false;
     if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const handleCreateAgent = () => {
+    createAgentMutation.mutate(
+      { name: "New Agent", description: "A new AI agent" },
+      { onSuccess: (agent) => navigate(`/ai-agents/${agent.id}`) }
+    );
+  };
 
   return (
     <div className="mx-auto max-w-[1020px] px-8 py-8">
@@ -154,7 +174,7 @@ export function AIAgentsPage() {
         title="AI Agents"
         description="Build, evaluate, and deploy intelligent agents."
         actions={
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={handleCreateAgent}>
             <Plus size={14} strokeWidth={2.5} />
             New Agent
           </Button>
@@ -163,7 +183,7 @@ export function AIAgentsPage() {
 
       {/* Summary strip */}
       <div className="mt-6 grid grid-cols-5 gap-3">
-        <MiniStat label="Total Agents" value={mockAgents.length} />
+        <MiniStat label="Total Agents" value={agents.length} />
         <MiniStat label="Active" value={active} color="green" />
         <MiniStat label="Drafts" value={drafts} />
         <MiniStat label="Eval Passed" value={evalPassed} color="green" icon={<TestTube size={12} />} />

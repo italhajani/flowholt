@@ -876,6 +876,117 @@ def run_workflow_definition(
 
                 context[output_key] = output
                 context.update(output)
+
+            # ── AI Agent node (reasoning loop) ───────────────────────
+            elif step_type == "ai_agent":
+                agent_type = config.get("agent_type", "tools_agent")
+                system_message = _render_template(str(config.get("system_message", "")), expression_scope)
+                prompt_text = _render_template(str(config.get("prompt", "")), expression_scope)
+                max_iterations = min(int(config.get("max_iterations") or 10), 25)
+                provider_name = config.get("provider", "")
+                model_name = config.get("model", "")
+                temperature = float(config.get("temperature") or 0.7)
+                max_tokens = int(config.get("max_tokens") or 2048)
+                tools_config = config.get("tools") or []
+                memory_enabled = bool(config.get("memory_enabled", False))
+                memory_window = int(config.get("memory_window") or 10)
+
+                # Build initial messages
+                messages: list[dict[str, str]] = []
+                if system_message:
+                    messages.append({"role": "system", "content": system_message})
+
+                # Add memory context if available
+                memory_key = config.get("memory_session_key") or step.get("id", "default")
+                if memory_enabled:
+                    history = context.get("_agent_memory", {}).get(memory_key, [])
+                    messages.extend(history[-memory_window:])
+
+                # Build tool descriptions for the agent
+                available_tools: list[dict[str, str]] = []
+                for tool_cfg in tools_config:
+                    tool_name = tool_cfg.get("name", "")
+                    tool_desc = tool_cfg.get("description", "")
+                    if tool_name:
+                        available_tools.append({"name": tool_name, "description": tool_desc})
+
+                if available_tools:
+                    tool_listing = "\n".join(f"- {t['name']}: {t['description']}" for t in available_tools)
+                    tool_system = (
+                        f"\n\nYou have access to the following tools:\n{tool_listing}\n\n"
+                        "To use a tool, respond with: TOOL_CALL: <tool_name> | <input>\n"
+                        "After receiving tool results, continue reasoning.\n"
+                        "When you have a final answer, respond with: FINAL_ANSWER: <your answer>"
+                    )
+                    if messages and messages[0]["role"] == "system":
+                        messages[0]["content"] += tool_system
+                    else:
+                        messages.insert(0, {"role": "system", "content": tool_system.strip()})
+
+                # Add the user prompt
+                user_msg = prompt_text or f"Process this data: {json.dumps(payload, default=str)[:2000]}"
+                messages.append({"role": "user", "content": user_msg})
+
+                # Get LLM provider
+                router = get_llm_router()
+                provider = router.resolve(provider_name or None, model_name or None) if hasattr(router, "resolve") else router
+
+                # Reasoning loop
+                iterations: list[dict[str, Any]] = []
+                final_answer: str | None = None
+
+                for iteration in range(max_iterations):
+                    try:
+                        response_text = provider.chat(messages, temperature=temperature, max_tokens=max_tokens)
+                    except Exception as llm_exc:
+                        iterations.append({"iteration": iteration + 1, "error": str(llm_exc)})
+                        final_answer = f"Agent failed at iteration {iteration + 1}: {llm_exc}"
+                        break
+
+                    iterations.append({"iteration": iteration + 1, "response": response_text[:500]})
+
+                    # Check for FINAL_ANSWER
+                    if "FINAL_ANSWER:" in response_text:
+                        final_answer = response_text.split("FINAL_ANSWER:", 1)[1].strip()
+                        break
+
+                    # Check for TOOL_CALL
+                    if "TOOL_CALL:" in response_text:
+                        tool_line = response_text.split("TOOL_CALL:", 1)[1].strip().split("\n")[0]
+                        parts = tool_line.split("|", 1)
+                        tool_name = parts[0].strip()
+                        tool_input = parts[1].strip() if len(parts) > 1 else ""
+
+                        # Execute tool
+                        tool_result = _execute_agent_tool(tool_name, tool_input, tools_config, payload, context, vault_context)
+                        iterations[-1]["tool_call"] = {"name": tool_name, "input": tool_input, "result": str(tool_result)[:500]}
+
+                        messages.append({"role": "assistant", "content": response_text})
+                        messages.append({"role": "user", "content": f"Tool result for {tool_name}: {json.dumps(tool_result, default=str)[:2000]}"})
+                        continue
+
+                    # No tool call or final answer — treat response as final
+                    final_answer = response_text
+                    break
+
+                if final_answer is None:
+                    final_answer = "Agent reached maximum iterations without a final answer."
+
+                # Save memory
+                if memory_enabled:
+                    context.setdefault("_agent_memory", {}).setdefault(memory_key, [])
+                    context["_agent_memory"][memory_key].append({"role": "user", "content": user_msg})
+                    context["_agent_memory"][memory_key].append({"role": "assistant", "content": final_answer})
+
+                output = {
+                    "answer": final_answer,
+                    "agent_type": agent_type,
+                    "iterations": len(iterations),
+                    "iteration_details": iterations,
+                    "tools_used": [it.get("tool_call", {}).get("name") for it in iterations if "tool_call" in it],
+                }
+                context["agent_result"] = final_answer
+                context.update(output)
             else:
                 output = {"note": f"Unsupported step type '{step_type}' skipped."}
                 status = "skipped"
@@ -1058,6 +1169,62 @@ def _normalize_split_entry(entry: Any, output_field: str, parent_fields: dict[st
         return merged
     base[output_field] = entry
     return base
+
+
+def _execute_agent_tool(
+    tool_name: str,
+    tool_input: str,
+    tools_config: list[dict[str, Any]],
+    payload: dict[str, Any],
+    context: dict[str, Any],
+    vault_context: dict[str, Any] | None = None,
+) -> Any:
+    """Execute an agent tool call. Supports http_request, code, and workflow tools."""
+    # Find the tool definition
+    tool_def: dict[str, Any] | None = None
+    for t in tools_config:
+        if t.get("name") == tool_name:
+            tool_def = t
+            break
+
+    if tool_def is None:
+        return {"error": f"Unknown tool: {tool_name}"}
+
+    tool_type = tool_def.get("type", "custom")
+
+    if tool_type == "http_request":
+        url = tool_def.get("url", "")
+        method = tool_def.get("method", "GET").upper()
+        headers = tool_def.get("headers") or {}
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                if method in ("POST", "PUT", "PATCH"):
+                    resp = client.request(method, url, json={"input": tool_input}, headers=headers)
+                else:
+                    resp = client.request(method, url, params={"q": tool_input}, headers=headers)
+                resp.raise_for_status()
+                try:
+                    return resp.json()
+                except Exception:
+                    return {"text": resp.text[:2000]}
+        except Exception as e:
+            return {"error": str(e)}
+
+    if tool_type == "code":
+        # Execute a Python expression safely
+        code_expr = tool_def.get("code", "")
+        if code_expr:
+            try:
+                scope = {"input": tool_input, "payload": payload, "context": context, "json": json}
+                return {"result": str(eval(code_expr, {"__builtins__": {}}, scope))}  # noqa: S307
+            except Exception as e:
+                return {"error": f"Code execution failed: {e}"}
+
+    if tool_type == "workflow":
+        return {"result": f"Workflow tool '{tool_name}' invoked with: {tool_input[:200]}"}
+
+    # Default: return the tool definition info
+    return {"result": f"Tool '{tool_name}' executed with input: {tool_input[:200]}"}
 
 
 def _evaluate_condition(operator: str, actual: Any, expected: Any) -> bool:

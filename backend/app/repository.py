@@ -2436,3 +2436,122 @@ def resume_execution_record(execution_id: str) -> dict[str, Any] | None:
         )
         row = conn.execute("SELECT * FROM executions WHERE id = ?", (execution_id,)).fetchone()
     return row_to_dict(row) if row else None
+
+
+# ── Agent CRUD ─────────────────────────────────────────────────────────
+
+def create_agent(payload: Any, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
+    agent_id = f"ag-{uuid.uuid4().hex[:10]}"
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO agents (
+                id, workspace_id, created_by_user_id, name, description, agent_type, status,
+                icon, color, tools_json, memory_json, model_config_json, max_iterations,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                agent_id,
+                workspace_id,
+                created_by_user_id,
+                payload.name,
+                payload.description,
+                payload.agent_type,
+                payload.status,
+                payload.icon,
+                payload.color,
+                json.dumps([t.model_dump() for t in payload.tools]),
+                payload.memory.model_dump_json(),
+                payload.model_config_data.model_dump_json(),
+                payload.max_iterations,
+                now,
+                now,
+            ),
+        )
+        row = conn.execute("SELECT * FROM agents WHERE id = ?", (agent_id,)).fetchone()
+    if row is None:
+        raise RuntimeError("Agent creation failed.")
+    return row_to_dict(row)
+
+
+def get_agent(agent_id: str, *, workspace_id: str) -> dict[str, Any] | None:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM agents WHERE id = ? AND workspace_id = ?",
+            (agent_id, workspace_id),
+        ).fetchone()
+    return row_to_dict(row) if row else None
+
+
+def list_agents(*, workspace_id: str) -> list[dict[str, Any]]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM agents WHERE workspace_id = ? ORDER BY updated_at DESC",
+            (workspace_id,),
+        ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+def update_agent(agent_id: str, payload: Any, *, workspace_id: str) -> dict[str, Any] | None:
+    fields: list[str] = []
+    values: list[Any] = []
+
+    if payload.name is not None:
+        fields.append("name = ?")
+        values.append(payload.name)
+    if payload.description is not None:
+        fields.append("description = ?")
+        values.append(payload.description)
+    if payload.agent_type is not None:
+        fields.append("agent_type = ?")
+        values.append(payload.agent_type)
+    if payload.status is not None:
+        fields.append("status = ?")
+        values.append(payload.status)
+    if payload.icon is not None:
+        fields.append("icon = ?")
+        values.append(payload.icon)
+    if payload.color is not None:
+        fields.append("color = ?")
+        values.append(payload.color)
+    if payload.max_iterations is not None:
+        fields.append("max_iterations = ?")
+        values.append(payload.max_iterations)
+    if payload.tools is not None:
+        fields.append("tools_json = ?")
+        values.append(json.dumps([t.model_dump() for t in payload.tools]))
+    if payload.memory is not None:
+        fields.append("memory_json = ?")
+        values.append(payload.memory.model_dump_json())
+    if payload.model_config_data is not None:
+        fields.append("model_config_json = ?")
+        values.append(payload.model_config_data.model_dump_json())
+
+    if not fields:
+        return get_agent(agent_id, workspace_id=workspace_id)
+
+    fields.append("updated_at = ?")
+    values.append(utc_now())
+    values.extend([agent_id, workspace_id])
+
+    with get_db() as conn:
+        conn.execute(
+            f"UPDATE agents SET {', '.join(fields)} WHERE id = ? AND workspace_id = ?",
+            tuple(values),
+        )
+        row = conn.execute(
+            "SELECT * FROM agents WHERE id = ? AND workspace_id = ?",
+            (agent_id, workspace_id),
+        ).fetchone()
+    return row_to_dict(row) if row else None
+
+
+def delete_agent(agent_id: str, *, workspace_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute(
+            "DELETE FROM agents WHERE id = ? AND workspace_id = ?",
+            (agent_id, workspace_id),
+        )
+    return cur.rowcount > 0

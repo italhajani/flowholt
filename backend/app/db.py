@@ -469,6 +469,27 @@ CREATE INDEX IF NOT EXISTS idx_chat_threads_workspace_user ON chat_threads(works
 CREATE INDEX IF NOT EXISTS idx_chat_messages_thread ON chat_messages(thread_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_chat_attachments_thread ON chat_attachments(thread_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_chat_attachments_message ON chat_attachments(message_id, created_at);
+
+CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    created_by_user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    agent_type TEXT NOT NULL DEFAULT 'tools_agent',
+    status TEXT NOT NULL DEFAULT 'draft',
+    icon TEXT NOT NULL DEFAULT 'bot',
+    color TEXT NOT NULL DEFAULT '#7c3aed',
+    tools_json TEXT NOT NULL DEFAULT '[]',
+    memory_json TEXT NOT NULL DEFAULT '{}',
+    model_config_json TEXT NOT NULL DEFAULT '{}',
+    max_iterations INTEGER NOT NULL DEFAULT 10,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_agents_workspace ON agents(workspace_id, updated_at DESC);
 """
 
 

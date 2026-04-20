@@ -229,6 +229,15 @@ from .models import (
     WorkflowJobSummary,
     WorkflowSummary,
     WorkflowValidationResponse,
+    AgentCreate,
+    AgentUpdate,
+    AgentSummary,
+    AgentDetail,
+    AgentToolConfig,
+    AgentMemoryConfig,
+    AgentModelConfig,
+    AgentChatRequest,
+    AgentChatResponse,
 )
 
 # ── Node / Integration registries ─────────────────────────────────────
@@ -352,6 +361,11 @@ from .repository import (
     remove_workspace_member,
     resume_execution_record,
     update_workspace_member_role,
+    create_agent,
+    delete_agent,
+    get_agent,
+    list_agents,
+    update_agent,
 )
 
 # ── LLM router ────────────────────────────────────────────────────────

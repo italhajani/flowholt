@@ -1643,3 +1643,90 @@ class TestStepResponse(BaseModel):
     output: dict[str, Any] | None = None
     error: str | None = None
     duration_ms: int
+
+
+# ── AI Agent models ────────────────────────────────────────────────────
+
+AgentStatus = Literal["active", "draft", "disabled"]
+AgentType = Literal["tools_agent", "conversational", "react", "plan_and_execute", "custom"]
+
+
+class AgentToolConfig(BaseModel):
+    name: str
+    type: str = "custom"
+    description: str = ""
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentMemoryConfig(BaseModel):
+    enabled: bool = False
+    type: str = "buffer_window"
+    window_size: int = 10
+    session_key: str = ""
+
+
+class AgentModelConfig(BaseModel):
+    provider: str = ""
+    model: str = ""
+    temperature: float = 0.7
+    max_tokens: int = 2048
+    system_message: str = ""
+
+
+class AgentCreate(BaseModel):
+    name: str
+    description: str = ""
+    agent_type: AgentType = "tools_agent"
+    status: AgentStatus = "draft"
+    tools: list[AgentToolConfig] = Field(default_factory=list)
+    memory: AgentMemoryConfig = Field(default_factory=AgentMemoryConfig)
+    model_config_data: AgentModelConfig = Field(default_factory=AgentModelConfig)
+    max_iterations: int = 10
+    icon: str = "bot"
+    color: str = "#7c3aed"
+
+
+class AgentUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    agent_type: AgentType | None = None
+    status: AgentStatus | None = None
+    tools: list[AgentToolConfig] | None = None
+    memory: AgentMemoryConfig | None = None
+    model_config_data: AgentModelConfig | None = None
+    max_iterations: int | None = None
+    icon: str | None = None
+    color: str | None = None
+
+
+class AgentSummary(BaseModel):
+    id: str
+    name: str
+    description: str
+    agent_type: AgentType
+    status: AgentStatus
+    icon: str
+    color: str
+    tools_count: int
+    created_at: str
+    updated_at: str
+
+
+class AgentDetail(AgentSummary):
+    tools: list[AgentToolConfig]
+    memory: AgentMemoryConfig
+    model_config_data: AgentModelConfig
+    max_iterations: int
+
+
+class AgentChatRequest(BaseModel):
+    message: str
+    session_key: str = "default"
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentChatResponse(BaseModel):
+    answer: str
+    agent_type: str
+    iterations: int
+    tools_used: list[str]

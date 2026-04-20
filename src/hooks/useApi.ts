@@ -36,6 +36,15 @@ import {
   fetchWebhookDeliveries,
   fetchHumanTasks,
   completeHumanTask,
+  fetchAgents,
+  fetchAgent,
+  createAgent,
+  updateAgent,
+  deleteAgent,
+  chatWithAgent,
+  type AgentCreate,
+  type AgentUpdate,
+  type AgentChatRequest,
   type ExecutionStatus,
   type ExecutionEnvironment,
   type WorkflowCreatePayload,
@@ -361,5 +370,63 @@ export function useCompleteHumanTask() {
       qc.invalidateQueries({ queryKey: ["humanTasks"] });
       qc.invalidateQueries({ queryKey: ["executions"] });
     },
+  });
+}
+
+// ── Agent hooks ─────────────────────────────────────────────────────
+
+export function useAgents() {
+  return useQuery({
+    queryKey: ["agents"],
+    queryFn: () => fetchAgents(),
+    staleTime: 30_000,
+  });
+}
+
+export function useAgent(id: string | undefined) {
+  return useQuery({
+    queryKey: ["agent", id],
+    queryFn: () => fetchAgent(id!),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+}
+
+export function useCreateAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AgentCreate) => createAgent(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+    },
+  });
+}
+
+export function useUpdateAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { agentId: string; payload: AgentUpdate }) =>
+      updateAgent(opts.agentId, opts.payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["agent", vars.agentId] });
+    },
+  });
+}
+
+export function useDeleteAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (agentId: string) => deleteAgent(agentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+    },
+  });
+}
+
+export function useAgentChat() {
+  return useMutation({
+    mutationFn: (opts: { agentId: string; payload: AgentChatRequest }) =>
+      chatWithAgent(opts.agentId, opts.payload),
   });
 }

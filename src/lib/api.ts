@@ -2030,6 +2030,48 @@ export interface DomainConfig {
   webhookSignature: boolean;
   publicWebhooks: boolean;
   publicChat: boolean;
+}
+
+/* ── Invite ── */
+export interface InviteDetail {
+  token: string;
+  workspace_name: string;
+  workspace_icon: string;
+  inviter_name: string;
+  inviter_email: string;
+  inviter_avatar: string;
+  role: "admin" | "editor" | "viewer";
+  member_count: number;
+  workflow_count: number;
+  agent_count: number;
+}
+
+export function fetchInviteInfo(token: string) {
+  return apiFetch<InviteDetail>(`/api/invites/${token}`);
+}
+
+export function acceptInvite(token: string) {
+  return apiFetch<{ ok: boolean }>(`/api/invites/${token}/accept`, { method: "POST" });
+}
+
+export function declineInvite(token: string) {
+  return apiFetch<{ ok: boolean }>(`/api/invites/${token}/decline`, { method: "POST" });
+}
+
+/* ── Public form webhook ── */
+export function submitPublicForm(workflowId: string, data: Record<string, string>) {
+  return apiFetch<{ ok: boolean; submission_id: string }>(`/api/public/forms/${workflowId}/submit`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/* ── Public chat agent ── */
+export function sendPublicChatMessage(agentId: string, message: string, sessionId: string) {
+  return apiFetch<{ reply: string; session_id: string }>(`/api/public/chat/${agentId}`, {
+    method: "POST",
+    body: JSON.stringify({ message, session_id: sessionId }),
+  });
   queueAlertThreshold: number;
   expireAfterDays: number;
 }

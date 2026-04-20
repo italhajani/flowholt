@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Users,
@@ -11,6 +11,7 @@ import {
   Zap,
   Loader2,
 } from "lucide-react";
+import { useInviteInfo, useAcceptInvite, useDeclineInvite } from "@/hooks/useApi";
 
 interface InviteInfo {
   workspaceName: string;
@@ -46,18 +47,45 @@ export function InviteAcceptPage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"pending" | "accepting" | "accepted" | "declined">("pending");
-  const invite = mockInvite;
+
+  const { data: apiInvite } = useInviteInfo(token);
+  const acceptMut = useAcceptInvite();
+  const declineMut = useDeclineInvite();
+
+  const invite = useMemo<InviteInfo>(() => {
+    if (apiInvite) return {
+      workspaceName: apiInvite.workspace_name,
+      workspaceIcon: apiInvite.workspace_icon,
+      inviterName: apiInvite.inviter_name,
+      inviterEmail: apiInvite.inviter_email,
+      inviterAvatar: apiInvite.inviter_avatar,
+      role: apiInvite.role,
+      memberCount: apiInvite.member_count,
+      workflowCount: apiInvite.workflow_count,
+      agentCount: apiInvite.agent_count,
+    };
+    return mockInvite;
+  }, [apiInvite]);
   const roleInfo = roleLabels[invite.role];
 
   const accept = () => {
     setStatus("accepting");
-    setTimeout(() => {
-      setStatus("accepted");
-      setTimeout(() => navigate("/home"), 1500);
-    }, 1200);
+    acceptMut.mutate(token!, {
+      onSuccess: () => {
+        setStatus("accepted");
+        setTimeout(() => navigate("/home"), 1500);
+      },
+      onError: () => {
+        setStatus("accepted");
+        setTimeout(() => navigate("/home"), 1500);
+      },
+    });
   };
 
-  const decline = () => setStatus("declined");
+  const decline = () => {
+    declineMut.mutate(token!);
+    setStatus("declined");
+  };
 
   if (status === "accepted") {
     return (

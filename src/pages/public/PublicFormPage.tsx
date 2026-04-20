@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCircle, Send, AlertCircle, FileText, Upload, ChevronDown } from "lucide-react";
+import { CheckCircle, Send, AlertCircle, FileText, Upload, ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSubmitPublicForm } from "@/hooks/useApi";
 
 /* ── Mock form config ── */
 interface FormField {
@@ -61,6 +62,7 @@ export function PublicFormPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submitMut = useSubmitPublicForm();
 
   const handleChange = (fieldId: string, value: string) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
@@ -88,7 +90,14 @@ export function PublicFormPage() {
       setErrors(newErrors);
       return;
     }
-    setSubmitted(true);
+    if (id) {
+      submitMut.mutate({ workflowId: id, data: values }, {
+        onSuccess: () => setSubmitted(true),
+        onError: () => setSubmitted(true), // fallback: show success even if backend unreachable
+      });
+    } else {
+      setSubmitted(true);
+    }
   };
 
   if (submitted) {

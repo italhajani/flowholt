@@ -752,6 +752,28 @@ CREATE TABLE IF NOT EXISTS incomplete_executions (
     FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE,
     FOREIGN KEY(workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS workspace_invites (
+    id TEXT PRIMARY KEY,
+    token TEXT UNIQUE NOT NULL,
+    workspace_id TEXT NOT NULL DEFAULT 'ws-default',
+    workspace_name TEXT NOT NULL DEFAULT 'FlowHolt Workspace',
+    inviter_id TEXT,
+    inviter_name TEXT DEFAULT 'Admin',
+    inviter_email TEXT DEFAULT '',
+    role TEXT NOT NULL DEFAULT 'editor',
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    accepted_at TEXT,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS form_submissions (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    data TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL
+);
 """
 
 

@@ -168,6 +168,11 @@ import {
   fetchProviderDetail,
   fetchDomainConfig,
   updateDomainConfig,
+  fetchInviteInfo,
+  acceptInvite,
+  declineInvite,
+  submitPublicForm,
+  sendPublicChatMessage,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1419,5 +1424,38 @@ export function useUpdateDomainConfig() {
   return useMutation({
     mutationFn: updateDomainConfig,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-config"] }),
+  });
+}
+
+/* ── Invite ── */
+export function useInviteInfo(token: string | undefined) {
+  return useQuery({
+    queryKey: ["invite", token],
+    queryFn: () => fetchInviteInfo(token!),
+    enabled: !!token,
+  });
+}
+
+export function useAcceptInvite() {
+  return useMutation({ mutationFn: acceptInvite });
+}
+
+export function useDeclineInvite() {
+  return useMutation({ mutationFn: declineInvite });
+}
+
+/* ── Public form ── */
+export function useSubmitPublicForm() {
+  return useMutation({
+    mutationFn: ({ workflowId, data }: { workflowId: string; data: Record<string, string> }) =>
+      submitPublicForm(workflowId, data),
+  });
+}
+
+/* ── Public chat ── */
+export function useSendPublicChat() {
+  return useMutation({
+    mutationFn: ({ agentId, message, sessionId }: { agentId: string; message: string; sessionId: string }) =>
+      sendPublicChatMessage(agentId, message, sessionId),
   });
 }

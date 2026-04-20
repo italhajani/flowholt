@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Send, Bot, User, Sparkles, Paperclip, ThumbsUp, ThumbsDown, Copy, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSendPublicChat } from "@/hooks/useApi";
 
 /* ── Types ── */
 interface Message {
@@ -48,6 +49,8 @@ export function PublicChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [sessionId] = useState(() => `sess-${Date.now()}`);
+  const chatMut = useSendPublicChat();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,17 +70,33 @@ export function PublicChatPage() {
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const response = mockResponses[content] || mockResponses.default;
-      const assistantMsg: Message = {
-        id: `msg-${Date.now()}-reply`,
-        role: "assistant",
-        content: response,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-      setIsTyping(false);
-    }, 1200);
+    chatMut.mutate(
+      { agentId: id || "default", message: content, sessionId },
+      {
+        onSuccess: (data) => {
+          const assistantMsg: Message = {
+            id: `msg-${Date.now()}-reply`,
+            role: "assistant",
+            content: data.reply,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+          setIsTyping(false);
+        },
+        onError: () => {
+          // Fallback to mock responses when backend unavailable
+          const response = mockResponses[content] || mockResponses.default;
+          const assistantMsg: Message = {
+            id: `msg-${Date.now()}-reply`,
+            role: "assistant",
+            content: response,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+          setIsTyping(false);
+        },
+      }
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

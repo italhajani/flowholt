@@ -45,6 +45,8 @@ from .routers.misc import router as misc_router
 from .routers.agents import router as agents_router
 from .routers.knowledge import router as knowledge_router
 from .routers.webhooks import router as webhooks_router
+from .routers.mcp import router as mcp_router
+from .routers.evaluation import router as eval_router
 
 settings = get_settings()
 
@@ -79,6 +81,8 @@ app.include_router(misc_router)
 app.include_router(agents_router)
 app.include_router(knowledge_router)
 app.include_router(webhooks_router)
+app.include_router(mcp_router)
+app.include_router(eval_router)
 
 
 # ── Middleware ─────────────────────────────────────────────────────────

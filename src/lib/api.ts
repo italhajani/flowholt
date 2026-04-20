@@ -1109,3 +1109,127 @@ export function importVault(assets: Record<string, unknown>[]) {
     body: JSON.stringify({ assets }),
   });
 }
+
+
+// ── MCP Server API ──
+
+export interface MCPServer {
+  id: string;
+  workspace_id: string;
+  name: string;
+  url: string;
+  transport: string;
+  api_key: string | null;
+  health_check_interval: number;
+  auto_reconnect: number;
+  enabled_tools_json: string[];
+  agent_ids_json: string[];
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MCPServerCreatePayload {
+  name: string;
+  url: string;
+  transport?: string;
+  api_key?: string;
+  health_check_interval?: number;
+  auto_reconnect?: boolean;
+  enabled_tools?: string[];
+  agent_ids?: string[];
+}
+
+export function fetchMCPServers() {
+  return apiFetch<MCPServer[]>("/api/mcp/servers");
+}
+
+export function createMCPServer(payload: MCPServerCreatePayload) {
+  return apiFetch<MCPServer>("/api/mcp/servers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchMCPServer(serverId: string) {
+  return apiFetch<MCPServer>(`/api/mcp/servers/${serverId}`);
+}
+
+export function deleteMCPServer(serverId: string) {
+  return apiFetch<void>(`/api/mcp/servers/${serverId}`, { method: "DELETE" });
+}
+
+export function callMCPTool(serverId: string, toolName: string, args?: Record<string, unknown>) {
+  return apiFetch<{ server_id: string; tool_name: string; result: Record<string, unknown> }>("/api/mcp/call", {
+    method: "POST",
+    body: JSON.stringify({ server_id: serverId, tool_name: toolName, arguments: args }),
+  });
+}
+
+
+// ── Evaluation API ──
+
+export interface EvalDataset {
+  id: string;
+  workspace_id: string;
+  agent_id: string;
+  name: string;
+  description: string | null;
+  rows_json: { input: string; expected_output: string; tags?: string[] }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvalRun {
+  id: string;
+  dataset_id: string;
+  agent_id: string;
+  status: string;
+  results_json: { input: string; expected: string; actual: string; score: number; passed: boolean }[];
+  summary_json: { total: number; passed: number; failed: number; avg_score: number };
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface EvalDatasetCreatePayload {
+  agent_id: string;
+  name: string;
+  description?: string;
+  rows?: { input: string; expected_output: string }[];
+}
+
+export function fetchEvalDatasets(agentId?: string) {
+  const qs = agentId ? `?agent_id=${agentId}` : "";
+  return apiFetch<EvalDataset[]>(`/api/eval/datasets${qs}`);
+}
+
+export function createEvalDataset(payload: EvalDatasetCreatePayload) {
+  return apiFetch<EvalDataset>("/api/eval/datasets", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteEvalDataset(datasetId: string) {
+  return apiFetch<void>(`/api/eval/datasets/${datasetId}`, { method: "DELETE" });
+}
+
+export function fetchEvalRuns(agentId?: string, datasetId?: string) {
+  const params = new URLSearchParams();
+  if (agentId) params.set("agent_id", agentId);
+  if (datasetId) params.set("dataset_id", datasetId);
+  const qs = params.toString() ? `?${params}` : "";
+  return apiFetch<EvalRun[]>(`/api/eval/runs${qs}`);
+}
+
+export function createEvalRun(datasetId: string, agentId: string) {
+  return apiFetch<EvalRun>("/api/eval/runs", {
+    method: "POST",
+    body: JSON.stringify({ dataset_id: datasetId, agent_id: agentId }),
+  });
+}
+
+export function fetchEvalRun(runId: string) {
+  return apiFetch<EvalRun>(`/api/eval/runs/${runId}`);
+}

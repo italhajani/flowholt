@@ -14,6 +14,7 @@ import {
   useAgent, useUpdateAgent, useAgentChat,
   useAgentKnowledge, useLinkKnowledge, useUnlinkKnowledge,
   useKnowledgeBases,
+  useEvalRuns, useCreateEvalRun,
 } from "@/hooks/useApi";
 
 /* ── Mock agent data ── */
@@ -44,13 +45,7 @@ const tools = [
   { name: "Send Email Reply", type: "api", status: "disabled" },
 ];
 
-const evalResults = [
-  { name: "Greeting quality", passed: true, score: 94, runs: 50 },
-  { name: "Knowledge accuracy", passed: true, score: 91, runs: 50 },
-  { name: "Escalation judgment", passed: true, score: 87, runs: 30 },
-  { name: "Hallucination check", passed: false, score: 72, runs: 50 },
-  { name: "Response latency", passed: true, score: 96, runs: 50 },
-];
+/* evalResults now comes from API via useEvalRuns hook */
 
 const versions = [
   { version: "v5 (current)", date: "2 days ago", author: "Gouhar Ali", changes: "Updated system instructions for tone" },
@@ -112,6 +107,12 @@ export function AgentDetailPage() {
   const linkMutation = useLinkKnowledge(id || "");
   const unlinkMutation = useUnlinkKnowledge(id || "");
   const [showKBPicker, setShowKBPicker] = useState(false);
+
+  // Eval hooks
+  const { data: evalRuns = [] } = useEvalRuns(id);
+  const latestRun = evalRuns[0];
+  const evalResults = latestRun?.results_json ?? [];
+  const evalSummary = latestRun?.summary_json;
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -503,34 +504,46 @@ export function AgentDetailPage() {
 
       {activeTab === "evaluation" && (
         <div className="space-y-5">
-          <div className="flex gap-4 text-[12px]">
-            <span className="text-zinc-400">Overall <span className={cn("font-semibold", evalResults.every(e => e.passed) ? "text-green-600" : "text-amber-600")}>{evalResults.filter(e => e.passed).length}/{evalResults.length} passing</span></span>
-            <span className="text-zinc-400">Avg Score <span className="font-semibold text-zinc-700">{Math.round(evalResults.reduce((s, e) => s + e.score, 0) / evalResults.length)}%</span></span>
-          </div>
-          <DetailSection title="Evaluation Results">
-            <div className="space-y-1.5">
-              {evalResults.map((ev, i) => (
-                <div key={i} className="flex items-center justify-between rounded-md border border-zinc-50 px-3 py-2.5">
-                  <div className="flex items-center gap-3">
-                    {ev.passed ? <CheckCircle2 size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
-                    <span className="text-[13px] text-zinc-700">{ev.name}</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-[11px] text-zinc-400">{ev.runs} runs</span>
-                    <div className="w-24 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full", ev.score >= 85 ? "bg-green-500" : ev.score >= 70 ? "bg-amber-500" : "bg-red-500")}
-                        style={{ width: `${ev.score}%` }}
-                      />
-                    </div>
-                    <span className={cn("text-[12px] font-mono w-8 text-right", ev.score >= 85 ? "text-green-600" : ev.score >= 70 ? "text-amber-600" : "text-red-600")}>
-                      {ev.score}%
-                    </span>
-                  </div>
+          {evalResults.length > 0 ? (
+            <>
+              <div className="flex gap-4 text-[12px]">
+                <span className="text-zinc-400">Overall <span className={cn("font-semibold", evalSummary && evalSummary.failed === 0 ? "text-green-600" : "text-amber-600")}>{evalSummary?.passed ?? 0}/{evalSummary?.total ?? 0} passing</span></span>
+                <span className="text-zinc-400">Avg Score <span className="font-semibold text-zinc-700">{Math.round((evalSummary?.avg_score ?? 0) * 100)}%</span></span>
+              </div>
+              <DetailSection title="Evaluation Results">
+                <div className="space-y-1.5">
+                  {evalResults.map((ev, i) => {
+                    const pct = Math.round(ev.score * 100);
+                    return (
+                      <div key={i} className="flex items-center justify-between rounded-md border border-zinc-50 px-3 py-2.5">
+                        <div className="flex items-center gap-3">
+                          {ev.passed ? <CheckCircle2 size={14} className="text-green-500" /> : <XCircle size={14} className="text-red-500" />}
+                          <span className="text-[13px] text-zinc-700 truncate max-w-[300px]">{ev.input}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-24 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                            <div
+                              className={cn("h-full rounded-full", pct >= 85 ? "bg-green-500" : pct >= 70 ? "bg-amber-500" : "bg-red-500")}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className={cn("text-[12px] font-mono w-8 text-right", pct >= 85 ? "text-green-600" : pct >= 70 ? "text-amber-600" : "text-red-600")}>
+                            {pct}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </DetailSection>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Beaker size={28} className="text-zinc-300 mb-2" />
+              <p className="text-[13px] text-zinc-500">No evaluation runs yet</p>
+              <p className="text-[11px] text-zinc-400 mt-1">Create a dataset and run evaluations to measure agent quality.</p>
             </div>
-          </DetailSection>
+          )}
         </div>
       )}
 

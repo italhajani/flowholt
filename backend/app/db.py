@@ -616,6 +616,51 @@ CREATE TABLE IF NOT EXISTS webhook_queue (
     FOREIGN KEY(webhook_id) REFERENCES webhook_endpoints(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_wh_queue_status ON webhook_queue(status, next_retry_at);
+
+CREATE TABLE IF NOT EXISTS mcp_servers (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    transport TEXT NOT NULL DEFAULT 'stdio',
+    api_key TEXT,
+    health_check_interval INTEGER DEFAULT 60,
+    auto_reconnect INTEGER DEFAULT 1,
+    enabled_tools_json TEXT NOT NULL DEFAULT '[]',
+    agent_ids_json TEXT NOT NULL DEFAULT '[]',
+    status TEXT DEFAULT 'healthy',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_ws ON mcp_servers(workspace_id);
+
+CREATE TABLE IF NOT EXISTS eval_datasets (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    rows_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS eval_runs (
+    id TEXT PRIMARY KEY,
+    dataset_id TEXT NOT NULL,
+    agent_id TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    results_json TEXT NOT NULL DEFAULT '[]',
+    summary_json TEXT NOT NULL DEFAULT '{}',
+    started_at TEXT,
+    completed_at TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(dataset_id) REFERENCES eval_datasets(id) ON DELETE CASCADE,
+    FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
+);
 """
 
 
@@ -838,7 +883,7 @@ def init_db() -> None:
 
 def row_to_dict(row: Any) -> dict[str, Any]:
     item = dict(row)
-    for key in ("tags_json", "definition_json", "payload_json", "steps_json", "result_json", "details_json", "state_json", "metadata_json", "data_json", "choices_json", "response_payload_json", "allowed_roles_json", "allowed_user_ids_json", "actions_json"):
+    for key in ("tags_json", "definition_json", "payload_json", "steps_json", "result_json", "details_json", "state_json", "metadata_json", "data_json", "choices_json", "response_payload_json", "allowed_roles_json", "allowed_user_ids_json", "actions_json", "enabled_tools_json", "agent_ids_json", "rows_json", "results_json", "summary_json"):
         if key in item and item[key]:
             item[key] = json.loads(item[key])
     # Handle secret_json separately — may be encrypted

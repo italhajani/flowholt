@@ -7,6 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useCreateMCPServer } from "@/hooks/useApi";
 
 /* ── Types ── */
 interface MCPTool {
@@ -70,6 +71,7 @@ export function MCPServerWizard({ open, onClose }: MCPServerWizardProps) {
   const [tools, setTools] = useState<MCPTool[]>([]);
   const [resources, setResources] = useState<MCPResource[]>([]);
   const [showResources, setShowResources] = useState(false);
+  const createMutation = useCreateMCPServer();
 
   const handleConnect = () => {
     if (!serverUrl.trim()) {
@@ -95,7 +97,15 @@ export function MCPServerWizard({ open, onClose }: MCPServerWizardProps) {
   const enabledCount = tools.filter(t => t.enabled).length;
 
   const handleFinish = () => {
-    setStep("done");
+    createMutation.mutate({
+      name: serverName || "Untitled Server",
+      url: serverUrl,
+      transport,
+      api_key: apiKey || undefined,
+      enabled_tools: tools.filter(t => t.enabled).map(t => t.name),
+    }, {
+      onSuccess: () => setStep("done"),
+    });
   };
 
   const handleDone = () => {

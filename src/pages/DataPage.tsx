@@ -14,6 +14,8 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 import { KnowledgeUploadModal } from "@/components/modals/KnowledgeUploadModal";
 import { MCPServerWizard } from "@/components/modals/MCPServerWizard";
+import { useMCPServers } from "@/hooks/useApi";
+import type { MCPServer as APIMCPServer } from "@/lib/api";
 
 const tabs = ["Data Stores", "Schemas", "Knowledge", "MCP Servers"] as const;
 type Tab = (typeof tabs)[number];
@@ -71,21 +73,7 @@ const mockKnowledge: KnowledgeAsset[] = [
   { id: "k4", name: "Internal Policies", format: "PDF", chunks: 0, indexState: "failed", agents: 0, size: "12.1 MB", uploaded: "5 hrs ago" },
 ];
 
-/* ── MCP Server mock ── */
-interface MCPServer {
-  id: string;
-  name: string;
-  url: string;
-  status: "healthy" | "degraded" | "error";
-  tools: number;
-  agents: number;
-  lastPing: string;
-}
-const mockMCP: MCPServer[] = [
-  { id: "m1", name: "Code Intelligence", url: "mcp://code-intel.local:8080", status: "healthy", tools: 12, agents: 2, lastPing: "10s ago" },
-  { id: "m2", name: "Document Search", url: "mcp://docs-search.local:8081", status: "healthy", tools: 4, agents: 3, lastPing: "15s ago" },
-  { id: "m3", name: "Database Ops", url: "mcp://db-ops.local:8082", status: "degraded", tools: 8, agents: 1, lastPing: "45s ago" },
-];
+/* ── MCP columns use API type ── */
 
 /* ── Column defs ── */
 const typeColors = { "Key-Value": "bg-purple-50 text-purple-600", Table: "bg-blue-50 text-blue-600", Queue: "bg-amber-50 text-amber-600" };
@@ -148,7 +136,7 @@ const knowledgeColumns: Column<KnowledgeAsset>[] = [
   { id: "uploaded", header: "Uploaded", sortable: true, hideBelow: "lg", accessor: (row) => <span className="text-zinc-500">{row.uploaded}</span> },
 ];
 
-const mcpColumns: Column<MCPServer>[] = [
+const mcpColumns: Column<APIMCPServer>[] = [
   {
     id: "name", header: "Server", sortable: true,
     accessor: (row) => (
@@ -165,9 +153,9 @@ const mcpColumns: Column<MCPServer>[] = [
     id: "status", header: "Status",
     accessor: (row) => <StatusDot status={row.status === "healthy" ? "healthy" : row.status === "degraded" ? "warning" : "error"} label={row.status} />,
   },
-  { id: "tools", header: "Tools", sortable: true, accessor: (row) => <span className="font-mono text-[12px] text-zinc-600">{row.tools}</span> },
-  { id: "agents", header: "Agents", hideBelow: "md", accessor: (row) => <span className="text-zinc-500">{row.agents}</span> },
-  { id: "ping", header: "Last Ping", hideBelow: "lg", accessor: (row) => <span className="text-zinc-500">{row.lastPing}</span> },
+  { id: "tools", header: "Tools", sortable: true, accessor: (row) => <span className="font-mono text-[12px] text-zinc-600">{(row.enabled_tools_json ?? []).length}</span> },
+  { id: "agents", header: "Agents", hideBelow: "md", accessor: (row) => <span className="text-zinc-500">{(row.agent_ids_json ?? []).length}</span> },
+  { id: "transport", header: "Transport", hideBelow: "lg", accessor: (row) => <span className="text-zinc-500 text-[11px]">{row.transport}</span> },
 ];
 
 /* ── Detail Data for Previews ── */
@@ -198,14 +186,6 @@ const mockSchemaFields: SchemaField[] = [
   { name: "customer_email", type: "email", required: true, description: "Customer email address" },
   { name: "line_items", type: "json", required: true, description: "Array of line items" },
   { name: "paid", type: "boolean", required: false, description: "Whether invoice is paid" },
-];
-
-const mcpToolList = [
-  { name: "search_code", description: "Search codebase by pattern", params: 2 },
-  { name: "read_file", description: "Read file contents", params: 1 },
-  { name: "run_tests", description: "Execute test suite", params: 3 },
-  { name: "lint_code", description: "Run linter on file", params: 2 },
-  { name: "format_code", description: "Format source code", params: 2 },
 ];
 
 /* ── Detail Panel Components ── */
@@ -437,8 +417,9 @@ function KnowledgeDetailPanel({ asset, onClose }: { asset: KnowledgeAsset; onClo
   );
 }
 
-function MCPServerDetail({ server, onClose }: { server: MCPServer; onClose: () => void }) {
+function MCPServerDetail({ server, onClose }: { server: APIMCPServer; onClose: () => void }) {
   const [testing, setTesting] = useState(false);
+  const toolCount = (server.enabled_tools_json ?? []).length;
   return (
     <div className="mt-3 rounded-xl border border-zinc-200 bg-white overflow-hidden">
       <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5">
@@ -460,7 +441,6 @@ function MCPServerDetail({ server, onClose }: { server: MCPServer; onClose: () =
           </button>
         </div>
       </div>
-      {/* Server info */}
       <div className="grid grid-cols-3 gap-3 px-4 py-3 border-b border-zinc-100">
         <div>
           <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Endpoint</p>
@@ -468,28 +448,26 @@ function MCPServerDetail({ server, onClose }: { server: MCPServer; onClose: () =
         </div>
         <div>
           <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Tools</p>
-          <p className="text-[13px] font-semibold text-zinc-700 mt-0.5">{server.tools}</p>
+          <p className="text-[13px] font-semibold text-zinc-700 mt-0.5">{toolCount}</p>
         </div>
         <div>
-          <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Last Ping</p>
-          <p className="text-[11px] text-zinc-600 mt-0.5">{server.lastPing}</p>
+          <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider">Transport</p>
+          <p className="text-[11px] text-zinc-600 mt-0.5">{server.transport}</p>
         </div>
       </div>
-      {/* Tool list */}
       <div className="px-4 py-2">
-        <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Available Tools</p>
+        <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Enabled Tools</p>
         <div className="space-y-1">
-          {mcpToolList.slice(0, server.tools > 5 ? 5 : server.tools).map((tool) => (
-            <div key={tool.name} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-50 transition-colors">
+          {(server.enabled_tools_json ?? []).slice(0, 5).map((tool) => (
+            <div key={tool} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-50 transition-colors">
               <Settings2 size={11} className="text-zinc-400 flex-shrink-0" />
-              <span className="text-[11px] font-mono font-medium text-zinc-700">{tool.name}</span>
-              <span className="text-[10px] text-zinc-400 flex-1 truncate">{tool.description}</span>
-              <span className="text-[9px] text-zinc-300 font-mono">{tool.params} params</span>
+              <span className="text-[11px] font-mono font-medium text-zinc-700">{tool}</span>
             </div>
           ))}
-          {server.tools > 5 && (
-            <p className="text-[10px] text-zinc-400 pl-2">+ {server.tools - 5} more tools</p>
+          {toolCount > 5 && (
+            <p className="text-[10px] text-zinc-400 pl-2">+ {toolCount - 5} more tools</p>
           )}
+          {toolCount === 0 && <p className="text-[10px] text-zinc-400 pl-2">No tools enabled</p>}
         </div>
       </div>
     </div>
@@ -510,9 +488,10 @@ export function DataPage() {
   const [selectedStore, setSelectedStore] = useState<DataStore | null>(null);
   const [selectedSchema, setSelectedSchema] = useState<Schema | null>(null);
   const [selectedKnowledge, setSelectedKnowledge] = useState<KnowledgeAsset | null>(null);
-  const [selectedMCP, setSelectedMCP] = useState<MCPServer | null>(null);
+  const [selectedMCP, setSelectedMCP] = useState<APIMCPServer | null>(null);
   const [showKnowledgeUpload, setShowKnowledgeUpload] = useState(false);
   const [showMCPWizard, setShowMCPWizard] = useState(false);
+  const { data: mcpServers = [] } = useMCPServers();
 
   return (
     <div className="mx-auto max-w-[960px] px-8 py-8">
@@ -546,7 +525,7 @@ export function DataPage() {
           Knowledge <span className="font-semibold text-zinc-700">{mockKnowledge.length}</span>
         </span>
         <span className="text-zinc-400">
-          MCP Servers <span className="font-semibold text-zinc-700">{mockMCP.length}</span>
+          MCP Servers <span className="font-semibold text-zinc-700">{mcpServers.length}</span>
         </span>
       </div>
 
@@ -632,7 +611,7 @@ export function DataPage() {
           <>
             <DataTable
               columns={mcpColumns}
-              data={mockMCP.filter((m) => !search || m.name.toLowerCase().includes(search.toLowerCase()))}
+              data={mcpServers.filter((m) => !search || m.name.toLowerCase().includes(search.toLowerCase()))}
               getRowId={(m) => m.id}
               onRowClick={(row) => setSelectedMCP(selectedMCP?.id === row.id ? null : row)}
               emptyState={<EmptyState icon={<Server size={32} strokeWidth={1.25} />} title="No MCP servers" description="Connect Model Context Protocol servers for tool use." />}

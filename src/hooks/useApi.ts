@@ -80,6 +80,14 @@ import {
   fetchAgentKnowledge,
   linkKnowledgeToAgent,
   unlinkKnowledgeFromAgent,
+  fetchMCPServers,
+  createMCPServer,
+  deleteMCPServer,
+  fetchEvalDatasets,
+  createEvalDataset,
+  deleteEvalDataset,
+  fetchEvalRuns,
+  createEvalRun,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -665,5 +673,76 @@ export function useImportVault() {
   return useMutation({
     mutationFn: (assets: Record<string, unknown>[]) => importVault(assets),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vault"] }),
+  });
+}
+
+
+// ── MCP Server Hooks ──
+
+export function useMCPServers() {
+  return useQuery({
+    queryKey: ["mcp-servers"],
+    queryFn: fetchMCPServers,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateMCPServer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createMCPServer,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mcp-servers"] }),
+  });
+}
+
+export function useDeleteMCPServer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (serverId: string) => deleteMCPServer(serverId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mcp-servers"] }),
+  });
+}
+
+
+// ── Evaluation Hooks ──
+
+export function useEvalDatasets(agentId?: string) {
+  return useQuery({
+    queryKey: ["eval-datasets", agentId],
+    queryFn: () => fetchEvalDatasets(agentId),
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateEvalDataset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createEvalDataset,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eval-datasets"] }),
+  });
+}
+
+export function useDeleteEvalDataset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (datasetId: string) => deleteEvalDataset(datasetId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eval-datasets"] }),
+  });
+}
+
+export function useEvalRuns(agentId?: string, datasetId?: string) {
+  return useQuery({
+    queryKey: ["eval-runs", agentId, datasetId],
+    queryFn: () => fetchEvalRuns(agentId, datasetId),
+    staleTime: 15_000,
+  });
+}
+
+export function useCreateEvalRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { datasetId: string; agentId: string }) =>
+      createEvalRun(opts.datasetId, opts.agentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["eval-runs"] }),
   });
 }

@@ -1686,3 +1686,38 @@ export function createApiKey(name = "Default") {
 export function deleteApiKey(keyId: string) {
   return apiFetch<{ status: string }>(`/api/api-keys/${keyId}`, { method: "DELETE" });
 }
+
+/* ── OAuth / Integrations ── */
+export interface OAuthProvider {
+  id: string;
+  name: string;
+  auth_url: string;
+  token_url: string;
+  logo_url: string;
+  scopes: string[];
+}
+
+export function fetchOAuthProviders() {
+  return apiFetch<OAuthProvider[]>("/api/oauth2/providers");
+}
+
+export function startOAuthAuthorize(provider: string, clientId: string, redirectUri: string, scopes?: string[]) {
+  return apiFetch<{ authorize_url: string; state: string }>("/api/oauth2/authorize", {
+    method: "POST",
+    body: JSON.stringify({ provider, client_id: clientId, redirect_uri: redirectUri, scopes }),
+  });
+}
+
+export function oauthCallback(provider: string, code: string, state: string, redirectUri: string) {
+  return apiFetch<{ status: string; connection_id: string }>("/api/oauth2/callback", {
+    method: "POST",
+    body: JSON.stringify({ provider, code, state, redirect_uri: redirectUri }),
+  });
+}
+
+export function refreshOAuthToken(connectionId: string) {
+  return apiFetch<{ status: string }>("/api/oauth2/refresh", {
+    method: "POST",
+    body: JSON.stringify({ connection_id: connectionId }),
+  });
+}

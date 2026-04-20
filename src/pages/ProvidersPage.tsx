@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plug, Plus, Search, Cpu, Zap, Database, Layers, Shield, Clock, BarChart3, ExternalLink, AlertTriangle, CheckCircle2, TrendingUp, DollarSign, LayoutGrid, List, RefreshCw, Activity } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useOAuthProviders } from "@/hooks/useApi";
 
 /* ── Mock data per research file 66 — provider inventory spec ── */
 interface Provider {
@@ -129,12 +130,31 @@ export function ProvidersPage() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "cards">("list");
+  const { data: backendProviders } = useOAuthProviders();
 
-  const healthy = mockProviders.filter((p) => p.health === "healthy").length;
-  const warnings = mockProviders.filter((p) => p.health === "warning" || p.health === "error").length;
-  const totalOps = "133.7k";
+  // Map backend OAuth providers to our UI interface, fallback to mock
+  const providers = useMemo(() => {
+    if (backendProviders && backendProviders.length > 0) {
+      return backendProviders.map((p, i) => ({
+        id: p.id || `bp-${i}`,
+        name: p.name,
+        type: "Integration" as const,
+        health: "healthy" as const,
+        authMode: "OAuth 2.0",
+        modelCount: 0,
+        lastVerified: "—",
+        usageOps: "0",
+      }));
+    }
+    return mockProviders;
+  }, [backendProviders]);
 
-  const filtered = mockProviders.filter((p) => {
+  const healthy = providers.filter((p) => p.health === "healthy").length;
+  const warnings = providers.filter((p) => p.health === "warning" || p.health === "error").length;
+  const totalOps = providers.reduce((s, p) => s + parseFloat(p.usageOps.replace("k", "")) * 1000, 0);
+  const totalOpsLabel = totalOps > 1000 ? `${(totalOps / 1000).toFixed(1)}k` : String(totalOps);
+
+  const filtered = providers.filter((p) => {
     if (categoryFilter !== "All" && p.type !== categoryFilter) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -155,11 +175,11 @@ export function ProvidersPage() {
 
       {/* Summary strip */}
       <div className="mt-6 grid grid-cols-5 gap-3">
-        <SumCard label="Total" value={mockProviders.length} />
+        <SumCard label="Total" value={providers.length} />
         <SumCard label="Healthy" value={healthy} color="green" />
         <SumCard label="Issues" value={warnings} color="red" />
-        <SumCard label="AI Models" value={mockProviders.filter((p) => p.type === "AI Model").length} icon={<Cpu size={12} />} />
-        <SumCard label="Total Ops" value={0} override={totalOps} icon={<Activity size={12} />} />
+        <SumCard label="AI Models" value={providers.filter((p) => p.type === "AI Model").length} icon={<Cpu size={12} />} />
+        <SumCard label="Total Ops" value={0} override={totalOpsLabel} icon={<Activity size={12} />} />
       </div>
 
       {/* Health alert banner */}

@@ -132,6 +132,11 @@ import {
   createApiKey,
   deleteApiKey,
   type UserProfileUpdate,
+  fetchOAuthProviders,
+  startOAuthAuthorize,
+  oauthCallback,
+  refreshOAuthToken,
+  type OAuthProvider,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1123,5 +1128,40 @@ export function useDeleteApiKey() {
   return useMutation({
     mutationFn: (keyId: string) => deleteApiKey(keyId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+// ── OAuth / Integrations ────────────────────────────────────────────
+
+export function useOAuthProviders() {
+  return useQuery({
+    queryKey: ["oauth-providers"],
+    queryFn: fetchOAuthProviders,
+    staleTime: 60_000,
+  });
+}
+
+export function useStartOAuth() {
+  return useMutation({
+    mutationFn: (opts: { provider: string; clientId: string; redirectUri: string; scopes?: string[] }) =>
+      startOAuthAuthorize(opts.provider, opts.clientId, opts.redirectUri, opts.scopes),
+  });
+}
+
+export function useOAuthCallback() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { provider: string; code: string; state: string; redirectUri: string }) =>
+      oauthCallback(opts.provider, opts.code, opts.state, opts.redirectUri),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["oauth-providers"] });
+      qc.invalidateQueries({ queryKey: ["vault-connections"] });
+    },
+  });
+}
+
+export function useRefreshOAuth() {
+  return useMutation({
+    mutationFn: (connectionId: string) => refreshOAuthToken(connectionId),
   });
 }

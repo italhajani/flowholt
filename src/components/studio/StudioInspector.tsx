@@ -309,7 +309,7 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
         )}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
         {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} workflowId={workflowId} />}
-        {activeTab === "Settings" && <SettingsContent />}
+        {activeTab === "Settings" && <SettingsContent nodeId={node.id} workflowId={workflowId} />}
       </div>
     </div>
   );
@@ -1303,7 +1303,7 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin, workflowId }: { n
 }
 
 /* ── SETTINGS content ── */
-function SettingsContent() {
+function SettingsContent({ nodeId, workflowId }: { nodeId: string; workflowId?: string }) {
   const [retryEnabled, setRetryEnabled] = useState(false);
   const [continueOnError, setContinueOnError] = useState(false);
   const [retryCount, setRetryCount] = useState(3);
@@ -1313,13 +1313,40 @@ function SettingsContent() {
   const [displayNoteInFlow, setDisplayNoteInFlow] = useState(false);
   const [errorWorkflow, setErrorWorkflow] = useState("none");
   const [errorOutput, setErrorOutput] = useState<"stop" | "branch" | "ignore">("stop");
+  const [timeoutMs, setTimeoutMs] = useState(10000);
+  const [saved, setSaved] = useState(false);
+  const updateStep = useUpdateWorkflowStep(workflowId ?? "");
+
+  const handleSave = useCallback(() => {
+    if (!workflowId) return;
+    updateStep.mutate({
+      stepId: nodeId,
+      config: {
+        error_handling: {
+          on_error: errorOutput,
+          continue_on_error: continueOnError,
+          retry_enabled: retryEnabled,
+          retry_count: retryCount,
+          error_workflow: errorWorkflow !== "none" ? errorWorkflow : null,
+          timeout_ms: timeoutMs,
+          execute_once: executeOnce,
+          always_output: alwaysOutput,
+        },
+        notes,
+        display_note_in_flow: displayNoteInFlow,
+      },
+    }, {
+      onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2000); },
+    });
+  }, [workflowId, nodeId, errorOutput, continueOnError, retryEnabled, retryCount, errorWorkflow, timeoutMs, executeOnce, alwaysOutput, notes, displayNoteInFlow, updateStep]);
 
   return (
     <div className="space-y-5">
       <FieldGroup label="Node timeout (ms)" description="Maximum execution time before timeout">
         <input
           type="number"
-          defaultValue={10000}
+          value={timeoutMs}
+          onChange={(e) => setTimeoutMs(Number(e.target.value))}
           className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all"
         />
       </FieldGroup>
@@ -1430,9 +1457,20 @@ function SettingsContent() {
         </div>
       </FieldGroup>
 
-      <div className="pt-2 border-t border-zinc-100">
+      <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
         <button className="flex items-center gap-1.5 text-[11px] text-red-500 hover:text-red-600 transition-colors">
           <Trash2 size={11} /> Delete this node
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={updateStep.isPending}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-all",
+            saved ? "bg-green-600 text-white" : "bg-zinc-900 text-white hover:bg-zinc-800",
+            updateStep.isPending && "opacity-50 cursor-wait"
+          )}
+        >
+          {saved ? <><Check size={11} /> Saved</> : updateStep.isPending ? "Saving…" : "Save Settings"}
         </button>
       </div>
     </div>

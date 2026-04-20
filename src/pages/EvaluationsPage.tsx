@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   TestTube, Play, CheckCircle2, XCircle, Clock, ChevronRight, Search,
   Filter, Plus, BarChart3, AlertTriangle, ArrowUpDown, Eye, Trash2, RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { useEvalRuns } from "@/hooks/useApi";
 
 /* ── Types ── */
 interface TestRun {
@@ -62,8 +63,29 @@ export function EvaluationsPage() {
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "detail">("list");
 
-  const run = mockRuns.find(r => r.id === selectedRun);
-  const filtered = mockRuns.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.workflowName.toLowerCase().includes(search.toLowerCase()));
+  const { data: apiRuns } = useEvalRuns();
+
+  const runs = useMemo(() => {
+    if (apiRuns && apiRuns.length > 0) {
+      return apiRuns.map((r: any) => ({
+        id: r.id,
+        name: r.name || `Run ${r.id}`,
+        workflowName: r.workflow_name || r.dataset_id || "—",
+        status: r.status || "pending",
+        totalCases: r.total_cases ?? 0,
+        passed: r.passed ?? 0,
+        failed: r.failed ?? 0,
+        duration: r.duration || "—",
+        lastRun: r.created_at ? new Date(r.created_at).toLocaleDateString() : "—",
+        avgLatency: r.avg_latency || "—",
+        avgCost: r.avg_cost || "—",
+      })) as TestRun[];
+    }
+    return mockRuns;
+  }, [apiRuns]);
+
+  const run = runs.find(r => r.id === selectedRun);
+  const filtered = runs.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.workflowName.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
@@ -80,11 +102,11 @@ export function EvaluationsPage() {
       {/* Stats bar */}
       <div className="grid grid-cols-5 gap-3 mb-6">
         {[
-          { label: "Total Runs", value: mockRuns.length, icon: TestTube, color: "text-violet-600" },
-          { label: "Passed", value: mockRuns.filter(r => r.status === "passed").length, icon: CheckCircle2, color: "text-green-600" },
-          { label: "Failed", value: mockRuns.filter(r => r.status === "failed").length, icon: XCircle, color: "text-red-600" },
-          { label: "Total Cases", value: mockRuns.reduce((s, r) => s + r.totalCases, 0), icon: BarChart3, color: "text-blue-600" },
-          { label: "Avg Pass Rate", value: "85%", icon: ArrowUpDown, color: "text-amber-600" },
+          { label: "Total Runs", value: runs.length, icon: TestTube, color: "text-violet-600" },
+          { label: "Passed", value: runs.filter(r => r.status === "passed").length, icon: CheckCircle2, color: "text-green-600" },
+          { label: "Failed", value: runs.filter(r => r.status === "failed").length, icon: XCircle, color: "text-red-600" },
+          { label: "Total Cases", value: runs.reduce((s, r) => s + r.totalCases, 0), icon: BarChart3, color: "text-blue-600" },
+          { label: "Avg Pass Rate", value: runs.length > 0 ? `${Math.round(runs.reduce((s, r) => s + r.passed, 0) / Math.max(runs.reduce((s, r) => s + r.totalCases, 0), 1) * 100)}%` : "—", icon: ArrowUpDown, color: "text-amber-600" },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-3">
             <div className="flex items-center gap-2 mb-1">

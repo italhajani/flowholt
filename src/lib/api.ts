@@ -1858,3 +1858,18 @@ export interface ModelInfo {
 export function fetchModels() {
   return apiFetch<ModelInfo[]>("/api/models");
 }
+
+// ── Workflow Versions ──
+
+export interface WorkflowVersionOut {
+  id: string;
+  workflow_id: string;
+  version_number: number;
+  status: "draft_snapshot" | "staging" | "published";
+  notes: string | null;
+  created_at: string;
+}
+
+export function fetchWorkflowVersions(workflowId: string) {
+  return apiFetch<WorkflowVersionOut[]>(`/api/workflows/${workflowId}/versions`);
+}

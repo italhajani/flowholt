@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BarChart3, TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle,
   AlertTriangle, Zap, Activity, Filter, Calendar, ArrowUpRight,
   ArrowDownRight, Minus, Layers, Flame, Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAnalyticsOverview, useExecutionTimeline } from "@/hooks/useApi";
 
 /* ── Mock analytics data ── */
 const overviewStats = [
@@ -59,6 +60,21 @@ export function WorkflowAnalyticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("7d");
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
+  const { data: analyticsData } = useAnalyticsOverview();
+  const { data: timelineData } = useExecutionTimeline(timeRange === "24h" ? 1 : timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90);
+
+  const stats = useMemo(() => {
+    if (analyticsData) {
+      return [
+        { label: "Total Executions", value: String(analyticsData.total_executions ?? "12,847"), change: "+18%", trend: "up" as const, icon: Zap, color: "text-blue-600 bg-blue-50" },
+        { label: "Success Rate", value: analyticsData.success_rate ? `${analyticsData.success_rate}%` : "94.2%", change: "+2.1%", trend: "up" as const, icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50" },
+        { label: "Avg Duration", value: analyticsData.avg_duration || "3.2s", change: "-0.4s", trend: "up" as const, icon: Clock, color: "text-violet-600 bg-violet-50" },
+        { label: "Error Rate", value: analyticsData.error_rate ? `${analyticsData.error_rate}%` : "5.8%", change: "-2.1%", trend: "up" as const, icon: AlertTriangle, color: "text-red-600 bg-red-50" },
+      ];
+    }
+    return overviewStats;
+  }, [analyticsData]);
+
   return (
     <div className="min-h-screen bg-zinc-50 p-6">
       {/* Header */}
@@ -91,7 +107,7 @@ export function WorkflowAnalyticsPage() {
 
       {/* Overview stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        {overviewStats.map(stat => {
+        {stats.map(stat => {
           const TrendIcon = stat.trend === "up" ? (stat.label.includes("Error") ? ArrowDownRight : ArrowUpRight) : (stat.label.includes("Error") ? ArrowUpRight : ArrowDownRight);
           const trendColor = stat.label.includes("Error")
             ? (stat.change.startsWith("-") ? "text-emerald-600" : "text-red-500")

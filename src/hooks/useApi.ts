@@ -151,6 +151,7 @@ import {
   deleteVariable,
   type VariableCreate,
   fetchModels,
+  fetchWorkflowVersions,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1284,5 +1285,16 @@ export function useModels() {
     queryKey: ["models"],
     queryFn: () => fetchModels(),
     staleTime: 120_000,
+  });
+}
+
+// ── Workflow Versions ──
+
+export function useWorkflowVersions(workflowId: string | undefined) {
+  return useQuery({
+    queryKey: ["workflow-versions", workflowId],
+    queryFn: () => fetchWorkflowVersions(workflowId!),
+    enabled: !!workflowId,
+    staleTime: 30_000,
   });
 }

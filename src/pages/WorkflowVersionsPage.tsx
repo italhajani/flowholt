@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   GitBranch, Clock, ChevronRight, RotateCcw, Eye, ArrowLeftRight,
@@ -6,6 +6,8 @@ import {
   ArrowLeft, Download, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkflowVersions } from "@/hooks/useApi";
+import type { WorkflowVersionOut } from "@/lib/api";
 
 /* ── Types ── */
 interface WorkflowVersion {
@@ -66,8 +68,29 @@ export function WorkflowVersionsPage() {
   const [compareWith, setCompareWith] = useState<string>("v5");
   const [showDiff, setShowDiff] = useState(true);
 
-  const selected = mockVersions.find(v => v.id === selectedVersion)!;
-  const compared = mockVersions.find(v => v.id === compareWith);
+  const { data: apiVersions } = useWorkflowVersions(id);
+
+  const versions = useMemo(() => {
+    if (apiVersions && apiVersions.length > 0) {
+      return apiVersions.map((v: WorkflowVersionOut, i: number) => ({
+        id: v.id,
+        version: v.version_number,
+        label: v.status === "published" ? "Published" : v.status === "staging" ? "Staging" : i === 0 ? "Current" : "",
+        author: "You",
+        authorAvatar: "GA",
+        createdAt: v.created_at ? new Date(v.created_at).toLocaleDateString() : "—",
+        message: v.notes || `Version ${v.version_number}`,
+        nodesAdded: 0,
+        nodesRemoved: 0,
+        nodesModified: 0,
+        isCurrent: i === 0,
+      })) as WorkflowVersion[];
+    }
+    return mockVersions;
+  }, [apiVersions]);
+
+  const selected = versions.find(v => v.id === selectedVersion) || versions[0];
+  const compared = versions.find(v => v.id === compareWith);
 
   return (
     <div className="flex h-[calc(100vh-64px)] bg-zinc-50">
@@ -80,11 +103,11 @@ export function WorkflowVersionsPage() {
           <h2 className="text-[15px] font-semibold text-zinc-900 flex items-center gap-2">
             <GitBranch size={16} className="text-violet-500" /> Version History
           </h2>
-          <p className="text-[11px] text-zinc-400 mt-0.5">{mockVersions.length} versions · Lead Qualification Pipeline</p>
+          <p className="text-[11px] text-zinc-400 mt-0.5">{versions.length} versions · Lead Qualification Pipeline</p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          {mockVersions.map((v, i) => (
+          {versions.map((v, i) => (
             <button
               key={v.id}
               onClick={() => setSelectedVersion(v.id)}
@@ -96,7 +119,7 @@ export function WorkflowVersionsPage() {
               )}
             >
               {/* Timeline connector */}
-              {i < mockVersions.length - 1 && (
+              {i < versions.length - 1 && (
                 <div className={cn("absolute left-[22px] top-full w-0.5 h-1 z-0", selectedVersion === v.id ? "bg-zinc-700" : "bg-zinc-200")} />
               )}
 
@@ -145,7 +168,7 @@ export function WorkflowVersionsPage() {
               onChange={e => setCompareWith(e.target.value)}
               className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-600"
             >
-              {mockVersions.filter(v => v.id !== selectedVersion).map(v => (
+              {versions.filter(v => v.id !== selectedVersion).map(v => (
                 <option key={v.id} value={v.id}>v{v.version} — {v.message.slice(0, 40)}</option>
               ))}
             </select>

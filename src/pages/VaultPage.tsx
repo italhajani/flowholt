@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   KeyRound, Plus, Search, Link2, Variable, ShieldCheck, Shield,
@@ -16,7 +16,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { CreateCredentialModal } from "@/components/modals/CreateCredentialModal";
 import { CreateVariableModal } from "@/components/modals/CreateVariableModal";
 import { cn } from "@/lib/utils";
-import { useExportVault, useImportVault } from "@/hooks/useApi";
+import { useExportVault, useImportVault, useVaultCredentials, useVaultConnections, useVaultVariables, useDeleteVaultAsset } from "@/hooks/useApi";
 
 const vaultTabs = [
   { id: "credentials",      label: "Credentials",      icon: KeyRound },
@@ -260,6 +260,41 @@ export function VaultPage() {
   const empty = emptyMessages[activeTab];
   const exportVaultMut = useExportVault();
   const importVaultMut = useImportVault();
+  const deleteMut = useDeleteVaultAsset();
+
+  // Real backend data (falls back to mock if backend unavailable)
+  const { data: realCreds } = useVaultCredentials();
+  const { data: realConns } = useVaultConnections();
+  const { data: realVars } = useVaultVariables();
+
+  const credentials: Credential[] = useMemo(() => {
+    if (!realCreds?.length) return mockCredentials;
+    return realCreds.map(c => ({
+      id: c.id, name: c.name, provider: c.app, type: c.credential_type ?? "API Key",
+      scope: (c.scope === "workspace" ? "Workspace" : c.scope === "team" ? "Team" : "User") as Credential["scope"],
+      status: (c.status === "active" ? "healthy" : c.status) as Credential["status"],
+      lastUsed: c.last_used_at ? new Date(c.last_used_at).toLocaleDateString() : "Never",
+      linkedConnections: c.workflows_count, expiresIn: null,
+    }));
+  }, [realCreds]);
+
+  const connections: Connection[] = useMemo(() => {
+    if (!realConns?.length) return mockConnections;
+    return realConns.map(c => ({
+      id: c.id, name: c.name, app: c.app, type: c.credential_type ?? "API", host: "",
+      health: (c.status === "active" ? "healthy" : c.status === "expiring" ? "warning" : "error") as Connection["health"],
+      lastChecked: c.updated_at ? new Date(c.updated_at).toLocaleDateString() : "—",
+      workflowsUsing: c.workflows_count,
+    }));
+  }, [realConns]);
+
+  const variables: VaultVariable[] = useMemo(() => {
+    if (!realVars?.length) return mockVariables;
+    return realVars.map(v => ({
+      id: v.id, key: v.name, value: "••••••••", scope: v.scope === "workspace" ? "Workspace" : v.scope === "staging" ? "Staging" : "Production",
+      lastModified: v.updated_at ? new Date(v.updated_at).toLocaleDateString() : "—", usedBy: v.workflows_count,
+    }));
+  }, [realVars]);
 
   const handleNewClick = () => {
     if (activeTab === "credentials") setShowCredModal(true);
@@ -291,14 +326,14 @@ export function VaultPage() {
   };
 
   const summaryStats = {
-    total: mockCredentials.length + mockConnections.length + mockVariables.length,
-    healthy: mockCredentials.filter((c) => c.status === "healthy").length + mockConnections.filter((c) => c.health === "healthy").length,
-    expiring: mockCredentials.filter((c) => c.status === "expiring").length + mockConnections.filter((c) => c.health === "warning").length,
-    errors: mockCredentials.filter((c) => c.status === "error").length + mockConnections.filter((c) => c.health === "error").length,
+    total: credentials.length + connections.length + variables.length,
+    healthy: credentials.filter((c) => c.status === "healthy").length + connections.filter((c) => c.health === "healthy").length,
+    expiring: credentials.filter((c) => c.status === "expiring").length + connections.filter((c) => c.health === "warning").length,
+    errors: credentials.filter((c) => c.status === "error").length + connections.filter((c) => c.health === "error").length,
     mcpServers: mockMcpServers.length,
   };
 
-  const expiringCreds = mockCredentials.filter((c) => c.expiresIn && (c.expiresIn === "Expired" || parseInt(c.expiresIn) <= 7));
+  const expiringCreds = credentials.filter((c) => c.expiresIn && (c.expiresIn === "Expired" || parseInt(c.expiresIn) <= 7));
 
   return (
     <div className="mx-auto max-w-[1020px] px-8 py-8">
@@ -381,7 +416,7 @@ export function VaultPage() {
         {activeTab === "credentials" && (
           <DataTable
             columns={credentialColumns}
-            data={mockCredentials.filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()))}
+            data={credentials.filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()))}
             getRowId={(c) => c.id}
             selectable
             onRowClick={(c) => navigate(`/vault/credentials/${c.id}`)}
@@ -395,7 +430,7 @@ export function VaultPage() {
         {activeTab === "connections" && (
           <DataTable
             columns={connectionColumns}
-            data={mockConnections.filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()))}
+            data={connections.filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()))}
             getRowId={(c) => c.id}
             selectable
             onRowClick={(c) => navigate(`/vault/connections/${c.id}`)}
@@ -409,7 +444,7 @@ export function VaultPage() {
         {activeTab === "variables" && (
           <DataTable
             columns={variableColumns}
-            data={mockVariables.filter((v) => !search || v.key.toLowerCase().includes(search.toLowerCase()))}
+            data={variables.filter((v) => !search || v.key.toLowerCase().includes(search.toLowerCase()))}
             getRowId={(v) => v.id}
             selectable
             onRowClick={(v) => console.log("Open variable:", v.id) /* TODO: variable detail page */}

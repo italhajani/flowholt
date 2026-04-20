@@ -11,7 +11,7 @@ import { useCanvasStore } from "./useCanvasStore";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { CodeEditorPanel as CodeEditorPanelInline } from "./CodeEditorPanel";
-import { useStepEditor, useUpdateWorkflowStep, useNodeEditor } from "@/hooks/useApi";
+import { useStepEditor, useUpdateWorkflowStep, useNodeEditor, useVaultCredentials } from "@/hooks/useApi";
 import { testWorkflowStep, type NodeEditorResponse, type NodeEditorField, type NodeEditorSection } from "@/lib/api";
 
 type DataView = "schema" | "table" | "json" | "html" | "binary";
@@ -2113,12 +2113,7 @@ function ParametersContent({
       {config.credential && (
         <div>
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-400">Credentials</p>
-          <div className="flex items-center gap-2 rounded-md border border-zinc-100 bg-zinc-50/50 px-3 py-2 hover:bg-zinc-50 transition-colors cursor-pointer">
-            <span className="h-[6px] w-[6px] rounded-full bg-green-500 flex-shrink-0 animate-pulse" />
-            <span className="text-[12px] text-zinc-700 flex-1">{config.credential}</span>
-            <span className="text-[9px] text-green-600 font-medium">Connected</span>
-            <ChevronRight size={10} className="text-zinc-300" />
-          </div>
+          <CredentialPicker value={config.credential} onChange={() => {}} />
         </div>
       )}
 
@@ -2267,11 +2262,7 @@ function DynamicField({
           compact
         />
       ) : field.type === "credential" ? (
-        <div className="flex items-center gap-2 rounded-md border border-zinc-100 bg-zinc-50/50 px-3 py-2 hover:bg-zinc-50 transition-colors cursor-pointer">
-          <span className="h-[6px] w-[6px] rounded-full bg-green-500 flex-shrink-0 animate-pulse" />
-          <span className="text-[12px] text-zinc-700 flex-1 truncate">{strVal || "Select credential…"}</span>
-          <ChevronRight size={10} className="text-zinc-300" />
-        </div>
+        <CredentialPicker value={strVal} onChange={onChange} />
       ) : field.type === "password" ? (
         <input
           type="password"
@@ -2312,6 +2303,52 @@ function DynamicField({
 }
 
 /* ── Node-specific parameter panels (extracted for reuse) ── */
+/* ── Credential Picker (loads from vault) ── */
+function CredentialPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const { data: creds } = useVaultCredentials();
+  const items = creds ?? [];
+  const selected = items.find(c => c.id === value || c.name === value);
+  return (
+    <div className="relative">
+      <div
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 rounded-md border border-zinc-100 bg-zinc-50/50 px-3 py-2 hover:bg-zinc-50 transition-colors cursor-pointer"
+      >
+        <span className={cn("h-[6px] w-[6px] rounded-full flex-shrink-0", selected ? "bg-green-500 animate-pulse" : "bg-zinc-300")} />
+        <span className="text-[12px] text-zinc-700 flex-1 truncate">{selected?.name || value || "Select credential…"}</span>
+        {selected && <span className="text-[9px] text-green-600 font-medium">Connected</span>}
+        <ChevronDown size={10} className={cn("text-zinc-300 transition-transform", open && "rotate-180")} />
+      </div>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-auto rounded-lg border border-zinc-200 bg-white shadow-lg">
+          {items.length === 0 ? (
+            <div className="px-3 py-4 text-center text-[11px] text-zinc-400">No credentials in vault</div>
+          ) : items.map(c => (
+            <div
+              key={c.id}
+              onClick={() => { onChange(c.id); setOpen(false); }}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-zinc-50 cursor-pointer transition-colors",
+                (c.id === value || c.name === value) && "bg-blue-50 text-blue-700"
+              )}
+            >
+              <span className={cn("h-[5px] w-[5px] rounded-full", c.status === "active" ? "bg-green-500" : c.status === "expiring" ? "bg-amber-500" : "bg-red-500")} />
+              <span className="flex-1 truncate">{c.name}</span>
+              <span className="text-[10px] text-zinc-400">{c.app}</span>
+            </div>
+          ))}
+          <div className="border-t border-zinc-100 px-3 py-2">
+            <button className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700">
+              <Plus size={10} /> Create new credential
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NodeSpecificParams({ nodeName }: { nodeName: string }) {
   return (
     <>

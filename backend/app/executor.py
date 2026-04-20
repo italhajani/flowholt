@@ -712,6 +712,170 @@ def run_workflow_definition(
                 else:
                     output = dict(payload)
                 context.update(output)
+
+            # ── Sort node ────────────────────────────────────────────
+            elif step_type == "sort":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                sort_keys = config.get("sort_keys") or [{"field": "", "order": "asc"}]
+                case_sensitive = bool(config.get("case_sensitive", False))
+                nulls_position = config.get("nulls_position", "last")
+                output_key = config.get("output_key", "sorted")
+
+                def _sort_key_fn(item: Any) -> tuple:
+                    parts: list[Any] = []
+                    for sk in sort_keys:
+                        fld = sk.get("field", "")
+                        val = _lookup_path_value(item, fld) if fld else item
+                        is_null = val is None
+                        if is_null:
+                            null_sentinel = (1,) if nulls_position == "last" else (-1,)
+                            parts.append(null_sentinel)
+                            continue
+                        try:
+                            num_val = float(val)
+                            parts.append((0, num_val))
+                        except (ValueError, TypeError):
+                            str_val = str(val) if case_sensitive else str(val).lower()
+                            parts.append((0, str_val))
+                    return tuple(parts)
+
+                sorted_items = sorted(source_items, key=_sort_key_fn)
+                # Reverse entire list for descending on first key; multi-key handled by tuple sort
+                first_order = (sort_keys[0].get("order", "asc") if sort_keys else "asc")
+                if first_order == "desc":
+                    sorted_items = list(reversed(sorted_items))
+
+                output = {"items": sorted_items, "count": len(sorted_items)}
+                context[output_key] = sorted_items
+                context.update(output)
+
+            # ── Summarize node (data aggregation) ────────────────────
+            elif step_type == "summarize":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                group_by_fields = config.get("group_by") or []
+                aggregations = config.get("aggregations") or [{"field": "", "operation": "count", "alias": "count"}]
+                output_key = config.get("output_key", "summary")
+
+                groups: dict[str, list[Any]] = {}
+                for item in source_items:
+                    if group_by_fields:
+                        key_parts = [str(_lookup_path_value(item, f) or "") for f in group_by_fields]
+                        group_key = "||".join(key_parts)
+                    else:
+                        group_key = "__all__"
+                    groups.setdefault(group_key, []).append(item)
+
+                summary_rows: list[dict[str, Any]] = []
+                for group_key, group_items in groups.items():
+                    row: dict[str, Any] = {}
+                    if group_by_fields:
+                        for i, gf in enumerate(group_by_fields):
+                            row[gf] = _lookup_path_value(group_items[0], gf) if group_items else None
+
+                    for agg in aggregations:
+                        agg_field = agg.get("field", "")
+                        agg_op = agg.get("operation", "count")
+                        alias = agg.get("alias") or f"{agg_op}_{agg_field}" or agg_op
+
+                        values = [_lookup_path_value(it, agg_field) for it in group_items] if agg_field else group_items
+
+                        if agg_op == "count":
+                            row[alias] = len(values)
+                        elif agg_op == "sum":
+                            row[alias] = sum(float(v or 0) for v in values)
+                        elif agg_op == "avg":
+                            nums = [float(v or 0) for v in values]
+                            row[alias] = sum(nums) / len(nums) if nums else 0
+                        elif agg_op == "min":
+                            nums = [float(v) for v in values if v is not None]
+                            row[alias] = min(nums) if nums else None
+                        elif agg_op == "max":
+                            nums = [float(v) for v in values if v is not None]
+                            row[alias] = max(nums) if nums else None
+                        elif agg_op == "concat":
+                            row[alias] = ", ".join(str(v) for v in values if v is not None)
+                        elif agg_op == "first":
+                            row[alias] = values[0] if values else None
+                        elif agg_op == "last":
+                            row[alias] = values[-1] if values else None
+                        elif agg_op == "count_unique":
+                            row[alias] = len(set(str(v) for v in values if v is not None))
+                        else:
+                            row[alias] = len(values)
+
+                    summary_rows.append(row)
+
+                output = {"groups": summary_rows, "group_count": len(summary_rows), "total_items": len(source_items)}
+                context[output_key] = summary_rows
+                context.update(output)
+
+            # ── Compare Datasets node ────────────────────────────────
+            elif step_type == "compare_datasets":
+                ds_a_key = config.get("dataset_a", "")
+                ds_b_key = config.get("dataset_b", "")
+                match_field = config.get("match_field", "id")
+                compare_mode = config.get("compare_mode", "full_diff")
+                compare_fields = config.get("compare_fields") or []
+                output_key = config.get("output_key", "diff_result")
+
+                dataset_a = _resolve_collection_source(ds_a_key, context, payload)
+                dataset_b = _resolve_collection_source(ds_b_key, context, payload)
+
+                lookup_a: dict[str, dict[str, Any]] = {}
+                for item in dataset_a:
+                    if isinstance(item, dict):
+                        key = str(item.get(match_field, ""))
+                        lookup_a[key] = item
+
+                lookup_b: dict[str, dict[str, Any]] = {}
+                for item in dataset_b:
+                    if isinstance(item, dict):
+                        key = str(item.get(match_field, ""))
+                        lookup_b[key] = item
+
+                added = [v for k, v in lookup_b.items() if k not in lookup_a]
+                removed = [v for k, v in lookup_a.items() if k not in lookup_b]
+
+                changed = []
+                unchanged = []
+                for key in lookup_a:
+                    if key in lookup_b:
+                        a_item = lookup_a[key]
+                        b_item = lookup_b[key]
+                        fields_to_compare = compare_fields or [f for f in set(list(a_item.keys()) + list(b_item.keys())) if f != match_field]
+                        diffs: dict[str, Any] = {}
+                        for fld in fields_to_compare:
+                            val_a = a_item.get(fld)
+                            val_b = b_item.get(fld)
+                            if val_a != val_b:
+                                diffs[fld] = {"from": val_a, "to": val_b}
+                        if diffs:
+                            changed.append({**b_item, "_changes": diffs})
+                        else:
+                            unchanged.append(a_item)
+
+                if compare_mode == "added":
+                    output = {"items": added, "count": len(added)}
+                elif compare_mode == "removed":
+                    output = {"items": removed, "count": len(removed)}
+                elif compare_mode == "changed":
+                    output = {"items": changed, "count": len(changed)}
+                elif compare_mode == "unchanged":
+                    output = {"items": unchanged, "count": len(unchanged)}
+                else:
+                    output = {
+                        "added": added,
+                        "removed": removed,
+                        "changed": changed,
+                        "unchanged": unchanged,
+                        "added_count": len(added),
+                        "removed_count": len(removed),
+                        "changed_count": len(changed),
+                        "unchanged_count": len(unchanged),
+                    }
+
+                context[output_key] = output
+                context.update(output)
             else:
                 output = {"note": f"Unsupported step type '{step_type}' skipped."}
                 status = "skipped"

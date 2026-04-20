@@ -1234,6 +1234,45 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  /* ── Sort node hero ── */
+  if (name === "Sort") {
+    return (
+      <div className="rounded-lg border border-indigo-100 bg-gradient-to-r from-indigo-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-indigo-100 text-[8px] font-bold text-indigo-700">↕</span>
+          <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider">Sort</span>
+        </div>
+        <p className="text-[10px] text-indigo-600">Sort items by one or more fields. Supports ascending, descending, case sensitivity, and null handling.</p>
+      </div>
+    );
+  }
+
+  /* ── Summarize node hero ── */
+  if (name === "Summarize") {
+    return (
+      <div className="rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-violet-100 text-[8px] font-bold text-violet-700">Σ</span>
+          <span className="text-[10px] font-semibold text-violet-700 uppercase tracking-wider">Summarize</span>
+        </div>
+        <p className="text-[10px] text-violet-600">Group items and compute aggregates: count, sum, average, min, max, and more.</p>
+      </div>
+    );
+  }
+
+  /* ── Compare Datasets node hero ── */
+  if (name === "Compare Datasets" || name === "Compare") {
+    return (
+      <div className="rounded-lg border border-pink-100 bg-gradient-to-r from-pink-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-pink-100 text-[8px] font-bold text-pink-700">↔</span>
+          <span className="text-[10px] font-semibold text-pink-700 uppercase tracking-wider">Compare Datasets</span>
+        </div>
+        <p className="text-[10px] text-pink-600">Find added, removed, changed, and unchanged items between two datasets.</p>
+      </div>
+    );
+  }
+
   /* ── Sub-workflow hero ── */
   if (name === "Sub-workflow" || name === "Execute Workflow") {
     return (
@@ -1507,6 +1546,10 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
       {nodeName === "Wait" && <WaitNodeParams />}
       {nodeName === "Switch" && <SwitchNodeParams />}
       {nodeName === "Merge" && <MergeNodeParams />}
+      {nodeName === "Sort" && <SortNodeParams />}
+      {nodeName === "Summarize" && <SummarizeNodeParams />}
+      {(nodeName === "Compare Datasets" || nodeName === "Compare") && <CompareNodeParams />}
+      {(nodeName === "Set" || nodeName === "Edit Fields" || nodeName === "Set / Edit Fields") && <EditFieldsParams />}
       {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
       {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
       {nodeName === "Chat Trigger" && <ChatTriggerParams />}
@@ -1879,6 +1922,385 @@ function MergeNodeParams() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Sort Node Params ── */
+function SortNodeParams() {
+  const [sortKeys, setSortKeys] = useState([{ id: "sk1", field: "", order: "asc" as "asc" | "desc" }]);
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [nullsPosition, setNullsPosition] = useState<"last" | "first">("last");
+
+  const addKey = () =>
+    setSortKeys((k) => [...k, { id: `sk${Date.now()}`, field: "", order: "asc" as "asc" | "desc" }]);
+  const removeKey = (id: string) => setSortKeys((k) => k.filter((kk) => kk.id !== id));
+  const updateKey = (id: string, key: string, val: string) =>
+    setSortKeys((k) => k.map((kk) => (kk.id === id ? { ...kk, [key]: val } : kk)));
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Sort By</p>
+        {sortKeys.map((sk, idx) => (
+          <div key={sk.id} className="flex items-center gap-1.5">
+            <span className="text-[9px] text-zinc-300 w-4 text-center">{idx + 1}.</span>
+            <input
+              value={sk.field}
+              onChange={(e) => updateKey(sk.id, "field", e.target.value)}
+              placeholder="field.path"
+              className="h-7 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+            />
+            <select
+              value={sk.order}
+              onChange={(e) => updateKey(sk.id, "order", e.target.value)}
+              className="h-7 w-20 rounded border border-zinc-200 bg-white px-1 text-[10px] text-zinc-700 focus:outline-none"
+            >
+              <option value="asc">A → Z</option>
+              <option value="desc">Z → A</option>
+            </select>
+            {sortKeys.length > 1 && (
+              <button onClick={() => removeKey(sk.id)} className="text-zinc-300 hover:text-red-500 transition-colors">
+                <XCircle size={12} />
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          onClick={addKey}
+          className="flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-3 py-1 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-all w-full justify-center"
+        >
+          <Plus size={10} /> Add sort key
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <FieldGroup label="Case Sensitive">
+          <button
+            onClick={() => setCaseSensitive(!caseSensitive)}
+            className={cn(
+              "h-7 w-full rounded-md border px-2 text-[10px] font-medium transition-all",
+              caseSensitive ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-zinc-200 text-zinc-500"
+            )}
+          >
+            {caseSensitive ? "Yes" : "No"}
+          </button>
+        </FieldGroup>
+        <FieldGroup label="Nulls">
+          <select
+            value={nullsPosition}
+            onChange={(e) => setNullsPosition(e.target.value as typeof nullsPosition)}
+            className="h-7 w-full rounded-md border border-zinc-200 bg-white px-2 text-[10px] text-zinc-700 focus:outline-none"
+          >
+            <option value="last">Last</option>
+            <option value="first">First</option>
+          </select>
+        </FieldGroup>
+      </div>
+    </div>
+  );
+}
+
+/* ── Summarize Node Params ── */
+function SummarizeNodeParams() {
+  const [groupBy, setGroupBy] = useState("");
+  const [aggregations, setAggregations] = useState([
+    { id: "a1", field: "", operation: "count", alias: "count" },
+  ]);
+
+  const operations = [
+    { value: "count", label: "Count" },
+    { value: "sum", label: "Sum" },
+    { value: "avg", label: "Average" },
+    { value: "min", label: "Min" },
+    { value: "max", label: "Max" },
+    { value: "concat", label: "Concatenate" },
+    { value: "first", label: "First" },
+    { value: "last", label: "Last" },
+    { value: "count_unique", label: "Count Unique" },
+  ];
+
+  const addAgg = () =>
+    setAggregations((a) => [...a, { id: `a${Date.now()}`, field: "", operation: "count", alias: "" }]);
+  const removeAgg = (id: string) => setAggregations((a) => a.filter((aa) => aa.id !== id));
+  const updateAgg = (id: string, key: string, val: string) =>
+    setAggregations((a) => a.map((aa) => (aa.id === id ? { ...aa, [key]: val } : aa)));
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Group By" description="Fields to group items by (comma-separated). Leave empty for one group.">
+        <input
+          value={groupBy}
+          onChange={(e) => setGroupBy(e.target.value)}
+          placeholder="e.g. category, region"
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 font-mono focus:outline-none transition-all"
+        />
+      </FieldGroup>
+
+      <div className="space-y-2">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Aggregations</p>
+        {aggregations.map((agg) => (
+          <div key={agg.id} className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-2 space-y-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
+              <input
+                value={agg.field}
+                onChange={(e) => updateAgg(agg.id, "field", e.target.value)}
+                placeholder="field"
+                className="h-6 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+              />
+              <select
+                value={agg.operation}
+                onChange={(e) => updateAgg(agg.id, "operation", e.target.value)}
+                className="h-6 rounded border border-zinc-200 bg-white px-1 text-[10px] text-zinc-700 focus:outline-none"
+              >
+                {operations.map((op) => (
+                  <option key={op.value} value={op.value}>
+                    {op.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1">
+                <input
+                  value={agg.alias}
+                  onChange={(e) => updateAgg(agg.id, "alias", e.target.value)}
+                  placeholder="alias"
+                  className="h-6 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+                />
+                {aggregations.length > 1 && (
+                  <button onClick={() => removeAgg(agg.id)} className="text-zinc-300 hover:text-red-500 transition-colors">
+                    <XCircle size={10} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={addAgg}
+          className="flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-3 py-1 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-all w-full justify-center"
+        >
+          <Plus size={10} /> Add aggregation
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Compare Datasets Node Params ── */
+function CompareNodeParams() {
+  const [matchField, setMatchField] = useState("id");
+  const [compareMode, setCompareMode] = useState("full_diff");
+  const [compareFields, setCompareFields] = useState("");
+
+  const modes = [
+    { value: "full_diff", label: "Full Diff", desc: "All categories", color: "text-zinc-700" },
+    { value: "added", label: "Added", desc: "New items in B", color: "text-green-600" },
+    { value: "removed", label: "Removed", desc: "Missing from B", color: "text-red-600" },
+    { value: "changed", label: "Changed", desc: "Modified items", color: "text-amber-600" },
+    { value: "unchanged", label: "Unchanged", desc: "Identical items", color: "text-zinc-400" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Match By Field" description="Unique key to identify items across datasets">
+        <input
+          value={matchField}
+          onChange={(e) => setMatchField(e.target.value)}
+          placeholder="id"
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 font-mono focus:outline-none transition-all"
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Output Mode">
+        <div className="space-y-1">
+          {modes.map((m) => (
+            <button
+              key={m.value}
+              onClick={() => setCompareMode(m.value)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg border px-3 py-1.5 text-left transition-all",
+                compareMode === m.value
+                  ? "border-pink-300 bg-pink-50/80 ring-1 ring-pink-200"
+                  : "border-zinc-200 hover:border-zinc-300"
+              )}
+            >
+              <div
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full border-2 flex-shrink-0 transition-all",
+                  compareMode === m.value ? "border-pink-500 bg-pink-500" : "border-zinc-300"
+                )}
+              />
+              <span className={cn("text-[10px] font-medium", compareMode === m.value ? m.color : "text-zinc-500")}>
+                {m.label}
+              </span>
+              <span className="text-[9px] text-zinc-400 ml-auto">{m.desc}</span>
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      <FieldGroup label="Compare Fields" description="Specific fields to check for changes (comma-separated, empty = all)">
+        <input
+          value={compareFields}
+          onChange={(e) => setCompareFields(e.target.value)}
+          placeholder="name, email, status"
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 font-mono focus:outline-none transition-all"
+        />
+      </FieldGroup>
+
+      <div className="rounded-md border border-zinc-200 bg-zinc-50/50 p-2.5">
+        <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-wider mb-1">Comparison Flow</p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded border border-zinc-200 bg-white p-1.5 text-center">
+            <span className="text-[9px] text-zinc-500">Dataset A</span>
+          </div>
+          <span className="text-[10px] text-zinc-400">↔</span>
+          <div className="flex-1 rounded border border-zinc-200 bg-white p-1.5 text-center">
+            <span className="text-[9px] text-zinc-500">Dataset B</span>
+          </div>
+          <span className="text-[10px] text-zinc-400">→</span>
+          <div className="flex-1 rounded border border-pink-200 bg-pink-50 p-1.5 text-center">
+            <span className="text-[9px] text-pink-600 font-medium">Diff</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Edit Fields Node Params ── */
+function EditFieldsParams() {
+  const [mode, setMode] = useState<"set" | "rename" | "remove">("set");
+  const [fields, setFields] = useState([{ id: "ef1", key: "", value: "" }]);
+  const [renameFields, setRenameFields] = useState([{ id: "rf1", from: "", to: "" }]);
+  const [removeFields, setRemoveFields] = useState([{ id: "rm1", field: "" }]);
+
+  const addField = () => setFields((f) => [...f, { id: `ef${Date.now()}`, key: "", value: "" }]);
+  const addRename = () => setRenameFields((f) => [...f, { id: `rf${Date.now()}`, from: "", to: "" }]);
+  const addRemove = () => setRemoveFields((f) => [...f, { id: `rm${Date.now()}`, field: "" }]);
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Operation">
+        <div className="grid grid-cols-3 gap-1">
+          {(["set", "rename", "remove"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={cn(
+                "rounded-lg border px-2 py-1.5 text-[10px] font-medium transition-all text-center capitalize",
+                mode === m ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
+              )}
+            >
+              {m === "set" ? "Set / Add" : m === "rename" ? "Rename" : "Remove"}
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {mode === "set" && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Fields to Set</p>
+          {fields.map((f) => (
+            <div key={f.id} className="flex items-center gap-1.5">
+              <input
+                value={f.key}
+                onChange={(e) => setFields((flds) => flds.map((ff) => (ff.id === f.id ? { ...ff, key: e.target.value } : ff)))}
+                placeholder="field name"
+                className="h-7 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+              />
+              <span className="text-[9px] text-zinc-300">=</span>
+              <input
+                value={f.value}
+                onChange={(e) => setFields((flds) => flds.map((ff) => (ff.id === f.id ? { ...ff, value: e.target.value } : ff)))}
+                placeholder="value or expression"
+                className="h-7 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+              />
+              {fields.length > 1 && (
+                <button
+                  onClick={() => setFields((flds) => flds.filter((ff) => ff.id !== f.id))}
+                  className="text-zinc-300 hover:text-red-500 transition-colors"
+                >
+                  <XCircle size={10} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={addField}
+            className="flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-3 py-1 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-all w-full justify-center"
+          >
+            <Plus size={10} /> Add field
+          </button>
+        </div>
+      )}
+
+      {mode === "rename" && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Fields to Rename</p>
+          {renameFields.map((f) => (
+            <div key={f.id} className="flex items-center gap-1.5">
+              <input
+                value={f.from}
+                onChange={(e) => setRenameFields((flds) => flds.map((ff) => (ff.id === f.id ? { ...ff, from: e.target.value } : ff)))}
+                placeholder="current name"
+                className="h-7 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+              />
+              <span className="text-[9px] text-zinc-300">→</span>
+              <input
+                value={f.to}
+                onChange={(e) => setRenameFields((flds) => flds.map((ff) => (ff.id === f.id ? { ...ff, to: e.target.value } : ff)))}
+                placeholder="new name"
+                className="h-7 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+              />
+              {renameFields.length > 1 && (
+                <button
+                  onClick={() => setRenameFields((flds) => flds.filter((ff) => ff.id !== f.id))}
+                  className="text-zinc-300 hover:text-red-500 transition-colors"
+                >
+                  <XCircle size={10} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={addRename}
+            className="flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-3 py-1 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-all w-full justify-center"
+          >
+            <Plus size={10} /> Add rename
+          </button>
+        </div>
+      )}
+
+      {mode === "remove" && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Fields to Remove</p>
+          {removeFields.map((f) => (
+            <div key={f.id} className="flex items-center gap-1.5">
+              <input
+                value={f.field}
+                onChange={(e) => setRemoveFields((flds) => flds.map((ff) => (ff.id === f.id ? { ...ff, field: e.target.value } : ff)))}
+                placeholder="field name"
+                className="h-7 flex-1 rounded border border-zinc-200 bg-white px-2 text-[10px] font-mono text-zinc-700 focus:outline-none"
+              />
+              {removeFields.length > 1 && (
+                <button
+                  onClick={() => setRemoveFields((flds) => flds.filter((ff) => ff.id !== f.id))}
+                  className="text-zinc-300 hover:text-red-500 transition-colors"
+                >
+                  <XCircle size={10} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={addRemove}
+            className="flex items-center gap-1 rounded-md border border-dashed border-zinc-300 px-3 py-1 text-[10px] text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 transition-all w-full justify-center"
+          >
+            <Plus size={10} /> Add field
+          </button>
+        </div>
+      )}
     </div>
   );
 }

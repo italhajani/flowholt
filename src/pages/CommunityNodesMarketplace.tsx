@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Search, Download, Star, Package, ExternalLink, CheckCircle2, AlertTriangle,
   User, Globe, Code2, Zap, Shield, Filter, X, Play, FileText, GitBranch,
@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { useCommunityNodes, useInstallCommunityNode, useUninstallCommunityNode } from "@/hooks/useApi";
 
 /* ── Types ── */
 interface CommunityNode {
@@ -96,7 +97,28 @@ export function CommunityNodesMarketplace() {
   const [selectedNode, setSelectedNode] = useState<CommunityNode | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
 
-  const filtered = mockNodes
+  const { data: apiNodes } = useCommunityNodes();
+  const installMut = useInstallCommunityNode();
+  const uninstallMut = useUninstallCommunityNode();
+
+  const allNodes: CommunityNode[] = useMemo(() => {
+    if (apiNodes && apiNodes.length > 0) {
+      return apiNodes.map((n) => ({
+        ...n,
+        displayName: n.displayName,
+        authorAvatar: n.author.slice(0, 2).toUpperCase(),
+        longDescription: n.description,
+        ratingCount: 0,
+        updatedAt: "",
+        nodeCount: 1,
+        license: "MIT",
+        repoUrl: "#",
+      }));
+    }
+    return mockNodes;
+  }, [apiNodes]);
+
+  const filtered = allNodes
     .filter(n => {
       if (activeCategory !== "All" && !n.tags.includes(activeCategory)) return false;
       if (search && !n.name.toLowerCase().includes(search.toLowerCase()) && !n.description.toLowerCase().includes(search.toLowerCase()) && !n.displayName.toLowerCase().includes(search.toLowerCase())) return false;
@@ -111,7 +133,7 @@ export function CommunityNodesMarketplace() {
 
   const handleInstall = (nodeId: string) => {
     setInstalling(nodeId);
-    setTimeout(() => setInstalling(null), 2000);
+    installMut.mutate(nodeId, { onSettled: () => setInstalling(null) });
   };
 
   return (
@@ -122,7 +144,7 @@ export function CommunityNodesMarketplace() {
         actions={
           <div className="flex items-center gap-2">
             <button className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
-              <Package size={13} /> My Installed ({mockNodes.filter(n => n.installed).length})
+              <Package size={13} /> My Installed ({allNodes.filter(n => n.installed).length})
             </button>
             <button className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white hover:bg-zinc-800 transition-colors">
               <Code2 size={14} /> Publish Node
@@ -134,10 +156,10 @@ export function CommunityNodesMarketplace() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Available", value: mockNodes.length, icon: Package, color: "text-violet-600" },
-          { label: "Installed", value: mockNodes.filter(n => n.installed).length, icon: CheckCircle2, color: "text-green-600" },
-          { label: "Total Downloads", value: formatDownloads(mockNodes.reduce((s, n) => s + n.downloads, 0)), icon: Download, color: "text-blue-600" },
-          { label: "Verified", value: mockNodes.filter(n => n.verified).length, icon: Shield, color: "text-amber-600" },
+          { label: "Available", value: allNodes.length, icon: Package, color: "text-violet-600" },
+          { label: "Installed", value: allNodes.filter(n => n.installed).length, icon: CheckCircle2, color: "text-green-600" },
+          { label: "Total Downloads", value: formatDownloads(allNodes.reduce((s, n) => s + n.downloads, 0)), icon: Download, color: "text-blue-600" },
+          { label: "Verified", value: allNodes.filter(n => n.verified).length, icon: Shield, color: "text-amber-600" },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-3">
             <div className="flex items-center gap-2 mb-1">

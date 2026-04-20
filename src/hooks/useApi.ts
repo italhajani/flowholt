@@ -156,6 +156,15 @@ import {
   type TemplateSummary,
   fetchNotificationPreferences,
   updateNotificationPreferences,
+  fetchUsageSummary,
+  fetchSourceControlConfig,
+  updateSourceControlConfig,
+  fetchCommunityNodes,
+  installCommunityNode,
+  uninstallCommunityNode,
+  fetchEnvironmentStages,
+  fetchDeployments,
+  promoteStage,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -1326,5 +1335,64 @@ export function useUpdateNotificationPreferences() {
   return useMutation({
     mutationFn: updateNotificationPreferences,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notification-preferences"] }),
+  });
+}
+
+/* ── Billing / Usage ── */
+export function useUsageSummary() {
+  return useQuery({ queryKey: ["billing-usage"], queryFn: fetchUsageSummary });
+}
+
+/* ── Source Control ── */
+export function useSourceControlConfig() {
+  return useQuery({ queryKey: ["source-control-config"], queryFn: fetchSourceControlConfig });
+}
+
+export function useUpdateSourceControlConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: updateSourceControlConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["source-control-config"] }),
+  });
+}
+
+/* ── Community Nodes ── */
+export function useCommunityNodes() {
+  return useQuery({ queryKey: ["community-nodes"], queryFn: fetchCommunityNodes });
+}
+
+export function useInstallCommunityNode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: installCommunityNode,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["community-nodes"] }),
+  });
+}
+
+export function useUninstallCommunityNode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: uninstallCommunityNode,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["community-nodes"] }),
+  });
+}
+
+/* ── Environment / Deployments ── */
+export function useEnvironmentStages() {
+  return useQuery({ queryKey: ["environment-stages"], queryFn: fetchEnvironmentStages });
+}
+
+export function useDeployments() {
+  return useQuery({ queryKey: ["deployments"], queryFn: fetchDeployments });
+}
+
+export function usePromoteStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { from: string; to: string }) => promoteStage(params.from, params.to),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["environment-stages"] });
+      qc.invalidateQueries({ queryKey: ["deployments"] });
+    },
   });
 }

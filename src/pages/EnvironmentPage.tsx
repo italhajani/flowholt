@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Globe, GitCompare, ArrowRight, CheckCircle2, Circle, Clock, Upload, GitBranch, Tag, AlertTriangle, Settings, Server, Activity, Layers, Lock, ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useEnvironmentStages, useDeployments } from "@/hooks/useApi";
 
 const envTabs = ["Pipeline", "Variables", "Deployments"] as const;
 type EnvTab = (typeof envTabs)[number];
@@ -97,6 +98,37 @@ export function EnvironmentPage() {
   const [activeTab, setActiveTab] = useState<EnvTab>("Pipeline");
   const [showSecrets, setShowSecrets] = useState(false);
 
+  const { data: apiStages } = useEnvironmentStages();
+  const { data: apiDeployments } = useDeployments();
+
+  const stageList: Stage[] = useMemo(() => {
+    if (apiStages && apiStages.length > 0)
+      return apiStages.map((s) => ({
+        name: s.name,
+        status: s.status,
+        version: s.version,
+        workflows: s.workflows,
+        lastDeploy: s.lastDeploy ?? "Never",
+        health: s.health,
+      }));
+    return stages;
+  }, [apiStages]);
+
+  const deploymentList: Deployment[] = useMemo(() => {
+    if (apiDeployments && apiDeployments.length > 0)
+      return apiDeployments.map((d) => ({
+        id: d.id,
+        version: d.version,
+        from: d.from,
+        to: d.to,
+        status: d.status,
+        deployedBy: d.deployedBy,
+        timestamp: d.timestamp,
+        workflows: d.workflows,
+      }));
+    return mockDeployments;
+  }, [apiDeployments]);
+
   return (
     <div className="mx-auto max-w-[1020px] px-8 py-8">
       <PageHeader
@@ -117,10 +149,10 @@ export function EnvironmentPage() {
 
       {/* Pipeline visualization */}
       <div className="mt-6 flex items-center gap-3">
-        {stages.map((stage, i) => (
+        {stageList.map((stage, i) => (
           <div key={stage.name} className="flex items-center gap-3 flex-1">
             <StageCard stage={stage} usage={stageUsage[stage.name]} />
-            {i < stages.length - 1 && (
+            {i < stageList.length - 1 && (
               <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
                 <ArrowRight size={16} className="text-zinc-300" />
                 <span className="text-[9px] text-zinc-300">promote</span>
@@ -234,7 +266,7 @@ export function EnvironmentPage() {
 
         {activeTab === "Deployments" && (
           <div className="rounded-lg border border-zinc-100 bg-white overflow-hidden shadow-xs divide-y divide-zinc-50">
-            {mockDeployments.map((dep) => (
+            {deploymentList.map((dep) => (
               <div key={dep.id} className="flex items-center gap-4 px-5 py-3 hover:bg-zinc-50/50 transition-colors">
                 {dep.status === "success" ? (
                   <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" />

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
 import { Download, CreditCard, TrendingUp, AlertTriangle, ArrowUpRight, BarChart3, Users } from "lucide-react";
+import { useUsageSummary } from "@/hooks/useApi";
 
 /* ── Top Consuming Workflows ── */
 interface WorkflowUsage {
@@ -138,9 +139,13 @@ function UsageForecastChart() {
 
 export function BillingSettings() {
   const [autoCredit, setAutoCredit] = useState(false);
+  const { data: usageData } = useUsageSummary();
 
-  const creditUsed = 18234;
-  const creditTotal = 25000;
+  const plan = usageData?.plan ?? "Pro";
+  const creditUsed = usageData?.creditsUsed ?? 18234;
+  const creditTotal = usageData?.creditsLimit ?? 25000;
+  const renewal = usageData?.renewalDate ?? "April 15, 2026";
+  const cost = usageData?.costThisMonth ?? "$29/month";
   const creditPct = Math.round((creditUsed / creditTotal) * 100);
   const isNearLimit = creditPct >= 80;
 
@@ -153,11 +158,11 @@ export function BillingSettings() {
         {/* Section 1: Current Plan with overage warning */}
         <div className="rounded-lg border border-zinc-100 bg-white p-5 shadow-xs">
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-[16px] font-semibold text-zinc-900">Pro</p>
+            <p className="text-[16px] font-semibold text-zinc-900">{plan}</p>
             <Badge variant="info">Current Plan</Badge>
           </div>
-          <p className="text-[13px] text-zinc-600 mb-1">$29/month · 25,000 credits included</p>
-          <p className="text-[12px] text-zinc-400 mb-4">Renews April 15, 2026</p>
+          <p className="text-[13px] text-zinc-600 mb-1">{cost} · {creditTotal.toLocaleString()} credits included</p>
+          <p className="text-[12px] text-zinc-400 mb-4">Renews {renewal}</p>
 
           {/* Credit gauge with threshold indicators */}
           <div className="mb-4">

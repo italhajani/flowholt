@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Search, Send, ChevronDown, ChevronRight, Copy } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Search, Send, ChevronDown, ChevronRight, Copy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { getToken } from "@/lib/api";
 
 /* ── Endpoint catalogue ── */
 interface Endpoint {
@@ -100,6 +101,45 @@ export function ApiPlaygroundPage() {
   const [requestBody, setRequestBody] = useState("");
   const [showHeaders, setShowHeaders] = useState(false);
   const [hasSent, setHasSent] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [liveResponse, setLiveResponse] = useState<{ status: number; statusText: string; time: string; body: string; headers: Record<string, string> } | null>(null);
+
+  const sendRequest = useCallback(async () => {
+    setLoading(true);
+    setHasSent(true);
+    setLiveResponse(null);
+    const start = performance.now();
+    try {
+      let resolvedPath = selectedEndpoint.path;
+      selectedEndpoint.pathParams?.forEach((p) => {
+        resolvedPath = resolvedPath.replace(`:${p}`, paramValues[p] || p);
+      });
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const savedToken = getToken();
+      if (authType === "bearer" && token) headers["Authorization"] = `Bearer ${token}`;
+      else if (authType === "api-key" && token) headers["X-API-Key"] = token;
+      else if (savedToken) headers["Authorization"] = `Bearer ${savedToken}`;
+
+      const init: RequestInit = { method: selectedEndpoint.method, headers };
+      if (selectedEndpoint.hasBody && requestBody) init.body = requestBody;
+
+      const res = await fetch(resolvedPath, init);
+      const elapsed = `${Math.round(performance.now() - start)}ms`;
+      const respHeaders: Record<string, string> = {};
+      res.headers.forEach((v, k) => { respHeaders[k] = v; });
+      let body = "";
+      try {
+        const text = await res.text();
+        try { body = JSON.stringify(JSON.parse(text), null, 2); } catch { body = text; }
+      } catch { /* empty */ }
+      setLiveResponse({ status: res.status, statusText: res.statusText, time: elapsed, body, headers: respHeaders });
+    } catch (err) {
+      const elapsed = `${Math.round(performance.now() - start)}ms`;
+      setLiveResponse({ status: 0, statusText: "Network Error", time: elapsed, body: String(err), headers: {} });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedEndpoint, authType, token, requestBody]);
 
   const paramValues: Record<string, string> = {};
   selectedEndpoint.pathParams?.forEach((p) => { paramValues[p] = ""; });
@@ -208,20 +248,25 @@ export function ApiPlaygroundPage() {
 
         {/* Send button */}
         <div className="mt-5 mb-6">
-          <Button variant="primary" size="md" onClick={() => setHasSent(true)}>
-            <Send size={13} /> Send Request
+          <Button variant="primary" size="md" onClick={sendRequest} disabled={loading}>
+            {loading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Send Request
           </Button>
         </div>
 
         {/* Response */}
-        {hasSent && (
+        {hasSent && (() => {
+          const resp = liveResponse ?? selectedEndpoint.mockResponse;
+          const respHeaders = liveResponse?.headers ?? {};
+          return (
           <div className="rounded-lg border border-zinc-100 bg-white shadow-xs overflow-hidden">
             {/* Response header */}
             <div className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: "1px solid #f4f4f5" }}>
-              <Badge variant={statusBadgeVariant(selectedEndpoint.mockResponse.status)}>
-                {selectedEndpoint.mockResponse.status} {selectedEndpoint.mockResponse.statusText}
+              <Badge variant={statusBadgeVariant(resp.status)}>
+                {resp.status} {resp.statusText}
               </Badge>
-              <span className="text-[11px] font-mono text-zinc-400">{selectedEndpoint.mockResponse.time}</span>
+              <span className="text-[11px] font-mono text-zinc-400">{resp.time}</span>
+              {liveResponse && <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded">LIVE</span>}
+              {!liveResponse && <span className="text-[10px] font-medium text-zinc-400 bg-zinc-50 px-1.5 py-0.5 rounded">MOCK</span>}
               <button
                 onClick={() => setShowHeaders((v) => !v)}
                 className="ml-auto flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
@@ -234,20 +279,26 @@ export function ApiPlaygroundPage() {
             {/* Collapsible headers */}
             {showHeaders && (
               <div className="px-5 py-3 bg-zinc-50 text-[11px] font-mono text-zinc-500 space-y-1" style={{ borderBottom: "1px solid #f4f4f5" }}>
-                <p>content-type: application/json</p>
-                <p>x-request-id: req_a1b2c3d4</p>
-                <p>x-ratelimit-remaining: 999</p>
+                {liveResponse ? Object.entries(respHeaders).map(([k, v]) => (
+                  <p key={k}>{k}: {v}</p>
+                )) : (
+                  <>
+                    <p>content-type: application/json</p>
+                    <p>x-request-id: req_a1b2c3d4</p>
+                    <p>x-ratelimit-remaining: 999</p>
+                  </>
+                )}
               </div>
             )}
 
             {/* Response body */}
-            {selectedEndpoint.mockResponse.body ? (
+            {resp.body ? (
               <div className="relative">
                 <pre className="bg-zinc-900 text-green-400 font-mono text-[12px] p-5 overflow-x-auto leading-relaxed">
-                  {selectedEndpoint.mockResponse.body}
+                  {resp.body}
                 </pre>
                 <button
-                  onClick={() => navigator.clipboard.writeText(selectedEndpoint.mockResponse.body)}
+                  onClick={() => navigator.clipboard.writeText(resp.body)}
                   className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-300 transition-colors"
                   title="Copy response"
                 >
@@ -258,7 +309,8 @@ export function ApiPlaygroundPage() {
               <div className="px-5 py-8 text-center text-[12px] text-zinc-400">No response body</div>
             )}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

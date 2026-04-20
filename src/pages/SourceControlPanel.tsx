@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   GitBranch, GitCommit, GitPullRequest, GitMerge, Upload, Download,
   RefreshCw, CheckCircle2, XCircle, AlertTriangle, Clock, Diff,
@@ -6,6 +6,7 @@ import {
   Eye, ArrowUpRight, Shield, Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSourceControlConfig } from "@/hooks/useApi";
 
 /* ── Mock data ── */
 type FileStatus = "added" | "modified" | "deleted" | "conflict";
@@ -65,10 +66,17 @@ type Tab = "changes" | "history" | "conflicts";
 
 export function SourceControlPanel() {
   const [tab, setTab] = useState<Tab>("changes");
-  const [currentBranch, setCurrentBranch] = useState("main");
+  const { data: scConfig } = useSourceControlConfig();
+  const [currentBranch, setCurrentBranch] = useState(scConfig?.branch ?? "main");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [expandedCommit, setExpandedCommit] = useState<string | null>(null);
+
+  const branchList = useMemo(() => {
+    const base = [...branches];
+    if (scConfig?.branch && !base.includes(scConfig.branch)) base.unshift(scConfig.branch);
+    return base;
+  }, [scConfig]);
 
   const additions = changedFiles.reduce((sum, f) => sum + f.additions, 0);
   const deletions = changedFiles.reduce((sum, f) => sum + f.deletions, 0);
@@ -97,7 +105,7 @@ export function SourceControlPanel() {
               onChange={e => setCurrentBranch(e.target.value)}
               className="text-xs font-medium text-zinc-700 bg-transparent border-none focus:outline-none"
             >
-              {branches.map(b => <option key={b} value={b}>{b}</option>)}
+              {branchList.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
           <button

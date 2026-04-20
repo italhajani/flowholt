@@ -1909,3 +1909,99 @@ export interface WorkflowVersionOut {
 export function fetchWorkflowVersions(workflowId: string) {
   return apiFetch<WorkflowVersionOut[]>(`/api/workflows/${workflowId}/versions`);
 }
+
+/* ── Billing / Usage ── */
+export interface UsageSummary {
+  plan: string;
+  creditsUsed: number;
+  creditsLimit: number;
+  renewalDate: string;
+  costThisMonth: string;
+}
+
+export function fetchUsageSummary() {
+  return apiFetch<UsageSummary>("/api/billing/usage");
+}
+
+/* ── Source Control ── */
+export interface SourceControlConfig {
+  provider: string;
+  repoUrl: string;
+  branch: string;
+  connected: boolean;
+  lastSync: string | null;
+}
+
+export function fetchSourceControlConfig() {
+  return apiFetch<SourceControlConfig>("/api/source-control/config");
+}
+
+export function updateSourceControlConfig(payload: Partial<SourceControlConfig>) {
+  return apiFetch<SourceControlConfig>("/api/source-control/config", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+/* ── Community Nodes Marketplace ── */
+export interface CommunityNodeSummary {
+  id: string;
+  name: string;
+  displayName: string;
+  author: string;
+  description: string;
+  downloads: number;
+  rating: number;
+  installed: boolean;
+  verified: boolean;
+  version: string;
+  tags: string[];
+}
+
+export function fetchCommunityNodes() {
+  return apiFetch<CommunityNodeSummary[]>("/api/community-nodes");
+}
+
+export function installCommunityNode(nodeId: string) {
+  return apiFetch<{ ok: boolean }>(`/api/community-nodes/${nodeId}/install`, { method: "POST" });
+}
+
+export function uninstallCommunityNode(nodeId: string) {
+  return apiFetch<{ ok: boolean }>(`/api/community-nodes/${nodeId}/uninstall`, { method: "POST" });
+}
+
+/* ── Environment / Deployments ── */
+export interface EnvironmentStage {
+  name: string;
+  status: "live" | "deploying" | "empty";
+  version: string;
+  workflows: number;
+  lastDeploy: string | null;
+  health: "healthy" | "warning" | "error";
+}
+
+export interface DeploymentSummary {
+  id: string;
+  version: string;
+  from: string;
+  to: string;
+  status: "success" | "failed" | "in_progress";
+  deployedBy: string;
+  timestamp: string;
+  workflows: number;
+}
+
+export function fetchEnvironmentStages() {
+  return apiFetch<EnvironmentStage[]>("/api/environments/stages");
+}
+
+export function fetchDeployments() {
+  return apiFetch<DeploymentSummary[]>("/api/environments/deployments");
+}
+
+export function promoteStage(from: string, to: string) {
+  return apiFetch<DeploymentSummary>("/api/environments/promote", {
+    method: "POST",
+    body: JSON.stringify({ from, to }),
+  });
+}

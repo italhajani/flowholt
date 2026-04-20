@@ -257,6 +257,9 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
             {tab.badge && (
               <span className={cn("rounded-full px-1 py-0 text-[8px] font-semibold", activeTab === tab.key ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-400")}>{tab.badge}</span>
             )}
+            {tab.key === "Pin Data" && pinned && (
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+            )}
             {activeTab === tab.key && <span className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-zinc-900" />}
           </button>
         ))}
@@ -305,7 +308,7 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
           )
         )}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
-        {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} />}
+        {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} workflowId={workflowId} />}
         {activeTab === "Settings" && <SettingsContent />}
       </div>
     </div>
@@ -1104,7 +1107,7 @@ const mockPinHistory = [
   { id: "pin-3", date: "Yesterday", items: 1, source: "Production exec", size: "0.4 KB" },
 ];
 
-function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: string; nodeName: string; pinned: boolean; onTogglePin: () => void }) {
+function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin, workflowId }: { nodeId: string; nodeName: string; pinned: boolean; onTogglePin: () => void; workflowId?: string }) {
   const [runWithPinned, setRunWithPinned] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [pinnedJson, setPinnedJson] = useState(JSON.stringify([
@@ -1115,6 +1118,7 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: strin
   const [savedJson, setSavedJson] = useState(pinnedJson);
   const [copied, setCopied] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const updateStep = useUpdateWorkflowStep();
 
   // JSON validation
   const jsonValidation = useMemo(() => {
@@ -1141,9 +1145,15 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: strin
   };
 
   const handleSave = () => {
-    if (jsonValidation.valid) {
-      setSavedJson(pinnedJson);
-      setEditMode(false);
+    if (!jsonValidation.valid) return;
+    setSavedJson(pinnedJson);
+    setEditMode(false);
+    // Persist to backend
+    if (workflowId) {
+      try {
+        const parsed = JSON.parse(pinnedJson);
+        updateStep.mutate({ workflowId, stepId: nodeId, data: { config: { pinned_data: parsed } } });
+      } catch { /* validation already passed */ }
     }
   };
 

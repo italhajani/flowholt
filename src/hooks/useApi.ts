@@ -276,8 +276,8 @@ export function useDeleteWorkflow() {
 export function useRunWorkflow(workflowId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (opts?: { payload?: Record<string, unknown>; environment?: ExecutionEnvironment }) =>
-      runWorkflow(workflowId, opts?.payload ?? {}, opts?.environment ?? "draft"),
+    mutationFn: (opts?: { payload?: Record<string, unknown>; environment?: ExecutionEnvironment; pinnedData?: Record<string, unknown> }) =>
+      runWorkflow(workflowId, opts?.payload ?? {}, opts?.environment ?? "draft", opts?.pinnedData),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["executions"] });
       qc.invalidateQueries({ queryKey: ["workflow-executions", workflowId] });

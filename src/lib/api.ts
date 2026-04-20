@@ -306,10 +306,10 @@ export function deleteWorkflow(id: string) {
   return apiFetch<void>(`/api/workflows/${id}`, { method: "DELETE" });
 }
 
-export function runWorkflow(id: string, payload: Record<string, unknown> = {}, environment: ExecutionEnvironment = "draft") {
+export function runWorkflow(id: string, payload: Record<string, unknown> = {}, environment: ExecutionEnvironment = "draft", pinnedData?: Record<string, unknown>) {
   return apiFetch<ExecutionSummary>(`/api/workflows/${id}/run`, {
     method: "POST",
-    body: JSON.stringify({ payload, environment }),
+    body: JSON.stringify({ payload, environment, pinned_data: pinnedData }),
   });
 }
 

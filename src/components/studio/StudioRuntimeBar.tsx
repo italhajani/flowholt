@@ -29,7 +29,16 @@ export function StudioRuntimeBar({ drawerOpen, onToggleDrawer, workflowId, onExe
     if (workflowId) {
       setIsRunning(true);
       onExecutionStart?.();
-      runMutation.mutate({ payload: {}, environment: "draft" }, {
+      // Collect pinned data from canvas store
+      const pinnedData: Record<string, unknown> = {};
+      store.pinnedNodes.forEach(nodeId => {
+        const node = store.nodes.find(n => n.id === nodeId);
+        if (node?.config?.pinned_data) {
+          pinnedData[nodeId] = node.config.pinned_data;
+        }
+      });
+      const hasPins = Object.keys(pinnedData).length > 0;
+      runMutation.mutate({ payload: {}, environment: "draft", pinnedData: hasPins ? pinnedData : undefined }, {
         onSuccess: (data) => {
           setIsRunning(false);
           onExecutionComplete?.(data);

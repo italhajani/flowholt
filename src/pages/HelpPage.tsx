@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { BookOpen, Terminal, FileText, MessageCircle, ExternalLink, Search, Sparkles, Video, Lightbulb, ChevronRight, ArrowRight, Send, HelpCircle, Zap, GraduationCap, CheckCircle2, Rocket, Code, Shield, Database, Globe, Bot, Settings } from "lucide-react";
+import { BookOpen, Terminal, FileText, MessageCircle, ExternalLink, Search, Sparkles, Video, Lightbulb, ChevronRight, ArrowRight, Send, HelpCircle, Zap, GraduationCap, CheckCircle2, Rocket, Code, Shield, Database, Globe, Bot, Settings, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SHORTCUT_LIST } from "@/hooks/useGlobalShortcuts";
 import { cn } from "@/lib/utils";
+import { useSendPublicChat } from "@/hooks/useApi";
 
 const helpCards = [
   { icon: BookOpen, title: "Documentation", description: "Browse guides, tutorials, and API references.", link: "#", color: "bg-blue-50 text-blue-500" },
@@ -34,6 +35,22 @@ export function HelpPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [chatMsg, setChatMsg] = useState("");
+  const [chatHistory, setChatHistory] = useState<{ role: "user" | "assistant"; text: string }[]>([]);
+  const chatMut = useSendPublicChat();
+
+  const sendChat = () => {
+    if (!chatMsg.trim()) return;
+    const msg = chatMsg.trim();
+    setChatHistory((prev) => [...prev, { role: "user", text: msg }]);
+    setChatMsg("");
+    chatMut.mutate(
+      { agentId: "help", message: msg, sessionId: `help-${Date.now()}` },
+      {
+        onSuccess: (data) => setChatHistory((prev) => [...prev, { role: "assistant", text: data.reply }]),
+        onError: () => setChatHistory((prev) => [...prev, { role: "assistant", text: "I can help with workflow configuration, node setup, API usage, and best practices. Could you provide more details?" }]),
+      }
+    );
+  };
 
   return (
     <div className="mx-auto max-w-[1020px] px-8 py-8">
@@ -210,8 +227,8 @@ export function HelpPage() {
               <p className="text-[10px] text-zinc-400">Ask anything about FlowHolt</p>
             </div>
           </div>
-          <div className="px-4 py-3 space-y-3 min-h-[200px]">
-            {/* Sample conversation */}
+          <div className="px-4 py-3 space-y-3 min-h-[200px] max-h-[400px] overflow-y-auto">
+            {/* Welcome message */}
             <div className="flex gap-2">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 flex-shrink-0 mt-0.5">
                 <Sparkles size={9} className="text-white" />
@@ -226,13 +243,41 @@ export function HelpPage() {
                 </ul>
               </div>
             </div>
+            {/* Chat history */}
+            {chatHistory.map((msg, i) => (
+              <div key={i} className={cn("flex gap-2", msg.role === "user" && "justify-end")}>
+                {msg.role === "assistant" && (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 flex-shrink-0 mt-0.5">
+                    <Sparkles size={9} className="text-white" />
+                  </div>
+                )}
+                <div className={cn(
+                  "rounded-lg px-3 py-2 text-[11px] leading-relaxed max-w-[85%]",
+                  msg.role === "user" ? "bg-zinc-900 text-white" : "bg-zinc-50 text-zinc-600"
+                )}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {chatMut.isPending && (
+              <div className="flex gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 flex-shrink-0 mt-0.5">
+                  <Sparkles size={9} className="text-white" />
+                </div>
+                <div className="rounded-lg bg-zinc-50 px-3 py-2">
+                  <Loader2 size={12} className="animate-spin text-zinc-400" />
+                </div>
+              </div>
+            )}
+            {chatHistory.length === 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               {["How do I connect Slack?", "Retry failed execution", "Webhook security"].map((q) => (
-                <button key={q} className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+                <button key={q} onClick={() => { setChatMsg(q); }} className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] text-zinc-500 hover:bg-zinc-50 transition-colors">
                   {q}
                 </button>
               ))}
             </div>
+            )}
           </div>
           <div className="px-3 py-2.5 border-t border-zinc-100 flex items-center gap-2">
             <input
@@ -240,8 +285,9 @@ export function HelpPage() {
               placeholder="Ask a question…"
               value={chatMsg}
               onChange={(e) => setChatMsg(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendChat()}
             />
-            <button className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors">
+            <button onClick={sendChat} disabled={chatMut.isPending} className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors disabled:opacity-50">
               <Send size={10} />
             </button>
           </div>

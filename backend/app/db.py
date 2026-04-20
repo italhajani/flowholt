@@ -593,6 +593,7 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
     id TEXT PRIMARY KEY,
     webhook_id TEXT NOT NULL,
     execution_id TEXT,
+    idempotency_key TEXT,
     method TEXT NOT NULL,
     path TEXT NOT NULL,
     headers TEXT DEFAULT '{}',
@@ -605,6 +606,7 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
     created_at TEXT NOT NULL,
     FOREIGN KEY(webhook_id) REFERENCES webhook_endpoints(id) ON DELETE CASCADE
 );
+CREATE INDEX IF NOT EXISTS idx_delivery_idempotency ON webhook_deliveries(webhook_id, idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_webhook_del_wh ON webhook_deliveries(webhook_id, created_at);
 
 CREATE TABLE IF NOT EXISTS webhook_queue (

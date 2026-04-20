@@ -107,6 +107,11 @@ import {
   fetchIncompleteExecutions,
   resolveIncompleteExecution,
   deleteIncompleteExecution,
+  fetchDeadLetters,
+  replayDeadLetter,
+  purgeDeadLetters,
+  purgeOldDeliveries,
+  fetchRetentionInfo,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -930,5 +935,47 @@ export function useTestExpression() {
   return useMutation({
     mutationFn: (opts: { expression: string; contextData?: Record<string, unknown>; mode?: string }) =>
       testExpression(opts.expression, opts.contextData, opts.mode),
+  });
+}
+
+// ── Sprint 43: Dead Letter Queue, Retention ──
+
+export function useDeadLetters(limit = 50, offset = 0) {
+  return useQuery({
+    queryKey: ["dead-letters", limit, offset],
+    queryFn: () => fetchDeadLetters(limit, offset),
+    staleTime: 10_000,
+  });
+}
+
+export function useReplayDeadLetter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (queueId: string) => replayDeadLetter(queueId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dead-letters"] }),
+  });
+}
+
+export function usePurgeDeadLetters() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => purgeDeadLetters(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dead-letters"] }),
+  });
+}
+
+export function usePurgeOldDeliveries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (days?: number) => purgeOldDeliveries(days),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhook-deliveries"] }),
+  });
+}
+
+export function useRetentionInfo() {
+  return useQuery({
+    queryKey: ["webhook-retention"],
+    queryFn: fetchRetentionInfo,
+    staleTime: 300_000,
   });
 }

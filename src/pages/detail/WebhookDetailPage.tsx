@@ -195,7 +195,21 @@ export function WebhookDetailPage() {
 
           <DetailSection title="Security">
             <DetailRow label="Auth Type" value={<Badge variant={webhook.auth_type !== "none" ? "success" : "neutral"}>{webhook.auth_type}</Badge>} />
-            {webhook.expires_at && <DetailRow label="Expires" value={formatTimeAgo(webhook.expires_at)} />}
+            {webhook.expires_at && (
+              <DetailRow label="Expires" value={
+                <div className="flex items-center gap-2">
+                  <span>{formatTimeAgo(webhook.expires_at)}</span>
+                  {new Date(webhook.expires_at) < new Date() ? (
+                    <Badge variant="danger">Expired</Badge>
+                  ) : (
+                    <Badge variant="warning">
+                      <Clock size={10} className="mr-1" />
+                      {Math.ceil((new Date(webhook.expires_at).getTime() - Date.now()) / 86400000)}d left
+                    </Badge>
+                  )}
+                </div>
+              } />
+            )}
           </DetailSection>
 
           <DetailSection title="Queue">

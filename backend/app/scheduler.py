@@ -376,6 +376,19 @@ async def scheduler_loop(*, check_interval: float = 30.0, max_iterations: int | 
         except Exception:  # noqa: BLE001
             logger.exception("Incomplete execution retry error")
 
+        # Expire webhooks & purge old delivery logs (every 10th cycle)
+        if iteration % 10 == 0:
+            try:
+                from .repository import deactivate_expired_webhooks, purge_old_deliveries
+                exp = deactivate_expired_webhooks()
+                if exp > 0:
+                    logger.info("Deactivated %d expired webhooks", exp)
+                purged = purge_old_deliveries()
+                if purged > 0:
+                    logger.info("Purged %d old delivery log entries", purged)
+            except Exception:  # noqa: BLE001
+                logger.exception("Expiration/retention cleanup error")
+
         iteration += 1
         if max_iterations is not None and iteration >= max_iterations:
             break

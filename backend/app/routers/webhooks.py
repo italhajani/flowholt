@@ -370,6 +370,54 @@ def _check_ip_whitelist(ip_whitelist: str, source_ip: str | None) -> None:
         raise HTTPException(403, f"IP {source_ip} not in webhook whitelist")
 
 
+# ── Dead Letter Queue Management ──
+
+@router.get("/webhooks/dead-letters")
+def list_dead_letters(
+    limit: int = 50,
+    offset: int = 0,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict]:
+    return repo.list_dead_letters(limit=limit, offset=offset)
+
+
+@router.post("/webhooks/dead-letters/{queue_id}/replay")
+def replay_dead_letter(
+    queue_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict:
+    result = repo.replay_dead_letter(queue_id)
+    if not result:
+        raise HTTPException(404, "Dead letter item not found")
+    return {"status": "replayed", "queue_id": queue_id}
+
+
+@router.delete("/webhooks/dead-letters")
+def purge_dead_letters(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict:
+    count = repo.purge_dead_letters()
+    return {"status": "purged", "count": count}
+
+
+# ── Delivery Log Retention ──
+
+@router.delete("/webhooks/deliveries/old")
+def purge_old_deliveries(
+    days: int | None = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict:
+    count = repo.purge_old_deliveries(days=days)
+    return {"status": "purged", "count": count}
+
+
+@router.get("/webhooks/retention-info")
+def get_retention_info(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict:
+    return {"retention_days": repo.WEBHOOK_LOG_RETENTION_DAYS}
+
+
 @router.api_route("/webhook/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 async def receive_webhook(path: str, request: Request) -> Any:
     """Catch-all webhook receiver — enforces HMAC, IP whitelist, rate limits, expiration."""
@@ -430,6 +478,13 @@ async def receive_webhook(path: str, request: Request) -> Any:
         raise HTTPException(429, f"Rate limit exceeded: {rate_max} requests per {rate_window}s")
     _webhook_rate_windows[wh_id].append(now)
 
+    # Idempotency / dedup check
+    idempotency_key = headers.get("idempotency-key") or headers.get("x-idempotency-key")
+    if idempotency_key:
+        dup = _repo.check_idempotency(target["id"], idempotency_key)
+        if dup:
+            return {"status": "duplicate", "original_delivery_id": dup["id"], "webhook_id": target["id"]}
+
     start = time.time()
     delivery = _repo.record_webhook_delivery({
         "webhook_id": target["id"],
@@ -439,6 +494,7 @@ async def receive_webhook(path: str, request: Request) -> Any:
         "body": raw_body,
         "query_params": query,
         "source_ip": source_ip,
+        "idempotency_key": idempotency_key,
         "status_code": 200,
         "latency_ms": int((time.time() - start) * 1000),
     })

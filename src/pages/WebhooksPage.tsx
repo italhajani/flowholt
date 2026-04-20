@@ -20,10 +20,15 @@ import {
   useResolveIncompleteExecution,
   useDeleteIncompleteExecution,
   useErrorTrackedWorkflows,
+  useDeadLetters,
+  useReplayDeadLetter,
+  usePurgeDeadLetters,
+  useRetentionInfo,
+  usePurgeOldDeliveries,
 } from "@/hooks/useApi";
-import type { WebhookEndpoint as APIWebhookEndpoint, WebhookDelivery as APIDelivery, WebhookQueueItem, IncompleteExecution } from "@/lib/api";
+import type { WebhookEndpoint as APIWebhookEndpoint, WebhookDelivery as APIDelivery, WebhookQueueItem, IncompleteExecution, DeadLetterItem } from "@/lib/api";
 
-const tabs = ["Endpoints", "Delivery Log", "Queue", "Incomplete", "Errors"] as const;
+const tabs = ["Endpoints", "Delivery Log", "Queue", "Dead Letters", "Incomplete", "Errors"] as const;
 type Tab = (typeof tabs)[number];
 
 function formatTimeAgo(iso: string): string {
@@ -106,6 +111,11 @@ export function WebhooksPage() {
   const resolveMut = useResolveIncompleteExecution();
   const deleteIncompleteMut = useDeleteIncompleteExecution();
   const { data: errorTracked = [] } = useErrorTrackedWorkflows();
+  const { data: deadLetters = [] } = useDeadLetters();
+  const replayDLMut = useReplayDeadLetter();
+  const purgeDLMut = usePurgeDeadLetters();
+  const { data: retentionInfo } = useRetentionInfo();
+  const purgeDeliveriesMut = usePurgeOldDeliveries();
 
   const activeCount = endpoints.filter(e => e.active).length;
 
@@ -123,12 +133,13 @@ export function WebhooksPage() {
       />
 
       {/* Summary strip */}
-      <div className="mt-6 grid grid-cols-5 gap-3">
+      <div className="mt-6 grid grid-cols-6 gap-3">
         <MetricPill icon={<Globe size={13} className="text-zinc-400" />} label="Endpoints" value={endpoints.length.toString()} />
         <MetricPill icon={<Activity size={13} className="text-blue-500" />} label="Active" value={activeCount.toString()} highlight="green" />
         <MetricPill icon={<BarChart3 size={13} className="text-zinc-400" />} label="Deliveries" value={deliveries.length.toString()} />
         <MetricPill icon={<CheckCircle size={13} className="text-green-500" />} label="Queue Pending" value={queueItems.filter(q => q.status === "pending").length.toString()} />
-        <MetricPill icon={<AlertTriangle size={13} className="text-red-500" />} label="Dead Letters" value={queueItems.filter(q => q.status === "dead_letter").length.toString()} highlight={queueItems.some(q => q.status === "dead_letter") ? "red" : undefined} />
+        <MetricPill icon={<AlertTriangle size={13} className="text-red-500" />} label="Dead Letters" value={deadLetters.length.toString()} highlight={deadLetters.length > 0 ? "red" : undefined} />
+        <MetricPill icon={<Clock size={13} className="text-zinc-400" />} label="Expired" value={endpoints.filter(e => !e.active && e.expires_at).length.toString()} highlight={endpoints.some(e => !e.active && e.expires_at) ? "amber" : undefined} />
       </div>
 
       {/* Tabs */}
@@ -146,6 +157,9 @@ export function WebhooksPage() {
               {t}
               {t === "Queue" && queueItems.filter(q => q.status !== "completed").length > 0 && (
                 <span className="ml-1 rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold">{queueItems.filter(q => q.status !== "completed").length}</span>
+              )}
+              {t === "Dead Letters" && deadLetters.length > 0 && (
+                <span className="ml-1 rounded-full bg-red-100 text-red-700 px-1.5 py-0.5 text-[9px] font-semibold">{deadLetters.length}</span>
               )}
             </button>
           ))}
@@ -221,6 +235,21 @@ export function WebhooksPage() {
 
         {activeTab === "Delivery Log" && (
           <div className="space-y-3">
+            {/* Retention info + purge */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {retentionInfo && (
+                  <Badge variant="outline" className="text-[10px] text-zinc-500 border-zinc-200">
+                    <Clock size={10} className="mr-1" />
+                    {retentionInfo.retention_days}d retention
+                  </Badge>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" className="text-[11px] text-zinc-400 hover:text-red-600" onClick={() => purgeDeliveriesMut.mutate(undefined)}>
+                <Trash2 size={11} className="mr-1" />
+                Purge Old
+              </Button>
+            </div>
             {/* Endpoint selector for deliveries */}
             {endpoints.length > 0 && (
               <div className="flex items-center gap-2 mb-2">
@@ -324,6 +353,46 @@ export function WebhooksPage() {
               <CheckCircle size={28} strokeWidth={1.25} className="mx-auto text-green-300 mb-2" />
               <p className="text-[13px] text-zinc-400">Queue is empty — all deliveries succeeded</p>
               <p className="text-[11px] text-zinc-300 mt-1">Failed deliveries will queue here for automatic retry</p>
+            </div>
+          )
+        )}
+
+        {activeTab === "Dead Letters" && (
+          deadLetters.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-zinc-500">{deadLetters.length} dead letter{deadLetters.length !== 1 ? "s" : ""}</p>
+                <Button variant="ghost" size="sm" className="text-[11px] text-red-500 hover:text-red-700" onClick={() => purgeDLMut.mutate()}>
+                  <Trash2 size={11} className="mr-1" />
+                  Purge All
+                </Button>
+              </div>
+              {deadLetters.map((dl) => (
+                <div key={dl.id} className="rounded-lg border border-red-200 bg-red-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <XCircle size={14} className="text-red-500 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="danger">dead_letter</Badge>
+                        <span className="text-[11px] font-mono text-zinc-500">{dl.id.slice(0, 12)}…</span>
+                        {dl.webhook_id && <span className="text-[10px] text-zinc-400">webhook: {dl.webhook_id.slice(0, 12)}…</span>}
+                      </div>
+                      <p className="text-[11px] text-zinc-600">{dl.payload ? dl.payload.slice(0, 120) + (dl.payload.length > 120 ? "…" : "") : "No payload"}</p>
+                      <p className="text-[10px] text-zinc-400 mt-1">Updated {formatTimeAgo(dl.updated_at)}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-[11px] text-blue-600 hover:text-blue-800" onClick={() => replayDLMut.mutate(dl.id)}>
+                      <Play size={11} className="mr-1" />
+                      Replay
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
+              <CheckCircle size={28} strokeWidth={1.25} className="mx-auto text-green-300 mb-2" />
+              <p className="text-[13px] text-zinc-400">No dead letters — all retries resolved</p>
+              <p className="text-[11px] text-zinc-300 mt-1">Exhausted queue items appear here for manual replay or purge</p>
             </div>
           )
         )}

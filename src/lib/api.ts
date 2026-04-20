@@ -1442,3 +1442,35 @@ export function testExpression(expression: string, contextData?: Record<string, 
 export function fetchExpressionVariables() {
   return apiFetch<ExpressionVariables>("/api/expressions/variables");
 }
+
+// ── Sprint 43: Dead Letter Queue, Dedup, Retention ──
+
+export interface DeadLetterItem {
+  id: string;
+  webhook_id: string;
+  delivery_id?: string;
+  payload?: string;
+  status: string;
+  updated_at: string;
+}
+
+export function fetchDeadLetters(limit = 50, offset = 0) {
+  return apiFetch<DeadLetterItem[]>(`/api/webhooks/dead-letters?limit=${limit}&offset=${offset}`);
+}
+
+export function replayDeadLetter(queueId: string) {
+  return apiFetch<{ status: string; queue_id: string }>(`/api/webhooks/dead-letters/${queueId}/replay`, { method: "POST" });
+}
+
+export function purgeDeadLetters() {
+  return apiFetch<{ status: string; count: number }>("/api/webhooks/dead-letters", { method: "DELETE" });
+}
+
+export function purgeOldDeliveries(days?: number) {
+  const q = days != null ? `?days=${days}` : "";
+  return apiFetch<{ status: string; count: number }>(`/api/webhooks/deliveries/old${q}`, { method: "DELETE" });
+}
+
+export function fetchRetentionInfo() {
+  return apiFetch<{ retention_days: number }>("/api/webhooks/retention-info");
+}

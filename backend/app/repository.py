@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -3371,4 +3372,71 @@ def mark_polling_trigger_polled(pt_id: str, cursor: str | None = None) -> None:
                 "UPDATE polling_triggers SET last_polled_at=? WHERE id=?",
                 (now, pt_id),
             )
+
+
+# --------------- Sprint 43: Deduplication, Dead Letter, Retention ---------------
+
+WEBHOOK_LOG_RETENTION_DAYS = int(os.environ.get("WEBHOOK_LOG_RETENTION_DAYS", "7"))
+
+
+def check_idempotency(webhook_id: str, idempotency_key: str, window_seconds: int = 300) -> dict | None:
+    """Return existing delivery if idempotency_key was seen within window."""
+    if not idempotency_key:
+        return None
+    cutoff = (datetime.utcnow() - timedelta(seconds=window_seconds)).isoformat()
+    row = conn.execute(
+        "SELECT id, created_at FROM webhook_deliveries WHERE webhook_id=? AND idempotency_key=? AND created_at>? ORDER BY created_at DESC LIMIT 1",
+        (webhook_id, idempotency_key, cutoff),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def replay_dead_letter(queue_id: str) -> dict | None:
+    """Move a dead-letter queue item back to pending for reprocessing."""
+    row = conn.execute("SELECT * FROM webhook_queue WHERE id=?", (queue_id,)).fetchone()
+    if not row:
+        return None
+    now = datetime.utcnow().isoformat()
+    conn.execute(
+        "UPDATE webhook_queue SET status='pending', updated_at=? WHERE id=? AND status='dead_letter'",
+        (now, queue_id),
+    )
+    conn.commit()
+    return dict(row)
+
+
+def list_dead_letters(limit: int = 50, offset: int = 0) -> list[dict]:
+    """List all dead-letter queue items."""
+    rows = conn.execute(
+        "SELECT * FROM webhook_queue WHERE status='dead_letter' ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+        (limit, offset),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def purge_dead_letters() -> int:
+    """Delete all dead-letter queue items. Returns count deleted."""
+    cur = conn.execute("DELETE FROM webhook_queue WHERE status='dead_letter'")
+    conn.commit()
+    return cur.rowcount
+
+
+def purge_old_deliveries(days: int | None = None) -> int:
+    """Delete delivery log entries older than `days`. Returns count deleted."""
+    d = days if days is not None else WEBHOOK_LOG_RETENTION_DAYS
+    cutoff = (datetime.utcnow() - timedelta(days=d)).isoformat()
+    cur = conn.execute("DELETE FROM webhook_deliveries WHERE created_at < ?", (cutoff,))
+    conn.commit()
+    return cur.rowcount
+
+
+def deactivate_expired_webhooks() -> int:
+    """Deactivate webhooks past their expires_at. Returns count deactivated."""
+    now = datetime.utcnow().isoformat()
+    cur = conn.execute(
+        "UPDATE webhook_endpoints SET is_active=0 WHERE is_active=1 AND expires_at IS NOT NULL AND expires_at != '' AND expires_at < ?",
+        (now,),
+    )
+    conn.commit()
+    return cur.rowcount
 

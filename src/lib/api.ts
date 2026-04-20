@@ -557,6 +557,42 @@ export function fetchAssistantCapabilities() {
   return apiFetch<AssistantCapabilities>("/api/assistant/capabilities");
 }
 
+// Copilot chat SSE streaming
+export interface CopilotChatPayload {
+  messages: { role: string; content: string }[];
+  model?: string;
+  mode?: string;
+  workflow_id?: string;
+  node_context?: string;
+}
+
+export async function* streamCopilotChat(payload: CopilotChatPayload): AsyncGenerator<{ type: string; content?: string }> {
+  const resp = await fetch(`/api/assistant/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) throw new Error(`Copilot chat failed: ${resp.status}`);
+  const reader = resp.body?.getReader();
+  if (!reader) throw new Error("No response body");
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          yield JSON.parse(line.slice(6));
+        } catch { /* skip malformed */ }
+      }
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Global Search
 // ---------------------------------------------------------------------------

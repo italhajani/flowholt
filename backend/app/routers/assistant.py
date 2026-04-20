@@ -713,3 +713,96 @@ def post_copilot_feedback(
         },
     )
     return {"status": "recorded"}
+
+
+# ── Copilot Chat Endpoint (SSE streaming) ──────────────────────────────
+
+
+class CopilotChatRequest(BaseModel):
+    messages: list[dict[str, str]]
+    model: str | None = None
+    mode: str = "ask"
+    workflow_id: str | None = None
+    node_context: str | None = None
+    temperature: float = 0.7
+    max_tokens: int = 2048
+
+
+COPILOT_SYSTEM_PROMPTS: dict[str, str] = {
+    "ask": (
+        "You are FlowHolt Copilot, an expert workflow automation assistant. "
+        "Help users understand, debug, and optimize their workflows. "
+        "Be concise and practical. When referring to nodes, use their exact names."
+    ),
+    "build": (
+        "You are FlowHolt Copilot in Builder mode. "
+        "Generate workflow modifications as structured JSON when asked. "
+        "Suggest node additions, connection changes, and parameter updates."
+    ),
+    "code": (
+        "You are FlowHolt Copilot in Code mode. "
+        "Help users write expressions, JavaScript/Python code nodes, and data transformations. "
+        "Always provide working code examples."
+    ),
+    "credentials": (
+        "You are FlowHolt Copilot helping with credential and integration setup. "
+        "Guide users through OAuth flows, API key configuration, and connection testing."
+    ),
+}
+
+# Map frontend model names to LLM router provider names
+MODEL_TO_PROVIDER: dict[str, str] = {
+    "gpt-4o": "openai",
+    "claude-sonnet": "anthropic",
+    "claude-opus": "anthropic",
+    "gemini-pro": "gemini",
+    "llama-3.1": "ollama",
+    "groq": "groq",
+    "deepseek": "deepseek",
+    "grok": "xai",
+}
+
+
+@router.post(f"{settings.api_prefix}/assistant/chat")
+def post_assistant_chat(
+    payload: CopilotChatRequest,
+    session: dict[str, Any] = Depends(get_session_context),
+):
+    """SSE streaming chat endpoint for the Copilot panel."""
+    _ = session
+    llm = get_llm_router()
+
+    system_prompt = COPILOT_SYSTEM_PROMPTS.get(payload.mode, COPILOT_SYSTEM_PROMPTS["ask"])
+
+    # Add workflow context if available
+    if payload.node_context:
+        system_prompt += f"\n\nCurrent node context: {payload.node_context}"
+
+    messages = [{"role": "system", "content": system_prompt}] + payload.messages
+    provider = MODEL_TO_PROVIDER.get(payload.model or "", None)
+
+    def generate_sse():
+        try:
+            for chunk in llm.stream_chat(
+                messages,
+                temperature=payload.temperature,
+                max_tokens=payload.max_tokens,
+                provider=provider,
+            ):
+                data = json.dumps({"type": "chunk", "content": chunk})
+                yield f"data: {data}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as exc:
+            logger.warning("Copilot chat streaming failed: %s", exc)
+            error_data = json.dumps({"type": "error", "content": str(exc)})
+            yield f"data: {error_data}\n\n"
+
+    return StreamingResponse(
+        generate_sse(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

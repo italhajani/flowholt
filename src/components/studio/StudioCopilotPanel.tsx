@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import type { CanvasNodeData } from "./canvasTypes";
 import { useDraftWorkflowWithAI } from "@/hooks/useApi";
+import { streamCopilotChat } from "@/lib/api";
 
 /* ── Types ── */
 type CopilotMode = "ask" | "build" | "builder" | "credentials" | "code";
@@ -442,15 +443,55 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
           setMessages((p) => [...p, aiMsg]);
         },
         onError: () => {
-          // Fallback to mock response on API error — continues below
           fireMockResponse(text);
         },
       });
       return;
     }
 
-    // Mock response path for all modes
-    fireMockResponse(text);
+    // Try real AI streaming via backend LLM router
+    const chatMessages = messages
+      .filter(m => m.role === "user" || m.role === "assistant")
+      .map(m => ({ role: m.role, content: m.content }));
+    chatMessages.push({ role: "user", content: text.trim() });
+
+    const msgId = `a-${Date.now()}`;
+    const aiMsg: CopilotMessage = { id: msgId, role: "assistant", content: "" };
+    setMessages(p => [...p, aiMsg]);
+    setIsTyping(false);
+    setIsStreaming(true);
+    setStreamingMsgId(msgId);
+
+    (async () => {
+      try {
+        let fullContent = "";
+        for await (const event of streamCopilotChat({
+          messages: chatMessages,
+          model: selectedModel,
+          mode,
+        })) {
+          if (event.type === "chunk" && event.content) {
+            fullContent += event.content;
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
+          } else if (event.type === "error") {
+            // Backend error — fall back to mock
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+            setIsStreaming(false);
+            setStreamingMsgId(null);
+            fireMockResponse(text);
+            return;
+          }
+        }
+        setIsStreaming(false);
+        setStreamingMsgId(null);
+      } catch {
+        // Network error — fall back to mock
+        setMessages(prev => prev.filter(m => m.id !== msgId));
+        setIsStreaming(false);
+        setStreamingMsgId(null);
+        fireMockResponse(text);
+      }
+    })();
   };
 
   const fireMockResponse = (text: string) => {

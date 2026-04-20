@@ -135,11 +135,11 @@ const familyDot: Record<string, string> = {
 
 /* ─── Version history ─── */
 const versions = [
-  { ver: "v3.2", label: "Current draft",      who: "You",       time: "Just now",    current: true },
-  { ver: "v3.1", label: "Fixed scorer prompt", who: "You",       time: "2 hours ago", current: false },
-  { ver: "v3.0", label: "Added CRM update",    who: "C. Kim",    time: "Yesterday",   current: false },
-  { ver: "v2.9", label: "Initial AI scoring",  who: "You",       time: "3 days ago",  current: false },
-  { ver: "v2.8", label: "Webhook rework",       who: "A. Brandt", time: "Last week",   current: false },
+  { ver: "v3.2", label: "Current draft",      who: "You",       time: "Just now",    current: true,  changes: [] },
+  { ver: "v3.1", label: "Fixed scorer prompt", who: "You",       time: "2 hours ago", current: false, changes: [{ node: "Score with AI", action: "modified" as const }, { node: "Route by Score", action: "modified" as const }] },
+  { ver: "v3.0", label: "Added CRM update",    who: "C. Kim",    time: "Yesterday",   current: false, changes: [{ node: "Update CRM", action: "added" as const }, { node: "Route by Score", action: "modified" as const }] },
+  { ver: "v2.9", label: "Initial AI scoring",  who: "You",       time: "3 days ago",  current: false, changes: [{ node: "Score with AI", action: "added" as const }, { node: "Enrich Lead Data", action: "modified" as const }] },
+  { ver: "v2.8", label: "Webhook rework",       who: "A. Brandt", time: "Last week",   current: false, changes: [{ node: "Webhook Trigger", action: "modified" as const }, { node: "Old Webhook", action: "removed" as const }] },
 ];
 
 /* ─── Assets ─── */
@@ -163,6 +163,39 @@ const edges = [
   { from: "Score with AI",   to: "Route by Score",   type: "default" },
   { from: "Route by Score",  to: "Update CRM",       type: "branch", label: "True" },
 ];
+
+/* ─── Integration credentials used in this workflow ─── */
+interface WorkflowCredential {
+  name: string;
+  service: string;
+  type: "oauth2" | "api_key" | "basic" | "custom";
+  status: "connected" | "expired" | "error" | "pending";
+  usedByNodes: string[];
+  lastTested?: string;
+  expiresAt?: string;
+}
+
+const mockCredentials: WorkflowCredential[] = [
+  { name: "Clearbit API Key", service: "Clearbit", type: "api_key", status: "connected", usedByNodes: ["Enrich Lead Data"], lastTested: "2 min ago" },
+  { name: "OpenAI Production", service: "OpenAI", type: "api_key", status: "connected", usedByNodes: ["Score with AI"], lastTested: "5 min ago" },
+  { name: "Salesforce OAuth", service: "Salesforce", type: "oauth2", status: "expired", usedByNodes: ["Update CRM"], lastTested: "3 days ago", expiresAt: "Expired 2h ago" },
+  { name: "Slack Webhook", service: "Slack", type: "custom", status: "connected", usedByNodes: ["Notify on Slack"], lastTested: "1h ago" },
+  { name: "PostgreSQL Prod", service: "PostgreSQL", type: "basic", status: "error", usedByNodes: ["Log to Database"], lastTested: "15 min ago" },
+];
+
+const credStatusConfig: Record<WorkflowCredential["status"], { color: string; dot: string; label: string }> = {
+  connected: { color: "text-green-600", dot: "bg-green-500", label: "Connected" },
+  expired: { color: "text-amber-600", dot: "bg-amber-500", label: "Expired" },
+  error: { color: "text-red-600", dot: "bg-red-500", label: "Error" },
+  pending: { color: "text-zinc-400", dot: "bg-zinc-300", label: "Pending" },
+};
+
+const credTypeLabels: Record<WorkflowCredential["type"], string> = {
+  oauth2: "OAuth 2.0",
+  api_key: "API Key",
+  basic: "Basic Auth",
+  custom: "Custom",
+};
 
 /* ─── Notes ─── */
 const defaultNoteText =
@@ -369,27 +402,117 @@ function OutlinePane() {
 
 /* ─── CONNECTIONS pane ─── */
 function ConnectionsPane() {
+  const [tab, setTab] = useState<"credentials" | "edges">("credentials");
+  const [testingCred, setTestingCred] = useState<string | null>(null);
+
+  function testCredential(name: string) {
+    setTestingCred(name);
+    setTimeout(() => setTestingCred(null), 1500);
+  }
+
+  const healthySummary = mockCredentials.filter(c => c.status === "connected").length;
+  const issues = mockCredentials.filter(c => c.status !== "connected");
+
   return (
-    <div className="flex-1 overflow-y-auto p-3">
-      <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-        {edges.length} edges
-      </p>
-      <div className="space-y-1">
-        {edges.map((edge, i) => (
-          <div key={i} className="rounded-lg border border-zinc-100 px-3 py-2 hover:border-zinc-200 hover:bg-zinc-50 transition-colors cursor-default">
-            <div className="flex items-center gap-2 text-[11px]">
-              <span className="text-zinc-600 font-medium truncate max-w-[90px]">{edge.from}</span>
-              <GitBranch size={10} className="text-zinc-300 flex-shrink-0" />
-              <span className="text-zinc-600 font-medium truncate max-w-[90px]">{edge.to}</span>
-            </div>
-            {edge.label && (
-              <span className="mt-0.5 inline-flex rounded bg-blue-50 px-1.5 py-0 text-[9px] font-medium text-blue-600">
-                {edge.label}
-              </span>
+    <div className="flex-1 overflow-y-auto">
+      {/* Tab switcher */}
+      <div className="flex border-b border-zinc-100 px-3 pt-2">
+        {(["credentials", "edges"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={cn(
+              "pb-2 px-3 text-[10px] font-medium transition-colors border-b-2",
+              tab === t ? "border-zinc-800 text-zinc-800" : "border-transparent text-zinc-400 hover:text-zinc-600"
             )}
-          </div>
+          >
+            {t === "credentials" ? `Credentials (${mockCredentials.length})` : `Edges (${edges.length})`}
+          </button>
         ))}
       </div>
+
+      {tab === "credentials" ? (
+        <div className="p-3 space-y-2">
+          {/* Health summary */}
+          <div className="flex items-center gap-2 rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2">
+            <div className={cn("h-2 w-2 rounded-full", issues.length === 0 ? "bg-green-500" : "bg-amber-500")} />
+            <span className="text-[11px] text-zinc-600 flex-1">
+              {healthySummary}/{mockCredentials.length} connected
+            </span>
+            {issues.length > 0 && (
+              <span className="text-[9px] text-amber-600 font-medium">{issues.length} issue{issues.length > 1 ? "s" : ""}</span>
+            )}
+          </div>
+
+          {/* Credential cards */}
+          <div className="space-y-1.5">
+            {mockCredentials.map((cred) => {
+              const cfg = credStatusConfig[cred.status];
+              return (
+                <div key={cred.name} className="rounded-lg border border-zinc-100 bg-white px-3 py-2 group hover:border-zinc-200 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <div className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", cfg.dot)} />
+                    <span className="text-[11px] font-medium text-zinc-700 flex-1 truncate">{cred.name}</span>
+                    <span className={cn("text-[8px] font-semibold rounded-full px-1.5 py-0", cfg.color, cred.status === "connected" ? "bg-green-50" : cred.status === "expired" ? "bg-amber-50" : cred.status === "error" ? "bg-red-50" : "bg-zinc-100")}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[9px] text-zinc-400">{cred.service}</span>
+                    <span className="text-[8px] text-zinc-300">•</span>
+                    <span className="text-[9px] text-zinc-400">{credTypeLabels[cred.type]}</span>
+                    <span className="text-[8px] text-zinc-300">•</span>
+                    <span className="text-[9px] text-zinc-400">{cred.usedByNodes.length} node{cred.usedByNodes.length > 1 ? "s" : ""}</span>
+                  </div>
+                  {cred.expiresAt && (
+                    <p className="mt-0.5 text-[9px] text-amber-500">{cred.expiresAt}</p>
+                  )}
+                  {/* Hover actions */}
+                  <div className="mt-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => testCredential(cred.name)}
+                      disabled={testingCred === cred.name}
+                      className="rounded px-2 py-0.5 text-[9px] font-medium text-zinc-500 border border-zinc-200 hover:bg-zinc-50 disabled:opacity-50"
+                    >
+                      {testingCred === cred.name ? "Testing…" : "Test"}
+                    </button>
+                    {cred.status === "expired" && (
+                      <button className="rounded px-2 py-0.5 text-[9px] font-medium text-amber-600 border border-amber-200 hover:bg-amber-50">
+                        Reconnect
+                      </button>
+                    )}
+                    {cred.lastTested && (
+                      <span className="ml-auto text-[8px] text-zinc-300">Tested {cred.lastTested}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="p-3">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+            {edges.length} edges
+          </p>
+          <div className="space-y-1">
+            {edges.map((edge, i) => (
+              <div key={i} className="rounded-lg border border-zinc-100 px-3 py-2 hover:border-zinc-200 hover:bg-zinc-50 transition-colors cursor-default">
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-zinc-600 font-medium truncate max-w-[90px]">{edge.from}</span>
+                  <GitBranch size={10} className="text-zinc-300 flex-shrink-0" />
+                  <span className="text-zinc-600 font-medium truncate max-w-[90px]">{edge.to}</span>
+                </div>
+                {edge.label && (
+                  <span className="mt-0.5 inline-flex rounded bg-blue-50 px-1.5 py-0 text-[9px] font-medium text-blue-600">
+                    {edge.label}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -424,16 +547,44 @@ function AssetsPane() {
 interface WorkflowVar {
   key: string;
   value: string;
-  env: boolean; // from environment
-  usedBy: number; // how many nodes reference it
+  env: boolean;
+  usedBy: number;
+  type: "string" | "number" | "boolean" | "secret" | "json";
+  scope: "workflow" | "environment" | "global";
+  description?: string;
 }
 
+const typeIcons: Record<WorkflowVar["type"], string> = {
+  string: "Aa",
+  number: "#",
+  boolean: "⊘",
+  secret: "🔒",
+  json: "{ }",
+};
+
+const typeBadgeColors: Record<WorkflowVar["type"], string> = {
+  string: "bg-blue-50 text-blue-600 border-blue-100",
+  number: "bg-amber-50 text-amber-600 border-amber-100",
+  boolean: "bg-green-50 text-green-600 border-green-100",
+  secret: "bg-red-50 text-red-600 border-red-100",
+  json: "bg-violet-50 text-violet-600 border-violet-100",
+};
+
+const scopeBadgeColors: Record<WorkflowVar["scope"], string> = {
+  workflow: "bg-zinc-100 text-zinc-600",
+  environment: "bg-blue-50 text-blue-600",
+  global: "bg-violet-50 text-violet-600",
+};
+
 const mockVars: WorkflowVar[] = [
-  { key: "API_BASE_URL", value: "https://api.acme.com/v2", env: true, usedBy: 4 },
-  { key: "MAX_RETRIES", value: "3", env: false, usedBy: 2 },
-  { key: "BATCH_SIZE", value: "50", env: false, usedBy: 1 },
-  { key: "NOTIFY_EMAIL", value: "ops@acme.com", env: false, usedBy: 3 },
-  { key: "TIMEOUT_MS", value: "30000", env: true, usedBy: 2 },
+  { key: "API_BASE_URL", value: "https://api.acme.com/v2", env: true, usedBy: 4, type: "string", scope: "environment", description: "Primary API endpoint" },
+  { key: "MAX_RETRIES", value: "3", env: false, usedBy: 2, type: "number", scope: "workflow" },
+  { key: "BATCH_SIZE", value: "50", env: false, usedBy: 1, type: "number", scope: "workflow" },
+  { key: "NOTIFY_EMAIL", value: "ops@acme.com", env: false, usedBy: 3, type: "string", scope: "workflow", description: "Alert destination" },
+  { key: "TIMEOUT_MS", value: "30000", env: true, usedBy: 2, type: "number", scope: "environment" },
+  { key: "API_SECRET", value: "sk-••••••••", env: true, usedBy: 1, type: "secret", scope: "environment" },
+  { key: "DEBUG_MODE", value: "false", env: false, usedBy: 0, type: "boolean", scope: "workflow" },
+  { key: "WEBHOOK_CONFIG", value: '{"retries":3,"timeout":5000}', env: false, usedBy: 1, type: "json", scope: "workflow" },
 ];
 
 function VariablesPane() {
@@ -441,75 +592,132 @@ function VariablesPane() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
+  const [newType, setNewType] = useState<WorkflowVar["type"]>("string");
+  const [newScope, setNewScope] = useState<WorkflowVar["scope"]>("workflow");
+  const [newDesc, setNewDesc] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [varSearch, setVarSearch] = useState("");
+  const [filterScope, setFilterScope] = useState<WorkflowVar["scope"] | "all">("all");
 
   function addVar() {
     if (!newKey.trim()) return;
-    setVars([...vars, { key: newKey.trim(), value: newValue, env: false, usedBy: 0 }]);
-    setNewKey(""); setNewValue(""); setShowAdd(false);
+    setVars([...vars, { key: newKey.trim(), value: newValue, env: newScope === "environment", usedBy: 0, type: newType, scope: newScope, description: newDesc || undefined }]);
+    setNewKey(""); setNewValue(""); setNewType("string"); setNewScope("workflow"); setNewDesc(""); setShowAdd(false);
   }
 
-  function removeVar(i: number) {
-    setVars(vars.filter((_, idx) => idx !== i));
-  }
+  function removeVar(i: number) { setVars(vars.filter((_, idx) => idx !== i)); }
+  function updateVar(i: number, value: string) { setVars(vars.map((v, idx) => idx === i ? { ...v, value } : v)); }
+  function copyRef(key: string) { navigator.clipboard.writeText(`{{$vars.${key}}}`); }
 
-  function updateVar(i: number, value: string) {
-    setVars(vars.map((v, idx) => idx === i ? { ...v, value } : v));
-  }
+  const filtered = vars.filter(v => {
+    const matchSearch = !varSearch || v.key.toLowerCase().includes(varSearch.toLowerCase()) || (v.description?.toLowerCase().includes(varSearch.toLowerCase()));
+    const matchScope = filterScope === "all" || v.scope === filterScope;
+    return matchSearch && matchScope;
+  });
+
+  const scopeCounts = { all: vars.length, workflow: vars.filter(v => v.scope === "workflow").length, environment: vars.filter(v => v.scope === "environment").length, global: vars.filter(v => v.scope === "global").length };
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-3 space-y-2">
         <p className="text-[10px] text-zinc-400">
-          Define key-value pairs accessible across all nodes via <code className="bg-zinc-100 px-1 rounded text-[10px]">{"{{$vars.KEY}}"}</code>
+          Define key-value pairs accessible via <code className="bg-zinc-100 px-1 rounded text-[10px]">{"{{$vars.KEY}}"}</code>
         </p>
 
-        <div className="space-y-1">
-          {vars.map((v, i) => (
-            <div
-              key={v.key}
+        {/* Search + scope filter */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-300" />
+            <input
+              className="w-full rounded-md border border-zinc-200 bg-zinc-50 pl-6 pr-2 py-1 text-[11px] outline-none focus:border-zinc-400 transition-colors"
+              placeholder="Search variables…"
+              value={varSearch}
+              onChange={(e) => setVarSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Scope filter tabs */}
+        <div className="flex items-center gap-0.5">
+          {(["all", "workflow", "environment", "global"] as const).map((scope) => (
+            <button
+              key={scope}
+              onClick={() => setFilterScope(scope)}
               className={cn(
-                "rounded-lg border bg-white px-3 py-2 group transition-all",
-                editingIdx === i ? "border-zinc-300 shadow-xs" : "border-zinc-100 hover:border-zinc-200"
+                "rounded-full px-2 py-0.5 text-[9px] font-medium transition-all",
+                filterScope === scope ? "bg-zinc-800 text-white" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
               )}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-semibold text-zinc-700 flex-1 truncate">{v.key}</span>
-                {v.env && (
-                  <span className="rounded bg-blue-50 px-1 py-0.5 text-[8px] font-semibold text-blue-600">ENV</span>
-                )}
-                {v.usedBy > 0 && (
-                  <span className="text-[9px] text-zinc-400">{v.usedBy} refs</span>
-                )}
-                <button
-                  onClick={() => setEditingIdx(editingIdx === i ? null : i)}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-100 transition-all"
-                >
-                  <Eye size={10} className="text-zinc-400" />
-                </button>
-                <button
-                  onClick={() => removeVar(i)}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 transition-all"
-                >
-                  <X size={10} className="text-red-400" />
-                </button>
-              </div>
-              {editingIdx === i ? (
-                <input
-                  className="mt-1.5 w-full rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-mono outline-none focus:border-zinc-400"
-                  value={v.value}
-                  onChange={(e) => updateVar(i, e.target.value)}
-                  onBlur={() => setEditingIdx(null)}
-                  onKeyDown={(e) => { if (e.key === "Enter") setEditingIdx(null); }}
-                  autoFocus
-                />
-              ) : (
-                <p className="mt-0.5 text-[10px] text-zinc-400 font-mono truncate">{v.env ? "••••••••" : v.value}</p>
-              )}
-            </div>
+              {scope === "all" ? "All" : scope.charAt(0).toUpperCase() + scope.slice(1)} ({scopeCounts[scope]})
+            </button>
           ))}
         </div>
 
+        {/* Variable list */}
+        <div className="space-y-1">
+          {filtered.map((v, i) => {
+            const realIdx = vars.indexOf(v);
+            return (
+              <div
+                key={v.key}
+                className={cn(
+                  "rounded-lg border bg-white px-3 py-2 group transition-all",
+                  editingIdx === realIdx ? "border-zinc-300 shadow-xs" : "border-zinc-100 hover:border-zinc-200"
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className={cn("rounded border px-1 py-0 text-[8px] font-bold leading-tight flex-shrink-0", typeBadgeColors[v.type])}>
+                    {typeIcons[v.type]}
+                  </span>
+                  <span className="text-[11px] font-mono font-semibold text-zinc-700 flex-1 truncate">{v.key}</span>
+                  <span className={cn("rounded-full px-1.5 py-0 text-[7px] font-semibold flex-shrink-0", scopeBadgeColors[v.scope])}>
+                    {v.scope === "workflow" ? "WF" : v.scope === "environment" ? "ENV" : "GLB"}
+                  </span>
+                  {v.usedBy > 0 && (
+                    <span className="text-[9px] text-zinc-400 flex-shrink-0">{v.usedBy} refs</span>
+                  )}
+                  {v.usedBy === 0 && (
+                    <span className="text-[8px] text-amber-500 flex-shrink-0">unused</span>
+                  )}
+                </div>
+                {v.description && (
+                  <p className="mt-0.5 text-[9px] text-zinc-400 italic truncate">{v.description}</p>
+                )}
+                {editingIdx === realIdx ? (
+                  <input
+                    className="mt-1.5 w-full rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] font-mono outline-none focus:border-zinc-400"
+                    value={v.value}
+                    onChange={(e) => updateVar(realIdx, e.target.value)}
+                    onBlur={() => setEditingIdx(null)}
+                    onKeyDown={(e) => { if (e.key === "Enter") setEditingIdx(null); }}
+                    autoFocus
+                  />
+                ) : (
+                  <p className="mt-0.5 text-[10px] text-zinc-400 font-mono truncate">
+                    {v.type === "secret" ? "••••••••••••" : v.value}
+                  </p>
+                )}
+                {/* Hover actions */}
+                <div className="mt-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingIdx(editingIdx === realIdx ? null : realIdx)} className="rounded p-0.5 hover:bg-zinc-100" title="Edit">
+                    <Eye size={9} className="text-zinc-400" />
+                  </button>
+                  <button onClick={() => copyRef(v.key)} className="rounded p-0.5 hover:bg-zinc-100" title="Copy expression reference">
+                    <Hash size={9} className="text-zinc-400" />
+                  </button>
+                  <button onClick={() => removeVar(realIdx)} className="rounded p-0.5 hover:bg-red-50" title="Delete">
+                    <X size={9} className="text-red-400" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {filtered.length === 0 && varSearch && (
+            <p className="text-[10px] text-zinc-400 text-center py-4">No variables match "{varSearch}"</p>
+          )}
+        </div>
+
+        {/* Add variable form */}
         {showAdd ? (
           <div className="rounded-lg border border-zinc-200 bg-white p-2.5 space-y-1.5">
             <input
@@ -524,11 +732,37 @@ function VariablesPane() {
               placeholder="value"
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") addVar(); }}
             />
-            <div className="flex items-center gap-1.5 justify-end">
+            <input
+              className="w-full rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-[11px] outline-none focus:border-zinc-400"
+              placeholder="Description (optional)"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+            />
+            <div className="flex items-center gap-1.5">
+              <select
+                value={newType}
+                onChange={(e) => setNewType(e.target.value as WorkflowVar["type"])}
+                className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] outline-none focus:border-zinc-400"
+              >
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+                <option value="secret">Secret</option>
+                <option value="json">JSON</option>
+              </select>
+              <select
+                value={newScope}
+                onChange={(e) => setNewScope(e.target.value as WorkflowVar["scope"])}
+                className="rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] outline-none focus:border-zinc-400"
+              >
+                <option value="workflow">Workflow</option>
+                <option value="environment">Environment</option>
+                <option value="global">Global</option>
+              </select>
+              <div className="flex-1" />
               <button onClick={() => setShowAdd(false)} className="rounded px-2 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-50">Cancel</button>
-              <button onClick={addVar} className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-white hover:bg-zinc-700">Add</button>
+              <button onClick={addVar} disabled={!newKey.trim()} className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-white hover:bg-zinc-700 disabled:opacity-40">Add</button>
             </div>
           </div>
         ) : (
@@ -541,7 +775,7 @@ function VariablesPane() {
         )}
 
         <p className="text-[9px] text-zinc-400 italic pt-1">
-          Variables marked ENV inherit from workspace environment settings.
+          ENV variables inherit from workspace settings. Secret values are encrypted at rest.
         </p>
       </div>
     </div>
@@ -552,6 +786,13 @@ function VariablesPane() {
 function VersionsPane() {
   const [selected, setSelected] = useState("v3.2");
   const [showDiff, setShowDiff] = useState(false);
+
+  const changeActionColors: Record<string, string> = {
+    added: "text-green-600 bg-green-50",
+    modified: "text-blue-600 bg-blue-50",
+    removed: "text-red-600 bg-red-50",
+  };
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-3 pb-0 space-y-1.5">
@@ -584,6 +825,16 @@ function VersionsPane() {
               )}
             </div>
             <p className="text-[11px] text-zinc-500 truncate">{v.label}</p>
+            {/* Node change summary */}
+            {v.changes.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {v.changes.map((c, ci) => (
+                  <span key={ci} className={cn("rounded px-1 py-0 text-[8px] font-medium", changeActionColors[c.action])}>
+                    {c.action === "added" ? "+" : c.action === "removed" ? "−" : "~"} {c.node}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-[10px] text-zinc-400">{v.who} · {v.time}</p>
               {!v.current && (
@@ -642,8 +893,90 @@ function NotesPane({ noteText, setNoteText }: { noteText: string; setNoteText: (
 
 /* ─── HELP pane ─── */
 function HelpPane() {
+  const [checklistDone, setChecklistDone] = useState<Set<string>>(new Set(["add-trigger", "add-action"]));
+
+  const checklist = [
+    { id: "add-trigger", label: "Add a trigger node", tip: "Every workflow needs a trigger — Webhook, Schedule, or Form" },
+    { id: "add-action", label: "Add at least one action", tip: "Connect an integration, logic, or AI node" },
+    { id: "test-workflow", label: "Test your workflow", tip: "Click 'Run Once' in the bottom bar to test with sample data" },
+    { id: "add-error", label: "Add error handling", tip: "Connect an Error Trigger to catch failures" },
+    { id: "save-version", label: "Save a named version", tip: "Use the Versions panel to create a snapshot" },
+    { id: "activate", label: "Activate the workflow", tip: "Toggle the schedule switch to enable production triggers" },
+  ];
+
+  const completedCount = checklistDone.size;
+
+  const contextualTips = [
+    { icon: "💡", title: "Expression Syntax", body: "Use {{ $json.field }} to reference data from previous nodes" },
+    { icon: "⚡", title: "Execution Order", body: "Nodes execute left-to-right. Use the v1 engine for parallel branches" },
+    { icon: "🔒", title: "Secrets & Variables", body: "Store API keys in Variables panel. Use {{$vars.KEY}} in expressions" },
+    { icon: "🔄", title: "Error Recovery", body: "Add retry logic to HTTP nodes for resilient workflows" },
+  ];
+
   return (
     <div className="flex-1 overflow-y-auto p-3 space-y-5">
+      {/* Getting started checklist */}
+      <div>
+        <div className="mb-2 flex items-center gap-1.5">
+          <CheckCircle size={12} className="text-green-500" />
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Getting Started</p>
+          <span className="ml-auto text-[9px] text-zinc-400">{completedCount}/{checklist.length}</span>
+        </div>
+        {/* Progress bar */}
+        <div className="mb-2 h-1 w-full rounded-full bg-zinc-100 overflow-hidden">
+          <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${(completedCount / checklist.length) * 100}%` }} />
+        </div>
+        <div className="space-y-0.5">
+          {checklist.map((item) => {
+            const done = checklistDone.has(item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  const next = new Set(checklistDone);
+                  if (done) next.delete(item.id); else next.add(item.id);
+                  setChecklistDone(next);
+                }}
+                className={cn(
+                  "flex items-start gap-2 w-full rounded-lg px-2.5 py-1.5 text-left transition-colors",
+                  done ? "opacity-60" : "hover:bg-zinc-50"
+                )}
+              >
+                <div className={cn(
+                  "mt-0.5 h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
+                  done ? "bg-green-500 border-green-500" : "border-zinc-300"
+                )}>
+                  {done && <CheckCircle size={8} className="text-white" />}
+                </div>
+                <div className="min-w-0">
+                  <p className={cn("text-[11px] font-medium", done ? "text-zinc-400 line-through" : "text-zinc-700")}>{item.label}</p>
+                  <p className="text-[9px] text-zinc-400 truncate">{item.tip}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Contextual tips */}
+      <div>
+        <div className="mb-2 flex items-center gap-1.5">
+          <AlertTriangle size={12} className="text-amber-500" />
+          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Quick Tips</p>
+        </div>
+        <div className="space-y-1.5">
+          {contextualTips.map((tip) => (
+            <div key={tip.title} className="rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px]">{tip.icon}</span>
+                <span className="text-[10px] font-semibold text-zinc-700">{tip.title}</span>
+              </div>
+              <p className="mt-0.5 text-[10px] text-zinc-500 leading-relaxed">{tip.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Keyboard shortcuts */}
       <div>
         <div className="mb-2 flex items-center gap-1.5">

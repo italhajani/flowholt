@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppShellLayout } from "@/layouts/AppShellLayout";
 import { AuthLayout } from "@/layouts/AuthLayout";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 const StudioLayout = lazy(() => import("@/layouts/StudioLayout").then(m => ({ default: m.StudioLayout })));
 import { CommandPalette } from "@/components/ui/command-palette";
@@ -91,15 +92,17 @@ export function App() {
             {/* Onboarding */}
             <Route path="/onboarding" element={<PageSuspense><OnboardingWizard onComplete={() => window.location.hash = "#/home"} /></PageSuspense>} />
 
-            {/* Studio — full-screen layout, no shell */}
-            <Route path="/studio/:workflowId" element={<PageSuspense><StudioLayout /></PageSuspense>} />
-
-            {/* Public trigger layouts — no shell, standalone */}
+            {/* Public trigger layouts — no shell, standalone, no auth */}
             <Route path="/public/chat/:id" element={<PageSuspense><PublicChatPage /></PageSuspense>} />
             <Route path="/public/form/:id" element={<PageSuspense><PublicFormPage /></PageSuspense>} />
 
-            {/* Main app shell — all signed-in routes */}
-            <Route element={<AppShellLayout />}>
+            {/* Protected routes — require authentication */}
+            <Route element={<RequireAuth />}>
+              {/* Studio — full-screen layout, no shell */}
+              <Route path="/studio/:workflowId" element={<PageSuspense><StudioLayout /></PageSuspense>} />
+
+              {/* Main app shell — all signed-in routes */}
+              <Route element={<AppShellLayout />}>
               <Route path="/home" element={<PageSuspense><HomePage /></PageSuspense>} />
               <Route path="/workflows" element={<PageSuspense><WorkflowsPage /></PageSuspense>} />
               <Route path="/workflows/:id" element={<PageSuspense><WorkflowDetailPage /></PageSuspense>} />
@@ -150,6 +153,7 @@ export function App() {
                 <Route path="workspace/community-nodes" element={<PageSuspense><CommunityNodesSettings /></PageSuspense>} />
                 <Route path="workspace/billing" element={<PageSuspense><BillingSettings /></PageSuspense>} />
               </Route>
+            </Route>
             </Route>
 
             {/* Default redirect */}

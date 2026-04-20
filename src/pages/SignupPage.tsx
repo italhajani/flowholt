@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 function OAuthButton({ label, icon }: { label: string; icon: React.ReactNode }) {
   return (
@@ -16,6 +19,44 @@ function OAuthButton({ label, icon }: { label: string; icon: React.ReactNode }) 
 
 export function SignupPage() {
   const [showEmail, setShowEmail] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { signup, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  if (isAuthenticated) {
+    navigate("/home", { replace: true });
+    return null;
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!/\d/.test(password)) {
+      setError("Password must contain at least one number.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const fullName = `${firstName} ${lastName}`.trim() || email.split("@")[0];
+      await signup(email, password, fullName);
+      navigate("/onboarding", { replace: true });
+    } catch (err: any) {
+      setError(err?.message || "Signup failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -43,29 +84,35 @@ export function SignupPage() {
         <div className="flex-1 border-t border-zinc-200" />
       </div>
 
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700">
+          {error}
+        </div>
+      )}
+
       {showEmail ? (
-        <form className="flex flex-col gap-3.5" onSubmit={(e) => e.preventDefault()}>
+        <form className="flex flex-col gap-3.5" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium text-zinc-700">First name</label>
-              <Input type="text" placeholder="Gouhar" autoFocus />
+              <Input type="text" placeholder="Gouhar" autoFocus value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium text-zinc-700">Last name</label>
-              <Input type="text" placeholder="Ali" />
+              <Input type="text" placeholder="Ali" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
             </div>
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-zinc-700">Work email</label>
-            <Input type="email" placeholder="you@company.com" />
+            <Input type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-zinc-700">Password</label>
-            <Input type="password" placeholder="Min 8 characters" />
+            <Input type="password" placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
             <p className="mt-1 text-[10px] text-zinc-400">Must be at least 8 characters with one number.</p>
           </div>
-          <Button type="submit" variant="primary" size="md" className="mt-1 w-full">
-            Create account
+          <Button type="submit" variant="primary" size="md" className="mt-1 w-full" disabled={loading}>
+            {loading ? <><Loader2 size={14} className="animate-spin mr-1.5" /> Creating account…</> : "Create account"}
           </Button>
         </form>
       ) : (

@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 function OAuthButton({ label, icon }: { label: string; icon: React.ReactNode }) {
   return (
@@ -16,6 +19,45 @@ function OAuthButton({ label, icon }: { label: string; icon: React.ReactNode }) 
 
 export function LoginPage() {
   const [showEmail, setShowEmail] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { login, devLogin, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // If already authenticated, redirect to home
+  if (isAuthenticated) {
+    navigate("/home", { replace: true });
+    return null;
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await login(email, password);
+      navigate("/home", { replace: true });
+    } catch (err: any) {
+      setError(err?.message || "Invalid email or password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDevLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await devLogin("dev-user-1");
+      navigate("/home", { replace: true });
+    } catch (err: any) {
+      setError(err?.message || "Dev login failed — is the backend running?");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -47,15 +89,21 @@ export function LoginPage() {
         <div className="flex-1 border-t border-zinc-200" />
       </div>
 
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[12px] text-red-700">
+          {error}
+        </div>
+      )}
+
       {showEmail ? (
-        <form className="flex flex-col gap-3.5" onSubmit={(e) => e.preventDefault()}>
+        <form className="flex flex-col gap-3.5" onSubmit={handleSubmit}>
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-zinc-700">Email</label>
-            <Input type="email" placeholder="you@company.com" autoFocus />
+            <Input type="email" placeholder="you@company.com" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-zinc-700">Password</label>
-            <Input type="password" placeholder="••••••••" />
+            <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -66,8 +114,8 @@ export function LoginPage() {
               Forgot password?
             </button>
           </div>
-          <Button type="submit" variant="primary" size="md" className="mt-1 w-full">
-            Sign in
+          <Button type="submit" variant="primary" size="md" className="mt-1 w-full" disabled={loading}>
+            {loading ? <><Loader2 size={14} className="animate-spin mr-1.5" /> Signing in…</> : "Sign in"}
           </Button>
         </form>
       ) : (
@@ -78,6 +126,16 @@ export function LoginPage() {
           Continue with email
         </button>
       )}
+
+      {/* Dev login shortcut (development only) */}
+      <button
+        type="button"
+        onClick={handleDevLogin}
+        disabled={loading}
+        className="mt-3 w-full rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-2 text-[11px] font-medium text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-600 hover:border-zinc-300"
+      >
+        ⚡ Quick dev login (skip auth)
+      </button>
 
       <p className="mt-5 text-center text-[12px] text-zinc-400">
         Don't have an account?{" "}

@@ -11,6 +11,7 @@ import { StudioRuntimeBar } from "@/components/studio/StudioRuntimeBar";
 import { StudioRuntimeDrawer } from "@/components/studio/StudioRuntimeDrawer";
 import { StudioCopilotPanel, StudioCopilotButton } from "@/components/studio/StudioCopilotPanel";
 import { WorkflowSettingsPanel } from "@/components/studio/WorkflowSettingsPanel";
+import { EvaluationPanel } from "@/components/studio/EvaluationPanel";
 import { CanvasStoreProvider, useCanvasStore } from "@/components/studio/useCanvasStore";
 
 function StudioLayoutInner() {
@@ -122,16 +123,7 @@ function StudioLayoutInner() {
 
         {activeTab === "Evaluation" && (
           <div className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-[720px] py-8 px-6">
-              <h2 className="text-[15px] font-semibold text-zinc-900">Evaluation</h2>
-              <p className="text-[12px] text-zinc-500 mt-1">Test payloads, expected outputs, cost tracking, and compare runs.</p>
-              <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
-                <p className="text-[13px] text-zinc-400">Create test scenarios to validate workflow behavior.</p>
-                <button className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-zinc-700 transition-colors">
-                  + New Test Scenario
-                </button>
-              </div>
-            </div>
+            <EvaluationPanel />
           </div>
         )}
 

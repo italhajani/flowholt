@@ -104,6 +104,13 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
     return true;
   });
 
+  // Total duration for timing bar proportions
+  const maxDurationMs = Math.max(...traceSteps.map(s => {
+    const d = s.duration;
+    if (d === "—") return 0;
+    return parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1);
+  }), 1);
+
   return (
     <div className="flex h-72 flex-col border-t border-zinc-100 bg-white overflow-hidden">
       {/* Tab bar with token summary */}
@@ -180,7 +187,39 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
 
         {/* Trace tab */}
         {activeTab === "Trace" && (
-          <div className="divide-y divide-zinc-50">
+          <div>
+            {/* Re-run bar */}
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-100 bg-zinc-50/50">
+              <button className="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-2.5 py-1 text-[9px] font-medium text-white hover:bg-zinc-700 transition-colors">
+                <RefreshCw size={9} /> Re-run All
+              </button>
+              <button className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2.5 py-1 text-[9px] font-medium text-zinc-600 hover:bg-zinc-100 transition-colors">
+                <Eye size={9} /> Compare with Last
+              </button>
+              <span className="ml-auto text-[8px] text-zinc-400">
+                Total: {traceSteps.filter(s => s.status === "success").length}/{traceSteps.length} passed · {traceSteps.reduce((sum, s) => { const d = s.duration; if (d === "—") return sum; return sum + parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1); }, 0).toFixed(0)}ms
+              </span>
+            </div>
+            {/* Timing bar visualization */}
+            <div className="px-4 py-2 border-b border-zinc-50 flex items-center gap-0.5">
+              {traceSteps.map(step => {
+                const d = step.duration;
+                const ms = d === "—" ? 0 : parseFloat(d) * (d.includes("s") && !d.includes("ms") ? 1000 : 1);
+                const pct = Math.max(4, (ms / maxDurationMs) * 100);
+                const color = step.status === "success" ? "bg-emerald-400" : step.status === "error" ? "bg-red-400" : step.status === "running" ? "bg-blue-400" : "bg-zinc-200";
+                return (
+                  <div key={step.id} className="group relative" style={{ width: `${pct}%` }}>
+                    <div className={cn("h-3 rounded-sm transition-all", color, "hover:opacity-80")} title={`${step.name}: ${step.duration}`} />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
+                      <div className="rounded bg-zinc-900 px-2 py-1 text-[8px] text-white whitespace-nowrap shadow-lg">
+                        {step.name} — {step.duration}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="divide-y divide-zinc-50">
             {traceSteps.map((step) => (
               <div key={step.id}>
                 <button
@@ -190,7 +229,14 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
                   {statusIcon[step.status] || statusIcon.pending}
                   <span className="flex-1 text-left text-[11px] text-zinc-700 font-medium truncate">{step.name}</span>
                   {step.type === "ai" && <Brain size={9} className="text-violet-400 flex-shrink-0" />}
-                  <span className="text-[9px] text-zinc-400 font-mono flex-shrink-0">{step.duration}</span>
+                  {/* Mini timing bar inline */}
+                  <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden flex-shrink-0">
+                    <div
+                      className={cn("h-full rounded-full", step.status === "success" ? "bg-emerald-400" : step.status === "error" ? "bg-red-400" : step.status === "running" ? "bg-blue-400 animate-pulse" : "bg-zinc-200")}
+                      style={{ width: `${step.duration === "—" ? 0 : Math.max(5, (parseFloat(step.duration) * (step.duration.includes("s") && !step.duration.includes("ms") ? 1000 : 1) / maxDurationMs) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-zinc-400 font-mono flex-shrink-0 w-10 text-right">{step.duration}</span>
                   <span className="text-[9px] text-zinc-300 font-mono ml-1 flex-shrink-0">{step.ts}</span>
                   {step.items > 0 && <span className="rounded bg-zinc-100 px-1 py-0 text-[7px] font-semibold text-zinc-500">{step.items}×</span>}
                   <ChevronDown size={10} className={cn("text-zinc-300 transition-transform", expandedNode === step.id && "rotate-180")} />
@@ -241,6 +287,7 @@ export function StudioRuntimeDrawer({ onAskAI }: { onAskAI?: (context: string) =
                 )}
               </div>
             ))}
+            </div>
           </div>
         )}
 

@@ -884,6 +884,7 @@ function DiffPanel({ nodeId }: { nodeId: string }) {
   const input = mockInputData[nodeId];
   const output = mockOutputData[nodeId];
   const hasData = !!input && !!output;
+  const [diffView, setDiffView] = useState<"inline" | "split" | "json">("inline");
 
   if (!hasData) {
     return (
@@ -900,60 +901,152 @@ function DiffPanel({ nodeId }: { nodeId: string }) {
   const inputMap = Object.fromEntries(input.schema.map(r => [r.key, r]));
   const outputMap = Object.fromEntries(output.schema.map(r => [r.key, r]));
 
+  const inputJsonObj = Object.fromEntries(input.schema.map(r => [r.key, r.value]));
+  const outputJsonObj = Object.fromEntries(output.schema.map(r => [r.key, r.value]));
+
+  const added = allKeys.filter(k => !inputKeys.has(k)).length;
+  const removed = allKeys.filter(k => !outputKeys.has(k)).length;
+  const changed = allKeys.filter(k => inputMap[k] && outputMap[k] && inputMap[k].value !== outputMap[k].value).length;
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 text-[10px]">
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-400" /> Added</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400" /> Removed</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> Changed</span>
-        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-zinc-300" /> Unchanged</span>
-      </div>
-
-      <div className="rounded-lg border border-zinc-100 divide-y divide-zinc-100 overflow-hidden">
-        {allKeys.map((key) => {
-          const inRow = inputMap[key];
-          const outRow = outputMap[key];
-          const isAdded = !inRow && outRow;
-          const isRemoved = inRow && !outRow;
-          const isChanged = inRow && outRow && inRow.value !== outRow.value;
-
-          return (
-            <div
-              key={key}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 text-[11px]",
-                isAdded && "bg-green-50/50",
-                isRemoved && "bg-red-50/50",
-                isChanged && "bg-amber-50/30",
-              )}
+      {/* View toggle + legend */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-[10px]">
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-400" /> +{added}</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400" /> -{removed}</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> ~{changed}</span>
+        </div>
+        <div className="flex rounded-lg border border-zinc-200 p-0.5">
+          {(["inline", "split", "json"] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setDiffView(v)}
+              className={cn("rounded-md px-2 py-0.5 text-[9px] font-medium capitalize transition-all", diffView === v ? "bg-zinc-900 text-white" : "text-zinc-400 hover:text-zinc-600")}
             >
-              <span className={cn(
-                "h-1.5 w-1.5 rounded-full flex-shrink-0",
-                isAdded ? "bg-green-400" : isRemoved ? "bg-red-400" : isChanged ? "bg-amber-400" : "bg-zinc-200"
-              )} />
-              <span className={cn("font-medium flex-shrink-0 w-24 truncate", isRemoved ? "text-red-500 line-through" : "text-zinc-700")}>{key}</span>
-              {inRow && (
-                <span className={cn("font-mono text-[9px] flex-1 truncate", isChanged || isRemoved ? "text-red-400 line-through" : "text-zinc-400")}>
-                  {inRow.value}
-                </span>
-              )}
-              {isChanged && <span className="text-[9px] text-zinc-300">→</span>}
-              {outRow && (isChanged || isAdded) && (
-                <span className="font-mono text-[9px] flex-1 truncate text-green-600">{outRow.value}</span>
-              )}
-              {!isChanged && !isAdded && !isRemoved && outRow && (
-                <span className="font-mono text-[9px] flex-1 truncate text-zinc-400">{outRow.value}</span>
-              )}
-            </div>
-          );
-        })}
+              {v}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Inline diff */}
+      {diffView === "inline" && (
+        <div className="rounded-lg border border-zinc-100 divide-y divide-zinc-100 overflow-hidden">
+          {allKeys.map((key) => {
+            const inRow = inputMap[key];
+            const outRow = outputMap[key];
+            const isAdded = !inRow && outRow;
+            const isRemoved = inRow && !outRow;
+            const isChanged = inRow && outRow && inRow.value !== outRow.value;
+
+            return (
+              <div
+                key={key}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-[11px]",
+                  isAdded && "bg-green-50/50",
+                  isRemoved && "bg-red-50/50",
+                  isChanged && "bg-amber-50/30",
+                )}
+              >
+                <span className={cn(
+                  "h-1.5 w-1.5 rounded-full flex-shrink-0",
+                  isAdded ? "bg-green-400" : isRemoved ? "bg-red-400" : isChanged ? "bg-amber-400" : "bg-zinc-200"
+                )} />
+                <span className={cn("font-medium flex-shrink-0 w-24 truncate", isRemoved ? "text-red-500 line-through" : "text-zinc-700")}>{key}</span>
+                {inRow && (
+                  <span className={cn("font-mono text-[9px] flex-1 truncate", isChanged || isRemoved ? "text-red-400 line-through" : "text-zinc-400")}>
+                    {inRow.value}
+                  </span>
+                )}
+                {isChanged && <span className="text-[9px] text-zinc-300">→</span>}
+                {outRow && (isChanged || isAdded) && (
+                  <span className="font-mono text-[9px] flex-1 truncate text-green-600">{outRow.value}</span>
+                )}
+                {!isChanged && !isAdded && !isRemoved && outRow && (
+                  <span className="font-mono text-[9px] flex-1 truncate text-zinc-400">{outRow.value}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Side-by-side split */}
+      {diffView === "split" && (
+        <div className="grid grid-cols-2 gap-0 rounded-lg border border-zinc-200 overflow-hidden">
+          <div className="border-r border-zinc-200">
+            <div className="bg-red-50/50 px-3 py-1.5 border-b border-zinc-200 text-[9px] font-semibold text-red-600">← Input</div>
+            <div className="divide-y divide-zinc-50">
+              {allKeys.map(key => {
+                const inRow = inputMap[key];
+                const outRow = outputMap[key];
+                const isRemoved = inRow && !outRow;
+                const isChanged = inRow && outRow && inRow.value !== outRow.value;
+                return (
+                  <div key={key} className={cn("flex items-center gap-2 px-3 py-1.5 text-[10px]", isRemoved && "bg-red-50/50", isChanged && "bg-amber-50/20")}>
+                    <span className="font-medium text-zinc-600 w-20 truncate">{key}</span>
+                    <span className={cn("font-mono text-[9px] truncate flex-1", isRemoved ? "text-red-500 line-through" : isChanged ? "text-amber-600" : "text-zinc-400")}>
+                      {inRow?.value ?? "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="bg-green-50/50 px-3 py-1.5 border-b border-zinc-200 text-[9px] font-semibold text-green-600">Output →</div>
+            <div className="divide-y divide-zinc-50">
+              {allKeys.map(key => {
+                const inRow = inputMap[key];
+                const outRow = outputMap[key];
+                const isAdded = !inRow && outRow;
+                const isChanged = inRow && outRow && inRow.value !== outRow.value;
+                return (
+                  <div key={key} className={cn("flex items-center gap-2 px-3 py-1.5 text-[10px]", isAdded && "bg-green-50/50", isChanged && "bg-amber-50/20")}>
+                    <span className="font-medium text-zinc-600 w-20 truncate">{key}</span>
+                    <span className={cn("font-mono text-[9px] truncate flex-1", isAdded ? "text-green-600 font-semibold" : isChanged ? "text-green-600" : "text-zinc-400")}>
+                      {outRow?.value ?? "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JSON diff view */}
+      {diffView === "json" && (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-[9px] font-semibold text-red-500 mb-1">Input JSON</p>
+            <pre className="rounded-lg border border-red-100 bg-zinc-950 p-2.5 text-[9px] font-mono text-red-400 max-h-48 overflow-auto leading-relaxed">
+              {JSON.stringify(inputJsonObj, null, 2)}
+            </pre>
+          </div>
+          <div>
+            <p className="text-[9px] font-semibold text-green-500 mb-1">Output JSON</p>
+            <pre className="rounded-lg border border-green-100 bg-zinc-950 p-2.5 text-[9px] font-mono text-green-400 max-h-48 overflow-auto leading-relaxed">
+              {JSON.stringify(outputJsonObj, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-3 text-[9px] text-zinc-400">
         <span>Input: {input.schema.length} fields</span>
         <span>Output: {output.schema.length} fields</span>
-        <span className="text-green-500">+{allKeys.filter(k => !inputKeys.has(k)).length} added</span>
-        <span className="text-red-500">-{allKeys.filter(k => !outputKeys.has(k)).length} removed</span>
+        <span className="text-green-500">+{added} added</span>
+        <span className="text-red-500">-{removed} removed</span>
+        <span className="text-amber-500">~{changed} changed</span>
+        <button
+          onClick={() => { navigator.clipboard.writeText(JSON.stringify({ input: inputJsonObj, output: outputJsonObj }, null, 2)); }}
+          className="ml-auto flex items-center gap-0.5 text-zinc-400 hover:text-zinc-600 transition-colors"
+        >
+          <Copy size={8} /> Copy diff
+        </button>
       </div>
     </div>
   );

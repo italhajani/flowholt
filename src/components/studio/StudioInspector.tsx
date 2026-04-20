@@ -1312,6 +1312,19 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  /* ── RSS Feed Trigger hero ── */
+  if (name === "RSS Feed Trigger" || name === "RSS Trigger") {
+    return (
+      <div className="rounded-lg border border-orange-100 bg-gradient-to-r from-orange-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-[8px] font-bold text-orange-700">📡</span>
+          <span className="text-[10px] font-semibold text-orange-700 uppercase tracking-wider">RSS Feed Trigger</span>
+        </div>
+        <p className="text-[10px] text-orange-600">Poll an RSS/Atom feed and trigger on new items. Configure polling interval and item limits.</p>
+      </div>
+    );
+  }
+
   if (name === "Schedule Trigger" || name === "Schedule" || name === "Cron") {
     return (
       <div className="rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50/60 to-white p-3">
@@ -1553,6 +1566,7 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
       {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
       {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
       {nodeName === "Chat Trigger" && <ChatTriggerParams />}
+      {(nodeName === "RSS Feed Trigger" || nodeName === "RSS Trigger") && <RssTriggerParams />}
       {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
       {(nodeName === "Code" || nodeName === "Function" || nodeName === "JavaScript" || nodeName === "Python") && (
         <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 360 }}>
@@ -2459,6 +2473,91 @@ function ChatTriggerParams() {
           <div className="px-3 py-2 border-t border-zinc-800 flex items-center gap-2">
             <input placeholder="Type a message…" className="flex-1 h-7 rounded-md bg-zinc-800 border border-zinc-700 px-2 text-[10px] text-zinc-300 placeholder:text-zinc-600 focus:outline-none" />
             <button className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-600 text-white hover:bg-purple-700"><Send size={10} /></button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── RSS Feed Trigger Params ── */
+function RssTriggerParams() {
+  const [feedUrl, setFeedUrl] = useState("");
+  const [pollInterval, setPollInterval] = useState("15m");
+  const [maxItems, setMaxItems] = useState("10");
+  const [outputFields, setOutputFields] = useState<string[]>(["title", "link", "description", "pubDate"]);
+
+  const toggleField = (f: string) => setOutputFields(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
+
+  return (
+    <div className="space-y-3">
+      <FieldGroup label="Feed URL" description="RSS or Atom feed URL to monitor">
+        <input
+          type="url"
+          value={feedUrl}
+          onChange={e => setFeedUrl(e.target.value)}
+          placeholder="https://blog.example.com/feed.xml"
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all"
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Poll interval" description="How often to check for new items">
+        <select value={pollInterval} onChange={e => setPollInterval(e.target.value)} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[11px] text-zinc-700 focus:outline-none transition-all">
+          <option value="1m">Every 1 minute</option>
+          <option value="5m">Every 5 minutes</option>
+          <option value="15m">Every 15 minutes</option>
+          <option value="30m">Every 30 minutes</option>
+          <option value="1h">Every hour</option>
+          <option value="6h">Every 6 hours</option>
+          <option value="12h">Every 12 hours</option>
+          <option value="24h">Every 24 hours</option>
+        </select>
+      </FieldGroup>
+
+      <FieldGroup label="Max items per poll" description="Limit items returned per poll cycle">
+        <input
+          type="number"
+          value={maxItems}
+          onChange={e => setMaxItems(e.target.value)}
+          min="1"
+          max="100"
+          className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none transition-all"
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Output fields" description="Select which fields to include">
+        <div className="flex flex-wrap gap-1.5">
+          {["title", "link", "description", "pubDate", "author", "category", "guid", "content"].map(f => (
+            <button
+              key={f}
+              onClick={() => toggleField(f)}
+              className={cn(
+                "rounded-md px-2 py-1 text-[10px] font-medium transition-all border",
+                outputFields.includes(f) ? "bg-orange-50 border-orange-300 text-orange-700" : "bg-zinc-50 border-zinc-200 text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </FieldGroup>
+
+      {feedUrl && (
+        <div className="rounded-md border border-orange-200 bg-orange-50 p-2.5">
+          <p className="text-[9px] font-semibold text-orange-600 uppercase tracking-wider mb-1">Feed Preview</p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-zinc-500 w-12">URL:</span>
+              <code className="text-[9px] font-mono text-orange-700 truncate flex-1">{feedUrl}</code>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-zinc-500 w-12">Interval:</span>
+              <span className="text-[9px] text-zinc-700">{pollInterval}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-zinc-500 w-12">Fields:</span>
+              <span className="text-[9px] text-zinc-700">{outputFields.join(", ")}</span>
+            </div>
           </div>
         </div>
       )}

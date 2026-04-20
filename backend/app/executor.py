@@ -877,6 +877,88 @@ def run_workflow_definition(
                 context[output_key] = output
                 context.update(output)
 
+            # ── Form Trigger ─────────────────────────────────────────
+            elif step_type == "form_trigger":
+                form_title = _render_template(str(config.get("form_title", "Form")), expression_scope)
+                form_fields = config.get("form_fields") or []
+                form_path = config.get("form_path") or step.get("id", "form")
+                output = {
+                    "form_title": form_title,
+                    "form_path": form_path,
+                    "form_fields": form_fields,
+                    "form_url": f"/forms/{form_path}",
+                    "submitted_data": payload,
+                    "submitted_at": datetime.now(UTC).isoformat(),
+                }
+                context.update(output)
+
+            # ── Chat Trigger ─────────────────────────────────────────
+            elif step_type == "chat_trigger":
+                chat_mode = config.get("chat_mode", "hosted")
+                chat_message = payload.get("message") or payload.get("text") or ""
+                session_id = payload.get("session_id") or payload.get("sessionId") or "default"
+                output = {
+                    "chat_mode": chat_mode,
+                    "message": chat_message,
+                    "session_id": session_id,
+                    "chat_url": f"/chat/{step.get('id', 'chat')}",
+                    "received_at": datetime.now(UTC).isoformat(),
+                }
+                context.update(output)
+
+            # ── Error Trigger ────────────────────────────────────────
+            elif step_type == "error_trigger":
+                error_data = payload.get("error") or {}
+                output = {
+                    "execution_id": error_data.get("execution_id", ""),
+                    "execution_url": error_data.get("execution_url", ""),
+                    "error_message": error_data.get("message", "Unknown error"),
+                    "error_stack": error_data.get("stack", ""),
+                    "last_node_executed": error_data.get("last_node_executed", ""),
+                    "workflow_id": error_data.get("workflow_id", ""),
+                    "workflow_name": error_data.get("workflow_name", ""),
+                    "mode": error_data.get("mode", "automatic"),
+                }
+                context.update(output)
+
+            # ── RSS Trigger ──────────────────────────────────────────
+            elif step_type == "rss_trigger":
+                feed_url = _render_template(str(config.get("feed_url", "")), expression_scope)
+                max_items = int(config.get("max_items") or 10)
+                # In production this polls the feed; for execution we pass through payload items
+                items = payload.get("items") or payload.get("feed_items") or [payload]
+                output = {
+                    "feed_url": feed_url,
+                    "items": items[:max_items],
+                    "item_count": min(len(items), max_items),
+                    "polled_at": datetime.now(UTC).isoformat(),
+                }
+                context.update(output)
+
+            # ── Form Node (mid-flow) ─────────────────────────────────
+            elif step_type == "form_node":
+                page_type = config.get("page_type", "form_page")
+                if page_type == "form_ending":
+                    completion_msg = _render_template(
+                        str(config.get("completion_message", "Thank you!")), expression_scope
+                    )
+                    output = {
+                        "page_type": "form_ending",
+                        "completion_message": completion_msg,
+                    }
+                    context.update(output)
+                else:
+                    # Pause execution waiting for user form submission
+                    form_fields = config.get("form_fields") or []
+                    output = {
+                        "page_type": "form_page",
+                        "page_title": config.get("page_title", ""),
+                        "form_fields": form_fields,
+                        "waiting_for_input": True,
+                    }
+                    status = "paused"
+                    context.update(output)
+
             # ── AI Agent node (reasoning loop) ───────────────────────
             elif step_type == "ai_agent":
                 agent_type = config.get("agent_type", "tools_agent")

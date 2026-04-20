@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   Key, Shield, Clock, FileText, RotateCcw, Eye, EyeOff, AlertTriangle, CheckCircle2, Copy, RefreshCw,
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useVaultCredentials } from "@/hooks/useApi";
 
 /* ── Mock credential data ── */
 const credential = {
@@ -70,13 +71,31 @@ export function CredentialDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [secretVisible, setSecretVisible] = useState(false);
 
+  const { data: vaultCreds } = useVaultCredentials();
+  const cred = useMemo(() => {
+    const found = vaultCreds?.find((c: any) => c.id === id);
+    if (found) {
+      return {
+        ...credential,
+        id: found.id,
+        name: found.name || found.label || credential.name,
+        provider: found.provider || credential.provider,
+        type: found.type || credential.type,
+        status: (found.status || "active") as "active",
+        lastUsed: found.last_used || credential.lastUsed,
+        createdAt: found.created_at ? new Date(found.created_at).toLocaleDateString() : credential.createdAt,
+      };
+    }
+    return credential;
+  }, [vaultCreds, id]);
+
   return (
     <EntityDetailLayout
       backLabel="Vault"
       backTo="/vault"
-      name={credential.name}
-      status={{ label: credential.status, variant: "success" }}
-      subtitle={`${credential.provider} • ${credential.type} • ${credential.scope} scope`}
+      name={cred.name}
+      status={{ label: cred.status, variant: "success" }}
+      subtitle={`${cred.provider} • ${cred.type} • ${cred.scope} scope`}
       icon={<Key size={18} className="text-amber-500" />}
       tabs={tabs}
       activeTab={activeTab}

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { KeyRound, Search, CheckCircle2, Loader2, AlertCircle, Shield, ExternalLink, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCreateVaultAsset, useTestConnection } from "@/hooks/useApi";
 
 interface CreateCredentialModalProps {
   open: boolean;
@@ -41,8 +42,12 @@ export function CreateCredentialModal({ open, onClose }: CreateCredentialModalPr
   const [scope, setScope] = useState<string>("Workspace");
   const [credName, setCredName] = useState("");
   const [testStatus, setTestStatus] = useState<TestStatus>("idle");
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
-  const reset = () => { setStep(1); setSearch(""); setCategory("All"); setSelectedProvider(null); setScope("Workspace"); setCredName(""); setTestStatus("idle"); };
+  const createMutation = useCreateVaultAsset();
+
+  const reset = () => { setStep(1); setSearch(""); setCategory("All"); setSelectedProvider(null); setScope("Workspace"); setCredName(""); setTestStatus("idle"); setFieldValues({}); setSaving(false); };
   const handleClose = () => { reset(); onClose(); };
 
   const provider = providers.find((p) => p.id === selectedProvider);
@@ -55,6 +60,30 @@ export function CreateCredentialModal({ open, onClose }: CreateCredentialModalPr
   const handleTest = () => {
     setTestStatus("testing");
     setTimeout(() => setTestStatus(Math.random() > 0.3 ? "success" : "error"), 1500);
+  };
+
+  const handleSave = () => {
+    if (!provider) return;
+    setSaving(true);
+    const secret: Record<string, unknown> = {};
+    for (const field of provider.fields) {
+      const key = field.toLowerCase().replace(/\s+/g, "_");
+      secret[key] = fieldValues[field] || "";
+    }
+    const kind = provider.authType === "connection" ? "connection" as const : "credential" as const;
+    createMutation.mutate({
+      kind,
+      name: credName,
+      app: provider.id,
+      subtitle: `${provider.name} ${provider.authType}`,
+      credential_type: provider.authType === "oauth" ? "OAuth 2.0" : provider.authType === "api-key" ? "API Key" : provider.authType === "service-account" ? "Service Account" : "Connection String",
+      scope: scope.toLowerCase(),
+      status: testStatus === "success" ? "active" : "active",
+      secret,
+    }, {
+      onSuccess: () => { handleClose(); },
+      onError: () => { setSaving(false); },
+    });
   };
 
   return (
@@ -96,8 +125,8 @@ export function CreateCredentialModal({ open, onClose }: CreateCredentialModalPr
               Next
             </Button>
           ) : (
-            <Button variant="primary" size="sm" onClick={handleClose}>
-              Save Credential
+            <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? <><Loader2 size={12} className="animate-spin mr-1" /> Saving…</> : "Save Credential"}
             </Button>
           )}
         </div>
@@ -198,6 +227,8 @@ export function CreateCredentialModal({ open, onClose }: CreateCredentialModalPr
               <Input
                 type={field.toLowerCase().includes("key") || field.toLowerCase().includes("secret") || field.toLowerCase().includes("password") || field.toLowerCase().includes("token") || field.toLowerCase().includes("string") ? "password" : "text"}
                 placeholder={`Enter ${field.toLowerCase()}…`}
+                value={fieldValues[field] || ""}
+                onChange={(e) => setFieldValues(prev => ({ ...prev, [field]: e.target.value }))}
               />
             </Field>
           ))}

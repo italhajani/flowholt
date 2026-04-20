@@ -61,6 +61,9 @@ WorkflowStepType = Literal[
     "mcp_client",
     "human_approval",
     "agent_evaluation",
+    "polling_trigger",
+    "event_trigger",
+    "api_trigger",
 ]
 
 
@@ -1837,3 +1840,73 @@ class KnowledgeSearchResult(BaseModel):
     chunk_index: int
     content: str
     score: float
+
+
+# ── Webhook Models ──────────────────────────────────────────
+
+WebhookAuthType = Literal["none", "bearer", "header", "basic"]
+WebhookQueueStatus = Literal["pending", "processing", "completed", "failed", "dead_letter"]
+
+
+class WebhookEndpointCreate(BaseModel):
+    workflow_id: str
+    path: str
+    method: str = "POST"
+    auth_type: WebhookAuthType = "none"
+    auth_config: dict[str, Any] = Field(default_factory=dict)
+    rate_limit_max: int = 300
+    rate_limit_window_sec: int = 10
+
+
+class WebhookEndpointUpdate(BaseModel):
+    path: str | None = None
+    method: str | None = None
+    auth_type: WebhookAuthType | None = None
+    auth_config: dict[str, Any] | None = None
+    rate_limit_max: int | None = None
+    rate_limit_window_sec: int | None = None
+    active: bool | None = None
+    expires_at: str | None = None
+
+
+class WebhookEndpointOut(BaseModel):
+    id: str
+    workflow_id: str
+    path: str
+    method: str
+    auth_type: str
+    rate_limit_max: int
+    rate_limit_window_sec: int
+    active: bool
+    expires_at: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class WebhookDeliveryOut(BaseModel):
+    id: str
+    webhook_id: str
+    execution_id: str | None = None
+    method: str
+    path: str
+    headers: dict[str, Any] = Field(default_factory=dict)
+    body: str | None = None
+    query_params: dict[str, Any] = Field(default_factory=dict)
+    source_ip: str | None = None
+    status_code: int
+    response_body: str | None = None
+    latency_ms: int
+    created_at: str
+
+
+class WebhookQueueItem(BaseModel):
+    id: str
+    webhook_id: str
+    delivery_id: str
+    priority: int
+    attempts: int
+    max_retries: int
+    status: str
+    error_message: str | None = None
+    created_at: str
+    processed_at: str | None = None

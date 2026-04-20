@@ -3957,6 +3957,93 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
              "help": "Include detailed metrics in output (latency, token count, etc.)"},
         ],
     },
+
+    # ── Webhook & Trigger Reliability Nodes ──
+
+    {
+        "type": "polling_trigger",
+        "label": "Polling Trigger",
+        "category": "Triggers",
+        "description": "Watch an external API or endpoint by polling at a regular interval. Detects changes and triggers the workflow.",
+        "icon": "refresh-cw",
+        "color": "#0EA5E9",
+        "supports_branches": False,
+        "fields": [
+            {"key": "url", "label": "URL to Poll", "type": "string", "required": True,
+             "help": "HTTP endpoint to poll for changes"},
+            {"key": "method", "label": "HTTP Method", "type": "select", "required": False, "default": "GET",
+             "options": [
+                 {"label": "GET", "value": "GET"},
+                 {"label": "POST", "value": "POST"},
+             ]},
+            {"key": "interval_seconds", "label": "Poll Interval (seconds)", "type": "number", "required": True, "default": 60},
+            {"key": "change_detection", "label": "Change Detection", "type": "select", "required": False, "default": "hash",
+             "options": [
+                 {"label": "Content Hash", "value": "hash"},
+                 {"label": "Last-Modified Header", "value": "modified"},
+                 {"label": "ETag", "value": "etag"},
+                 {"label": "Always Trigger", "value": "always"},
+             ]},
+            {"key": "headers_json", "label": "Custom Headers (JSON)", "type": "code", "required": False},
+            {"key": "auth_token", "label": "Authorization Token", "type": "string", "required": False},
+            {"key": "response_path", "label": "Response Data Path", "type": "string", "required": False,
+             "help": "JMESPath expression to extract data from response (e.g. data.items)"},
+            {"key": "max_items", "label": "Max Items per Poll", "type": "number", "required": False, "default": 100},
+        ],
+    },
+    {
+        "type": "event_trigger",
+        "label": "Event Trigger",
+        "category": "Triggers",
+        "description": "Listen for internal events from other workflows or system events. Uses the internal event bus for cross-workflow communication.",
+        "icon": "radio",
+        "color": "#A855F7",
+        "supports_branches": False,
+        "fields": [
+            {"key": "event_name", "label": "Event Name", "type": "string", "required": True,
+             "help": "Name of the event to listen for (e.g. user.created, order.completed)"},
+            {"key": "event_source", "label": "Event Source", "type": "select", "required": False, "default": "any",
+             "options": [
+                 {"label": "Any Workflow", "value": "any"},
+                 {"label": "Specific Workflow", "value": "workflow"},
+                 {"label": "System Events", "value": "system"},
+             ]},
+            {"key": "source_workflow_id", "label": "Source Workflow ID", "type": "string", "required": False,
+             "show_when": {"field": "event_source", "equals": "workflow"}},
+            {"key": "filter_expression", "label": "Filter Expression", "type": "string", "required": False,
+             "help": "Only trigger if expression evaluates to true (e.g. {{ $json.amount > 100 }})"},
+            {"key": "debounce_ms", "label": "Debounce (ms)", "type": "number", "required": False, "default": 0,
+             "help": "Ignore duplicate events within this window"},
+        ],
+    },
+    {
+        "type": "api_trigger",
+        "label": "API Trigger",
+        "category": "Triggers",
+        "description": "Trigger this workflow via the FlowHolt API. Provides a dedicated endpoint: POST /api/workflows/{id}/run",
+        "icon": "globe",
+        "color": "#14B8A6",
+        "supports_branches": False,
+        "fields": [
+            {"key": "auth_required", "label": "Require Authentication", "type": "boolean", "required": False, "default": True},
+            {"key": "allowed_roles", "label": "Allowed Roles", "type": "select", "required": False, "default": "any",
+             "options": [
+                 {"label": "Any Authenticated User", "value": "any"},
+                 {"label": "Admin Only", "value": "admin"},
+                 {"label": "Builder+", "value": "builder"},
+             ]},
+            {"key": "rate_limit", "label": "Rate Limit (req/min)", "type": "number", "required": False, "default": 60},
+            {"key": "response_mode", "label": "Response Mode", "type": "select", "required": False, "default": "async",
+             "options": [
+                 {"label": "Async (return execution ID)", "value": "async"},
+                 {"label": "Sync (wait for result)", "value": "sync"},
+             ]},
+            {"key": "sync_timeout_sec", "label": "Sync Timeout (seconds)", "type": "number", "required": False, "default": 30,
+             "show_when": {"field": "response_mode", "equals": "sync"}},
+            {"key": "input_schema", "label": "Input Schema (JSON)", "type": "code", "required": False,
+             "help": "JSON Schema to validate incoming request body"},
+        ],
+    },
 ]
 
 

@@ -1475,6 +1475,49 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
     );
   }
 
+  /* ── Polling Trigger hero ── */
+  if (name === "Polling Trigger") {
+    return (
+      <div className="rounded-lg border border-sky-100 bg-gradient-to-r from-sky-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-sky-100 text-[8px] font-bold text-sky-700">🔄</span>
+          <span className="text-[10px] font-semibold text-sky-700 uppercase tracking-wider">Polling Trigger</span>
+        </div>
+        <p className="text-[10px] text-sky-600">Watch an external API by polling at regular intervals. Detects changes via hash, ETag, or Last-Modified.</p>
+      </div>
+    );
+  }
+
+  /* ── Event Trigger hero ── */
+  if (name === "Event Trigger") {
+    return (
+      <div className="rounded-lg border border-purple-100 bg-gradient-to-r from-purple-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-purple-100 text-[8px] font-bold text-purple-700">📡</span>
+          <span className="text-[10px] font-semibold text-purple-700 uppercase tracking-wider">Event Trigger</span>
+        </div>
+        <p className="text-[10px] text-purple-600">Listen for internal events from other workflows or system events. Supports filtering and debounce.</p>
+      </div>
+    );
+  }
+
+  /* ── API Trigger hero ── */
+  if (name === "API Trigger") {
+    return (
+      <div className="rounded-lg border border-teal-100 bg-gradient-to-r from-teal-50/60 to-white p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded bg-teal-100 text-[8px] font-bold text-teal-700">🌐</span>
+          <span className="text-[10px] font-semibold text-teal-700 uppercase tracking-wider">API Trigger</span>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-md border border-teal-200 bg-white px-2 py-1.5 mt-1">
+          <span className="rounded px-1.5 py-0.5 text-[8px] font-bold bg-green-100 text-green-700">POST</span>
+          <code className="text-[9px] font-mono text-teal-700 truncate flex-1">/api/workflows/{'{id}'}/run</code>
+        </div>
+        <p className="mt-1.5 text-[9px] text-teal-600">Trigger via FlowHolt API. Supports sync/async response modes.</p>
+      </div>
+    );
+  }
+
   if (family === "trigger") {
     const method = config.fields?.find((f) => f.label === "Method")?.value || "POST";
     const path = config.fields?.find((f) => f.label === "Path")?.value || "/webhook";

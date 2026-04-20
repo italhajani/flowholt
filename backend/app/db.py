@@ -563,6 +563,60 @@ CREATE INDEX IF NOT EXISTS idx_kb_chunks_doc ON knowledge_chunks(doc_id, chunk_i
 CREATE INDEX IF NOT EXISTS idx_kb_chunks_kb ON knowledge_chunks(kb_id);
 """
 
+SCHEMA_WEBHOOKS = """
+CREATE TABLE IF NOT EXISTS webhook_endpoints (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    method TEXT DEFAULT 'POST',
+    auth_type TEXT DEFAULT 'none',
+    auth_config TEXT DEFAULT '{}',
+    rate_limit_max INTEGER DEFAULT 300,
+    rate_limit_window_sec INTEGER DEFAULT 10,
+    active INTEGER DEFAULT 1,
+    expires_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_webhook_path ON webhook_endpoints(path, method);
+
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id TEXT PRIMARY KEY,
+    webhook_id TEXT NOT NULL,
+    execution_id TEXT,
+    method TEXT NOT NULL,
+    path TEXT NOT NULL,
+    headers TEXT DEFAULT '{}',
+    body TEXT,
+    query_params TEXT DEFAULT '{}',
+    source_ip TEXT,
+    status_code INTEGER DEFAULT 200,
+    response_body TEXT,
+    latency_ms INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(webhook_id) REFERENCES webhook_endpoints(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_del_wh ON webhook_deliveries(webhook_id, created_at);
+
+CREATE TABLE IF NOT EXISTS webhook_queue (
+    id TEXT PRIMARY KEY,
+    webhook_id TEXT NOT NULL,
+    delivery_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    priority INTEGER DEFAULT 0,
+    attempts INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 5,
+    next_retry_at TEXT,
+    status TEXT DEFAULT 'pending',
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    processed_at TEXT,
+    FOREIGN KEY(webhook_id) REFERENCES webhook_endpoints(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_wh_queue_status ON webhook_queue(status, next_retry_at);
+"""
+
 
 class CompatCursor:
     def __init__(self, cursor: Any):
@@ -777,6 +831,7 @@ def init_db() -> None:
         _ensure_column(conn, "workspace_settings", "notify_on_approval_requests", "INTEGER NOT NULL DEFAULT 1")
         _ensure_column(conn, "workflow_deployments", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
         _ensure_column(conn, "chat_messages", "actions_json", "TEXT")
+        conn.executescript(SCHEMA_WEBHOOKS)
 
 
 def row_to_dict(row: Any) -> dict[str, Any]:

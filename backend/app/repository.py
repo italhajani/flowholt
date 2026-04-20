@@ -2765,3 +2765,176 @@ def _split_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
             chunks.append(chunk)
         start = end - chunk_overlap
     return chunks
+
+
+# ── Webhook Endpoints ──
+
+def create_webhook_endpoint(data: dict) -> dict:
+    wh_id = f"wh-{uuid.uuid4().hex[:12]}"
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO webhook_endpoints
+               (id, workflow_id, path, method, auth_type, auth_config,
+                rate_limit_max, rate_limit_window_sec, active, expires_at, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,1,?,?,?)""",
+            (wh_id, data["workflow_id"], data["path"], data.get("method", "POST"),
+             data.get("auth_type", "none"), json.dumps(data.get("auth_config", {})),
+             data.get("rate_limit_max", 300), data.get("rate_limit_window_sec", 10),
+             data.get("expires_at"), now, now),
+        )
+    return get_webhook_endpoint(wh_id)  # type: ignore[return-value]
+
+
+def get_webhook_endpoint(wh_id: str) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM webhook_endpoints WHERE id=?", (wh_id,)).fetchone()
+    if not row:
+        return None
+    item = row_to_dict(row)
+    item["active"] = bool(item.get("active", 1))
+    if isinstance(item.get("auth_config"), str):
+        item["auth_config"] = json.loads(item["auth_config"])
+    return item
+
+
+def list_webhook_endpoints(workflow_id: str | None = None) -> list[dict]:
+    with get_db() as conn:
+        if workflow_id:
+            rows = conn.execute("SELECT * FROM webhook_endpoints WHERE workflow_id=? ORDER BY created_at DESC", (workflow_id,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM webhook_endpoints ORDER BY created_at DESC").fetchall()
+    results = []
+    for r in rows:
+        item = row_to_dict(r)
+        item["active"] = bool(item.get("active", 1))
+        if isinstance(item.get("auth_config"), str):
+            item["auth_config"] = json.loads(item["auth_config"])
+        results.append(item)
+    return results
+
+
+def update_webhook_endpoint(wh_id: str, data: dict) -> dict | None:
+    updates, params = [], []
+    for col in ("path", "method", "auth_type", "rate_limit_max", "rate_limit_window_sec", "expires_at"):
+        if col in data and data[col] is not None:
+            updates.append(f"{col}=?")
+            params.append(data[col])
+    if "auth_config" in data and data["auth_config"] is not None:
+        updates.append("auth_config=?")
+        params.append(json.dumps(data["auth_config"]))
+    if "active" in data and data["active"] is not None:
+        updates.append("active=?")
+        params.append(1 if data["active"] else 0)
+    if not updates:
+        return get_webhook_endpoint(wh_id)
+    updates.append("updated_at=?")
+    params.append(utc_now())
+    params.append(wh_id)
+    with get_db() as conn:
+        conn.execute(f"UPDATE webhook_endpoints SET {','.join(updates)} WHERE id=?", params)
+    return get_webhook_endpoint(wh_id)
+
+
+def delete_webhook_endpoint(wh_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM webhook_endpoints WHERE id=?", (wh_id,))
+    return cur.rowcount > 0
+
+
+# ── Webhook Deliveries ──
+
+def record_webhook_delivery(data: dict) -> dict:
+    del_id = f"whd-{uuid.uuid4().hex[:12]}"
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO webhook_deliveries
+               (id, webhook_id, execution_id, method, path, headers, body,
+                query_params, source_ip, status_code, response_body, latency_ms, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (del_id, data["webhook_id"], data.get("execution_id"),
+             data.get("method", "POST"), data.get("path", ""),
+             json.dumps(data.get("headers", {})), data.get("body"),
+             json.dumps(data.get("query_params", {})), data.get("source_ip"),
+             data.get("status_code", 200), data.get("response_body"),
+             data.get("latency_ms", 0), now),
+        )
+    return {"id": del_id, "created_at": now, **data}
+
+
+def list_webhook_deliveries(webhook_id: str, *, limit: int = 50, offset: int = 0) -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM webhook_deliveries WHERE webhook_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (webhook_id, limit, offset),
+        ).fetchall()
+    results = []
+    for r in rows:
+        item = row_to_dict(r)
+        for col in ("headers", "query_params"):
+            if isinstance(item.get(col), str):
+                item[col] = json.loads(item[col])
+        results.append(item)
+    return results
+
+
+# ── Webhook Queue ──
+
+def enqueue_webhook(webhook_id: str, delivery_id: str, payload: str, *, priority: int = 0, max_retries: int = 5) -> dict:
+    q_id = f"whq-{uuid.uuid4().hex[:12]}"
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO webhook_queue
+               (id, webhook_id, delivery_id, payload, priority, attempts, max_retries, status, created_at)
+               VALUES (?,?,?,?,?,0,?,?,?)""",
+            (q_id, webhook_id, delivery_id, payload, priority, max_retries, "pending", now),
+        )
+    return {"id": q_id, "status": "pending", "created_at": now}
+
+
+def dequeue_next_webhook() -> dict | None:
+    """Pick the next pending item (FIFO, priority-aware) and mark processing."""
+    with get_db() as conn:
+        row = conn.execute(
+            """SELECT * FROM webhook_queue
+               WHERE status='pending' AND (next_retry_at IS NULL OR next_retry_at <= ?)
+               ORDER BY priority DESC, created_at ASC LIMIT 1""",
+            (utc_now(),),
+        ).fetchone()
+        if not row:
+            return None
+        item = row_to_dict(row)
+        conn.execute(
+            "UPDATE webhook_queue SET status='processing', attempts=attempts+1 WHERE id=?",
+            (item["id"],),
+        )
+    item["status"] = "processing"
+    return item
+
+
+def complete_webhook_queue_item(q_id: str, *, success: bool, error: str | None = None) -> None:
+    now = utc_now()
+    with get_db() as conn:
+        if success:
+            conn.execute(
+                "UPDATE webhook_queue SET status='completed', processed_at=? WHERE id=?",
+                (now, q_id),
+            )
+        else:
+            row = conn.execute("SELECT attempts, max_retries FROM webhook_queue WHERE id=?", (q_id,)).fetchone()
+            if row:
+                item = row_to_dict(row)
+                if item["attempts"] >= item["max_retries"]:
+                    conn.execute(
+                        "UPDATE webhook_queue SET status='dead_letter', error_message=?, processed_at=? WHERE id=?",
+                        (error, now, q_id),
+                    )
+                else:
+                    backoff_sec = min(2 ** item["attempts"] * 5, 3600)
+                    retry_at = (datetime.now(UTC) + timedelta(seconds=backoff_sec)).isoformat()
+                    conn.execute(
+                        "UPDATE webhook_queue SET status='pending', next_retry_at=?, error_message=? WHERE id=?",
+                        (retry_at, error, q_id),
+                    )

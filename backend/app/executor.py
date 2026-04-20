@@ -1018,6 +1018,51 @@ def run_workflow_definition(
                     output = {"items": results, "count": len(results)}
                 context.update(output)
 
+            # ── Polling Trigger ─────────────────────────────────────
+            elif step_type == "polling_trigger":
+                url = _render_template(str(config.get("url", "")), expression_scope)
+                method = config.get("method", "GET")
+                interval = int(config.get("interval_seconds", 60))
+                detection = config.get("change_detection", "hash")
+                output = {
+                    "poll_url": url,
+                    "method": method,
+                    "interval_seconds": interval,
+                    "change_detection": detection,
+                    "status": "polling",
+                    "last_hash": None,
+                    "data": context.get("payload", {}),
+                }
+                context.update(output)
+
+            # ── Event Trigger ───────────────────────────────────────
+            elif step_type == "event_trigger":
+                event_name = _render_template(str(config.get("event_name", "")), expression_scope)
+                source = config.get("event_source", "any")
+                debounce = int(config.get("debounce_ms", 0))
+                output = {
+                    "event_name": event_name,
+                    "event_source": source,
+                    "debounce_ms": debounce,
+                    "status": "listening",
+                    "data": context.get("payload", {}),
+                }
+                context.update(output)
+
+            # ── API Trigger ─────────────────────────────────────────
+            elif step_type == "api_trigger":
+                response_mode = config.get("response_mode", "async")
+                rate_limit = int(config.get("rate_limit", 60))
+                output = {
+                    "trigger_type": "api",
+                    "response_mode": response_mode,
+                    "rate_limit_per_min": rate_limit,
+                    "auth_required": config.get("auth_required", True),
+                    "data": context.get("payload", {}),
+                    "status": "triggered",
+                }
+                context.update(output)
+
             # ── MCP Client Tool (for AI Agent sub-node) ─────────────
             elif step_type == "mcp_client_tool":
                 endpoint_url = _render_template(str(config.get("endpoint_url", "")), expression_scope)

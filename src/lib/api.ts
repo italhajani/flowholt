@@ -954,3 +954,12 @@ export function searchKnowledge(kbId: string, query: string, topK = 5) {
     body: JSON.stringify({ query, top_k: topK }),
   });
 }
+
+// ── Workflow Run API ──
+
+export function triggerWorkflowRun(workflowId: string, payload?: Record<string, unknown>) {
+  return apiFetch<{ execution_id: string; status: string }>(`/api/workflows/${workflowId}/run`, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}

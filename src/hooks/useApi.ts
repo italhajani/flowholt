@@ -66,6 +66,7 @@ import {
   deleteKnowledgeDocument,
   searchKnowledge,
   type KnowledgeBaseCreatePayload,
+  triggerWorkflowRun,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -527,5 +528,16 @@ export function useSearchKnowledge() {
   return useMutation({
     mutationFn: (opts: { kbId: string; query: string; topK?: number }) =>
       searchKnowledge(opts.kbId, opts.query, opts.topK),
+  });
+}
+
+// ── Workflow Run Hook ──
+
+export function useTriggerWorkflowRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { workflowId: string; payload?: Record<string, unknown> }) =>
+      triggerWorkflowRun(opts.workflowId, opts.payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["executions"] }),
   });
 }

@@ -763,6 +763,71 @@ export function fetchInternalEvents(eventType?: string, limit?: number) {
   return apiFetch<InternalEvent[]>(`/api/events${qs}`);
 }
 
+// Webhook test
+export function testWebhook(id: string) {
+  return apiFetch<{ delivery_id: string; webhook_id: string; test_payload: Record<string, unknown>; status: string }>(`/api/webhooks/${id}/test`, { method: "POST" });
+}
+
+// ---------------------------------------------------------------------------
+// Consecutive Error Tracking
+// ---------------------------------------------------------------------------
+
+export interface WorkflowErrorInfo {
+  workflow_id: string;
+  consecutive_errors: number;
+  count?: number;
+  last_error?: string;
+  last_error_at?: string;
+  auto_deactivated?: boolean;
+}
+
+export function fetchWorkflowErrors(workflowId: string) {
+  return apiFetch<WorkflowErrorInfo>(`/api/workflows/${workflowId}/errors`);
+}
+
+export function resetWorkflowErrors(workflowId: string) {
+  return apiFetch<{ status: string }>(`/api/workflows/${workflowId}/errors/reset`, { method: "POST" });
+}
+
+export function fetchErrorTrackedWorkflows() {
+  return apiFetch<WorkflowErrorInfo[]>(`/api/error-tracked-workflows`);
+}
+
+// ---------------------------------------------------------------------------
+// Incomplete Execution Retry
+// ---------------------------------------------------------------------------
+
+export interface IncompleteExecution {
+  id: string;
+  execution_id: string;
+  workflow_id: string;
+  retry_count: number;
+  max_retries: number;
+  next_retry_at: string | null;
+  status: "pending" | "resolved" | "exhausted";
+  error_message: string | null;
+  saved_state_json?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function fetchIncompleteExecutions(opts?: { workflow_id?: string; status?: string; limit?: number }) {
+  const params = new URLSearchParams();
+  if (opts?.workflow_id) params.set("workflow_id", opts.workflow_id);
+  if (opts?.status) params.set("status", opts.status);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  const qs = params.toString() ? `?${params}` : "";
+  return apiFetch<IncompleteExecution[]>(`/api/incomplete-executions${qs}`);
+}
+
+export function resolveIncompleteExecution(id: string) {
+  return apiFetch<IncompleteExecution>(`/api/incomplete-executions/${id}/resolve`, { method: "POST" });
+}
+
+export function deleteIncompleteExecution(id: string) {
+  return apiFetch<void>(`/api/incomplete-executions/${id}`, { method: "DELETE" });
+}
+
 // ---------------------------------------------------------------------------
 // Human Task / Inbox endpoints
 // ---------------------------------------------------------------------------

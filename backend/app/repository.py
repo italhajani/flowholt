@@ -3133,3 +3133,242 @@ def list_internal_events(
             item["payload"] = json.loads(item["payload_json"])
         results.append(item)
     return results
+
+
+# ── Consecutive Error Tracking ──
+
+def record_workflow_error(workflow_id: str, error_msg: str) -> dict:
+    """Increment consecutive error counter. Returns updated record."""
+    now = utc_now()
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT * FROM consecutive_errors WHERE workflow_id=?", (workflow_id,)
+        ).fetchone()
+        if existing:
+            new_count = row_to_dict(existing)["count"] + 1
+            conn.execute(
+                """UPDATE consecutive_errors
+                   SET count=?, last_error=?, last_error_at=?
+                   WHERE workflow_id=?""",
+                (new_count, error_msg, now, workflow_id),
+            )
+            return {"workflow_id": workflow_id, "count": new_count, "last_error_at": now}
+        else:
+            conn.execute(
+                """INSERT INTO consecutive_errors (workflow_id, count, last_error, last_error_at)
+                   VALUES (?,1,?,?)""",
+                (workflow_id, error_msg, now),
+            )
+            return {"workflow_id": workflow_id, "count": 1, "last_error_at": now}
+
+
+def reset_workflow_errors(workflow_id: str) -> None:
+    """Reset consecutive error counter on success."""
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE consecutive_errors SET count=0, auto_deactivated=0 WHERE workflow_id=?",
+            (workflow_id,),
+        )
+
+
+def get_workflow_error_count(workflow_id: str) -> int:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT count FROM consecutive_errors WHERE workflow_id=?", (workflow_id,)
+        ).fetchone()
+        return row_to_dict(row)["count"] if row else 0
+
+
+def auto_deactivate_workflow(workflow_id: str, threshold: int = 5) -> bool:
+    """Auto-deactivate workflow if error count >= threshold. Returns True if deactivated."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT count, auto_deactivated FROM consecutive_errors WHERE workflow_id=?",
+            (workflow_id,),
+        ).fetchone()
+        if not row:
+            return False
+        item = row_to_dict(row)
+        if item["count"] >= threshold and not item["auto_deactivated"]:
+            conn.execute(
+                "UPDATE consecutive_errors SET auto_deactivated=1 WHERE workflow_id=?",
+                (workflow_id,),
+            )
+            conn.execute(
+                "UPDATE workflows SET status='inactive' WHERE id=?", (workflow_id,)
+            )
+            return True
+    return False
+
+
+def list_error_tracked_workflows() -> list[dict]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM consecutive_errors WHERE count > 0 ORDER BY count DESC"
+        ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+# ── Incomplete Execution Retry ──
+
+MAKE_RETRY_SCHEDULE = [60, 600, 600, 1800, 1800, 1800, 10800, 10800]  # 1m,10m,10m,30m,30m,30m,3h,3h
+
+
+def create_incomplete_execution(execution_id: str, workflow_id: str, error_msg: str, saved_state: dict | None = None) -> dict:
+    """Store a failed execution for retry."""
+    ie_id = f"ie-{uuid.uuid4().hex[:12]}"
+    now = utc_now()
+    retry_at_sec = MAKE_RETRY_SCHEDULE[0]
+    next_retry_at = (datetime.now(UTC) + timedelta(seconds=retry_at_sec)).isoformat()
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO incomplete_executions
+               (id, execution_id, workflow_id, retry_count, max_retries, next_retry_at, status, error_message, saved_state_json, created_at, updated_at)
+               VALUES (?,?,?,0,8,?,?,?,?,?,?)""",
+            (ie_id, execution_id, workflow_id, next_retry_at, "pending", error_msg,
+             json.dumps(saved_state or {}), now, now),
+        )
+    return {"id": ie_id, "execution_id": execution_id, "status": "pending", "next_retry_at": next_retry_at}
+
+
+def list_incomplete_executions(*, workflow_id: str | None = None, status: str | None = None, limit: int = 50) -> list[dict]:
+    with get_db() as conn:
+        clauses = []
+        params: list[Any] = []
+        if workflow_id:
+            clauses.append("workflow_id=?")
+            params.append(workflow_id)
+        if status:
+            clauses.append("status=?")
+            params.append(status)
+        where = " AND ".join(clauses) if clauses else "1=1"
+        rows = conn.execute(
+            f"SELECT * FROM incomplete_executions WHERE {where} ORDER BY created_at DESC LIMIT ?",
+            (*params, limit),
+        ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+def get_due_incomplete_executions() -> list[dict]:
+    """Get incomplete executions ready for retry."""
+    now = utc_now()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM incomplete_executions WHERE status='pending' AND next_retry_at <= ? ORDER BY next_retry_at ASC",
+            (now,),
+        ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+def advance_incomplete_execution(ie_id: str, *, success: bool, error_msg: str | None = None) -> None:
+    """After retry: mark resolved on success, or schedule next retry."""
+    now = utc_now()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM incomplete_executions WHERE id=?", (ie_id,)).fetchone()
+        if not row:
+            return
+        item = row_to_dict(row)
+        if success:
+            conn.execute(
+                "UPDATE incomplete_executions SET status='resolved', updated_at=? WHERE id=?",
+                (now, ie_id),
+            )
+        else:
+            new_count = item["retry_count"] + 1
+            if new_count >= item["max_retries"]:
+                conn.execute(
+                    "UPDATE incomplete_executions SET status='exhausted', retry_count=?, error_message=?, updated_at=? WHERE id=?",
+                    (new_count, error_msg, now, ie_id),
+                )
+            else:
+                backoff_sec = MAKE_RETRY_SCHEDULE[min(new_count, len(MAKE_RETRY_SCHEDULE) - 1)]
+                next_retry = (datetime.now(UTC) + timedelta(seconds=backoff_sec)).isoformat()
+                conn.execute(
+                    "UPDATE incomplete_executions SET retry_count=?, next_retry_at=?, error_message=?, updated_at=? WHERE id=?",
+                    (new_count, next_retry, error_msg, now, ie_id),
+                )
+
+
+def resolve_incomplete_execution(ie_id: str) -> dict | None:
+    """Manually resolve an incomplete execution."""
+    now = utc_now()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM incomplete_executions WHERE id=?", (ie_id,)).fetchone()
+        if not row:
+            return None
+        conn.execute(
+            "UPDATE incomplete_executions SET status='resolved', updated_at=? WHERE id=?",
+            (now, ie_id),
+        )
+        return {**row_to_dict(row), "status": "resolved"}
+
+
+def delete_incomplete_execution(ie_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM incomplete_executions WHERE id=?", (ie_id,))
+        return cur.rowcount > 0
+
+
+# ── Webhook Test Helpers ──
+
+def send_webhook_test(wh_id: str) -> dict:
+    """Record a synthetic test delivery for a webhook."""
+    endpoint = get_webhook_endpoint(wh_id)
+    if not endpoint:
+        return {"error": "Webhook not found"}
+    test_payload = {
+        "test": True,
+        "message": "This is a test webhook delivery",
+        "timestamp": utc_now(),
+        "webhook_id": wh_id,
+    }
+    delivery = record_webhook_delivery({
+        "webhook_id": wh_id,
+        "method": endpoint.get("method", "POST"),
+        "path": endpoint.get("path", "/test"),
+        "headers": {"x-flowholt-test": "true", "content-type": "application/json"},
+        "body": json.dumps(test_payload),
+        "query_params": {},
+        "source_ip": "127.0.0.1",
+        "status_code": 200,
+        "latency_ms": 0,
+    })
+    enqueue_webhook(wh_id, delivery["id"], json.dumps(test_payload))
+    return {
+        "delivery_id": delivery["id"],
+        "webhook_id": wh_id,
+        "test_payload": test_payload,
+        "status": "enqueued",
+    }
+
+
+def get_active_polling_triggers() -> list[dict]:
+    """Get all active polling triggers that are due for execution."""
+    now = utc_now()
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT * FROM polling_triggers
+               WHERE active=1 AND method != 'EVENT'
+               AND (last_polled_at IS NULL
+                    OR datetime(last_polled_at, '+' || interval_seconds || ' seconds') <= ?)
+               ORDER BY last_polled_at ASC""",
+            (now,),
+        ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+def mark_polling_trigger_polled(pt_id: str, cursor: str | None = None) -> None:
+    """Update last_polled_at and optionally last_cursor."""
+    now = utc_now()
+    with get_db() as conn:
+        if cursor is not None:
+            conn.execute(
+                "UPDATE polling_triggers SET last_polled_at=?, last_cursor=? WHERE id=?",
+                (now, cursor, pt_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE polling_triggers SET last_polled_at=? WHERE id=?",
+                (now, pt_id),
+            )
+

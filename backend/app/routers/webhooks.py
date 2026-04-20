@@ -228,6 +228,83 @@ def trigger_workflow_run(
 
 # ── Webhook Receive (incoming payloads) ──
 
+# ── Webhook Receive (incoming payloads) ──
+
+@router.post("/webhooks/{wh_id}/test")
+def test_webhook(
+    wh_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Send a synthetic test delivery to verify webhook setup."""
+    require_workspace_role(session, "owner", "admin", "builder")
+    result = repo.send_webhook_test(wh_id)
+    if "error" in result:
+        raise HTTPException(404, result["error"])
+    return result
+
+
+# ── Consecutive Error Tracking ──
+
+@router.get("/workflows/{workflow_id}/errors")
+def get_workflow_errors(
+    workflow_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    count = repo.get_workflow_error_count(workflow_id)
+    return {"workflow_id": workflow_id, "consecutive_errors": count}
+
+
+@router.post("/workflows/{workflow_id}/errors/reset")
+def reset_errors(
+    workflow_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, str]:
+    require_workspace_role(session, "owner", "admin")
+    repo.reset_workflow_errors(workflow_id)
+    return {"status": "reset"}
+
+
+@router.get("/error-tracked-workflows")
+def list_error_tracked(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    return repo.list_error_tracked_workflows()
+
+
+# ── Incomplete Execution Management ──
+
+@router.get("/incomplete-executions")
+def list_incomplete_execs(
+    workflow_id: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    return repo.list_incomplete_executions(workflow_id=workflow_id, status=status, limit=limit)
+
+
+@router.post("/incomplete-executions/{ie_id}/resolve")
+def resolve_incomplete(
+    ie_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    require_workspace_role(session, "owner", "admin", "builder")
+    result = repo.resolve_incomplete_execution(ie_id)
+    if not result:
+        raise HTTPException(404, "Incomplete execution not found")
+    return result
+
+
+@router.delete("/incomplete-executions/{ie_id}", status_code=204)
+def delete_incomplete(
+    ie_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> None:
+    require_workspace_role(session, "owner", "admin")
+    if not repo.delete_incomplete_execution(ie_id):
+        raise HTTPException(404, "Incomplete execution not found")
+
+
 @router.api_route("/webhook/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 async def receive_webhook(path: str, request: Request) -> dict[str, Any]:
     """Catch-all webhook receiver — enforces rate limits, expiration, logs delivery, enqueues."""

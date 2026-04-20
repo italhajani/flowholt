@@ -688,6 +688,31 @@ CREATE TABLE IF NOT EXISTS internal_events (
     source_workflow_id TEXT,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS consecutive_errors (
+    workflow_id TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT,
+    last_error_at TEXT,
+    auto_deactivated INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS incomplete_executions (
+    id TEXT PRIMARY KEY,
+    execution_id TEXT NOT NULL,
+    workflow_id TEXT NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retries INTEGER NOT NULL DEFAULT 8,
+    next_retry_at TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    error_message TEXT,
+    saved_state_json TEXT DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE,
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
 """
 
 

@@ -25,6 +25,15 @@ from .repository import (
     get_trigger_event_by_key,
     create_trigger_event,
     list_workflows_by_trigger,
+    dequeue_next_webhook,
+    complete_webhook_queue_item,
+    get_active_polling_triggers,
+    mark_polling_trigger_polled,
+    get_due_incomplete_executions,
+    advance_incomplete_execution,
+    record_workflow_error,
+    reset_workflow_errors,
+    auto_deactivate_workflow,
 )
 
 logger = logging.getLogger("flowholt.scheduler")
@@ -343,6 +352,30 @@ async def scheduler_loop(*, check_interval: float = 30.0, max_iterations: int | 
         except Exception:  # noqa: BLE001
             logger.exception("Scheduler check error")
 
+        # Process webhook queue
+        try:
+            wq = process_webhook_queue(batch_size=10)
+            if wq["processed"] > 0 or wq["failed"] > 0:
+                logger.info("Webhook queue: processed=%d failed=%d", wq["processed"], wq["failed"])
+        except Exception:  # noqa: BLE001
+            logger.exception("Webhook queue processing error")
+
+        # Process polling triggers
+        try:
+            pt = process_polling_triggers()
+            if pt["queued"] > 0:
+                logger.info("Polling triggers: queued=%d skipped=%d", pt["queued"], pt["skipped"])
+        except Exception:  # noqa: BLE001
+            logger.exception("Polling trigger processing error")
+
+        # Process incomplete execution retries
+        try:
+            ie = process_incomplete_retries()
+            if ie["retried"] > 0 or ie["exhausted"] > 0:
+                logger.info("Incomplete retries: retried=%d exhausted=%d", ie["retried"], ie["exhausted"])
+        except Exception:  # noqa: BLE001
+            logger.exception("Incomplete execution retry error")
+
         iteration += 1
         if max_iterations is not None and iteration >= max_iterations:
             break
@@ -354,6 +387,136 @@ async def scheduler_loop(*, check_interval: float = 30.0, max_iterations: int | 
             continue
 
     logger.info("Scheduler stopped")
+
+
+# ── Webhook Queue Processor ──
+
+def process_webhook_queue(*, batch_size: int = 10) -> dict[str, int]:
+    """Dequeue pending webhook items and trigger workflow executions."""
+    processed = 0
+    failed = 0
+    for _ in range(batch_size):
+        item = dequeue_next_webhook()
+        if not item:
+            break
+        try:
+            wh_id = item["webhook_id"]
+            from .repository import get_webhook_endpoint, get_workflow
+            endpoint = get_webhook_endpoint(wh_id)
+            if not endpoint:
+                complete_webhook_queue_item(item["id"], success=False, error="Webhook endpoint not found")
+                failed += 1
+                continue
+            workflow_id = endpoint.get("workflow_id")
+            if not workflow_id:
+                complete_webhook_queue_item(item["id"], success=False, error="No workflow linked")
+                failed += 1
+                continue
+            wf = get_workflow(workflow_id)
+            if not wf:
+                complete_webhook_queue_item(item["id"], success=False, error="Workflow not found")
+                failed += 1
+                continue
+            import json
+            payload = {}
+            try:
+                payload = json.loads(item.get("payload", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                pass
+            job = create_workflow_job(
+                workspace_id=str(wf.get("workspace_id", "")),
+                workflow_id=workflow_id,
+                workflow_version_id=str(wf["published_version_id"]) if wf.get("published_version_id") else None,
+                initiated_by_user_id=None,
+                environment="draft",
+                trigger_type="webhook",
+                payload={"_trigger_type": "webhook", "_delivery_id": item["delivery_id"], **payload},
+            )
+            complete_webhook_queue_item(item["id"], success=True)
+            processed += 1
+            logger.debug("Webhook queue item %s → job %s", item["id"], job["id"])
+        except Exception as exc:
+            complete_webhook_queue_item(item["id"], success=False, error=str(exc))
+            failed += 1
+            logger.exception("Webhook queue processing error for %s", item["id"])
+    return {"processed": processed, "failed": failed}
+
+
+# ── Polling Trigger Processor ──
+
+def process_polling_triggers() -> dict[str, int]:
+    """Check due polling triggers and queue workflow jobs."""
+    triggers = get_active_polling_triggers()
+    queued = 0
+    skipped = 0
+    for pt in triggers:
+        try:
+            from .repository import get_workflow
+            wf = get_workflow(pt["workflow_id"])
+            if not wf or wf.get("status") == "inactive":
+                skipped += 1
+                continue
+            dedup_key = f"poll-{pt['id']}-{utc_now()[:16]}"
+            existing = get_trigger_event_by_key(dedup_key)
+            if existing:
+                skipped += 1
+                continue
+            import json
+            create_trigger_event(
+                workflow_id=pt["workflow_id"],
+                trigger_type="polling",
+                trigger_config_json=json.dumps({"polling_trigger_id": pt["id"], "url": pt.get("url", "")}),
+                idempotency_key=dedup_key,
+            )
+            job = create_workflow_job(
+                workspace_id=str(wf.get("workspace_id", "")),
+                workflow_id=pt["workflow_id"],
+                workflow_version_id=str(wf["published_version_id"]) if wf.get("published_version_id") else None,
+                initiated_by_user_id=None,
+                environment="draft",
+                trigger_type="polling",
+                payload={"_trigger_type": "polling", "_polling_trigger_id": pt["id"], "_url": pt.get("url", "")},
+            )
+            mark_polling_trigger_polled(pt["id"])
+            queued += 1
+            logger.info("Polling trigger %s → job %s", pt["id"], job["id"])
+        except Exception:
+            skipped += 1
+            logger.exception("Polling trigger error for %s", pt["id"])
+    return {"checked": len(triggers), "queued": queued, "skipped": skipped}
+
+
+# ── Incomplete Execution Retry ──
+
+def process_incomplete_retries() -> dict[str, int]:
+    """Retry due incomplete executions."""
+    due = get_due_incomplete_executions()
+    retried = 0
+    exhausted = 0
+    for ie in due:
+        try:
+            from .repository import get_workflow
+            wf = get_workflow(ie["workflow_id"])
+            if not wf:
+                advance_incomplete_execution(ie["id"], success=False, error_msg="Workflow not found")
+                exhausted += 1
+                continue
+            job = create_workflow_job(
+                workspace_id=str(wf.get("workspace_id", "")),
+                workflow_id=ie["workflow_id"],
+                workflow_version_id=str(wf["published_version_id"]) if wf.get("published_version_id") else None,
+                initiated_by_user_id=None,
+                environment="draft",
+                trigger_type="retry",
+                payload={"_trigger_type": "retry", "_incomplete_execution_id": ie["id"], "_original_execution_id": ie["execution_id"]},
+            )
+            retried += 1
+            logger.info("Incomplete execution retry %s → job %s", ie["id"], job["id"])
+        except Exception:
+            advance_incomplete_execution(ie["id"], success=False, error_msg="Retry failed")
+            exhausted += 1
+            logger.exception("Incomplete execution retry error for %s", ie["id"])
+    return {"due": len(due), "retried": retried, "exhausted": exhausted}
 
 
 async def start_scheduler() -> asyncio.Task[None]:

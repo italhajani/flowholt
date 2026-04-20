@@ -100,6 +100,13 @@ import {
   createEvalRun,
   testExpression,
   fetchExpressionVariables,
+  testWebhook,
+  fetchWorkflowErrors,
+  resetWorkflowErrors,
+  fetchErrorTrackedWorkflows,
+  fetchIncompleteExecutions,
+  resolveIncompleteExecution,
+  deleteIncompleteExecution,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -483,6 +490,68 @@ export function useEmitEvent() {
     mutationFn: (payload: { event_type: string; payload?: Record<string, unknown> }) =>
       emitInternalEvent(payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["internalEvents"] }); },
+  });
+}
+
+// ── Sprint 41: Webhook Test, Error Tracking, Incomplete Executions ──
+
+export function useTestWebhook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => testWebhook(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhookDeliveries"] });
+      qc.invalidateQueries({ queryKey: ["webhookQueue"] });
+    },
+  });
+}
+
+export function useWorkflowErrors(workflowId: string | undefined) {
+  return useQuery({
+    queryKey: ["workflowErrors", workflowId],
+    queryFn: () => fetchWorkflowErrors(workflowId!),
+    enabled: !!workflowId,
+    staleTime: 30_000,
+  });
+}
+
+export function useResetWorkflowErrors() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (workflowId: string) => resetWorkflowErrors(workflowId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["workflowErrors"] }); },
+  });
+}
+
+export function useErrorTrackedWorkflows() {
+  return useQuery({
+    queryKey: ["errorTrackedWorkflows"],
+    queryFn: () => fetchErrorTrackedWorkflows(),
+    staleTime: 30_000,
+  });
+}
+
+export function useIncompleteExecutions(opts?: { workflow_id?: string; status?: string }) {
+  return useQuery({
+    queryKey: ["incompleteExecutions", opts],
+    queryFn: () => fetchIncompleteExecutions(opts),
+    staleTime: 15_000,
+  });
+}
+
+export function useResolveIncompleteExecution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => resolveIncompleteExecution(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["incompleteExecutions"] }); },
+  });
+}
+
+export function useDeleteIncompleteExecution() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteIncompleteExecution(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["incompleteExecutions"] }); },
   });
 }
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Webhook, Plus, Search, Copy, ExternalLink, Clock, Zap, ArrowUpRight, CheckCircle, XCircle, RefreshCw, BarChart3, AlertTriangle, Activity, ChevronRight, ShieldCheck, Globe, Trash2 } from "lucide-react";
+import { Webhook, Plus, Search, Copy, ExternalLink, Clock, Zap, ArrowUpRight, CheckCircle, XCircle, RefreshCw, BarChart3, AlertTriangle, Activity, ChevronRight, ShieldCheck, Globe, Trash2, Play, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +15,15 @@ import {
   useWebhookQueue,
   useRetryQueueItem,
   useDropQueueItem,
+  useTestWebhook,
+  useIncompleteExecutions,
+  useResolveIncompleteExecution,
+  useDeleteIncompleteExecution,
+  useErrorTrackedWorkflows,
 } from "@/hooks/useApi";
-import type { WebhookEndpoint as APIWebhookEndpoint, WebhookDelivery as APIDelivery, WebhookQueueItem } from "@/lib/api";
+import type { WebhookEndpoint as APIWebhookEndpoint, WebhookDelivery as APIDelivery, WebhookQueueItem, IncompleteExecution } from "@/lib/api";
 
-const tabs = ["Endpoints", "Delivery Log", "Queue"] as const;
+const tabs = ["Endpoints", "Delivery Log", "Queue", "Incomplete", "Errors"] as const;
 type Tab = (typeof tabs)[number];
 
 function formatTimeAgo(iso: string): string {
@@ -96,6 +101,11 @@ export function WebhooksPage() {
   const { data: queueItems = [] } = useWebhookQueue();
   const retryMut = useRetryQueueItem();
   const dropMut = useDropQueueItem();
+  const testMut = useTestWebhook();
+  const { data: incompleteExecs = [] } = useIncompleteExecutions();
+  const resolveMut = useResolveIncompleteExecution();
+  const deleteIncompleteMut = useDeleteIncompleteExecution();
+  const { data: errorTracked = [] } = useErrorTrackedWorkflows();
 
   const activeCount = endpoints.filter(e => e.active).length;
 
@@ -155,6 +165,23 @@ export function WebhooksPage() {
               onRowClick={(row) => navigate(`/webhooks/${row.id}`)}
               emptyState={<EmptyState icon={<Webhook size={32} strokeWidth={1.25} />} title="No webhooks" description="Create a webhook to start receiving events." />}
             />
+            {/* Quick Actions for each endpoint */}
+            {endpoints.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {endpoints.map(ep => (
+                  <Button
+                    key={ep.id}
+                    variant="secondary"
+                    size="sm"
+                    className="text-[11px] gap-1"
+                    onClick={() => testMut.mutate(ep.id)}
+                    disabled={testMut.isPending}
+                  >
+                    <Play size={10} /> Test {ep.path}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className="mt-4 rounded-lg border border-zinc-100 bg-white px-5 py-4 shadow-xs space-y-3">
               <p className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Webhook URLs</p>
               <div className="space-y-2">
@@ -281,6 +308,82 @@ export function WebhooksPage() {
               <CheckCircle size={28} strokeWidth={1.25} className="mx-auto text-green-300 mb-2" />
               <p className="text-[13px] text-zinc-400">Queue is empty — all deliveries succeeded</p>
               <p className="text-[11px] text-zinc-300 mt-1">Failed deliveries will queue here for automatic retry</p>
+            </div>
+          )
+        )}
+
+        {activeTab === "Incomplete" && (
+          incompleteExecs.length > 0 ? (
+            <div className="space-y-2">
+              {incompleteExecs.map((ie) => (
+                <div key={ie.id} className={cn(
+                  "rounded-lg border p-4",
+                  ie.status === "exhausted" ? "border-red-200 bg-red-50" : ie.status === "resolved" ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"
+                )}>
+                  <div className="flex items-start gap-3">
+                    {ie.status === "exhausted" ? <XCircle size={14} className="text-red-500 mt-0.5" /> : ie.status === "resolved" ? <CheckCircle size={14} className="text-green-500 mt-0.5" /> : <RotateCcw size={14} className="text-amber-500 mt-0.5" />}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={ie.status === "exhausted" ? "danger" : ie.status === "resolved" ? "success" : "warning"}>{ie.status}</Badge>
+                        <span className="text-[11px] font-mono text-zinc-500">{ie.execution_id}</span>
+                      </div>
+                      {ie.error_message && <p className="text-[11px] text-amber-700 mb-2">{ie.error_message}</p>}
+                      <div className="flex items-center gap-4 text-[11px] text-zinc-500">
+                        <span>Retries: <span className="font-medium text-amber-700">{ie.retry_count}/{ie.max_retries}</span></span>
+                        {ie.next_retry_at && <span>Next: {formatTimeAgo(ie.next_retry_at)}</span>}
+                        <span>Workflow: <span className="font-mono">{ie.workflow_id}</span></span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {ie.status !== "resolved" && (
+                        <Button variant="secondary" size="sm" className="text-[11px]" onClick={() => resolveMut.mutate(ie.id)}><CheckCircle size={10} /> Resolve</Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="text-[11px] text-red-500" onClick={() => deleteIncompleteMut.mutate(ie.id)}><Trash2 size={10} /></Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
+              <CheckCircle size={28} strokeWidth={1.25} className="mx-auto text-green-300 mb-2" />
+              <p className="text-[13px] text-zinc-400">No incomplete executions</p>
+              <p className="text-[11px] text-zinc-300 mt-1">Failed executions needing retry appear here</p>
+            </div>
+          )
+        )}
+
+        {activeTab === "Errors" && (
+          errorTracked.length > 0 ? (
+            <div className="space-y-2">
+              {errorTracked.map((et) => (
+                <div key={et.workflow_id} className={cn(
+                  "rounded-lg border p-4",
+                  (et.count ?? et.consecutive_errors) >= 5 ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"
+                )}>
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={14} className={(et.count ?? et.consecutive_errors) >= 5 ? "text-red-500 mt-0.5" : "text-amber-500 mt-0.5"} />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[12px] font-medium text-zinc-800">Workflow</span>
+                        <span className="text-[11px] font-mono text-zinc-500">{et.workflow_id}</span>
+                        {et.auto_deactivated && <Badge variant="danger">Auto-deactivated</Badge>}
+                      </div>
+                      <div className="flex items-center gap-4 text-[11px] text-zinc-500">
+                        <span>Consecutive errors: <span className="font-semibold text-red-600">{et.count ?? et.consecutive_errors}</span></span>
+                        {et.last_error && <span className="truncate max-w-[200px]">Last: {et.last_error}</span>}
+                        {et.last_error_at && <span>{formatTimeAgo(et.last_error_at)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
+              <CheckCircle size={28} strokeWidth={1.25} className="mx-auto text-green-300 mb-2" />
+              <p className="text-[13px] text-zinc-400">No error-tracked workflows</p>
+              <p className="text-[11px] text-zinc-300 mt-1">Workflows with consecutive failures appear here</p>
             </div>
           )
         )}

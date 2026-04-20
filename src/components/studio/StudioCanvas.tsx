@@ -10,8 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import { useStudioBundle } from "@/hooks/useApi";
-
-/* ── Types & data re-exported from canvasTypes (avoids circular dep with useCanvasStore) ── */
+import { type CanvasNodeData, type NodeExecState, familyColors } from "./canvasTypes";
 
 
 const execStateDefaults: Record<string, NodeExecState> = {

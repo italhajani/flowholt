@@ -165,6 +165,7 @@ interface StudioInspectorProps {
 export function StudioInspector({ node, onClose, workflowId }: StudioInspectorProps) {
   const [activeTab, setActiveTab] = useState("Parameters");
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
+  const [testResult, setTestResult] = useState<{ status: string; output: Record<string, unknown> | null; error: string | null; duration_ms: number } | null>(null);
   const store = useCanvasStore();
   const pinned = store.pinnedNodes.has(node.id);
   const colors = familyColors[node.family];
@@ -178,8 +179,14 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
   const handleRunNode = () => {
     if (workflowId) {
       setRunStatus("running");
+      setTestResult(null);
       testWorkflowStep(workflowId, { step_id: node.id, payload: {} })
-        .then(() => { setRunStatus("success"); setActiveTab("Output"); setTimeout(() => setRunStatus("idle"), 3000); })
+        .then((res) => {
+          setTestResult(res);
+          setRunStatus(res.status === "failed" || res.status === "error" ? "error" : "success");
+          setActiveTab("Output");
+          setTimeout(() => setRunStatus("idle"), 3000);
+        })
         .catch(() => { setRunStatus("error"); setTimeout(() => setRunStatus("idle"), 3000); });
     } else {
       setRunStatus("running");
@@ -271,7 +278,32 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
           />
         )}
         {activeTab === "Input" && <InputPanel nodeId={node.id} pinned={pinned} />}
-        {activeTab === "Output" && <DataPanel nodeId={node.id} direction="output" pinned={pinned} />}
+        {activeTab === "Output" && (
+          testResult ? (
+            <div className="flex-1 overflow-auto p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                  testResult.status === "success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
+                )}>
+                  {testResult.status.toUpperCase()}
+                </span>
+                <span className="text-[11px] text-zinc-400">{testResult.duration_ms}ms</span>
+                <span className="text-[10px] rounded bg-blue-50 text-blue-600 px-1.5 py-0.5 font-medium">LIVE</span>
+              </div>
+              {testResult.error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-[12px] text-red-600 font-mono whitespace-pre-wrap">{testResult.error}</div>
+              )}
+              {testResult.output && (
+                <pre className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-[11px] font-mono text-zinc-700 overflow-auto max-h-[400px] whitespace-pre-wrap">
+                  {JSON.stringify(testResult.output, null, 2)}
+                </pre>
+              )}
+            </div>
+          ) : (
+            <DataPanel nodeId={node.id} direction="output" pinned={pinned} />
+          )
+        )}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
         {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} />}
         {activeTab === "Settings" && <SettingsContent />}

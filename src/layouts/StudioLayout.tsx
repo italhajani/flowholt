@@ -13,8 +13,13 @@ import { StudioCopilotPanel, StudioCopilotButton } from "@/components/studio/Stu
 import { WorkflowSettingsPanel } from "@/components/studio/WorkflowSettingsPanel";
 import { EvaluationPanel } from "@/components/studio/EvaluationPanel";
 import { CanvasStoreProvider, useCanvasStore } from "@/components/studio/useCanvasStore";
-import { useUpdateWorkflow, useStudioBundle } from "@/hooks/useApi";
+import { useUpdateWorkflow, useStudioBundle, useWorkflowExecutions, useRetryExecution, useDeleteExecution } from "@/hooks/useApi";
 import type { ExecutionSummary } from "@/lib/api";
+import {
+  CheckCircle2, XCircle, Clock, Loader2, RotateCcw, Trash2, ChevronRight,
+  AlertTriangle, Ban, PlayCircle, RefreshCw,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function StudioLayoutInner() {
   const navigate = useNavigate();
@@ -203,15 +208,10 @@ function StudioLayoutInner() {
         )}
 
         {activeTab === "Executions" && (
-          <div className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-[720px] py-8 px-6">
-              <h2 className="text-[15px] font-semibold text-zinc-900">Executions</h2>
-              <p className="text-[12px] text-zinc-500 mt-1">View past runs, retry failed executions, and inspect step outputs.</p>
-              <div className="mt-6 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
-                <p className="text-[13px] text-zinc-400">No executions yet — run the workflow to see results here.</p>
-              </div>
-            </div>
-          </div>
+          <StudioExecutionsTab
+            workflowId={workflowId}
+            onViewExecution={(exec) => { setLastExecution(exec); setRuntimeDrawerOpen(true); setActiveTab("Editor"); }}
+          />
         )}
 
         {activeTab === "Evaluation" && (
@@ -244,6 +244,176 @@ function StudioLayoutInner() {
         onExecutionStart={handleExecutionStart}
         onExecutionComplete={handleExecutionComplete}
       />
+    </div>
+  );
+}
+
+/* ── Executions Tab ── */
+
+const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; label: string }> = {
+  success:   { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", label: "Success" },
+  failed:    { icon: XCircle,      color: "text-red-500",   bg: "bg-red-50",   label: "Failed" },
+  running:   { icon: Loader2,      color: "text-blue-500",  bg: "bg-blue-50",  label: "Running" },
+  paused:    { icon: Clock,        color: "text-amber-500", bg: "bg-amber-50", label: "Paused" },
+  cancelled: { icon: Ban,          color: "text-zinc-400",  bg: "bg-zinc-50",  label: "Cancelled" },
+};
+
+function formatDuration(ms: number | null): string {
+  if (ms == null) return "—";
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
+}
+
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60_000) return "just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
+}
+
+function StudioExecutionsTab({ workflowId, onViewExecution }: {
+  workflowId: string | undefined;
+  onViewExecution: (exec: ExecutionSummary) => void;
+}) {
+  const [filter, setFilter] = useState<string>("all");
+  const { data: executions, isLoading, error, refetch } = useWorkflowExecutions(workflowId, { limit: 50 });
+  const retryMutation = useRetryExecution();
+  const deleteMutation = useDeleteExecution();
+
+  const filtered = (executions ?? []).filter(e => filter === "all" || e.status === filter);
+
+  return (
+    <div className="flex-1 overflow-auto">
+      <div className="mx-auto max-w-[860px] py-6 px-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-[15px] font-semibold text-zinc-900">Executions</h2>
+            <p className="text-[12px] text-zinc-500 mt-0.5">
+              {executions ? `${executions.length} execution${executions.length !== 1 ? "s" : ""}` : "Loading…"}
+            </p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-md border border-zinc-200 px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
+
+        {/* Status filters */}
+        <div className="flex gap-1.5 mb-4">
+          {["all", "success", "failed", "running"].map(s => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors capitalize",
+                filter === s ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              )}
+            >
+              {s === "all" ? `All (${executions?.length ?? 0})` : `${s} (${(executions ?? []).filter(e => e.status === s).length})`}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 size={20} className="animate-spin text-zinc-400" />
+            <span className="ml-2 text-[12px] text-zinc-400">Loading executions…</span>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+            <AlertTriangle size={20} className="mx-auto text-red-400 mb-2" />
+            <p className="text-[12px] text-red-600">Failed to load executions</p>
+            <button onClick={() => refetch()} className="mt-2 text-[11px] text-red-500 underline">Retry</button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && !error && filtered.length === 0 && (
+          <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 py-16 text-center">
+            <PlayCircle size={28} className="mx-auto text-zinc-300 mb-3" />
+            <p className="text-[13px] text-zinc-400">
+              {filter === "all" ? "No executions yet — run the workflow to see results here." : `No ${filter} executions.`}
+            </p>
+          </div>
+        )}
+
+        {/* Execution rows */}
+        {filtered.length > 0 && (
+          <div className="space-y-1.5">
+            {filtered.map(exec => {
+              const cfg = statusConfig[exec.status] ?? statusConfig.cancelled;
+              const Icon = cfg.icon;
+              return (
+                <div
+                  key={exec.id}
+                  onClick={() => onViewExecution(exec)}
+                  className="group flex items-center gap-3 rounded-lg border border-zinc-100 bg-white px-4 py-3 cursor-pointer hover:border-zinc-300 hover:shadow-sm transition-all"
+                >
+                  {/* Status icon */}
+                  <div className={cn("flex h-7 w-7 items-center justify-center rounded-full shrink-0", cfg.bg)}>
+                    <Icon size={14} className={cn(cfg.color, exec.status === "running" && "animate-spin")} />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-mono text-zinc-500 truncate">{exec.id.slice(0, 12)}</span>
+                      <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-medium", cfg.bg, cfg.color)}>{cfg.label}</span>
+                      {exec.environment !== "draft" && (
+                        <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-600">{exec.environment}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5 text-[11px] text-zinc-400">
+                      <span>{exec.trigger_type}</span>
+                      <span>•</span>
+                      <span>{exec.steps.length} step{exec.steps.length !== 1 ? "s" : ""}</span>
+                      <span>•</span>
+                      <span>{formatDuration(exec.duration_ms)}</span>
+                      {exec.error_text && (
+                        <>
+                          <span>•</span>
+                          <span className="text-red-400 truncate max-w-[200px]">{exec.error_text}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Time */}
+                  <span className="text-[11px] text-zinc-400 shrink-0">{formatTimeAgo(exec.started_at)}</span>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {exec.status === "failed" && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); retryMutation.mutate(exec.id); }}
+                        className="rounded p-1 hover:bg-zinc-100" title="Retry"
+                      >
+                        <RotateCcw size={13} className="text-zinc-500" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(exec.id); }}
+                      className="rounded p-1 hover:bg-red-50" title="Delete"
+                    >
+                      <Trash2 size={13} className="text-zinc-400 hover:text-red-500" />
+                    </button>
+                    <ChevronRight size={14} className="text-zinc-300" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

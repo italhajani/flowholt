@@ -30,6 +30,8 @@ import {
   ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePublishWorkflow } from "@/hooks/useApi";
+import { useCanvasStore } from "./useCanvasStore";
 
 type PublishState = "draft" | "published" | "unsaved" | "publishing" | "invalid";
 type Environment = "draft" | "staging" | "production";
@@ -365,7 +367,7 @@ function ShareModal({ open, onClose, workflowName }: { open: boolean; onClose: (
   );
 }
 
-export function StudioHeader({ onBack }: { onBack: () => void }) {
+export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workflowId?: string }) {
   const [workflowName, setWorkflowName] = useState("Lead Qualification Pipeline");
   const [editingName, setEditingName] = useState(false);
   const [publishState, setPublishState] = useState<PublishState>("unsaved");
@@ -378,6 +380,15 @@ export function StudioHeader({ onBack }: { onBack: () => void }) {
   const nameRef = useRef<HTMLInputElement>(null);
   const envRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const store = useCanvasStore();
+  const publishMutation = usePublishWorkflow(workflowId ?? "");
+
+  // Sync workflow name from loaded canvas store data
+  useEffect(() => {
+    if (store.loadedWorkflowId && store.nodes.length > 0) {
+      // Name is on the workflow detail, not nodes — keep mock name as fallback
+    }
+  }, [store.loadedWorkflowId, store.nodes]);
 
   useEffect(() => {
     if (editingName) nameRef.current?.select();
@@ -400,8 +411,17 @@ export function StudioHeader({ onBack }: { onBack: () => void }) {
   }
 
   function handlePublish() {
-    setPublishState("publishing");
-    setTimeout(() => setPublishState("published"), 1500);
+    if (workflowId && publishMutation) {
+      setPublishState("publishing");
+      publishMutation.mutate(undefined, {
+        onSuccess: () => setPublishState("published"),
+        onError: () => setPublishState("unsaved"),
+      });
+    } else {
+      // Fallback mock for demo
+      setPublishState("publishing");
+      setTimeout(() => setPublishState("published"), 1500);
+    }
   }
 
   const ps = publishStateConfig[publishState];

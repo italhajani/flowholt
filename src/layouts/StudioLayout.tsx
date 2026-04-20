@@ -57,7 +57,7 @@ function StudioLayoutInner() {
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
       {/* Header — 48px */}
-      <StudioHeader onBack={() => navigate("/workflows")} />
+      <StudioHeader onBack={() => navigate("/workflows")} workflowId={workflowId} />
 
       {/* Tab bar — 36px */}
       <StudioTabBar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -85,6 +85,7 @@ function StudioLayoutInner() {
           selectedNodeId={selectedNodeId}
           onNodeSelect={handleNodeSelect}
           onCanvasClick={handleCanvasClick}
+          workflowId={workflowId}
         />
 
         {/* Inspector — 380px, collapsible */}
@@ -92,6 +93,7 @@ function StudioLayoutInner() {
           <StudioInspector
             node={selectedNode}
             onClose={() => { setInspectorOpen(false); setSelectedNodeId(null); }}
+            workflowId={workflowId}
           />
         )}
 
@@ -114,6 +116,7 @@ function StudioLayoutInner() {
       <StudioRuntimeBar
         drawerOpen={runtimeDrawerOpen}
         onToggleDrawer={() => setRuntimeDrawerOpen((o) => !o)}
+        workflowId={workflowId}
       />
     </div>
   );

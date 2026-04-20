@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useContext } from "react";
+import { useState, useRef, useEffect, useCallback, useContext, useMemo } from "react";
 import {
   Plus, Minus, Maximize2, Map, CheckCircle2, XCircle,
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "./useCanvasStore";
+import { useStudioBundle } from "@/hooks/useApi";
 
 /* ── Mock node data ── */
 export interface CanvasNodeData {
@@ -896,10 +897,20 @@ interface StudioCanvasProps {
   selectedNodeId: string | null;
   onNodeSelect: (id: string) => void;
   onCanvasClick: () => void;
+  workflowId?: string;
 }
 
-export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick }: StudioCanvasProps) {
+export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, workflowId }: StudioCanvasProps) {
   const store = useCanvasStore();
+  const { data: bundle } = useStudioBundle(workflowId);
+
+  // Load real workflow into canvas store when bundle arrives
+  useEffect(() => {
+    if (bundle?.workflow && bundle.workflow.id !== store.loadedWorkflowId) {
+      store.loadWorkflow(bundle.workflow);
+    }
+  }, [bundle, store]);
+
   const nodes = store.nodes;
   const setNodes = store.setNodes;
   const execStates = store.execStates;

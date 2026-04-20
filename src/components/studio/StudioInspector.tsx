@@ -11,6 +11,8 @@ import { useCanvasStore } from "./useCanvasStore";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { CodeEditorPanel as CodeEditorPanelInline } from "./CodeEditorPanel";
+import { useStepEditor, useUpdateWorkflowStep } from "@/hooks/useApi";
+import { testWorkflowStep } from "@/lib/api";
 
 type DataView = "schema" | "table" | "json" | "html" | "binary";
 type ParamFieldType = "select" | "text" | "number" | "textarea" | "code" | "expression";
@@ -157,9 +159,10 @@ type RunStatus = "idle" | "running" | "success" | "error";
 interface StudioInspectorProps {
   node: CanvasNodeData;
   onClose: () => void;
+  workflowId?: string;
 }
 
-export function StudioInspector({ node, onClose }: StudioInspectorProps) {
+export function StudioInspector({ node, onClose, workflowId }: StudioInspectorProps) {
   const [activeTab, setActiveTab] = useState("Parameters");
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
   const store = useCanvasStore();
@@ -167,13 +170,24 @@ export function StudioInspector({ node, onClose }: StudioInspectorProps) {
   const colors = familyColors[node.family];
   const config = nodeConfigs[node.id] || { fields: [] };
 
+  // Wire to real API when workflowId is available
+  const { data: _stepEditor } = useStepEditor(workflowId, node.id);
+  const updateStep = useUpdateWorkflowStep(workflowId ?? "");
+
   const handleRunNode = () => {
-    setRunStatus("running");
-    setTimeout(() => {
-      setRunStatus("success");
-      setActiveTab("Output");
-      setTimeout(() => setRunStatus("idle"), 3000);
-    }, 1500);
+    if (workflowId) {
+      setRunStatus("running");
+      testWorkflowStep(workflowId, { step_id: node.id, payload: {} })
+        .then(() => { setRunStatus("success"); setActiveTab("Output"); setTimeout(() => setRunStatus("idle"), 3000); })
+        .catch(() => { setRunStatus("error"); setTimeout(() => setRunStatus("idle"), 3000); });
+    } else {
+      setRunStatus("running");
+      setTimeout(() => {
+        setRunStatus("success");
+        setActiveTab("Output");
+        setTimeout(() => setRunStatus("idle"), 3000);
+      }, 1500);
+    }
   };
 
   return (

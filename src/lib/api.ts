@@ -271,6 +271,78 @@ export function fetchWorkflow(id: string) {
   return apiFetch<WorkflowDetail>(`/api/workflows/${id}`);
 }
 
+export interface WorkflowCreatePayload {
+  name: string;
+  trigger_type?: string;
+  category?: string;
+  status?: WorkflowStatus;
+  template_id?: string | null;
+  definition: WorkflowDefinition;
+}
+
+export interface WorkflowUpdatePayload {
+  name: string;
+  trigger_type: string;
+  category?: string;
+  status: WorkflowStatus;
+  definition: WorkflowDefinition;
+}
+
+export function createWorkflow(payload: WorkflowCreatePayload) {
+  return apiFetch<WorkflowSummary>("/api/workflows", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateWorkflow(id: string, payload: WorkflowUpdatePayload) {
+  return apiFetch<WorkflowDetail>(`/api/workflows/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteWorkflow(id: string) {
+  return apiFetch<void>(`/api/workflows/${id}`, { method: "DELETE" });
+}
+
+export function runWorkflow(id: string, payload: Record<string, unknown> = {}, environment: ExecutionEnvironment = "draft") {
+  return apiFetch<ExecutionSummary>(`/api/workflows/${id}/run`, {
+    method: "POST",
+    body: JSON.stringify({ payload, environment }),
+  });
+}
+
+export function publishWorkflow(id: string, notes?: string) {
+  return apiFetch<WorkflowVersionSummary>(`/api/workflows/${id}/publish`, {
+    method: "POST",
+    body: JSON.stringify({ notes: notes ?? null }),
+  });
+}
+
+export interface WorkflowVersionSummary {
+  id: string;
+  workflow_id: string;
+  version_number: number;
+  status: string;
+  created_at: string;
+}
+
+export interface WorkflowJobSummary {
+  id: string;
+  workflow_id: string;
+  status: string;
+  trigger_type: string;
+  created_at: string;
+}
+
+export function queueWorkflowRun(id: string, payload: Record<string, unknown> = {}, environment: ExecutionEnvironment = "draft") {
+  return apiFetch<WorkflowJobSummary>(`/api/workflows/${id}/queue-run`, {
+    method: "POST",
+    body: JSON.stringify({ payload, environment }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Execution endpoints
 // ---------------------------------------------------------------------------
@@ -288,6 +360,21 @@ export function fetchExecution(id: string) {
   return apiFetch<ExecutionSummary>(`/api/executions/${id}`);
 }
 
+export function retryExecution(id: string) {
+  return apiFetch<WorkflowJobSummary>(`/api/executions/${id}/retry`, { method: "POST" });
+}
+
+export function deleteExecution(id: string) {
+  return apiFetch<void>(`/api/executions/${id}`, { method: "DELETE" });
+}
+
+export function fetchWorkflowExecutions(workflowId: string, params?: { limit?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const query = qs.toString();
+  return apiFetch<ExecutionSummary[]>(`/api/workflows/${workflowId}/executions${query ? `?${query}` : ""}`);
+}
+
 // ---------------------------------------------------------------------------
 // Studio endpoints
 // ---------------------------------------------------------------------------
@@ -298,6 +385,114 @@ export function fetchNodeCatalog() {
 
 export function fetchNodeDefinitions() {
   return apiFetch<NodeDefinitionSummary[]>("/api/studio/nodes");
+}
+
+// Studio bundle — loads entire workflow + catalog + editors in one call
+export interface StudioStepEditorEntry {
+  step_id: string;
+  editor: NodeEditorResponse;
+}
+
+export interface WorkflowValidationResponse {
+  valid: boolean;
+  errors: { step_id: string | null; message: string; severity: string }[];
+  warnings: { step_id: string | null; message: string; severity: string }[];
+}
+
+export interface NodeEditorField {
+  key: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  default?: unknown;
+  options?: { value: string; label: string }[];
+  help?: string;
+  placeholder?: string;
+  depends_on?: Record<string, unknown>;
+}
+
+export interface NodeEditorSection {
+  key: string;
+  label: string;
+  fields: NodeEditorField[];
+  collapsed?: boolean;
+}
+
+export interface NodeEditorResponse {
+  node_type: string;
+  label: string;
+  description: string;
+  icon: string;
+  step_name_default: string;
+  sections: NodeEditorSection[];
+  node_settings: NodeEditorSection[];
+  warnings: string[];
+  sample_output: Record<string, unknown>;
+}
+
+export interface StudioWorkflowBundle {
+  workflow: WorkflowDetail;
+  integrity: WorkflowValidationResponse;
+  catalog: NodeCatalogResponse;
+  selected_step_editor: NodeEditorResponse | null;
+  step_editors: StudioStepEditorEntry[];
+}
+
+export function fetchStudioBundle(workflowId: string, stepId?: string) {
+  const qs = stepId ? `?selected_step_id=${stepId}` : "";
+  return apiFetch<StudioWorkflowBundle>(`/api/studio/workflows/${workflowId}/bundle${qs}`);
+}
+
+export function fetchStepEditor(workflowId: string, stepId: string) {
+  return apiFetch<NodeEditorResponse>(`/api/studio/workflows/${workflowId}/steps/${stepId}/editor`);
+}
+
+export interface StudioInsertStepPayload {
+  node_type: string;
+  name?: string;
+  config?: Record<string, unknown>;
+  after_step_id?: string;
+  branch_label?: "default" | "true" | "false";
+  connect_to_step_id?: string;
+}
+
+export function insertWorkflowStep(workflowId: string, payload: StudioInsertStepPayload) {
+  return apiFetch<StudioWorkflowBundle>(`/api/studio/workflows/${workflowId}/steps/insert`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface StudioUpdateStepPayload {
+  name?: string;
+  config?: Record<string, unknown>;
+  replace_config?: boolean;
+}
+
+export function updateWorkflowStep(workflowId: string, stepId: string, payload: StudioUpdateStepPayload) {
+  return apiFetch<StudioWorkflowBundle>(`/api/studio/workflows/${workflowId}/steps/${stepId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface TestStepPayload {
+  step_id: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface TestStepResponse {
+  status: string;
+  output: Record<string, unknown> | null;
+  error: string | null;
+  duration_ms: number;
+}
+
+export function testWorkflowStep(workflowId: string, payload: TestStepPayload) {
+  return apiFetch<TestStepResponse>(`/api/workflows/${workflowId}/test-step`, {
+    method: "POST",
+    body: JSON.stringify({ step: payload.step_id, payload: payload.payload ?? {} }),
+  });
 }
 
 // ---------------------------------------------------------------------------

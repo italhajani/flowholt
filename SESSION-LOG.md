@@ -5,7 +5,28 @@
 
 ---
 
-## Session 23 — Sprint 22-23 (Latest)
+## Session 25 — Sprint 24 (Latest)
+
+**Sprints completed:** 24
+**Commit:** `92b3d22`
+**Theme:** Real Data Integration — wire frontend mock data to live FastAPI backend
+
+### Sprint 24: API Client + Page Wiring
+| File | Change |
+|------|--------|
+| `src/lib/api.ts` | NEW — Centralized fetch wrapper, typed endpoint helpers, auth token management, ApiError class |
+| `src/hooks/useApi.ts` | NEW — React Query hooks: useWorkflows, useExecutions, useNodeCatalog, useHealth, useWorkspaces |
+| `src/hooks/useAuth.tsx` | NEW — AuthProvider context, devLogin/signup/login/logout, session persistence |
+| `src/main.tsx` | MODIFIED — Wrapped App with QueryClientProvider + AuthProvider |
+| `vite.config.ts` | MODIFIED — Fixed proxy target :8000→:8001, added /health proxy |
+| `src/pages/WorkflowsPage.tsx` | MODIFIED — useWorkflows() hook, mapApiWorkflow(), loading spinner, fallback to mock |
+| `src/pages/ExecutionsPage.tsx` | MODIFIED — useExecutions() hook, mapApiExecution(), getColumns(maxMs), loading states in MetricPills |
+| `src/pages/HomePage.tsx` | MODIFIED — useWorkflows/useExecutions/useHealth hooks, live metrics, live recent executions |
+| `src/components/studio/StudioInsertPane.tsx` | MODIFIED — useNodeCatalog() hook, mapCatalogToSections(), sections prop to NodesPane |
+
+---
+
+## Session 23 — Sprint 22-23
 
 **Sprints completed:** 22, 23
 **Commit range:** `6c5ae82` → `33cda95`

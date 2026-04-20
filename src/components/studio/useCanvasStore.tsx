@@ -1,5 +1,31 @@
 import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
 import { canvasNodes, type CanvasNodeData, type NodeExecState } from "./StudioCanvas";
+import type { WorkflowDetail, WorkflowStep, WorkflowEdge as ApiEdge } from "@/lib/api";
+
+/* ── Helpers: map backend definition → canvas state ── */
+
+const familyFromType: Record<string, CanvasNodeData["family"]> = {
+  trigger: "trigger", webhook: "trigger", schedule: "trigger", chat_trigger: "trigger",
+  openai: "ai", anthropic: "ai", ai_transform: "ai", text_classifier: "ai", summarization_chain: "ai",
+  if_node: "logic", switch: "logic", merge: "logic", wait: "logic",
+  set: "data", code: "data", filter: "data", aggregate: "data", split_out: "data",
+};
+
+function stepToCanvasNode(step: WorkflowStep, idx: number): CanvasNodeData {
+  const family = familyFromType[step.type] ?? "integration";
+  return {
+    id: step.id,
+    name: step.name,
+    subtitle: step.type,
+    family,
+    top: 120 + Math.floor(idx / 4) * 140,
+    left: 80 + (idx % 4) * 260,
+  };
+}
+
+function apiEdgeToTuple(edge: ApiEdge): [string, string] {
+  return [edge.source, edge.target];
+}
 
 /* ── Types ── */
 export type CanvasActionType = "add-node" | "remove-node" | "modify-node" | "add-edge" | "remove-edge" | "move-node";
@@ -17,6 +43,8 @@ interface CanvasStore {
   edges: [string, string][];
   execStates: Record<string, NodeExecState>;
   pinnedNodes: Set<string>;
+  loadedWorkflowId: string | null;
+  loadWorkflow: (workflow: WorkflowDetail) => void;
   togglePin: (nodeId: string) => void;
   addNode: (node: CanvasNodeData) => void;
   removeNode: (id: string) => void;
@@ -51,9 +79,32 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   const [edges, setEdges] = useState<[string, string][]>(defaultEdges);
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(defaultExecStates);
   const [pinnedNodes, setPinnedNodes] = useState<Set<string>>(new Set(["n2"])); // n2 pre-pinned for demo
+  const [loadedWorkflowId, setLoadedWorkflowId] = useState<string | null>(null);
   const undoStackRef = useRef<CanvasAction[][]>([]);
   const redoStackRef = useRef<CanvasAction[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
+
+  const loadWorkflow = useCallback((workflow: WorkflowDetail) => {
+    if (loadedWorkflowId === workflow.id) return; // avoid re-loading same workflow
+    const def = workflow.definition;
+    const newNodes = def.steps.length > 0
+      ? def.steps.map((s, i) => stepToCanvasNode(s, i))
+      : canvasNodes; // fallback to demo nodes if empty
+    const newEdges: [string, string][] = def.edges.length > 0
+      ? def.edges.map(apiEdgeToTuple)
+      : defaultEdges;
+    const newExecStates: Record<string, NodeExecState> = {};
+    newNodes.forEach(n => { newExecStates[n.id] = "idle"; });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setExecStates(newExecStates);
+    setPinnedNodes(new Set());
+    setLoadedWorkflowId(workflow.id);
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setHistoryIndex(0);
+  }, [loadedWorkflowId]);
 
   const togglePin = useCallback((nodeId: string) => {
     setPinnedNodes(prev => {
@@ -208,6 +259,7 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
     <CanvasStoreCtx.Provider value={{
       nodes, edges, execStates,
       pinnedNodes, togglePin,
+      loadedWorkflowId, loadWorkflow,
       addNode, removeNode, updateNode,
       setNodes, setEdges, setExecStates,
       addEdge, removeEdge,

@@ -4,27 +4,53 @@ import {
   RotateCcw, RotateCw, Calendar, ChevronRight, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRunWorkflow, useUpdateWorkflow } from "@/hooks/useApi";
+import { useCanvasStore } from "./useCanvasStore";
 
 interface Props {
   drawerOpen: boolean;
   onToggleDrawer: () => void;
+  workflowId?: string;
 }
 
-export function StudioRuntimeBar({ drawerOpen, onToggleDrawer }: Props) {
+export function StudioRuntimeBar({ drawerOpen, onToggleDrawer, workflowId }: Props) {
   const [isRunning, setIsRunning] = useState(false);
   const [scheduleOn, setScheduleOn] = useState(false);
   const [savedState, setSavedState] = useState<"saved" | "saving" | "unsaved">("saved");
   const [replayOpen, setReplayOpen] = useState(false);
+  const store = useCanvasStore();
+  const runMutation = useRunWorkflow(workflowId ?? "");
+  const updateMutation = useUpdateWorkflow(workflowId ?? "");
 
   function handleRun() {
-    setIsRunning(true);
-    setSavedState("unsaved");
-    setTimeout(() => setIsRunning(false), 3000);
+    if (workflowId) {
+      setIsRunning(true);
+      runMutation.mutate({ payload: {}, environment: "draft" }, {
+        onSettled: () => setIsRunning(false),
+      });
+    } else {
+      setIsRunning(true);
+      setSavedState("unsaved");
+      setTimeout(() => setIsRunning(false), 3000);
+    }
   }
 
   function handleSave() {
-    setSavedState("saving");
-    setTimeout(() => setSavedState("saved"), 800);
+    if (workflowId) {
+      setSavedState("saving");
+      const definition = {
+        steps: store.nodes.map((n) => ({ id: n.id, type: n.family, name: n.name, config: {} })),
+        edges: store.edges.map(([s, t]) => ({ id: `${s}-${t}`, source: s, target: t })),
+        settings: {},
+      };
+      updateMutation.mutate(
+        { name: "Workflow", trigger_type: "manual", category: "Custom", status: "draft", definition },
+        { onSuccess: () => setSavedState("saved"), onError: () => setSavedState("unsaved") }
+      );
+    } else {
+      setSavedState("saving");
+      setTimeout(() => setSavedState("saved"), 800);
+    }
   }
 
   return (

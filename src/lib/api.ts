@@ -963,3 +963,94 @@ export function triggerWorkflowRun(workflowId: string, payload?: Record<string, 
     body: JSON.stringify(payload ?? {}),
   });
 }
+
+
+// ── Audit Events ──
+
+export interface AuditEventOut {
+  id: string;
+  workspace_id: string;
+  actor_user_id: string | null;
+  actor_email: string | null;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  status: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export function fetchAuditEvents() {
+  return apiFetch<AuditEventOut[]>("/api/audit-events");
+}
+
+
+// ── Analytics / Monitoring ──
+
+export interface AnalyticsOverview {
+  executions: {
+    total: number;
+    success: number;
+    failed: number;
+    running: number;
+    paused: number;
+    error_rate_pct: number;
+  };
+  workflows: {
+    total: number;
+    active: number;
+    draft: number;
+    paused: number;
+  };
+  workspace_id: string;
+}
+
+export function fetchAnalyticsOverview() {
+  return apiFetch<AnalyticsOverview>("/api/analytics/overview");
+}
+
+export function fetchPrometheusMetrics() {
+  return apiFetch<string>("/metrics");
+}
+
+export interface LogConfig {
+  log_level: string;
+  destinations: string[];
+  supported_destinations: string[];
+  retention_days: number;
+}
+
+export function fetchLogConfig() {
+  return apiFetch<LogConfig>("/api/system/log-config");
+}
+
+export function updateLogConfig(config: Partial<LogConfig>) {
+  return apiFetch<{ status: string; config: Partial<LogConfig> }>("/api/system/log-config", {
+    method: "POST",
+    body: JSON.stringify(config),
+  });
+}
+
+export interface LatencyPercentiles {
+  p50: number;
+  p90: number;
+  p95: number;
+  p99: number;
+  count: number;
+  avg_ms: number;
+}
+
+export function fetchLatencyPercentiles() {
+  return apiFetch<LatencyPercentiles>("/api/analytics/latency");
+}
+
+export interface TimelineEntry {
+  day: string;
+  total: number;
+  success: number;
+  failed: number;
+}
+
+export function fetchExecutionTimeline(days = 7) {
+  return apiFetch<TimelineEntry[]>(`/api/analytics/timeline?days=${days}`);
+}

@@ -67,6 +67,12 @@ import {
   searchKnowledge,
   type KnowledgeBaseCreatePayload,
   triggerWorkflowRun,
+  fetchAuditEvents,
+  fetchAnalyticsOverview,
+  fetchLogConfig,
+  updateLogConfig,
+  fetchLatencyPercentiles,
+  fetchExecutionTimeline,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -539,5 +545,56 @@ export function useTriggerWorkflowRun() {
     mutationFn: (opts: { workflowId: string; payload?: Record<string, unknown> }) =>
       triggerWorkflowRun(opts.workflowId, opts.payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["executions"] }),
+  });
+}
+
+
+// ── Audit & Analytics Hooks ──
+
+export function useAuditEvents() {
+  return useQuery({
+    queryKey: ["audit-events"],
+    queryFn: fetchAuditEvents,
+    staleTime: 15_000,
+  });
+}
+
+export function useAnalyticsOverview() {
+  return useQuery({
+    queryKey: ["analytics-overview"],
+    queryFn: fetchAnalyticsOverview,
+    staleTime: 30_000,
+  });
+}
+
+export function useLogConfig() {
+  return useQuery({
+    queryKey: ["log-config"],
+    queryFn: fetchLogConfig,
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdateLogConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: updateLogConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["log-config"] }),
+  });
+}
+
+export function useLatencyPercentiles() {
+  return useQuery({
+    queryKey: ["analytics-latency"],
+    queryFn: fetchLatencyPercentiles,
+    staleTime: 30_000,
+  });
+}
+
+export function useExecutionTimeline(days = 7) {
+  return useQuery({
+    queryKey: ["analytics-timeline", days],
+    queryFn: () => fetchExecutionTimeline(days),
+    staleTime: 30_000,
   });
 }

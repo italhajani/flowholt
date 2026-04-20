@@ -5,9 +5,10 @@ import json
 import time
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from .. import repository as repo
+from ..deps import get_session_context, require_workspace_role, record_audit_event
 
 router = APIRouter(prefix="/api", tags=["webhooks"])
 
@@ -15,17 +16,36 @@ router = APIRouter(prefix="/api", tags=["webhooks"])
 # ── Webhook Endpoint CRUD ──
 
 @router.get("/webhooks")
-def list_webhooks(workflow_id: str | None = None) -> list[dict[str, Any]]:
+def list_webhooks(
+    workflow_id: str | None = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
     return repo.list_webhook_endpoints(workflow_id)
 
 
 @router.post("/webhooks", status_code=201)
-def create_webhook(body: dict[str, Any]) -> dict[str, Any]:
-    return repo.create_webhook_endpoint(body)
+def create_webhook(
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    require_workspace_role(session, "owner", "admin", "builder")
+    result = repo.create_webhook_endpoint(body)
+    record_audit_event(
+        session=session,
+        workspace_id=str(session["workspace"]["id"]),
+        action="webhook.create",
+        target_type="webhook",
+        target_id=result.get("id"),
+        status="success",
+    )
+    return result
 
 
 @router.get("/webhooks/{wh_id}")
-def get_webhook(wh_id: str) -> dict[str, Any]:
+def get_webhook(
+    wh_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
     item = repo.get_webhook_endpoint(wh_id)
     if not item:
         raise HTTPException(404, "Webhook not found")
@@ -33,7 +53,12 @@ def get_webhook(wh_id: str) -> dict[str, Any]:
 
 
 @router.patch("/webhooks/{wh_id}")
-def update_webhook(wh_id: str, body: dict[str, Any]) -> dict[str, Any]:
+def update_webhook(
+    wh_id: str,
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    require_workspace_role(session, "owner", "admin", "builder")
     item = repo.update_webhook_endpoint(wh_id, body)
     if not item:
         raise HTTPException(404, "Webhook not found")
@@ -41,7 +66,11 @@ def update_webhook(wh_id: str, body: dict[str, Any]) -> dict[str, Any]:
 
 
 @router.delete("/webhooks/{wh_id}", status_code=204)
-def delete_webhook(wh_id: str) -> None:
+def delete_webhook(
+    wh_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> None:
+    require_workspace_role(session, "owner", "admin")
     if not repo.delete_webhook_endpoint(wh_id):
         raise HTTPException(404, "Webhook not found")
 
@@ -49,15 +78,26 @@ def delete_webhook(wh_id: str) -> None:
 # ── Delivery Logs ──
 
 @router.get("/webhooks/{wh_id}/deliveries")
-def list_deliveries(wh_id: str, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+def list_deliveries(
+    wh_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
     return repo.list_webhook_deliveries(wh_id, limit=limit, offset=offset)
 
 
 # ── Workflow Run Trigger (API Trigger) ──
 
 @router.post("/workflows/{workflow_id}/run")
-def trigger_workflow_run(workflow_id: str, request: Request, body: dict[str, Any] | None = None) -> dict[str, Any]:
+def trigger_workflow_run(
+    workflow_id: str,
+    request: Request,
+    body: dict[str, Any] | None = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
     """Trigger a workflow execution via API. Like n8n's webhook trigger but explicit."""
+    require_workspace_role(session, "owner", "admin", "builder")
     wf = repo.get_workflow(workflow_id)
     if not wf:
         raise HTTPException(404, "Workflow not found")

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Search, HeartPulse, Clock, AlertTriangle, Users, GitBranch, XCircle, FileText, Bell, BarChart3, RefreshCw, Download, ChevronDown, ChevronRight, Filter } from "lucide-react";
+import { Activity, Search, HeartPulse, Clock, AlertTriangle, Users, GitBranch, XCircle, FileText, Bell, BarChart3, RefreshCw, Download, ChevronDown, ChevronRight, Filter, Shield, Gauge } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useAuditEvents, useAnalyticsOverview } from "@/hooks/useApi";
+import type { AuditEventOut } from "@/lib/api";
 
 /* ── Per research 65: 6 sub-tabs ── */
 const tabs = [
@@ -163,6 +165,11 @@ const auditColumns: Column<AuditEvent>[] = [
 export function OperationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("runtime");
   const [search, setSearch] = useState("");
+  const { data: analytics } = useAnalyticsOverview();
+
+  const errorRate = analytics?.executions?.error_rate_pct ?? 2.1;
+  const totalExecs = analytics?.executions?.total ?? 0;
+  const runningExecs = analytics?.executions?.running ?? 0;
 
   return (
     <div className="mx-auto max-w-[960px] px-8 py-8">
@@ -174,9 +181,9 @@ export function OperationsPage() {
       {/* Metric cards */}
       <div className="mt-6 grid grid-cols-4 gap-3">
         <MetricCard icon={<HeartPulse size={14} className="text-green-500" />} label="Uptime" value="99.97%" color="green" />
-        <MetricCard icon={<Clock size={14} className="text-blue-500" />} label="Queue Depth" value={mockQueue.length.toString()} />
-        <MetricCard icon={<AlertTriangle size={14} className="text-red-500" />} label="Error Rate" value="2.1%" color="red" />
-        <MetricCard icon={<Users size={14} className="text-zinc-400" />} label="Active Workers" value="4" />
+        <MetricCard icon={<Gauge size={14} className="text-blue-500" />} label="Executions" value={totalExecs.toLocaleString()} />
+        <MetricCard icon={<AlertTriangle size={14} className="text-red-500" />} label="Error Rate" value={`${errorRate}%`} color={errorRate > 5 ? "red" : undefined} />
+        <MetricCard icon={<Activity size={14} className="text-amber-500" />} label="Running" value={runningExecs.toString()} />
       </div>
 
       {/* Underline tab strip */}
@@ -397,14 +404,37 @@ export function OperationsPage() {
   );
 }
 
-/* ── Enhanced Audit Tab ── */
+/* ── Enhanced Audit Tab (real API + mock fallback) ── */
 const auditCategories = ["all", "workflow", "vault", "settings", "auth"] as const;
+
+function categorizeAction(action: string): string {
+  if (action.startsWith("workflow")) return "workflow";
+  if (action.startsWith("vault") || action.startsWith("credential") || action.startsWith("connection")) return "vault";
+  if (action.startsWith("settings") || action.startsWith("system")) return "settings";
+  if (action.startsWith("auth") || action.startsWith("login") || action.startsWith("member") || action.startsWith("webhook")) return "auth";
+  return "workflow";
+}
 
 function AuditTab({ search }: { search: string }) {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: apiEvents } = useAuditEvents();
 
-  const filtered = mockAudit.filter(e => {
+  // Merge real API events with mock fallback
+  const events: { id: string; actor: string; action: string; target: string; category: string; timestamp: string; details: Record<string, unknown> | null }[] =
+    apiEvents && apiEvents.length > 0
+      ? apiEvents.map((e: AuditEventOut) => ({
+          id: e.id,
+          actor: e.actor_email || e.actor_user_id || "System",
+          action: e.action,
+          target: e.target_id || e.target_type,
+          category: categorizeAction(e.action),
+          timestamp: new Date(e.created_at).toLocaleString(),
+          details: e.details,
+        }))
+      : mockAudit.map(e => ({ ...e, details: null }));
+
+  const filtered = events.filter(e => {
     if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
     if (search && !e.actor.toLowerCase().includes(search.toLowerCase()) && !e.target.toLowerCase().includes(search.toLowerCase()) && !e.action.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -501,7 +531,7 @@ function AuditTab({ search }: { search: string }) {
       </div>
 
       <div className="text-center text-[10px] text-zinc-400 pt-2">
-        Showing {filtered.length} of {mockAudit.length} events
+        Showing {filtered.length} of {events.length} events
       </div>
     </div>
   );

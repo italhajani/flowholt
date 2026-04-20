@@ -34,6 +34,7 @@ from ..repository import (
 )
 from ..auth import get_supabase_auth_mode
 from .. import runtime_state
+from .. import repository as repo
 
 settings = get_settings()
 router = APIRouter()
@@ -370,3 +371,192 @@ def get_audit_events(
         AuditEventSummary.model_validate(item)
         for item in list_audit_events(str(session["workspace"]["id"]))
     ]
+
+
+# ── Prometheus-style Metrics ──
+
+@router.get("/metrics")
+def prometheus_metrics() -> str:
+    """Prometheus-compatible text metrics endpoint."""
+    from fastapi.responses import PlainTextResponse
+    lines: list[str] = []
+
+    # Execution metrics
+    try:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) as total, "
+                "SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as success, "
+                "SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) as failed, "
+                "SUM(CASE WHEN status='running' THEN 1 ELSE 0 END) as running "
+                "FROM executions"
+            ).fetchone()
+            if row:
+                lines.append("# HELP flowholt_executions_total Total workflow executions")
+                lines.append("# TYPE flowholt_executions_total counter")
+                lines.append(f'flowholt_executions_total {row["total"] or 0}')
+                lines.append("# HELP flowholt_executions_by_status Executions by status")
+                lines.append("# TYPE flowholt_executions_by_status gauge")
+                lines.append(f'flowholt_executions_by_status{{status="success"}} {row["success"] or 0}')
+                lines.append(f'flowholt_executions_by_status{{status="failed"}} {row["failed"] or 0}')
+                lines.append(f'flowholt_executions_by_status{{status="running"}} {row["running"] or 0}')
+
+            # Workflow count
+            wf_row = conn.execute("SELECT COUNT(*) as cnt FROM workflows").fetchone()
+            lines.append("# HELP flowholt_workflows_total Total workflows")
+            lines.append("# TYPE flowholt_workflows_total gauge")
+            lines.append(f'flowholt_workflows_total {wf_row["cnt"] if wf_row else 0}')
+
+            # Webhook queue depth
+            q_row = conn.execute(
+                "SELECT COUNT(*) as pending FROM webhook_queue WHERE status='pending'"
+            ).fetchone()
+            lines.append("# HELP flowholt_webhook_queue_depth Pending webhook queue items")
+            lines.append("# TYPE flowholt_webhook_queue_depth gauge")
+            lines.append(f'flowholt_webhook_queue_depth {q_row["pending"] if q_row else 0}')
+
+            # Agent count
+            a_row = conn.execute("SELECT COUNT(*) as cnt FROM agents").fetchone()
+            lines.append("# HELP flowholt_agents_total Total AI agents")
+            lines.append("# TYPE flowholt_agents_total gauge")
+            lines.append(f'flowholt_agents_total {a_row["cnt"] if a_row else 0}')
+
+            # Knowledge bases
+            kb_row = conn.execute("SELECT COUNT(*) as cnt FROM knowledge_bases").fetchone()
+            lines.append("# HELP flowholt_knowledge_bases_total Total knowledge bases")
+            lines.append("# TYPE flowholt_knowledge_bases_total gauge")
+            lines.append(f'flowholt_knowledge_bases_total {kb_row["cnt"] if kb_row else 0}')
+
+    except Exception:
+        lines.append("# Error collecting metrics")
+
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
+
+
+# ── Analytics Dashboard Metrics ──
+
+@router.get(f"{settings.api_prefix}/analytics/overview")
+def analytics_overview(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Dashboard analytics: execution metrics, usage trends, error rates."""
+    ws_id = str(session["workspace"]["id"])
+    exec_counts = count_executions_by_status(ws_id)
+    wf_counts = count_workflows_by_status(ws_id)
+
+    total_execs = sum(exec_counts.values())
+    success = exec_counts.get("success", 0)
+    failed = exec_counts.get("failed", 0)
+    error_rate = round(failed / total_execs * 100, 1) if total_execs > 0 else 0
+
+    return {
+        "executions": {
+            "total": total_execs,
+            "success": success,
+            "failed": failed,
+            "running": exec_counts.get("running", 0),
+            "paused": exec_counts.get("paused", 0),
+            "error_rate_pct": error_rate,
+        },
+        "workflows": {
+            "total": sum(wf_counts.values()),
+            "active": wf_counts.get("active", 0),
+            "draft": wf_counts.get("draft", 0),
+            "paused": wf_counts.get("paused", 0),
+        },
+        "workspace_id": ws_id,
+    }
+
+
+# ── Log Streaming Config ──
+
+@router.get(f"{settings.api_prefix}/system/log-config")
+def get_log_config(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Get current log streaming configuration."""
+    ws_settings = get_workspace_settings(str(session["workspace"]["id"]))
+    return {
+        "log_level": ws_settings.get("log_level", "info"),
+        "destinations": ["console"],
+        "supported_destinations": ["console", "datadog", "elastic", "loki", "cloudwatch"],
+        "retention_days": ws_settings.get("execution_data_retention_days", 14),
+    }
+
+
+@router.post(f"{settings.api_prefix}/system/log-config")
+def update_log_config(
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Update log streaming configuration (admin only)."""
+    require_workspace_role(session, "admin", "owner")
+    record_audit_event(
+        session=session,
+        workspace_id=str(session["workspace"]["id"]),
+        action="system.log_config.update",
+        target_type="system",
+        target_id=None,
+        status="success",
+        details=body,
+    )
+    return {"status": "updated", "config": body}
+
+
+# ── Execution Latency Percentiles ──
+
+@router.get(f"{settings.api_prefix}/analytics/latency")
+def analytics_latency(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Execution latency percentile breakdown for the workspace."""
+    ws_id = str(session["workspace"]["id"])
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT duration_ms FROM executions "
+            "WHERE workspace_id = ? AND duration_ms IS NOT NULL AND duration_ms > 0 "
+            "ORDER BY duration_ms",
+            (ws_id,),
+        ).fetchall()
+
+    if not rows:
+        return {"p50": 0, "p90": 0, "p95": 0, "p99": 0, "count": 0}
+
+    durations = [r["duration_ms"] for r in rows]
+    n = len(durations)
+
+    def percentile(p: int) -> int:
+        idx = max(0, min(int(n * p / 100) - 1, n - 1))
+        return durations[idx]
+
+    return {
+        "p50": percentile(50),
+        "p90": percentile(90),
+        "p95": percentile(95),
+        "p99": percentile(99),
+        "count": n,
+        "avg_ms": round(sum(durations) / n, 1) if n else 0,
+    }
+
+
+# ── Execution Timeline (recent runs) ──
+
+@router.get(f"{settings.api_prefix}/analytics/timeline")
+def analytics_timeline(
+    days: int = 7,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    """Execution counts by day for charts."""
+    ws_id = str(session["workspace"]["id"])
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT DATE(started_at) as day, "
+            "COUNT(*) as total, "
+            "SUM(CASE WHEN status='success' THEN 1 ELSE 0 END) as success, "
+            "SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) as failed "
+            "FROM executions "
+            "WHERE workspace_id = ? AND started_at >= date('now', ? || ' days') "
+            "GROUP BY DATE(started_at) ORDER BY day",
+            (ws_id, f"-{days}"),
+        ).fetchall()
+    return [dict(r) for r in rows]

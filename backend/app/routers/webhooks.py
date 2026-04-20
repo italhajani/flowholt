@@ -1,12 +1,15 @@
 """Webhook endpoints, delivery logs, queue management, and workflow trigger API."""
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import time
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse, Response
 
 from .. import repository as repo
 from ..deps import get_session_context, require_workspace_role, record_audit_event
@@ -15,6 +18,8 @@ router = APIRouter(prefix="/api", tags=["webhooks"])
 
 # In-memory sliding window counters for per-webhook rate limiting
 _webhook_rate_windows: dict[str, list[float]] = {}
+
+SIGNATURE_TIMESTAMP_WINDOW = 300  # 5 minute window for replay protection
 
 
 # ── Webhook Endpoint CRUD ──
@@ -305,15 +310,78 @@ def delete_incomplete(
         raise HTTPException(404, "Incomplete execution not found")
 
 
+# ── API Trigger ── Run workflow via API
+
+@router.post("/workflows/{wf_id}/run")
+def api_trigger_workflow(
+    wf_id: str,
+    body: dict[str, Any] | None = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Trigger a workflow run via API with optional input data."""
+    require_workspace_role(session, "owner", "admin", "builder")
+    wf = repo.get_workflow(wf_id)
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+    input_data = body or {}
+    job = repo.create_workflow_job(wf_id, trigger_type="api", input_data=json.dumps(input_data))
+    return {"execution_id": job["id"], "workflow_id": wf_id, "status": "queued"}
+
+
+def _verify_hmac_signature(
+    signing_secret: str, raw_body: bytes, headers: dict[str, str],
+) -> None:
+    """Verify HMAC-SHA256 signature from X-FlowHolt-Signature header."""
+    sig_header = headers.get("x-flowholt-signature", "")
+    ts_header = headers.get("x-flowholt-timestamp", "")
+
+    if not sig_header:
+        raise HTTPException(401, "Missing X-FlowHolt-Signature header")
+
+    # Replay protection
+    if ts_header:
+        try:
+            ts = int(ts_header)
+            if abs(time.time() - ts) > SIGNATURE_TIMESTAMP_WINDOW:
+                raise HTTPException(401, "Signature timestamp expired")
+        except ValueError:
+            raise HTTPException(401, "Invalid X-FlowHolt-Timestamp")
+
+    # Build signed payload: "timestamp.body"
+    signed_payload = f"{ts_header}.".encode() + raw_body if ts_header else raw_body
+    expected = hmac.new(
+        signing_secret.encode(), signed_payload, hashlib.sha256
+    ).hexdigest()
+
+    # Accept "sha256=<hex>" or plain "<hex>"
+    provided = sig_header.removeprefix("sha256=")
+    if not hmac.compare_digest(expected, provided):
+        raise HTTPException(401, "Invalid webhook signature")
+
+
+def _check_ip_whitelist(ip_whitelist: str, source_ip: str | None) -> None:
+    """Check if source IP is in the whitelist. Raise 403 if not."""
+    if not ip_whitelist or not ip_whitelist.strip():
+        return
+    allowed = [ip.strip() for ip in ip_whitelist.split(",") if ip.strip()]
+    if not allowed:
+        return
+    if not source_ip or source_ip not in allowed:
+        raise HTTPException(403, f"IP {source_ip} not in webhook whitelist")
+
+
 @router.api_route("/webhook/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
-async def receive_webhook(path: str, request: Request) -> dict[str, Any]:
-    """Catch-all webhook receiver — enforces rate limits, expiration, logs delivery, enqueues."""
+async def receive_webhook(path: str, request: Request) -> Any:
+    """Catch-all webhook receiver — enforces HMAC, IP whitelist, rate limits, expiration."""
     method = request.method
-    headers = dict(request.headers)
+    headers = {k.lower(): v for k, v in request.headers.items()}
     query = dict(request.query_params)
+    source_ip = request.client.host if request.client else None
     try:
-        raw_body = (await request.body()).decode("utf-8", errors="replace")
+        raw_body_bytes = await request.body()
+        raw_body = raw_body_bytes.decode("utf-8", errors="replace")
     except Exception:
+        raw_body_bytes = b""
         raw_body = ""
 
     from .. import repository as _repo
@@ -328,6 +396,16 @@ async def receive_webhook(path: str, request: Request) -> dict[str, Any]:
 
     if not target.get("active", True):
         raise HTTPException(410, "Webhook is disabled")
+
+    # HMAC signature verification
+    signing_secret = target.get("signing_secret")
+    if signing_secret:
+        _verify_hmac_signature(signing_secret, raw_body_bytes, headers)
+
+    # IP whitelist check
+    ip_whitelist = target.get("ip_whitelist")
+    if ip_whitelist:
+        _check_ip_whitelist(ip_whitelist, source_ip)
 
     # Expiration check
     expires_at = target.get("expires_at")
@@ -360,13 +438,41 @@ async def receive_webhook(path: str, request: Request) -> dict[str, Any]:
         "headers": headers,
         "body": raw_body,
         "query_params": query,
-        "source_ip": request.client.host if request.client else None,
+        "source_ip": source_ip,
         "status_code": 200,
         "latency_ms": int((time.time() - start) * 1000),
     })
 
     _repo.enqueue_webhook(target["id"], delivery["id"], raw_body)
 
+    # Custom response based on respond_mode
+    respond_mode = target.get("respond_mode", "immediately")
+    if respond_mode == "immediately":
+        custom_status = target.get("response_status", 200)
+        custom_body = target.get("response_body")
+        custom_headers_raw = target.get("response_headers", "{}")
+        try:
+            custom_headers = json.loads(custom_headers_raw) if isinstance(custom_headers_raw, str) else (custom_headers_raw or {})
+        except (json.JSONDecodeError, TypeError):
+            custom_headers = {}
+
+        base_response = {
+            "status": "accepted",
+            "delivery_id": delivery["id"],
+            "webhook_id": target["id"],
+            "workflow_id": target.get("workflow_id"),
+        }
+
+        if custom_body:
+            return Response(
+                content=custom_body,
+                status_code=custom_status,
+                headers=custom_headers,
+                media_type=custom_headers.get("content-type", "application/json"),
+            )
+        return JSONResponse(content=base_response, status_code=custom_status, headers=custom_headers)
+
+    # Default: return accepted
     return {
         "status": "accepted",
         "delivery_id": delivery["id"],

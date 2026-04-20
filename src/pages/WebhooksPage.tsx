@@ -253,18 +253,34 @@ export function WebhooksPage() {
                     <ChevronRight size={12} className="text-zinc-400 rotate-90" />
                     <span className="text-[11px] font-semibold text-zinc-600">{delivery.method} {delivery.path}</span>
                     <Badge variant={delivery.status_code < 300 ? "success" : "danger"}>{delivery.status_code}</Badge>
+                    <span className="text-[10px] text-zinc-400">{delivery.latency_ms}ms</span>
+                    {delivery.source_ip && <span className="text-[10px] text-zinc-400">from {delivery.source_ip}</span>}
                     <span className="ml-auto text-[10px] text-zinc-400">{formatTimeAgo(delivery.created_at)}</span>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-zinc-100">
                     <div className="p-3">
                       <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Request Headers</p>
-                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed">
+                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed max-h-[120px] overflow-auto">
                         {delivery.headers ? Object.entries(delivery.headers).map(([k, v]) => `${k}: ${v}`).join("\n") : "—"}
                       </pre>
                     </div>
                     <div className="p-3">
-                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Body</p>
-                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed max-h-[200px] overflow-auto">{delivery.body || "—"}</pre>
+                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Request Body</p>
+                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed max-h-[120px] overflow-auto">{delivery.body || "—"}</pre>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 divide-x divide-zinc-100 border-t border-zinc-100">
+                    <div className="p-3">
+                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Query Params</p>
+                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed max-h-[80px] overflow-auto">
+                        {delivery.query_params && Object.keys(delivery.query_params).length > 0
+                          ? Object.entries(delivery.query_params).map(([k, v]) => `${k}=${v}`).join("\n")
+                          : "—"}
+                      </pre>
+                    </div>
+                    <div className="p-3">
+                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Response Body</p>
+                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed max-h-[80px] overflow-auto">{delivery.response_body || "—"}</pre>
                     </div>
                   </div>
                 </div>

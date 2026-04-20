@@ -94,14 +94,26 @@ export function WebhookDetailPage() {
   const dropMut = useDropQueueItem();
 
   const [sigToggle, setSigToggle] = useState(false);
+  const [sigSecret, setSigSecret] = useState("");
   const [rateLimit, setRateLimit] = useState(300);
   const [rateLimitWindow, setRateLimitWindow] = useState(10);
+  const [ipWhitelist, setIpWhitelist] = useState("");
+  const [corsOrigins, setCorsOrigins] = useState("*");
+  const [respondMode, setRespondMode] = useState<"immediately" | "last_node" | "respond_node">("immediately");
+  const [responseStatus, setResponseStatus] = useState(200);
+  const [responseBody, setResponseBody] = useState("");
 
   useEffect(() => {
     if (webhook) {
-      setSigToggle(webhook.auth_type !== "none");
+      setSigToggle(!!webhook.signing_secret || webhook.auth_type !== "none");
+      setSigSecret(webhook.signing_secret || "");
       setRateLimit(webhook.rate_limit_max);
       setRateLimitWindow(webhook.rate_limit_window_sec);
+      setIpWhitelist(webhook.ip_whitelist || "");
+      setCorsOrigins(webhook.cors_origins || "*");
+      setRespondMode(webhook.respond_mode || "immediately");
+      setResponseStatus(webhook.response_status || 200);
+      setResponseBody(webhook.response_body || "");
     }
   }, [webhook]);
 
@@ -122,8 +134,14 @@ export function WebhookDetailPage() {
       id: webhook.id,
       payload: {
         auth_type: sigToggle ? "hmac" : "none",
+        signing_secret: sigToggle ? sigSecret : null,
         rate_limit_max: rateLimit,
         rate_limit_window_sec: rateLimitWindow,
+        ip_whitelist: ipWhitelist || null,
+        cors_origins: corsOrigins,
+        respond_mode: respondMode,
+        response_status: responseStatus,
+        response_body: responseBody || null,
       },
     });
   };
@@ -230,7 +248,7 @@ export function WebhookDetailPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[13px] font-medium text-zinc-800">Require Signature Verification</p>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">Reject requests without a valid HMAC signature</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">Reject requests without a valid HMAC-SHA256 signature</p>
                 </div>
                 <button
                   onClick={() => setSigToggle((v) => !v)}
@@ -239,7 +257,33 @@ export function WebhookDetailPage() {
                   <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all duration-200", sigToggle ? "left-[18px]" : "left-0.5")} />
                 </button>
               </div>
-              <Button variant="secondary" size="sm"><Shield size={12} /> Regenerate Secret</Button>
+              {sigToggle && (
+                <FieldGroup label="Signing Secret">
+                  <Input
+                    type="password"
+                    value={sigSecret}
+                    onChange={e => setSigSecret(e.target.value)}
+                    placeholder="whsec_..."
+                    className="font-mono"
+                  />
+                  <p className="text-[10px] text-zinc-400 mt-1">Used to compute HMAC-SHA256 signature in X-FlowHolt-Signature header</p>
+                </FieldGroup>
+              )}
+              <FieldGroup label="IP Whitelist">
+                <Input
+                  value={ipWhitelist}
+                  onChange={e => setIpWhitelist(e.target.value)}
+                  placeholder="10.0.0.1, 192.168.1.0/24 (blank = allow all)"
+                />
+                <p className="text-[10px] text-zinc-400 mt-1">Comma-separated IPs. Leave blank to allow all.</p>
+              </FieldGroup>
+              <FieldGroup label="CORS Allowed Origins">
+                <Input
+                  value={corsOrigins}
+                  onChange={e => setCorsOrigins(e.target.value)}
+                  placeholder="* or https://example.com"
+                />
+              </FieldGroup>
             </div>
           </DetailSection>
 
@@ -250,6 +294,34 @@ export function WebhookDetailPage() {
               </FieldGroup>
               <FieldGroup label="Window (seconds)">
                 <Input type="number" value={rateLimitWindow} onChange={e => setRateLimitWindow(Number(e.target.value))} className="max-w-[160px]" />
+              </FieldGroup>
+            </div>
+          </DetailSection>
+
+          <DetailSection title="Response">
+            <div className="space-y-4">
+              <FieldGroup label="Respond Mode">
+                <select
+                  value={respondMode}
+                  onChange={e => setRespondMode(e.target.value as typeof respondMode)}
+                  className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700"
+                >
+                  <option value="immediately">Immediately (before workflow runs)</option>
+                  <option value="last_node">When Last Node Finishes</option>
+                  <option value="respond_node">Using Respond to Webhook Node</option>
+                </select>
+              </FieldGroup>
+              <FieldGroup label="Response Status Code">
+                <Input type="number" value={responseStatus} onChange={e => setResponseStatus(Number(e.target.value))} className="max-w-[120px]" />
+              </FieldGroup>
+              <FieldGroup label="Custom Response Body">
+                <textarea
+                  value={responseBody}
+                  onChange={e => setResponseBody(e.target.value)}
+                  placeholder='{"status": "received"}'
+                  rows={3}
+                  className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] font-mono text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                />
               </FieldGroup>
             </div>
           </DetailSection>

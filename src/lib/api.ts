@@ -627,6 +627,13 @@ export interface WebhookEndpoint {
   auth_config: Record<string, unknown>;
   rate_limit_max: number;
   rate_limit_window_sec: number;
+  signing_secret?: string | null;
+  ip_whitelist?: string | null;
+  cors_origins?: string;
+  respond_mode?: "immediately" | "last_node" | "respond_node";
+  response_status?: number;
+  response_headers?: Record<string, string>;
+  response_body?: string | null;
   active: boolean;
   expires_at: string | null;
   created_at: string;

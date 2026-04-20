@@ -5,7 +5,45 @@
 
 ---
 
-## Session 36 — Sprint 34-36 (Latest)
+## Session 42 — Sprint 40-41 (Latest)
+
+**Sprints completed:** 40, 41
+**Commits:** `672c844` (Sprint 40), `30be329` (Fix: Studio circular dep), `728fded` (Sprint 41)
+**Build:** 502 KB JS (main) + 164 KB vendor-react + 75 KB vendor-icons + 40 KB vendor-query | 0 errors
+**Theme:** Webhook & Trigger Reliability (Phase 5)
+
+### Sprint 40: Webhook Rate Limiting & Polling
+| File | Change |
+|------|--------|
+| `backend/app/routers/webhooks.py` | Per-webhook rate limiting (sliding window), expiration enforcement, queue/polling/event endpoints |
+| `backend/app/repository.py` | Webhook queue management, polling trigger CRUD, internal event bus |
+| `backend/app/db.py` | Added `polling_triggers` and `internal_events` tables |
+| `src/lib/api.ts` | Rewrote webhook types, added queue/polling/event API functions (~20 new) |
+| `src/hooks/useApi.ts` | Added ~15 new hooks for webhooks, polling triggers, events |
+| `src/pages/WebhooksPage.tsx` | Rewired from mock data to real API, queue tab with retry/drop |
+| `src/pages/detail/WebhookDetailPage.tsx` | Rewired from mock data to real API |
+
+### Fix: Studio Circular Dependency
+| File | Change |
+|------|--------|
+| `src/components/studio/canvasTypes.ts` | NEW — extracted shared types to break useCanvasStore ↔ StudioCanvas cycle |
+| `src/components/studio/StudioCanvas.tsx` | Re-exports from canvasTypes.ts |
+| `src/components/studio/useCanvasStore.tsx` | Imports from canvasTypes.ts |
+| `src/layouts/StudioLayout.tsx` | Split import paths |
+
+### Sprint 41: Error Tracking & Incomplete Executions
+| File | Change |
+|------|--------|
+| `backend/app/db.py` | Added `consecutive_errors` and `incomplete_executions` tables |
+| `backend/app/repository.py` | Error tracking CRUD, Make-style retry schedule, incomplete execution management |
+| `backend/app/scheduler.py` | Webhook queue processor, polling trigger processor, incomplete retry processor |
+| `backend/app/routers/webhooks.py` | Webhook test, error tracking, incomplete execution endpoints |
+| `src/lib/api.ts` | 10 new API functions + types |
+| `src/hooks/useApi.ts` | 8 new React Query hooks |
+| `src/pages/WebhooksPage.tsx` | Added Incomplete & Errors tabs with full UI |
+
+---
+
 
 **Sprints completed:** 34, 35, 36
 **Commits:** `7b514ae` (Sprint 34), `20064db` (Sprint 35), `8b76e0c` (Sprint 36)

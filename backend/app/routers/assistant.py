@@ -753,12 +753,17 @@ COPILOT_SYSTEM_PROMPTS: dict[str, str] = {
 # Map frontend model names to LLM router provider names
 MODEL_TO_PROVIDER: dict[str, str] = {
     "gpt-4o": "openai",
+    "gpt-4o-mini": "openai",
     "claude-sonnet": "anthropic",
     "claude-opus": "anthropic",
+    "claude-haiku": "anthropic",
     "gemini-pro": "gemini",
+    "gemini-2": "gemini",
     "llama-3.1": "ollama",
+    "llama-3": "ollama",
     "groq": "groq",
     "deepseek": "deepseek",
+    "deepseek-v3": "deepseek",
     "grok": "xai",
 }
 

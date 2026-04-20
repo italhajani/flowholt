@@ -87,11 +87,12 @@ interface PersonalAgent {
 /* ── Mock Data ─────────────────────────────────────── */
 
 const models: AIModel[] = [
+  { id: "gemini-pro",   name: "Gemini Flash",     provider: "Google",    description: "Free tier, multimodal",  badge: "Free" },
+  { id: "groq",         name: "Llama 3.3 70B",    provider: "Groq",      description: "Free tier, ultra-fast",  badge: "Free" },
   { id: "gpt-4o",       name: "GPT-4o",           provider: "OpenAI",    description: "Most capable model",     badge: "Popular" },
   { id: "gpt-4o-mini",  name: "GPT-4o Mini",      provider: "OpenAI",    description: "Fast and affordable" },
-  { id: "claude-4",     name: "Claude 4 Sonnet",   provider: "Anthropic", description: "Balanced performance",   badge: "New" },
+  { id: "claude-sonnet", name: "Claude Sonnet",    provider: "Anthropic", description: "Balanced performance",   badge: "Fast" },
   { id: "claude-haiku", name: "Claude Haiku",      provider: "Anthropic", description: "Fastest responses" },
-  { id: "gemini-2",     name: "Gemini 2.0 Flash",  provider: "Google",    description: "Multimodal capable" },
   { id: "deepseek-v3",  name: "DeepSeek V3",       provider: "DeepSeek",  description: "Open-source leader" },
 ];
 

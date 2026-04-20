@@ -231,10 +231,11 @@ interface StudioCopilotPanelProps {
 
 /* ── Model selector options ── */
 const modelOptions = [
+  { id: "gemini-pro", label: "Gemini Flash", provider: "Google", badge: "Free" },
+  { id: "groq", label: "Llama 3.3 70B", provider: "Groq", badge: "Free" },
   { id: "gpt-4o", label: "GPT-4o", provider: "OpenAI", badge: "Best" },
   { id: "claude-sonnet", label: "Claude Sonnet", provider: "Anthropic", badge: "Fast" },
   { id: "claude-opus", label: "Claude Opus", provider: "Anthropic", badge: "Smart" },
-  { id: "gemini-pro", label: "Gemini Pro", provider: "Google", badge: null },
   { id: "llama-3", label: "Llama 3.1", provider: "Meta", badge: "Local" },
 ];
 
@@ -250,7 +251,7 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
   const [showNodePicker, setShowNodePicker] = useState(false);
   const [nodeFilter, setNodeFilter] = useState("");
   const [expanded, setExpanded] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gpt-4o");
+  const [selectedModel, setSelectedModel] = useState("gemini-pro");
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [contextNodeType, setContextNodeType] = useState<string | null>(null);
   const [showContextCards, setShowContextCards] = useState(true);

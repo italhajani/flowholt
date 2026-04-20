@@ -620,4 +620,96 @@ def post_assistant_chat_stream(
     )
 
 
+# ── Copilot Contextual Suggestions ──
 
+_COPILOT_NODE_SUGGESTIONS: dict[str, list[dict[str, str]]] = {
+    "trigger": [
+        {"label": "Add input validation", "prompt": "Add input validation to the trigger payload", "category": "security"},
+        {"label": "Configure rate limiting", "prompt": "Set up rate limiting for this trigger", "category": "reliability"},
+        {"label": "Add authentication check", "prompt": "Add authentication to this trigger endpoint", "category": "security"},
+        {"label": "Generate test payload", "prompt": "Generate sample test data for this trigger", "category": "testing"},
+    ],
+    "integration": [
+        {"label": "Add error handling", "prompt": "Add retry logic and error handling to this API node", "category": "reliability"},
+        {"label": "Map response fields", "prompt": "Map the response fields to the format I need", "category": "data"},
+        {"label": "Add timeout config", "prompt": "Configure timeout and fallback for this integration", "category": "reliability"},
+        {"label": "Test with mock data", "prompt": "Generate mock response data for testing", "category": "testing"},
+    ],
+    "ai": [
+        {"label": "Optimize prompt", "prompt": "Optimize the AI prompt for better accuracy", "category": "optimization"},
+        {"label": "Add fallback model", "prompt": "Add a fallback model in case the primary fails", "category": "reliability"},
+        {"label": "Stream response", "prompt": "Configure streaming for faster perceived response", "category": "performance"},
+        {"label": "Add output parsing", "prompt": "Parse the AI output into structured JSON", "category": "data"},
+    ],
+    "logic": [
+        {"label": "Add missing branch", "prompt": "Check for missing branches in this logic node", "category": "correctness"},
+        {"label": "Add default case", "prompt": "Add a default/fallback case to handle unexpected values", "category": "reliability"},
+        {"label": "Simplify conditions", "prompt": "Simplify the conditions in this node", "category": "optimization"},
+        {"label": "Add logging", "prompt": "Add debug logging to trace the decision path", "category": "debugging"},
+    ],
+    "output": [
+        {"label": "Format message", "prompt": "Improve the output message formatting", "category": "ux"},
+        {"label": "Add confirmation", "prompt": "Add a confirmation or success response", "category": "ux"},
+        {"label": "Batch notifications", "prompt": "Batch multiple items into a single notification", "category": "performance"},
+        {"label": "Add rich formatting", "prompt": "Add rich text/markdown formatting to the output", "category": "ux"},
+    ],
+    "data": [
+        {"label": "Validate schema", "prompt": "Add schema validation for the data", "category": "security"},
+        {"label": "Add deduplication", "prompt": "Add deduplication logic before storing", "category": "data"},
+        {"label": "Batch inserts", "prompt": "Optimize with batch insert operations", "category": "performance"},
+        {"label": "Add index hints", "prompt": "Suggest indexes for this data operation", "category": "optimization"},
+    ],
+}
+
+
+@router.get(f"{settings.api_prefix}/copilot/suggestions")
+def get_copilot_suggestions(
+    node_type: str | None = None,
+    workflow_id: str | None = None,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Return contextual copilot suggestions based on node type and workflow context."""
+    suggestions = []
+    if node_type and node_type in _COPILOT_NODE_SUGGESTIONS:
+        suggestions = _COPILOT_NODE_SUGGESTIONS[node_type]
+
+    workflow_hints: list[str] = []
+    if workflow_id:
+        workspace_id = str(session["workspace"]["id"])
+        workflow = get_workflow(workflow_id, workspace_id=workspace_id)
+        if workflow:
+            steps = workflow.get("definition", {}).get("steps", [])
+            if len(steps) > 0 and not any(s.get("type") == "error_trigger" for s in steps):
+                workflow_hints.append("This workflow has no error handler — consider adding one.")
+            if len(steps) > 5:
+                workflow_hints.append("Complex workflow — consider splitting into sub-workflows.")
+            has_http = any(s.get("type") in ("http_request", "webhook") for s in steps)
+            if has_http and not any("retry" in str(s.get("config", {})).lower() for s in steps):
+                workflow_hints.append("HTTP nodes without retry logic detected.")
+
+    return {
+        "suggestions": suggestions,
+        "workflow_hints": workflow_hints,
+        "node_type": node_type,
+    }
+
+
+@router.post(f"{settings.api_prefix}/copilot/feedback")
+def post_copilot_feedback(
+    payload: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, str]:
+    """Record copilot feedback (thumbs up/down, suggestion usage)."""
+    from ..repository import log_audit_event
+    log_audit_event(
+        workspace_id=str(session["workspace"]["id"]),
+        user_id=str(session["user"]["id"]),
+        event_type="copilot_feedback",
+        detail={
+            "message_id": payload.get("message_id"),
+            "rating": payload.get("rating"),
+            "suggestion_used": payload.get("suggestion_used"),
+            "context": payload.get("context"),
+        },
+    )
+    return {"status": "recorded"}

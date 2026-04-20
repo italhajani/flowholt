@@ -127,6 +127,53 @@ const codeActions = [
   { label: "Merge data from two sources", icon: Layers },
 ];
 
+/* ── Contextual node suggestions (shown when a node is focused) ── */
+interface ContextSuggestion {
+  label: string;
+  prompt: string;
+  icon: React.ElementType;
+  badge?: string;
+}
+
+const nodeContextSuggestions: Record<string, ContextSuggestion[]> = {
+  trigger: [
+    { label: "Add input validation", prompt: "Add input validation to the trigger payload", icon: Shield, badge: "Recommended" },
+    { label: "Configure rate limiting", prompt: "Set up rate limiting for this trigger", icon: Clock },
+    { label: "Add authentication check", prompt: "Add authentication to this trigger endpoint", icon: KeyRound },
+    { label: "Generate test payload", prompt: "Generate sample test data for this trigger", icon: FileJson },
+  ],
+  integration: [
+    { label: "Add error handling", prompt: "Add retry logic and error handling to this API node", icon: AlertTriangle, badge: "Recommended" },
+    { label: "Map response fields", prompt: "Map the response fields to the format I need", icon: Layers },
+    { label: "Add timeout config", prompt: "Configure timeout and fallback for this integration", icon: Clock },
+    { label: "Test with mock data", prompt: "Generate mock response data for testing", icon: FileJson },
+  ],
+  ai: [
+    { label: "Optimize prompt", prompt: "Optimize the AI prompt for better accuracy", icon: Sparkles, badge: "Recommended" },
+    { label: "Add fallback model", prompt: "Add a fallback model in case the primary fails", icon: RefreshCw },
+    { label: "Stream response", prompt: "Configure streaming for faster perceived response", icon: Zap },
+    { label: "Add output parsing", prompt: "Parse the AI output into structured JSON", icon: Braces },
+  ],
+  logic: [
+    { label: "Add missing branch", prompt: "Check for missing branches in this logic node", icon: GitBranch, badge: "Recommended" },
+    { label: "Add default case", prompt: "Add a default/fallback case to handle unexpected values", icon: Shield },
+    { label: "Simplify conditions", prompt: "Simplify the conditions in this node", icon: Lightbulb },
+    { label: "Add logging", prompt: "Add debug logging to trace the decision path", icon: Terminal },
+  ],
+  output: [
+    { label: "Format message", prompt: "Improve the output message formatting", icon: MessageSquare, badge: "Recommended" },
+    { label: "Add confirmation", prompt: "Add a confirmation or success response", icon: CheckCircle2 },
+    { label: "Batch notifications", prompt: "Batch multiple items into a single notification", icon: Layers },
+    { label: "Add rich formatting", prompt: "Add rich text/markdown formatting to the output", icon: Code2 },
+  ],
+  data: [
+    { label: "Validate schema", prompt: "Add schema validation for the data", icon: Shield, badge: "Recommended" },
+    { label: "Add deduplication", prompt: "Add deduplication logic before storing", icon: Target },
+    { label: "Batch inserts", prompt: "Optimize with batch insert operations", icon: Layers },
+    { label: "Add index hints", prompt: "Suggest indexes for this data operation", icon: Lightbulb },
+  ],
+};
+
 /* ── Context ── */
 const contextInfo = {
   workflowName: "Lead Qualification Pipeline",
@@ -204,6 +251,8 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
   const [expanded, setExpanded] = useState(false);
   const [selectedModel, setSelectedModel] = useState("gpt-4o");
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [contextNodeType, setContextNodeType] = useState<string | null>(null);
+  const [showContextCards, setShowContextCards] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const streamRef = useRef<number | null>(null);
@@ -223,6 +272,21 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
   useEffect(() => {
     return () => { if (streamRef.current) clearInterval(streamRef.current); };
   }, []);
+
+  // Auto-detect node context from @mentions in input
+  useEffect(() => {
+    const match = input.match(/@([\w\s]+?)(?:\s|$)/);
+    if (match) {
+      const name = match[1].trim();
+      const node = workflowNodes.find(n => n.name.toLowerCase().startsWith(name.toLowerCase()));
+      if (node && node.type !== contextNodeType) {
+        setContextNodeType(node.type);
+        setShowContextCards(true);
+      }
+    } else if (!input.includes("@")) {
+      setContextNodeType(null);
+    }
+  }, [input, contextNodeType]);
 
   const switchMode = (newMode: CopilotMode) => {
     setMode(newMode);
@@ -298,6 +362,8 @@ export function StudioCopilotPanel({ onClose, initialPrompt }: StudioCopilotPane
     setInput((p) => p + `@${nodeName} `);
     setShowNodePicker(false);
     setNodeFilter("");
+    const mentioned = workflowNodes.find(n => n.name === nodeName);
+    if (mentioned) { setContextNodeType(mentioned.type); setShowContextCards(true); }
     inputRef.current?.focus();
   };
 
@@ -1523,6 +1589,43 @@ return items.map(item => {
                   className="flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] text-zinc-500 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700 transition-all"
                 >
                   <Icon size={9} className="text-zinc-400" /> {action.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Contextual node suggestions */}
+      {contextNodeType && showContextCards && nodeContextSuggestions[contextNodeType] && (
+        <div className="px-4 pb-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Lightbulb size={10} className="text-amber-500" />
+              <p className="text-[9px] font-medium text-zinc-500 uppercase tracking-wider">
+                Suggestions for {contextNodeType} node
+              </p>
+            </div>
+            <button onClick={() => setShowContextCards(false)} className="text-zinc-300 hover:text-zinc-500 transition-colors">
+              <X size={10} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {nodeContextSuggestions[contextNodeType]!.map((sug) => {
+              const SugIcon = sug.icon;
+              return (
+                <button
+                  key={sug.label}
+                  onClick={() => { send(sug.prompt); setShowContextCards(false); }}
+                  className="group relative flex items-start gap-1.5 rounded-lg border border-zinc-150 bg-gradient-to-br from-white to-zinc-50 px-2 py-1.5 text-left hover:border-violet-200 hover:from-violet-50/30 hover:to-white transition-all"
+                >
+                  <SugIcon size={11} className="mt-0.5 flex-shrink-0 text-zinc-400 group-hover:text-violet-500 transition-colors" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-medium text-zinc-600 group-hover:text-zinc-800 leading-tight">{sug.label}</p>
+                    {sug.badge && (
+                      <span className="inline-block mt-0.5 rounded-full bg-violet-100 px-1.5 py-0 text-[7px] font-semibold text-violet-600">{sug.badge}</span>
+                    )}
+                  </div>
                 </button>
               );
             })}

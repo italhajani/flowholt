@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useWorkspaceSettings, useUpdateWorkspaceSettings } from "@/hooks/useApi";
 
 export function RuntimeSettings() {
+  const { data: wsSetting } = useWorkspaceSettings();
+  const updateMutation = useUpdateWorkspaceSettings();
+
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     saveExecData: true,
     saveManual: true,
@@ -22,7 +26,28 @@ export function RuntimeSettings() {
   const [deadLetter, setDeadLetter] = useState(30);
   const [queueAlert, setQueueAlert] = useState(1000);
 
+  useEffect(() => {
+    if (!wsSetting) return;
+    setTimeout(wsSetting.execution_timeout_seconds ?? 3600);
+    setMaxConcurrent(wsSetting.max_concurrent_executions ?? 10);
+    setToggles(t => ({
+      ...t,
+      saveExecData: wsSetting.save_failed_executions ?? true,
+    }));
+    setFailedExec(wsSetting.save_failed_executions ? "all" : "none");
+    setSuccessExec(wsSetting.save_successful_executions ? "all" : "none");
+  }, [wsSetting]);
+
   const toggle = (key: string) => setToggles((v) => ({ ...v, [key]: !v[key] }));
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      execution_timeout_seconds: timeout,
+      max_concurrent_executions: maxConcurrent,
+      save_failed_executions: failedExec !== "none",
+      save_successful_executions: successExec !== "none",
+    });
+  };
 
   return (
     <div>
@@ -113,7 +138,9 @@ export function RuntimeSettings() {
       </div>
 
       <div className="mt-8 pt-4 flex items-center gap-3" style={{ borderTop: "1px solid #f4f4f5" }}>
-        <Button variant="primary" size="md">Save Changes</Button>
+        <Button variant="primary" size="md" onClick={handleSave} disabled={updateMutation.isPending}>
+          {updateMutation.isPending ? "Saving…" : "Save Changes"}
+        </Button>
         <Button variant="ghost" size="md">Cancel</Button>
       </div>
     </div>

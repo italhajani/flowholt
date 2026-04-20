@@ -390,7 +390,7 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
               )}
               style={{ paddingLeft: `${field.depth * 16 + 8}px` }}
               draggable
-              onDragStart={() => setDragField(field.key)}
+              onDragStart={(e) => { e.dataTransfer.setData("text/plain", field.key); setDragField(field.key); }}
               onDragEnd={() => setDragField(null)}
               onClick={() => copyExpression(field.key)}
             >
@@ -3255,17 +3255,25 @@ const expressionVars = [
   { name: "$json.employees", desc: "Company size" },
   { name: "$input.item", desc: "Input item" },
   { name: "$now", desc: "Current timestamp" },
+  { name: "$today", desc: "Today's date" },
+  { name: "$vars", desc: "Workspace variables" },
   { name: "$env", desc: "Environment vars" },
   { name: "$execution.id", desc: "Execution ID" },
   { name: "$workflow.id", desc: "Workflow ID" },
   { name: "$node", desc: "Current node reference" },
   { name: "$prevNode", desc: "Previous node reference" },
+  { name: "$jmespath(expr, data)", desc: "JMESPath query" },
+  { name: "$if(cond, then, else)", desc: "Conditional expression" },
+  { name: "$ifEmpty(val, fallback)", desc: "Default if empty" },
+  { name: "$lookup(arr, key, val)", desc: "Find in array" },
+  { name: "$parseDate(str)", desc: "Parse date string" },
 ];
 
 function ExpressionFieldWithValidation({ field, onOpenEditor }: { field: NodeField; onOpenEditor: (f: NodeField) => void }) {
   const [value, setValue] = useState(field.value);
   const [showAC, setShowAC] = useState(false);
   const [acQuery, setAcQuery] = useState("");
+  const [dropTarget, setDropTarget] = useState(false);
 
   const isValid = value.startsWith("={{") && value.endsWith("}}") && value.length > 5;
   const hasError = value.includes("={{") && !value.endsWith("}}");
@@ -3278,7 +3286,6 @@ function ExpressionFieldWithValidation({ field, onOpenEditor }: { field: NodeFie
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setValue(v);
-    // Show autocomplete when typing $
     if (v.includes("$")) {
       const dollarIdx = v.lastIndexOf("$");
       setAcQuery(v.slice(dollarIdx));
@@ -3293,10 +3300,25 @@ function ExpressionFieldWithValidation({ field, onOpenEditor }: { field: NodeFie
     setShowAC(false);
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDropTarget(false);
+    const fieldKey = e.dataTransfer.getData("text/plain");
+    if (fieldKey) {
+      setValue(`={{ $json.${fieldKey} }}`);
+    }
+  };
+
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onDragOver={(e) => { e.preventDefault(); setDropTarget(true); }}
+      onDragLeave={() => setDropTarget(false)}
+      onDrop={handleDrop}
+    >
       <div className={cn(
-        "rounded-md border-2 overflow-hidden",
+        "rounded-md border-2 overflow-hidden transition-colors",
+        dropTarget ? "border-blue-400 bg-blue-50/20" :
         hasError ? "border-red-300 bg-red-50/20" : isValid ? "border-green-300 bg-green-50/10" : "border-violet-200 bg-violet-50/30"
       )}>
         <div className="flex items-center gap-1.5 px-2 py-1 bg-violet-50 border-b border-violet-100">

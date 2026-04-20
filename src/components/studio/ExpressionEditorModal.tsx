@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   X, Code2, Braces, Zap, Copy, Check, AlertTriangle, ChevronRight, ChevronDown,
   Clock, Hash, Type, List, ToggleLeft, Search, Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTestExpression } from "@/hooks/useApi";
 
 /* ── context variable catalog ── */
 const contextVars = [
@@ -181,11 +182,26 @@ export function ExpressionEditorModal({ open, onClose, value, onChange, fieldLab
   const [copied, setCopied] = useState(false);
   const [varFilter, setVarFilter] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const testMutation = useTestExpression();
+  const [backendPreview, setBackendPreview] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => { if (open) setCode(value); }, [open, value]);
 
+  // Debounced backend expression test
+  useEffect(() => {
+    if (!code.includes("{{")) { setBackendPreview(null); return; }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      testMutation.mutate({ expression: code }, {
+        onSuccess: (res) => setBackendPreview(res.success ? String(res.result) : res.error || "Error"),
+      });
+    }, 500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [code]);
+
   const validation = useMemo(() => validateExpression(code), [code]);
-  const preview = useMemo(() => previewExpression(code), [code]);
+  const preview = backendPreview ?? previewExpression(code);
   const highlighted = useMemo(() => highlightSyntax(code), [code]);
 
   const insertAtCursor = (text: string) => {

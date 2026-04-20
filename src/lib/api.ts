@@ -1233,3 +1233,37 @@ export function createEvalRun(datasetId: string, agentId: string) {
 export function fetchEvalRun(runId: string) {
   return apiFetch<EvalRun>(`/api/eval/runs/${runId}`);
 }
+
+
+// ── Expression Engine API ──
+
+export interface ExpressionTestResult {
+  success: boolean;
+  result: unknown;
+  result_type: string | null;
+  error: string | null;
+}
+
+export interface ExpressionVariable {
+  name: string;
+  type: string;
+  description: string;
+  methods?: string[];
+}
+
+export interface ExpressionVariables {
+  variables: ExpressionVariable[];
+  functions: { name: string; description: string }[];
+  methods: Record<string, string[]>;
+}
+
+export function testExpression(expression: string, contextData?: Record<string, unknown>, mode: string = "template") {
+  return apiFetch<ExpressionTestResult>("/api/expressions/test", {
+    method: "POST",
+    body: JSON.stringify({ expression, context_data: contextData, mode }),
+  });
+}
+
+export function fetchExpressionVariables() {
+  return apiFetch<ExpressionVariables>("/api/expressions/variables");
+}

@@ -205,6 +205,354 @@ class _DateTimeHelper:
         return self._dt >= other._dt
 
 
+# ── JMESPath-like query engine ────────────────────────────────────────────────
+
+def _jmespath_search(expr: str, data: Any) -> Any:
+    """Lightweight JMESPath-like search.
+
+    Supports: dot.navigation, array[0], filter[?field > val], projection[*].field,
+    flatten[], multi-select {alias: field}, pipe expressions |, and functions
+    (length, sort_by, reverse, keys, values, type, contains, starts_with, ends_with).
+    """
+    if isinstance(data, (_AttrDict, _AttrList)):
+        data = _unwrap(data)
+
+    tokens = _jmes_tokenize(expr)
+    return _jmes_eval(tokens, data)
+
+
+def _unwrap(val: Any) -> Any:
+    """Convert wrapped _AttrDict/_AttrList back to plain Python objects."""
+    if isinstance(val, _AttrDict):
+        d = object.__getattribute__(val, "_data")
+        return {k: _unwrap(v) for k, v in d.items()}
+    if isinstance(val, _AttrList):
+        return [_unwrap(item) for item in object.__getattribute__(val, "_data")]
+    return val
+
+
+def _jmes_tokenize(expr: str) -> list[str]:
+    """Split a JMESPath expression into tokens."""
+    tokens: list[str] = []
+    i = 0
+    while i < len(expr):
+        ch = expr[i]
+        if ch == '.':
+            i += 1
+        elif ch == '[':
+            end = _find_bracket_end(expr, i)
+            tokens.append(expr[i:end + 1])
+            i = end + 1
+        elif ch == '{':
+            end = _find_brace_end(expr, i)
+            tokens.append(expr[i:end + 1])
+            i = end + 1
+        elif ch == '|':
+            tokens.append('|')
+            i += 1
+        elif ch == ' ':
+            i += 1
+        else:
+            # Identifier or function call
+            j = i
+            paren_depth = 0
+            while j < len(expr):
+                c = expr[j]
+                if c == '(':
+                    paren_depth += 1
+                elif c == ')':
+                    paren_depth -= 1
+                    if paren_depth == 0:
+                        j += 1
+                        break
+                elif paren_depth == 0 and c in '.[]{}| ':
+                    break
+                j += 1
+            tokens.append(expr[i:j])
+            i = j
+    return tokens
+
+
+def _find_bracket_end(expr: str, start: int) -> int:
+    depth = 0
+    for i in range(start, len(expr)):
+        if expr[i] == '[':
+            depth += 1
+        elif expr[i] == ']':
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(expr) - 1
+
+
+def _find_brace_end(expr: str, start: int) -> int:
+    depth = 0
+    for i in range(start, len(expr)):
+        if expr[i] == '{':
+            depth += 1
+        elif expr[i] == '}':
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(expr) - 1
+
+
+def _jmes_eval(tokens: list[str], data: Any) -> Any:
+    """Walk token list and apply each step to data."""
+    current = data
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        if token == '|':
+            i += 1
+            continue
+        current = _jmes_apply(token, current)
+        i += 1
+    return current
+
+
+def _jmes_apply(token: str, data: Any) -> Any:
+    """Apply a single JMESPath token to data."""
+    if token == '[]':
+        # Flatten
+        if isinstance(data, list):
+            result = []
+            for item in data:
+                if isinstance(item, list):
+                    result.extend(item)
+                else:
+                    result.append(item)
+            return result
+        return data
+
+    if token == '[*]':
+        return data if isinstance(data, list) else [data] if data is not None else []
+
+    if token.startswith('[?'):
+        # Filter: [?field op value]
+        inner = token[2:-1].strip()
+        return _jmes_filter(inner, data) if isinstance(data, list) else []
+
+    if token.startswith('['):
+        inner = token[1:-1].strip()
+        # Array index
+        if inner.lstrip('-').isdigit():
+            idx = int(inner)
+            if isinstance(data, list) and -len(data) <= idx < len(data):
+                return data[idx]
+            return None
+        # Slice
+        if ':' in inner:
+            parts = inner.split(':')
+            start = int(parts[0]) if parts[0].strip() else None
+            end = int(parts[1]) if len(parts) > 1 and parts[1].strip() else None
+            step = int(parts[2]) if len(parts) > 2 and parts[2].strip() else None
+            if isinstance(data, list):
+                return data[start:end:step]
+            return []
+        return None
+
+    if token.startswith('{'):
+        # Multi-select hash: {alias: expr, ...}
+        inner = token[1:-1].strip()
+        pairs = _split_top_level(inner, ',')
+        result = {}
+        for pair in pairs:
+            key, _, val_expr = pair.partition(':')
+            key = key.strip().strip('"').strip("'")
+            val_expr = val_expr.strip()
+            sub_tokens = _jmes_tokenize(val_expr)
+            result[key] = _jmes_eval(sub_tokens, data)
+        return result
+
+    # Function call: name(args)
+    if '(' in token:
+        fn_name, _, args_str = token.partition('(')
+        args_str = args_str.rstrip(')')
+        return _jmes_function(fn_name.strip(), args_str.strip(), data)
+
+    # Simple field access
+    if isinstance(data, dict):
+        return data.get(token)
+    if isinstance(data, list):
+        # Wildcard projection: field on each element
+        return [item.get(token) if isinstance(item, dict) else None for item in data]
+    return None
+
+
+_JMES_COMPARE_OPS = {
+    '==': _op.eq, '!=': _op.ne,
+    '>': _op.gt, '>=': _op.ge,
+    '<': _op.lt, '<=': _op.le,
+}
+
+
+def _jmes_filter(expr: str, data: list) -> list:
+    """Filter list items by a condition expression."""
+    for op_str, op_fn in sorted(_JMES_COMPARE_OPS.items(), key=lambda x: -len(x[0])):
+        if op_str in expr:
+            parts = expr.split(op_str, 1)
+            field = parts[0].strip()
+            val_str = parts[1].strip().strip("'\"")
+            try:
+                val: Any = int(val_str)
+            except ValueError:
+                try:
+                    val = float(val_str)
+                except ValueError:
+                    val = val_str
+                    if val_str.lower() == 'true':
+                        val = True
+                    elif val_str.lower() == 'false':
+                        val = False
+                    elif val_str.lower() == 'null' or val_str.lower() == 'none':
+                        val = None
+
+            result = []
+            for item in data:
+                if isinstance(item, dict):
+                    item_val = _jmes_resolve_field(item, field)
+                    try:
+                        if op_fn(item_val, val):
+                            result.append(item)
+                    except TypeError:
+                        pass
+            return result
+    return data
+
+
+def _jmes_resolve_field(data: dict, field: str) -> Any:
+    """Resolve a dotted field path on a dict."""
+    parts = field.split('.')
+    current: Any = data
+    for part in parts:
+        if isinstance(current, dict):
+            current = current.get(part)
+        else:
+            return None
+    return current
+
+
+def _split_top_level(s: str, sep: str) -> list[str]:
+    """Split string by separator, respecting nested brackets/braces."""
+    parts: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for ch in s:
+        if ch in '([{':
+            depth += 1
+        elif ch in ')]}':
+            depth -= 1
+        if ch == sep and depth == 0:
+            parts.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+    if current:
+        parts.append(''.join(current).strip())
+    return parts
+
+
+_JMES_FUNCTIONS: dict[str, Any] = {}
+
+
+def _jmes_function(name: str, args_str: str, data: Any) -> Any:
+    """Execute a JMESPath built-in function."""
+    if name == 'length':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        return len(target) if target is not None else 0
+    if name == 'keys':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        return list(target.keys()) if isinstance(target, dict) else []
+    if name == 'values':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        return list(target.values()) if isinstance(target, dict) else []
+    if name == 'type':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        if isinstance(target, str):
+            return 'string'
+        if isinstance(target, bool):
+            return 'boolean'
+        if isinstance(target, (int, float)):
+            return 'number'
+        if isinstance(target, list):
+            return 'array'
+        if isinstance(target, dict):
+            return 'object'
+        if target is None:
+            return 'null'
+        return 'unknown'
+    if name == 'sort_by':
+        args = _split_top_level(args_str, ',')
+        target = _jmes_resolve_arg(args[0].strip(), data) if args else data
+        key_field = args[1].strip().lstrip('&') if len(args) > 1 else ''
+        if isinstance(target, list) and key_field:
+            return sorted(target, key=lambda x: x.get(key_field, '') if isinstance(x, dict) else '')
+        return sorted(target) if isinstance(target, list) else target
+    if name == 'reverse':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        return list(reversed(target)) if isinstance(target, list) else target
+    if name == 'contains':
+        args = _split_top_level(args_str, ',')
+        target = _jmes_resolve_arg(args[0].strip(), data) if args else data
+        search_val = args[1].strip().strip("'\"") if len(args) > 1 else ''
+        if isinstance(target, str):
+            return search_val in target
+        if isinstance(target, list):
+            return search_val in target
+        return False
+    if name in ('starts_with', 'ends_with'):
+        args = _split_top_level(args_str, ',')
+        target = _jmes_resolve_arg(args[0].strip(), data) if args else data
+        prefix = args[1].strip().strip("'\"") if len(args) > 1 else ''
+        if isinstance(target, str):
+            return target.startswith(prefix) if name == 'starts_with' else target.endswith(prefix)
+        return False
+    if name == 'not_null':
+        args = _split_top_level(args_str, ',')
+        for arg in args:
+            val = _jmes_resolve_arg(arg.strip(), data)
+            if val is not None:
+                return val
+        return None
+    if name == 'to_string':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        return str(target)
+    if name == 'to_number':
+        target = _jmes_resolve_arg(args_str, data) if args_str else data
+        try:
+            return float(target) if '.' in str(target) else int(target)
+        except (ValueError, TypeError):
+            return None
+    if name == 'join':
+        args = _split_top_level(args_str, ',')
+        sep = args[0].strip().strip("'\"") if args else ','
+        target = _jmes_resolve_arg(args[1].strip(), data) if len(args) > 1 else data
+        if isinstance(target, list):
+            return sep.join(str(x) for x in target)
+        return str(target)
+    return None
+
+
+def _jmes_resolve_arg(arg: str, data: Any) -> Any:
+    """Resolve a function argument — could be a field reference or literal."""
+    arg = arg.strip()
+    if arg.startswith("'") or arg.startswith('"'):
+        return arg.strip("'\"")
+    if arg.lstrip('-').replace('.', '', 1).isdigit():
+        return float(arg) if '.' in arg else int(arg)
+    if arg.lower() == 'true':
+        return True
+    if arg.lower() == 'false':
+        return False
+    if arg.lower() in ('null', 'none'):
+        return None
+    if arg == '@':
+        return data
+    tokens = _jmes_tokenize(arg)
+    return _jmes_eval(tokens, data)
+
+
 # ── Context builder ───────────────────────────────────────────────────────────
 
 def build_expression_context(
@@ -260,6 +608,7 @@ def build_expression_context(
         "$parseDate": lambda s, fmt=None: _DateTimeHelper(datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)) if fmt else _DateTimeHelper(datetime.fromisoformat(s.replace("Z", "+00:00"))),
         "$lookup": lambda arr, key, val: next((item for item in (arr._data if isinstance(arr, _AttrList) else arr) if (item.get(key) if isinstance(item, dict) else getattr(item, key, None)) == val), None),
         "$not": lambda val: not val,
+        "$jmespath": _jmespath_search,
     }
 
     return ctx

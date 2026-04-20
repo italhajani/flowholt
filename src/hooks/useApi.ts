@@ -88,6 +88,8 @@ import {
   deleteEvalDataset,
   fetchEvalRuns,
   createEvalRun,
+  testExpression,
+  fetchExpressionVariables,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -744,5 +746,22 @@ export function useCreateEvalRun() {
     mutationFn: (opts: { datasetId: string; agentId: string }) =>
       createEvalRun(opts.datasetId, opts.agentId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["eval-runs"] }),
+  });
+}
+
+// ── Expression Engine ──
+
+export function useExpressionVariables() {
+  return useQuery({
+    queryKey: ["expression-variables"],
+    queryFn: fetchExpressionVariables,
+    staleTime: 300_000,
+  });
+}
+
+export function useTestExpression() {
+  return useMutation({
+    mutationFn: (opts: { expression: string; contextData?: Record<string, unknown>; mode?: string }) =>
+      testExpression(opts.expression, opts.contextData, opts.mode),
   });
 }

@@ -29,21 +29,26 @@ from ..repository import (
 
 router = APIRouter()
 
-WORKSPACE_ID = "ws-default-001"
-
 
 # ── Knowledge Base CRUD ──
 
 @router.get("/knowledge", response_model=list[KnowledgeBaseSummary])
-async def api_list_knowledge_bases():
-    rows = list_knowledge_bases(WORKSPACE_ID)
+async def api_list_knowledge_bases(
+    session: dict[str, Any] = Depends(get_session_context),
+):
+    workspace_id = str(session["workspace"]["id"])
+    rows = list_knowledge_bases(workspace_id)
     return rows
 
 
 @router.post("/knowledge", response_model=KnowledgeBaseSummary, status_code=201)
-async def api_create_knowledge_base(body: KnowledgeBaseCreate):
+async def api_create_knowledge_base(
+    body: KnowledgeBaseCreate,
+    session: dict[str, Any] = Depends(get_session_context),
+):
+    workspace_id = str(session["workspace"]["id"])
     row = create_knowledge_base(
-        WORKSPACE_ID,
+        workspace_id,
         name=body.name,
         description=body.description,
         embedding_model=body.embedding_model,

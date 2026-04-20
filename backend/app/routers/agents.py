@@ -19,7 +19,12 @@ from ..models import (
     AgentToolConfig,
     AgentUpdate,
 )
-from ..repository import create_agent, delete_agent, get_agent, list_agents, update_agent
+from ..repository import (
+    create_agent, delete_agent, get_agent, list_agents, update_agent,
+    create_thread, list_threads, get_thread, delete_thread,
+    save_message, get_messages, get_windowed_messages,
+    list_knowledge_bases, search_knowledge_chunks,
+)
 
 router = APIRouter()
 
@@ -138,55 +143,84 @@ def api_agent_chat(
 
     detail = _agent_row_to_detail(row)
 
-    # Build config for executor's ai_agent handler
-    config = {
-        "agent_type": detail.agent_type,
-        "system_message": detail.model_config_data.system_message,
-        "prompt": body.message,
-        "max_iterations": detail.max_iterations,
-        "provider": detail.model_config_data.provider,
-        "model": detail.model_config_data.model,
-        "temperature": detail.model_config_data.temperature,
-        "max_tokens": detail.model_config_data.max_tokens,
-        "tools": [t.model_dump() for t in detail.tools],
-        "memory_enabled": detail.memory.enabled,
-        "memory_window": detail.memory.window_size,
-        "memory_session_key": body.session_key,
-    }
+    # ── Thread management: find or create a conversation thread ──
+    thread_id = body.thread_id if hasattr(body, "thread_id") and body.thread_id else None
+    if not thread_id:
+        session_key = body.session_key or "default"
+        threads = list_threads(agent_id)
+        existing = next((t for t in threads if t.get("resource_id") == session_key), None)
+        if existing:
+            thread_id = existing["id"]
+        else:
+            thread_row = create_thread(agent_id, title=f"Chat ({session_key})", resource_id=session_key)
+            thread_id = thread_row["id"]
 
-    # Use the LLM router directly for a simple chat
+    # ── Load conversation history from DB ──
+    window_size = detail.memory.window_size if detail.memory.enabled else 0
+    history_msgs: list[dict[str, str]] = []
+    if window_size > 0:
+        past = get_windowed_messages(thread_id, window_size=window_size)
+        for m in past:
+            history_msgs.append({"role": m["role"], "content": m["content"]})
+
+    # ── Save user message ──
+    save_message(thread_id, "user", body.message)
+
+    # ── Knowledge context: retrieve relevant chunks from linked KBs ──
+    knowledge_context = ""
+    knowledge_ids_json = json.loads(row.get("knowledge_ids_json") or "[]")
+    if knowledge_ids_json:
+        all_chunks = []
+        for kb_id in knowledge_ids_json[:5]:
+            chunks = search_knowledge_chunks(kb_id, body.message, top_k=3)
+            all_chunks.extend(chunks)
+        all_chunks.sort(key=lambda c: c.get("score", 0), reverse=True)
+        top_chunks = all_chunks[:5]
+        if top_chunks:
+            chunk_texts = [f"[{c.get('filename', 'doc')}] {c['content']}" for c in top_chunks]
+            knowledge_context = "\n\n--- Knowledge Base Context ---\n" + "\n---\n".join(chunk_texts) + "\n--- End Context ---\n"
+
+    # ── Build messages for LLM ──
+    messages: list[dict[str, str]] = []
+    system_msg = detail.model_config_data.system_message or ""
+    if knowledge_context:
+        system_msg += knowledge_context
+    if system_msg:
+        messages.append({"role": "system", "content": system_msg})
+    messages.extend(history_msgs)
+    messages.append({"role": "user", "content": body.message})
+
+    # ── Call LLM ──
     router_instance = get_llm_router()
     provider = router_instance.resolve(
-        config.get("provider") or None,
-        config.get("model") or None,
+        detail.model_config_data.provider or None,
+        detail.model_config_data.model or None,
     ) if hasattr(router_instance, "resolve") else router_instance
-
-    messages: list[dict[str, str]] = []
-    if config.get("system_message"):
-        messages.append({"role": "system", "content": config["system_message"]})
-    messages.append({"role": "user", "content": body.message})
 
     try:
         answer = provider.chat(
             messages,
-            temperature=float(config.get("temperature", 0.7)),
-            max_tokens=int(config.get("max_tokens", 2048)),
+            temperature=float(detail.model_config_data.temperature or 0.7),
+            max_tokens=int(detail.model_config_data.max_tokens or 2048),
         )
     except Exception as e:
         answer = f"LLM error: {e}"
+
+    # ── Save assistant response ──
+    save_message(thread_id, "assistant", answer)
 
     return AgentChatResponse(
         answer=answer,
         agent_type=detail.agent_type,
         iterations=1,
         tools_used=[],
+        thread_id=thread_id,
     )
 
 
 # ── Thread Management ──
 
 from ..models import ChatThreadSummary, ChatMessageOut
-from ..repository import create_thread, list_threads, get_thread, delete_thread, save_message, get_messages
 
 
 @router.get("/agents/{agent_id}/threads", response_model=list[ChatThreadSummary])
@@ -209,3 +243,78 @@ async def api_delete_thread(thread_id: str):
 @router.get("/agents/threads/{thread_id}/messages", response_model=list[ChatMessageOut])
 async def api_get_messages(thread_id: str, limit: int = 50):
     return get_messages(thread_id, limit=limit)
+
+
+# ── Knowledge Base Linking ──
+
+from ..models import KnowledgeBaseSummary
+
+
+@router.get(f"{settings.api_prefix}/agents/{{agent_id}}/knowledge")
+def api_get_agent_knowledge(
+    agent_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[KnowledgeBaseSummary]:
+    """Get knowledge bases linked to an agent."""
+    workspace_id = str(session["workspace"]["id"])
+    row = get_agent(agent_id, workspace_id=workspace_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    kb_ids = json.loads(row.get("knowledge_ids_json") or "[]")
+    from ..repository import get_knowledge_base
+    results = []
+    for kb_id in kb_ids:
+        kb = get_knowledge_base(kb_id)
+        if kb:
+            results.append(kb)
+    return results
+
+
+@router.post(f"{settings.api_prefix}/agents/{{agent_id}}/knowledge/{{kb_id}}", status_code=200)
+def api_link_knowledge_to_agent(
+    agent_id: str,
+    kb_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Link a knowledge base to an agent."""
+    workspace_id = str(session["workspace"]["id"])
+    row = get_agent(agent_id, workspace_id=workspace_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    from ..repository import get_knowledge_base
+    kb = get_knowledge_base(kb_id)
+    if not kb:
+        raise HTTPException(status_code=404, detail="Knowledge base not found")
+    kb_ids = json.loads(row.get("knowledge_ids_json") or "[]")
+    if kb_id not in kb_ids:
+        kb_ids.append(kb_id)
+        from ..db import get_db
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE agents SET knowledge_ids_json = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(kb_ids), __import__("datetime").datetime.utcnow().isoformat() + "Z", agent_id),
+            )
+    return {"linked_knowledge_ids": kb_ids}
+
+
+@router.delete(f"{settings.api_prefix}/agents/{{agent_id}}/knowledge/{{kb_id}}", status_code=200)
+def api_unlink_knowledge_from_agent(
+    agent_id: str,
+    kb_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Unlink a knowledge base from an agent."""
+    workspace_id = str(session["workspace"]["id"])
+    row = get_agent(agent_id, workspace_id=workspace_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    kb_ids = json.loads(row.get("knowledge_ids_json") or "[]")
+    if kb_id in kb_ids:
+        kb_ids.remove(kb_id)
+        from ..db import get_db
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE agents SET knowledge_ids_json = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(kb_ids), __import__("datetime").datetime.utcnow().isoformat() + "Z", agent_id),
+            )
+    return {"linked_knowledge_ids": kb_ids}

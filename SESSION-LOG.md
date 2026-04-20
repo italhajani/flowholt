@@ -5,7 +5,42 @@
 
 ---
 
-## Session 26 — Sprint 25-26 (Latest)
+## Session 36 — Sprint 34-36 (Latest)
+
+**Sprints completed:** 34, 35, 36
+**Commits:** `7b514ae` (Sprint 34), `20064db` (Sprint 35), `8b76e0c` (Sprint 36)
+**Build:** 497 KB JS (main) + 164 KB vendor-react + 75 KB vendor-icons + 40 KB vendor-query | 97 KB CSS | 0 errors | 1,786 modules | 44 lazy chunks
+**Theme:** Observability, Vault Polish, Production Readiness
+
+### Sprint 34: Control Plane & Observability
+| File | Change |
+|------|--------|
+| `backend/app/routers/system.py` | Added Prometheus `/metrics`, `/api/analytics/overview`, `/api/analytics/latency` (percentiles), `/api/analytics/timeline`, `/api/system/log-config` GET/POST |
+| `backend/app/routers/webhooks.py` | Added RBAC + session context to all CRUD endpoints, audit logging on webhook create |
+| `src/lib/api.ts` | Added AuditEventOut, AnalyticsOverview, LogConfig, LatencyPercentiles, TimelineEntry types + fetch functions |
+| `src/hooks/useApi.ts` | Added useAuditEvents, useAnalyticsOverview, useLogConfig, useUpdateLogConfig, useLatencyPercentiles, useExecutionTimeline |
+| `src/pages/OperationsPage.tsx` | Wired metric cards to real analytics, AuditTab uses real API with mock fallback |
+
+### Sprint 35: Vault & Connections Polish
+| File | Change |
+|------|--------|
+| `backend/app/routers/vault.py` | Added connection test endpoint, secret rotation, bulk export/import |
+| `src/lib/api.ts` | Added ConnectionTestResult, testConnection, rotateSecret, exportVault, importVault |
+| `src/hooks/useApi.ts` | Added useTestConnection, useRotateSecret, useExportVault, useImportVault |
+| `src/pages/VaultPage.tsx` | Added Export/Import buttons using hooks |
+| `src/pages/detail/ConnectionDetailPage.tsx` | Added Test Connection + Rotate Secret buttons with live results |
+
+### Sprint 36: Production Readiness
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Converted 44 page imports to React.lazy() with Suspense/SkeletonPage fallbacks |
+| `vite.config.ts` | Added manualChunks: vendor-react, vendor-icons, vendor-query, vendor-flow |
+| `src/layouts/AppShellLayout.tsx` | Added responsive mobile sidebar: hamburger toggle, overlay drawer on <768px |
+| `src/components/shell/AppSidebar.tsx` | Added onNavigate callback prop for mobile auto-close |
+
+---
+
+## Session 26 — Sprint 25-26
 
 **Sprints completed:** 26
 **Commits:** `766b3bb` (Sprint 25), `f84b79a` (Sprint 26)

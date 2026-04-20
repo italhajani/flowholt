@@ -784,6 +784,7 @@ export interface AgentUpdate {
 export interface AgentChatRequest {
   message: string;
   session_key?: string;
+  thread_id?: string;
   context?: Record<string, unknown>;
 }
 
@@ -792,6 +793,7 @@ export interface AgentChatResponse {
   agent_type: string;
   iterations: number;
   tools_used: string[];
+  thread_id?: string;
 }
 
 export function fetchAgents() {
@@ -952,6 +954,24 @@ export function searchKnowledge(kbId: string, query: string, topK = 5) {
   return apiFetch<KnowledgeSearchResult[]>(`/api/knowledge/${kbId}/search`, {
     method: "POST",
     body: JSON.stringify({ query, top_k: topK }),
+  });
+}
+
+// ── Agent-Knowledge Linking ──
+
+export function fetchAgentKnowledge(agentId: string) {
+  return apiFetch<KnowledgeBase[]>(`/api/agents/${agentId}/knowledge`);
+}
+
+export function linkKnowledgeToAgent(agentId: string, kbId: string) {
+  return apiFetch<{ linked_knowledge_ids: string[] }>(`/api/agents/${agentId}/knowledge/${kbId}`, {
+    method: "POST",
+  });
+}
+
+export function unlinkKnowledgeFromAgent(agentId: string, kbId: string) {
+  return apiFetch<{ linked_knowledge_ids: string[] }>(`/api/agents/${agentId}/knowledge/${kbId}`, {
+    method: "DELETE",
   });
 }
 

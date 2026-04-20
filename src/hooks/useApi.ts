@@ -77,6 +77,9 @@ import {
   rotateSecret,
   exportVault,
   importVault,
+  fetchAgentKnowledge,
+  linkKnowledgeToAgent,
+  unlinkKnowledgeFromAgent,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -538,6 +541,39 @@ export function useSearchKnowledge() {
   return useMutation({
     mutationFn: (opts: { kbId: string; query: string; topK?: number }) =>
       searchKnowledge(opts.kbId, opts.query, opts.topK),
+  });
+}
+
+// ── Agent-Knowledge Linking Hooks ──
+
+export function useAgentKnowledge(agentId: string) {
+  return useQuery({
+    queryKey: ["agent-knowledge", agentId],
+    queryFn: () => fetchAgentKnowledge(agentId),
+    enabled: !!agentId,
+    staleTime: 30_000,
+  });
+}
+
+export function useLinkKnowledge(agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (kbId: string) => linkKnowledgeToAgent(agentId, kbId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agent-knowledge", agentId] });
+      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+    },
+  });
+}
+
+export function useUnlinkKnowledge(agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (kbId: string) => unlinkKnowledgeFromAgent(agentId, kbId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agent-knowledge", agentId] });
+      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+    },
   });
 }
 

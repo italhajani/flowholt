@@ -1741,6 +1741,7 @@ class AgentDetail(AgentSummary):
 class AgentChatRequest(BaseModel):
     message: str
     session_key: str = "default"
+    thread_id: str | None = None
     context: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -1749,6 +1750,7 @@ class AgentChatResponse(BaseModel):
     agent_type: str
     iterations: int
     tools_used: list[str]
+    thread_id: str | None = None
 
 
 # ── Chat Memory ──

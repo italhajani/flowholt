@@ -1,16 +1,20 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   Bot, Brain, Wrench, Beaker, BarChart3, Settings, GitBranch,
   FileText, Clock, Cpu, BookOpen, CheckCircle2, XCircle, AlertTriangle,
-  MessageSquare, Send, Sparkles, Copy, ArrowRight, Hash,
+  MessageSquare, Send, Sparkles, Copy, ArrowRight, Hash, Plus, Trash2, Loader2, Link2,
 } from "lucide-react";
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
-import { useAgent, useUpdateAgent, useAgentChat } from "@/hooks/useApi";
+import {
+  useAgent, useUpdateAgent, useAgentChat,
+  useAgentKnowledge, useLinkKnowledge, useUnlinkKnowledge,
+  useKnowledgeBases,
+} from "@/hooks/useApi";
 
 /* ── Mock agent data ── */
 const agent = {
@@ -31,12 +35,6 @@ const agent = {
   avgCost: "$0.03",
   description: "Handles tier-1 customer support queries by searching product documentation, checking order status, and generating contextual responses. Escalates complex issues to human agents.",
 };
-
-const knowledgeSources = [
-  { name: "Product Documentation", chunks: 347, status: "indexed" as const, size: "4.8 MB" },
-  { name: "FAQ Dataset", chunks: 89, status: "indexed" as const, size: "640 KB" },
-  { name: "Pricing & Plans", chunks: 24, status: "indexed" as const, size: "120 KB" },
-];
 
 const tools = [
   { name: "Search Knowledge Base", type: "built-in", status: "active" },
@@ -78,13 +76,6 @@ interface ChatMessage {
   toolCalls?: string[];
 }
 
-const sampleConversation: ChatMessage[] = [
-  { role: "user", content: "How do I set up webhooks in FlowHolt?", timestamp: "14:08:12" },
-  { role: "assistant", content: "Great question! To set up webhooks in FlowHolt:\n\n1. Go to **Webhooks** in the sidebar\n2. Click **+ New Webhook**\n3. Choose your trigger event (e.g., form submission, payment received)\n4. Copy the generated webhook URL\n5. Paste it into your external service's webhook settings\n\nWould you like me to walk you through a specific integration?", timestamp: "14:08:14", tokens: 89, latency: "1.8s", toolCalls: ["Search Knowledge Base"] },
-  { role: "user", content: "Yes, how do I connect it with Stripe?", timestamp: "14:08:22" },
-  { role: "assistant", content: "Here's how to connect Stripe webhooks:\n\n1. In FlowHolt, create a new webhook and select **Stripe** as the source\n2. Copy the webhook URL (e.g., `https://hooks.flowholt.io/wh/abc123`)\n3. In your Stripe Dashboard → Developers → Webhooks → Add endpoint\n4. Paste the FlowHolt URL and select events like `payment_intent.succeeded`\n5. Copy the signing secret from Stripe and add it to FlowHolt's webhook settings\n\nFlowHolt will automatically verify the webhook signatures for security. 🔐", timestamp: "14:08:25", tokens: 124, latency: "2.1s", toolCalls: ["Search Knowledge Base", "Check Order Status"] },
-];
-
 /* Usage chart data */
 const usageChartData = [
   { day: "Mon", invocations: 1240, tokens: 380000, cost: 36 },
@@ -114,6 +105,71 @@ export function AgentDetailPage() {
   const updateMutation = useUpdateAgent();
   const chatMutation = useAgentChat();
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Knowledge hooks
+  const { data: linkedKBs, isLoading: kbLoading } = useAgentKnowledge(id || "");
+  const { data: allKBs } = useKnowledgeBases();
+  const linkMutation = useLinkKnowledge(id || "");
+  const unlinkMutation = useUnlinkKnowledge(id || "");
+  const [showKBPicker, setShowKBPicker] = useState(false);
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [threadId, setThreadId] = useState<string | undefined>();
+  const [chatSending, setChatSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const sendMessage = useCallback(async () => {
+    if (!chatInput.trim() || !id || chatSending) return;
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: chatInput.trim(),
+      timestamp: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+    };
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput("");
+    setChatSending(true);
+    const start = Date.now();
+    try {
+      const resp = await chatMutation.mutateAsync({
+        agentId: id,
+        payload: { message: userMsg.content, thread_id: threadId },
+      });
+      const latency = ((Date.now() - start) / 1000).toFixed(1) + "s";
+      if (resp.thread_id) setThreadId(resp.thread_id);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: resp.answer,
+          timestamp: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+          latency,
+          toolCalls: resp.tools_used,
+        },
+      ]);
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "system", content: "⚠ Failed to get a response. Check backend.", timestamp: new Date().toLocaleTimeString("en-GB", { hour12: false }) },
+      ]);
+    } finally {
+      setChatSending(false);
+    }
+  }, [chatInput, id, chatSending, threadId, chatMutation]);
+
+  const clearChat = useCallback(() => {
+    setChatMessages([]);
+    setThreadId(undefined);
+  }, []);
+
+  // Unlinked KBs for the picker
+  const linkedIds = new Set((linkedKBs || []).map((kb) => kb.id));
+  const availableKBs = (allKBs || []).filter((kb) => !linkedIds.has(kb.id));
 
   // Merge API data over mock defaults
   const agentData = apiAgent
@@ -189,29 +245,31 @@ export function AgentDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-[12px] text-zinc-400">
               <Sparkles size={12} className="text-zinc-400" />
-              Test your agent with sample conversations
+              {threadId ? `Thread ${threadId.slice(0, 8)}…` : "New conversation"}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="text-[11px]">Clear Chat</Button>
-              <Button variant="secondary" size="sm" className="text-[11px]">Export</Button>
+              <Button variant="ghost" size="sm" className="text-[11px]" onClick={clearChat}>Clear Chat</Button>
             </div>
           </div>
 
           {/* Chat messages */}
           <div className="rounded-lg border border-zinc-100 bg-white shadow-xs overflow-hidden">
             <div className="max-h-[420px] overflow-y-auto p-4 space-y-4">
-              {sampleConversation.map((msg, i) => (
+              {chatMessages.length === 0 && (
+                <p className="text-center text-[12px] text-zinc-400 py-8">Send a message to start testing your agent.</p>
+              )}
+              {chatMessages.map((msg, i) => (
                 <div key={i} className={cn("flex gap-3", msg.role === "user" ? "flex-row-reverse" : "")}>
                   <div className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full flex-shrink-0",
-                    msg.role === "user" ? "bg-blue-100 text-blue-600" : "bg-zinc-900 text-white"
+                    msg.role === "user" ? "bg-blue-100 text-blue-600" : msg.role === "system" ? "bg-amber-100 text-amber-600" : "bg-zinc-900 text-white"
                   )}>
-                    {msg.role === "user" ? <span className="text-[11px] font-semibold">G</span> : <Bot size={13} />}
+                    {msg.role === "user" ? <span className="text-[11px] font-semibold">G</span> : msg.role === "system" ? <AlertTriangle size={13} /> : <Bot size={13} />}
                   </div>
                   <div className={cn("max-w-[75%] space-y-1", msg.role === "user" ? "items-end" : "")}>
                     <div className={cn(
                       "rounded-xl px-4 py-2.5 text-[13px] leading-relaxed",
-                      msg.role === "user" ? "bg-blue-500 text-white" : "bg-zinc-50 text-zinc-700 border border-zinc-100"
+                      msg.role === "user" ? "bg-blue-500 text-white" : msg.role === "system" ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-zinc-50 text-zinc-700 border border-zinc-100"
                     )}>
                       <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
                         __html: msg.content
@@ -236,38 +294,59 @@ export function AgentDetailPage() {
                   </div>
                 </div>
               ))}
+              {chatSending && (
+                <div className="flex gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-white flex-shrink-0">
+                    <Bot size={13} />
+                  </div>
+                  <div className="flex items-center gap-2 text-[12px] text-zinc-400">
+                    <Loader2 size={12} className="animate-spin" /> Thinking…
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
             </div>
 
             {/* Input area */}
             <div className="border-t border-zinc-100 px-4 py-3 flex items-center gap-3">
               <input
                 type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Type a message to test your agent…"
                 className="flex-1 text-[13px] text-zinc-700 placeholder:text-zinc-400 bg-transparent outline-none"
+                disabled={chatSending}
               />
-              <Button variant="primary" size="sm" className="rounded-full px-3">
-                <Send size={12} />
+              <Button variant="primary" size="sm" className="rounded-full px-3" onClick={sendMessage} disabled={chatSending || !chatInput.trim()}>
+                {chatSending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
               </Button>
             </div>
           </div>
 
           {/* Suggested prompts */}
-          <div>
-            <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-2">Suggested test prompts</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                "What's the pricing for the Pro plan?",
-                "I need help with a billing issue",
-                "How do I export my data?",
-                "My workflow keeps failing",
-              ].map((prompt, i) => (
-                <button key={i} className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[11px] text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 transition-all">
-                  <ArrowRight size={10} className="text-zinc-400" />
-                  {prompt}
-                </button>
-              ))}
+          {chatMessages.length === 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-2">Suggested test prompts</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "What's the pricing for the Pro plan?",
+                  "I need help with a billing issue",
+                  "How do I export my data?",
+                  "My workflow keeps failing",
+                ].map((prompt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setChatInput(prompt); }}
+                    className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[11px] text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 transition-all"
+                  >
+                    <ArrowRight size={10} className="text-zinc-400" />
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Agent context panel */}
           <div className="rounded-lg border border-zinc-100 bg-white p-4 shadow-xs">
@@ -275,7 +354,7 @@ export function AgentDetailPage() {
             <div className="grid grid-cols-3 gap-3 text-[11px]">
               <div>
                 <p className="text-zinc-400 mb-1">Model</p>
-                <p className="font-mono text-zinc-700">{agent.model}</p>
+                <p className="font-mono text-zinc-700">{agentData.model}</p>
               </div>
               <div>
                 <p className="text-zinc-400 mb-1">Temperature</p>
@@ -287,15 +366,15 @@ export function AgentDetailPage() {
               </div>
               <div>
                 <p className="text-zinc-400 mb-1">Knowledge Sources</p>
-                <p className="text-zinc-700">{agent.knowledgeCount} active</p>
+                <p className="text-zinc-700">{(linkedKBs || []).length} linked</p>
               </div>
               <div>
                 <p className="text-zinc-400 mb-1">Tools Available</p>
-                <p className="text-zinc-700">{agent.toolCount} connected</p>
+                <p className="text-zinc-700">{agentData.toolCount} connected</p>
               </div>
               <div>
-                <p className="text-zinc-400 mb-1">System Prompt</p>
-                <p className="text-zinc-700">Custom (v5)</p>
+                <p className="text-zinc-400 mb-1">Thread</p>
+                <p className="text-zinc-700 font-mono">{threadId ? threadId.slice(0, 8) : "—"}</p>
               </div>
             </div>
           </div>
@@ -333,21 +412,63 @@ export function AgentDetailPage() {
       {activeTab === "knowledge" && (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] text-zinc-400">{knowledgeSources.length} knowledge sources • {knowledgeSources.reduce((s, k) => s + k.chunks, 0)} total chunks</span>
-            <Button variant="secondary" size="sm">Add Source</Button>
+            <span className="text-[12px] text-zinc-400">
+              {kbLoading ? "Loading…" : `${(linkedKBs || []).length} knowledge sources linked`}
+            </span>
+            <Button variant="secondary" size="sm" onClick={() => setShowKBPicker(!showKBPicker)}>
+              <Plus size={12} /> Link Source
+            </Button>
           </div>
-          <DetailSection title="Knowledge Sources">
+
+          {/* KB picker dropdown */}
+          {showKBPicker && availableKBs.length > 0 && (
+            <div className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm space-y-1.5">
+              <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Available Knowledge Bases</p>
+              {availableKBs.map((kb) => (
+                <div key={kb.id} className="flex items-center justify-between rounded-md border border-zinc-100 px-3 py-2">
+                  <div>
+                    <p className="text-[13px] font-medium text-zinc-700">{kb.name}</p>
+                    <p className="text-[11px] text-zinc-400">{kb.document_count} docs • {kb.status}</p>
+                  </div>
+                  <Button
+                    variant="secondary" size="sm"
+                    onClick={() => { linkMutation.mutate(kb.id); setShowKBPicker(false); }}
+                    disabled={linkMutation.isPending}
+                  >
+                    <Link2 size={11} /> Link
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {showKBPicker && availableKBs.length === 0 && (
+            <p className="text-[12px] text-zinc-400 italic">No unlinked knowledge bases available. Create one in the Knowledge section first.</p>
+          )}
+
+          <DetailSection title="Linked Knowledge Sources">
+            {(linkedKBs || []).length === 0 && !kbLoading && (
+              <p className="text-[12px] text-zinc-400 italic py-4">No knowledge sources linked yet.</p>
+            )}
             <div className="space-y-1.5">
-              {knowledgeSources.map((src, i) => (
-                <div key={i} className="flex items-center justify-between rounded-md border border-zinc-50 px-3 py-2.5">
+              {(linkedKBs || []).map((kb) => (
+                <div key={kb.id} className="flex items-center justify-between rounded-md border border-zinc-50 px-3 py-2.5">
                   <div className="flex items-center gap-3">
                     <Brain size={13} className="text-zinc-400" />
                     <div>
-                      <p className="text-[13px] font-medium text-zinc-700">{src.name}</p>
-                      <p className="text-[11px] text-zinc-400">{src.chunks} chunks • {src.size}</p>
+                      <p className="text-[13px] font-medium text-zinc-700">{kb.name}</p>
+                      <p className="text-[11px] text-zinc-400">{kb.document_count} docs • {kb.embedding_model}</p>
                     </div>
                   </div>
-                  <StatusDot status="active" label={src.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusDot status="active" label={kb.status} />
+                    <button
+                      className="text-zinc-400 hover:text-red-500 transition-colors p-1"
+                      onClick={() => unlinkMutation.mutate(kb.id)}
+                      title="Unlink"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

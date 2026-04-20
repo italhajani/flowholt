@@ -483,6 +483,7 @@ CREATE TABLE IF NOT EXISTS agents (
     tools_json TEXT NOT NULL DEFAULT '[]',
     memory_json TEXT NOT NULL DEFAULT '{}',
     model_config_json TEXT NOT NULL DEFAULT '{}',
+    knowledge_ids_json TEXT NOT NULL DEFAULT '[]',
     max_iterations INTEGER NOT NULL DEFAULT 10,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -831,6 +832,7 @@ def init_db() -> None:
         _ensure_column(conn, "workspace_settings", "notify_on_approval_requests", "INTEGER NOT NULL DEFAULT 1")
         _ensure_column(conn, "workflow_deployments", "metadata_json", "TEXT NOT NULL DEFAULT '{}'")
         _ensure_column(conn, "chat_messages", "actions_json", "TEXT")
+        _ensure_column(conn, "agents", "knowledge_ids_json", "TEXT NOT NULL DEFAULT '[]'")
         conn.executescript(SCHEMA_WEBHOOKS)
 
 

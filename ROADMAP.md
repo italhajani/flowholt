@@ -7,7 +7,7 @@
 
 ## Current State
 
-**41 sprints complete | 308 todos done | Build: 502 KB JS (main) + 279 KB vendors | 0 errors | 44 lazy chunks**
+**43 sprints complete | 319 todos done | Build: 503 KB JS (main) + 279 KB vendors | 0 errors | 44 lazy chunks**
 
 ### Completion Matrix
 
@@ -213,20 +213,24 @@
 
 ---
 
-### Phase 5: Webhook & Trigger Reliability (Sprint 41-43)
+### Phase 5: Webhook & Trigger Reliability (Sprint 40-43) ✅ COMPLETE
 
 > **Reference:** Research files 42, 44
 
-| Task | Details |
-|------|---------|
-| Webhook FIFO queue | Ordered processing with concurrency control |
-| Rate limiting per webhook | 300 req/10s default, configurable |
-| Incomplete execution retry | Exponential backoff with configurable max |
-| Webhook delivery logs | Track all incoming webhook payloads + responses |
-| Webhook expiration | Auto-deactivate inactive webhooks after N days |
-| Polling triggers | Watch-type nodes that poll external APIs |
-| Event triggers | Internal event bus for cross-workflow triggers |
-| API trigger | `POST /api/workflows/{id}/run` endpoint |
+| Task | Status |
+|------|--------|
+| Webhook FIFO queue | ✅ Sprint 40 |
+| Rate limiting per webhook | ✅ Sprint 40 |
+| Polling triggers | ✅ Sprint 40 |
+| Event bus | ✅ Sprint 40 |
+| Error tracking + incomplete execution retry | ✅ Sprint 41 |
+| HMAC signature verification | ✅ Sprint 42 |
+| IP whitelisting + custom responses | ✅ Sprint 42 |
+| API trigger endpoint | ✅ Sprint 42 |
+| Dead letter queue management | ✅ Sprint 43 |
+| Webhook deduplication (idempotency) | ✅ Sprint 43 |
+| Webhook expiration auto-deactivation | ✅ Sprint 43 |
+| Delivery log retention | ✅ Sprint 43 |
 
 ---
 

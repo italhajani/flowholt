@@ -5,7 +5,37 @@
 
 ---
 
-## Session 42 — Sprint 40-41 (Latest)
+## Session 43 — Sprint 42-43: Webhook Security & Phase 5 Completion (Latest)
+
+**Sprints completed:** 42, 43
+**Todos done:** 319 total
+**Build:** 503 KB main | 0 errors
+**Commit:** `9456080` (Sprint 43)
+
+### Sprint 42 — Webhook Security
+- HMAC-SHA256 signature verification with timestamp replay protection
+- Per-webhook IP whitelisting (403 on unauthorized)
+- Custom webhook response: status code, headers, body, respond mode
+- API trigger endpoint: POST /workflows/{id}/run
+- Enhanced WebhookDetailPage settings: signing secret, IP whitelist, CORS, response customization
+- 7 new columns on webhook_endpoints table
+
+### Sprint 43 — Dead Letter Queue, Dedup, Retention (Phase 5 Final)
+- Idempotency-key deduplication on webhook receiver (5-min window)
+- Dead letter queue management: list, replay, purge endpoints
+- Delivery log retention: configurable WEBHOOK_LOG_RETENTION_DAYS (default 7)
+- Auto-deactivate expired webhooks in scheduler (every 10th cycle)
+- Dead Letters tab on WebhooksPage with replay/purge UI
+- Retention badge + purge button on Delivery Log tab
+- Expired metric pill, 6-column summary strip
+- Expiration countdown badge on WebhookDetailPage
+
+### Phase 5 Complete ✓
+All webhook & trigger reliability features implemented across Sprints 40-43.
+
+---
+
+## Session 42 — Sprint 40-41
 
 **Sprints completed:** 40, 41
 **Commits:** `672c844` (Sprint 40), `30be329` (Fix: Studio circular dep), `728fded` (Sprint 41)

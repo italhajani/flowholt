@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   MoreHorizontal,
@@ -28,6 +28,12 @@ import {
   CheckCircle2,
   ToggleLeft,
   ToggleRight,
+  Clock,
+  Shield,
+  Save,
+  Database,
+  Zap,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublishWorkflow } from "@/hooks/useApi";
@@ -367,6 +373,310 @@ function ShareModal({ open, onClose, workflowName }: { open: boolean; onClose: (
   );
 }
 
+/* ── Workflow Settings Modal ── */
+
+type ExecOrder = "v1" | "v0";
+type SaveOption = "all" | "none";
+type RedactOption = "none" | "redact";
+
+function WfSettingsToggle({ label, desc, enabled, onToggle }: {
+  label: string; desc: string; enabled: boolean; onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <p className="text-[12px] font-medium text-zinc-700">{label}</p>
+        <p className="text-[10px] text-zinc-400 mt-0.5">{desc}</p>
+      </div>
+      <button onClick={onToggle} className="flex-shrink-0">
+        {enabled ? <ToggleRight size={22} className="text-zinc-900" /> : <ToggleLeft size={22} className="text-zinc-300" />}
+      </button>
+    </div>
+  );
+}
+
+function WorkflowSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [execOrder, setExecOrder] = useState<ExecOrder>("v1");
+  const [errorWorkflow, setErrorWorkflow] = useState("none");
+  const [calledBy, setCalledBy] = useState<"all" | "none" | "selected">("all");
+  const [timezone, setTimezone] = useState("UTC");
+  const [saveFailedProd, setSaveFailedProd] = useState<SaveOption>("all");
+  const [saveSuccessProd, setSaveSuccessProd] = useState<SaveOption>("all");
+  const [saveManual, setSaveManual] = useState<SaveOption>("all");
+  const [saveProgress, setSaveProgress] = useState(false);
+  const [timeoutEnabled, setTimeoutEnabled] = useState(false);
+  const [timeoutHrs, setTimeoutHrs] = useState(0);
+  const [timeoutMins, setTimeoutMins] = useState(5);
+  const [timeoutSecs, setTimeoutSecs] = useState(0);
+  const [redactProd, setRedactProd] = useState<RedactOption>("none");
+  const [redactManual, setRedactManual] = useState<RedactOption>("none");
+  const [estTimeSaved, setEstTimeSaved] = useState(0);
+  const [saved, setSaved] = useState(false);
+
+  if (!open) return null;
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => { setSaved(false); onClose(); }, 1200);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-[540px] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-zinc-200 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
+          <div className="flex items-center gap-2">
+            <Settings size={16} className="text-zinc-500" />
+            <h2 className="text-[14px] font-semibold text-zinc-800">Workflow Settings</h2>
+          </div>
+          <button onClick={onClose} className="h-7 w-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto max-h-[calc(85vh-120px)] px-6 py-5 space-y-6">
+
+          {/* Execution Order */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Execution Order</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { id: "v1" as const, label: "v1 (Recommended)", desc: "Complete each branch before starting next" },
+                { id: "v0" as const, label: "v0 (Legacy)", desc: "Execute first node of all branches, then second, etc." },
+              ]).map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setExecOrder(opt.id)}
+                  className={cn(
+                    "flex flex-col rounded-lg border px-3 py-2.5 text-left transition-all",
+                    execOrder === opt.id ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                  )}
+                >
+                  <span className="text-[11px] font-semibold">{opt.label}</span>
+                  <span className={cn("text-[9px] mt-0.5", execOrder === opt.id ? "text-zinc-300" : "text-zinc-400")}>{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Error Workflow */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Error Workflow</p>
+            </div>
+            <p className="text-[10px] text-zinc-400 mb-2">Select a workflow to trigger if this workflow fails</p>
+            <select
+              value={errorWorkflow}
+              onChange={(e) => setErrorWorkflow(e.target.value)}
+              className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none focus:border-zinc-400 transition-all"
+            >
+              <option value="none">— None —</option>
+              <option value="error-handler">Error Alert Handler</option>
+              <option value="slack-notify">Slack Error Notifier</option>
+              <option value="pagerduty">PagerDuty Escalation</option>
+              <option value="email-alert">Email Alert Workflow</option>
+            </select>
+          </div>
+
+          {/* Callable By */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Users size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">This workflow can be called by</p>
+            </div>
+            <div className="flex gap-2">
+              {([
+                { id: "all" as const, label: "Any workflow" },
+                { id: "selected" as const, label: "Selected only" },
+                { id: "none" as const, label: "None" },
+              ]).map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setCalledBy(opt.id)}
+                  className={cn(
+                    "text-[11px] px-3 py-1.5 rounded-lg border transition-all font-medium",
+                    calledBy === opt.id ? "border-zinc-900 bg-zinc-900 text-white" : "border-zinc-200 text-zinc-500 hover:border-zinc-300"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Timezone */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Timezone</p>
+            </div>
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none focus:border-zinc-400 transition-all"
+            >
+              {["UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+                "Europe/London", "Europe/Berlin", "Europe/Paris", "Asia/Tokyo", "Asia/Shanghai",
+                "Asia/Kolkata", "Australia/Sydney", "Pacific/Auckland"].map(tz => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Save Execution Data */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Database size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Save Execution Data</p>
+            </div>
+            <div className="space-y-2 rounded-lg border border-zinc-100 bg-zinc-50/30 p-3">
+              {([
+                { label: "Save failed production executions", value: saveFailedProd, setter: setSaveFailedProd },
+                { label: "Save successful production executions", value: saveSuccessProd, setter: setSaveSuccessProd },
+                { label: "Save manual executions", value: saveManual, setter: setSaveManual },
+              ] as const).map(row => (
+                <div key={row.label} className="flex items-center justify-between py-1.5">
+                  <span className="text-[11px] text-zinc-600">{row.label}</span>
+                  <div className="flex gap-1">
+                    {(["all", "none"] as const).map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => row.setter(opt)}
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 rounded-md capitalize transition-all font-medium",
+                          row.value === opt ? "bg-zinc-900 text-white" : "text-zinc-400 hover:text-zinc-600"
+                        )}
+                      >
+                        {opt === "all" ? "Save" : "Don't save"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <WfSettingsToggle
+                label="Save execution progress"
+                desc="Save data for each node — enables resume on error (may increase latency)"
+                enabled={saveProgress}
+                onToggle={() => setSaveProgress(p => !p)}
+              />
+            </div>
+          </div>
+
+          {/* Timeout */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Timeout Workflow</p>
+            </div>
+            <WfSettingsToggle
+              label="Enable timeout"
+              desc="Cancel execution after the specified duration"
+              enabled={timeoutEnabled}
+              onToggle={() => setTimeoutEnabled(p => !p)}
+            />
+            {timeoutEnabled && (
+              <div className="flex items-center gap-2 mt-2 rounded-lg border border-zinc-100 bg-zinc-50/30 p-3">
+                <div className="flex-1">
+                  <label className="text-[9px] text-zinc-400 uppercase tracking-wider">Hours</label>
+                  <input type="number" min={0} max={24} value={timeoutHrs} onChange={(e) => setTimeoutHrs(+e.target.value)}
+                    className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 focus:outline-none mt-1" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] text-zinc-400 uppercase tracking-wider">Minutes</label>
+                  <input type="number" min={0} max={59} value={timeoutMins} onChange={(e) => setTimeoutMins(+e.target.value)}
+                    className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 focus:outline-none mt-1" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] text-zinc-400 uppercase tracking-wider">Seconds</label>
+                  <input type="number" min={0} max={59} value={timeoutSecs} onChange={(e) => setTimeoutSecs(+e.target.value)}
+                    className="h-8 w-full rounded-md border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 focus:outline-none mt-1" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Data Redaction */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Shield size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Data Redaction</p>
+            </div>
+            <div className="space-y-2 rounded-lg border border-zinc-100 bg-zinc-50/30 p-3">
+              {([
+                { label: "Redact production execution data", value: redactProd, setter: setRedactProd },
+                { label: "Redact manual execution data", value: redactManual, setter: setRedactManual },
+              ] as const).map(row => (
+                <div key={row.label} className="flex items-center justify-between py-1.5">
+                  <span className="text-[11px] text-zinc-600">{row.label}</span>
+                  <div className="flex gap-1">
+                    {(["none", "redact"] as const).map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => row.setter(opt)}
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 rounded-md capitalize transition-all font-medium",
+                          row.value === opt ? "bg-zinc-900 text-white" : "text-zinc-400 hover:text-zinc-600"
+                        )}
+                      >
+                        {opt === "none" ? "Show" : "Redact"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(redactProd === "redact" || redactManual === "redact") && (
+              <div className="flex items-start gap-2 mt-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2.5">
+                <Info size={12} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-[10px] text-blue-600">Redacted data can be revealed by users with appropriate permissions.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Estimated time saved */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Save size={12} className="text-zinc-400" />
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Estimated Time Saved</p>
+            </div>
+            <p className="text-[10px] text-zinc-400 mb-2">Minutes saved per execution — used for insights dashboard</p>
+            <input
+              type="number"
+              min={0}
+              value={estTimeSaved}
+              onChange={(e) => setEstTimeSaved(+e.target.value)}
+              className="h-9 w-24 rounded-lg border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:outline-none focus:border-zinc-400"
+              placeholder="0"
+            />
+            <span className="text-[10px] text-zinc-400 ml-2">minutes per run</span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-100 bg-zinc-50/50">
+          <button onClick={onClose} className="text-[12px] text-zinc-500 hover:text-zinc-700 transition-colors">Cancel</button>
+          <button
+            onClick={handleSave}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-medium transition-all",
+              saved
+                ? "bg-green-500 text-white"
+                : "bg-zinc-900 text-white hover:bg-zinc-800"
+            )}
+          >
+            {saved ? <><Check size={12} /> Saved</> : <><Save size={12} /> Save Settings</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workflowId?: string }) {
   const [workflowName, setWorkflowName] = useState("Lead Qualification Pipeline");
   const [editingName, setEditingName] = useState(false);
@@ -375,6 +685,7 @@ export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workf
   const [envMenuOpen, setEnvMenuOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [workflowActive, setWorkflowActive] = useState(false);
   const [activationConfirm, setActivationConfirm] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -601,6 +912,7 @@ export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workf
                     onClick={() => {
                       setActionsOpen(false);
                       if (action.label === "Share") setShareOpen(true);
+                      if (action.label === "Workflow settings") setSettingsOpen(true);
                     }}
                   >
                     <action.icon size={13} />
@@ -614,6 +926,7 @@ export function StudioHeader({ onBack, workflowId }: { onBack: () => void; workf
       </div>
 
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} workflowName={workflowName} />
+      <WorkflowSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

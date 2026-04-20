@@ -1254,6 +1254,8 @@ function SettingsContent() {
   const [retryCount, setRetryCount] = useState(3);
   const [notes, setNotes] = useState("");
   const [executeOnce, setExecuteOnce] = useState(false);
+  const [alwaysOutput, setAlwaysOutput] = useState(false);
+  const [displayNoteInFlow, setDisplayNoteInFlow] = useState(false);
   const [errorWorkflow, setErrorWorkflow] = useState("none");
   const [errorOutput, setErrorOutput] = useState<"stop" | "branch" | "ignore">("stop");
 
@@ -1351,6 +1353,13 @@ function SettingsContent() {
       <div className="space-y-3">
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Execution</p>
         <ToggleRow label="Execute once" description="Only process the first incoming item" enabled={executeOnce} onToggle={() => setExecuteOnce(o => !o)} />
+        <ToggleRow label="Always output data" description="Return an empty item even when node produces no data" enabled={alwaysOutput} onToggle={() => setAlwaysOutput(o => !o)} />
+        {alwaysOutput && (
+          <div className="rounded-lg bg-amber-50 border border-amber-100 p-2 flex gap-2">
+            <AlertTriangle size={11} className="text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-[9px] text-amber-700">Be careful with IF nodes — this may cause infinite loops.</p>
+          </div>
+        )}
       </div>
 
       <FieldGroup label="Node notes" description="Documentation for other collaborators">
@@ -1361,6 +1370,9 @@ function SettingsContent() {
           placeholder="Describe what this node does…"
           className="w-full resize-none rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-700 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all"
         />
+        <div className="mt-2">
+          <ToggleRow label="Display note in flow" description="Show note as subtitle on the canvas node" enabled={displayNoteInFlow} onToggle={() => setDisplayNoteInFlow(o => !o)} />
+        </div>
       </FieldGroup>
 
       <div className="pt-2 border-t border-zinc-100">

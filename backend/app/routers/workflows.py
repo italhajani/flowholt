@@ -1529,8 +1529,59 @@ def put_workflow(
     )
 
 
+@router.patch(f"{settings.api_prefix}/workflows/{{workflow_id}}/settings")
+def patch_workflow_settings(
+    workflow_id: str,
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Update workflow-level execution settings (matching n8n patterns).
 
-@router.post(f"{settings.api_prefix}/workflows/from-template", response_model=WorkflowSummary, status_code=201)
+    Accepted fields: execution_order, error_workflow_id, callable_by,
+    timezone, save_failed_prod, save_success_prod, save_manual,
+    save_progress, timeout_seconds, redact_production, redact_manual,
+    estimated_time_saved_minutes.
+    """
+    require_workspace_role(session, "owner", "admin", "builder")
+    workspace_id = str(session["workspace"]["id"])
+    wf = get_workflow(workflow_id, workspace_id=workspace_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    allowed_keys = {
+        "execution_order", "error_workflow_id", "callable_by", "timezone",
+        "save_failed_prod", "save_success_prod", "save_manual", "save_progress",
+        "timeout_seconds", "redact_production", "redact_manual",
+        "estimated_time_saved_minutes",
+    }
+    settings_data = {k: v for k, v in body.items() if k in allowed_keys}
+    existing_settings = wf.get("settings") or {}
+    if isinstance(existing_settings, str):
+        import json as _json
+        try:
+            existing_settings = _json.loads(existing_settings)
+        except Exception:
+            existing_settings = {}
+    merged = {**existing_settings, **settings_data}
+
+    record_audit_event(
+        session=session,
+        workspace_id=workspace_id,
+        action="workflow.settings_updated",
+        target_type="workflow",
+        target_id=workflow_id,
+        status="success",
+        details={"changed_keys": list(settings_data.keys())},
+    )
+
+    return {
+        "workflow_id": workflow_id,
+        "settings": merged,
+        "status": "updated",
+    }
+
+
+
 def post_workflow_from_template(
     payload: WorkflowFromTemplateRequest,
     session: dict[str, Any] = Depends(get_session_context),

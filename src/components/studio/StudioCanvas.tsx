@@ -12,7 +12,7 @@ import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import { useStudioBundle } from "@/hooks/useApi";
 
 /* ── Types & data re-exported from canvasTypes (avoids circular dep with useCanvasStore) ── */
-export { canvasNodes, familyColors, type CanvasNodeData, type NodeExecState } from "./canvasTypes";
+
 
 const execStateDefaults: Record<string, NodeExecState> = {
   n1: "success", n2: "success", n3: "running", n4: "idle", n5: "idle",

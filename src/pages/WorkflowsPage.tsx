@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, GitBranch, Play, Pause, Trash2, Tag, Clock, User, Pencil,
   Folder, FolderOpen, ChevronRight, MoreHorizontal, FolderPlus, X, Check,
-  GripVertical, ChevronDown, Upload,
+  GripVertical, ChevronDown, Upload, Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useWorkflows } from "@/hooks/useApi";
 
-/* ── Mock data ── */
+/* ── Types ── */
 interface Workflow {
   id: string;
   name: string;
@@ -28,15 +29,36 @@ interface Workflow {
   folder: string;
 }
 
-const mockWorkflows: Workflow[] = [
+/* ── Fallback mock data (shown when backend is offline) ── */
+const fallbackWorkflows: Workflow[] = [
   { id: "wf-1", name: "Lead Qualification Pipeline", status: "active", tags: ["Sales", "AI"], lastRun: "2 min ago", created: "Jan 12", owner: "You", folder: "Sales Automation" },
   { id: "wf-2", name: "Slack → Sheets Logger", status: "active", tags: ["Internal"], lastRun: "15 min ago", created: "Jan 8", owner: "You", folder: "Internal Tools" },
   { id: "wf-3", name: "Daily Report Generator", status: "paused", tags: ["Reporting"], lastRun: "2 days ago", created: "Dec 20", owner: "Team", folder: "Reporting" },
   { id: "wf-4", name: "Customer Onboarding Flow", status: "draft", tags: ["CRM"], lastRun: "—", created: "Feb 3", owner: "You", folder: "Sales Automation" },
-  { id: "wf-5", name: "Error Alert Handler", status: "failed", tags: ["Ops"], lastRun: "1 hr ago", created: "Nov 15", owner: "Team", folder: "Operations" },
+  { id: "wf-5", name: "Error Alert Handler", status: "active", tags: ["Ops"], lastRun: "1 hr ago", created: "Nov 15", owner: "Team", folder: "Operations" },
   { id: "wf-6", name: "Invoice Processing Pipeline", status: "active", tags: ["Finance", "AI"], lastRun: "5 min ago", created: "Feb 1", owner: "You", folder: "Finance" },
   { id: "wf-7", name: "PR Review Notifier", status: "active", tags: ["DevOps"], lastRun: "30 min ago", created: "Jan 22", owner: "Team", folder: "DevOps" },
 ];
+
+function mapApiWorkflow(w: { id: string; name: string; status: string; trigger_type: string; category: string; created_at: string; last_run_at: string | null }): Workflow {
+  const statusMap: Record<string, Workflow["status"]> = { active: "active", draft: "draft", paused: "paused" };
+  const createdDate = new Date(w.created_at);
+  const lastRunDate = w.last_run_at ? new Date(w.last_run_at) : null;
+  const now = Date.now();
+  const ago = lastRunDate ? Math.round((now - lastRunDate.getTime()) / 60000) : null;
+  const lastRunStr = ago === null ? "—" : ago < 1 ? "Just now" : ago < 60 ? `${ago} min ago` : ago < 1440 ? `${Math.round(ago / 60)} hr ago` : `${Math.round(ago / 1440)} days ago`;
+
+  return {
+    id: w.id,
+    name: w.name,
+    status: statusMap[w.status] ?? "draft",
+    tags: w.category ? [w.category] : [],
+    lastRun: lastRunStr,
+    created: createdDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    owner: "You",
+    folder: w.category || "Uncategorized",
+  };
+}
 
 /* ── Tag management ── */
 interface TagDef {
@@ -72,10 +94,11 @@ function TagBadge({ tag, tags }: { tag: string; tags: TagDef[] }) {
 }
 
 function TagFilterDropdown({
-  allTags, activeTags, toggle, onCreateTag,
+  allTags, activeTags, toggle, onCreateTag, workflows,
 }: {
   allTags: TagDef[]; activeTags: Set<string>;
   toggle: (name: string) => void; onCreateTag: (name: string) => void;
+  workflows: Workflow[];
 }) {
   const [open, setOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -108,7 +131,7 @@ function TagFilterDropdown({
                 </span>
                 <span className={cn("rounded-full px-1.5 py-0.5 text-[10px]", t.color)}>{t.name}</span>
                 <span className="ml-auto text-[10px] text-zinc-300">
-                  {mockWorkflows.filter((w) => w.tags.includes(t.name)).length}
+                  {workflows.filter((w) => w.tags.includes(t.name)).length}
                 </span>
               </button>
             ))}
@@ -176,22 +199,23 @@ const folderTree: FolderNode[] = [
   { id: "DevOps", label: "DevOps" },
 ];
 
-function countInFolder(folderId: string): number {
-  return mockWorkflows.filter((w) => w.folder === folderId || w.folder.startsWith(folderId + "/")).length;
+function countInFolder(folderId: string, workflows: Workflow[]): number {
+  return workflows.filter((w) => w.folder === folderId || w.folder.startsWith(folderId + "/")).length;
 }
 
 /* Folder tree item component */
 function FolderTreeItem({
-  node, depth, activeFolder, setActiveFolder, expandedFolders, toggleExpanded,
+  node, depth, activeFolder, setActiveFolder, expandedFolders, toggleExpanded, workflows,
 }: {
   node: FolderNode; depth: number; activeFolder: string;
   setActiveFolder: (id: string) => void;
   expandedFolders: Set<string>; toggleExpanded: (id: string) => void;
+  workflows: Workflow[];
 }) {
   const isActive = activeFolder === node.id;
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedFolders.has(node.id);
-  const count = countInFolder(node.id);
+  const count = countInFolder(node.id, workflows);
   const [showMenu, setShowMenu] = useState(false);
 
   return (
@@ -251,6 +275,7 @@ function FolderTreeItem({
           key={child.id} node={child} depth={depth + 1}
           activeFolder={activeFolder} setActiveFolder={setActiveFolder}
           expandedFolders={expandedFolders} toggleExpanded={toggleExpanded}
+          workflows={workflows}
         />
       ))}
     </>
@@ -341,6 +366,7 @@ type Filter = (typeof filters)[number];
 
 export function WorkflowsPage() {
   const navigate = useNavigate();
+  const { data: apiWorkflows, isLoading, isError } = useWorkflows({ limit: 200 });
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [activeFolder, setActiveFolder] = useState("all");
   const [search, setSearch] = useState("");
@@ -351,6 +377,14 @@ export function WorkflowsPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [allTags, setAllTags] = useState<TagDef[]>(defaultTags);
+
+  // Map API data to local Workflow type, fallback to mock if backend is offline
+  const workflows: Workflow[] = useMemo(() => {
+    if (apiWorkflows && apiWorkflows.length > 0) {
+      return apiWorkflows.map(mapApiWorkflow);
+    }
+    return fallbackWorkflows;
+  }, [apiWorkflows]);
 
   const toggleTag = (name: string) => {
     setActiveTags((prev) => {
@@ -374,7 +408,7 @@ export function WorkflowsPage() {
     });
   };
 
-  const filtered = mockWorkflows.filter((w) => {
+  const filtered = workflows.filter((w) => {
     if (activeFolder !== "all" && w.folder !== activeFolder && !w.folder.startsWith(activeFolder + "/")) return false;
     if (activeFilter !== "All" && w.status !== activeFilter.toLowerCase()) return false;
     if (activeTags.size > 0 && !w.tags.some((t) => activeTags.has(t))) return false;
@@ -408,7 +442,7 @@ export function WorkflowsPage() {
               All Workflows
             </span>
             <span className={cn("text-[11px] tabular-nums", activeFolder === "all" ? "text-zinc-600" : "text-zinc-300")}>
-              {mockWorkflows.length}
+              {workflows.length}
             </span>
           </button>
 
@@ -418,6 +452,7 @@ export function WorkflowsPage() {
               key={node.id} node={node} depth={0}
               activeFolder={activeFolder} setActiveFolder={setActiveFolder}
               expandedFolders={expandedFolders} toggleExpanded={toggleExpanded}
+              workflows={workflows}
             />
           ))}
         </div>
@@ -475,10 +510,10 @@ export function WorkflowsPage() {
 
         {/* Summary strip */}
         <div className="mt-6 grid grid-cols-4 gap-3">
-          <MiniStat label="Total" value={mockWorkflows.length.toString()} />
-          <MiniStat label="Active" value={mockWorkflows.filter((w) => w.status === "active").length.toString()} color="green" />
-          <MiniStat label="Paused" value={mockWorkflows.filter((w) => w.status === "paused").length.toString()} color="amber" />
-          <MiniStat label="Failed" value={mockWorkflows.filter((w) => w.status === "failed").length.toString()} color="red" />
+          <MiniStat label="Total" value={isLoading ? "…" : workflows.length.toString()} />
+          <MiniStat label="Active" value={isLoading ? "…" : workflows.filter((w) => w.status === "active").length.toString()} color="green" />
+          <MiniStat label="Paused" value={isLoading ? "…" : workflows.filter((w) => w.status === "paused").length.toString()} color="amber" />
+          <MiniStat label="Draft" value={isLoading ? "…" : workflows.filter((w) => w.status === "draft").length.toString()} />
         </div>
 
         {/* Filter bar */}
@@ -506,7 +541,7 @@ export function WorkflowsPage() {
               </button>
             ))}
           </div>
-          <TagFilterDropdown allTags={allTags} activeTags={activeTags} toggle={toggleTag} onCreateTag={createTag} />
+          <TagFilterDropdown allTags={allTags} activeTags={activeTags} toggle={toggleTag} onCreateTag={createTag} workflows={workflows} />
           <span className="ml-auto text-[12px] text-zinc-400">
             {filtered.length} workflow{filtered.length !== 1 ? "s" : ""}
           </span>
@@ -514,6 +549,12 @@ export function WorkflowsPage() {
 
         {/* Data table */}
         <div className="mt-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 text-zinc-400 gap-2">
+              <Loader2 size={18} className="animate-spin" />
+              <span className="text-sm">Loading workflows…</span>
+            </div>
+          ) : (
           <DataTable
             columns={columns}
             data={filtered}
@@ -552,6 +593,7 @@ export function WorkflowsPage() {
               />
             }
           />
+          )}
         </div>
 
         <CreateWorkflowModal open={showCreate} onClose={() => setShowCreate(false)} />

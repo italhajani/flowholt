@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   X, Search, Clock, Star, ChevronRight,
   GitBranch, KeyRound, RotateCcw, StickyNote,
@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WorkflowDiffViewer } from "./WorkflowDiffViewer";
+import { useNodeCatalog } from "@/hooks/useApi";
 
 const contextTitles: Record<string, string> = {
   nodes: "Insert Node",
@@ -28,7 +29,7 @@ interface NodeChip {
   popular?: boolean;
 }
 
-const sections: { title: string; items: NodeChip[] }[] = [
+const fallbackSections: { title: string; items: NodeChip[] }[] = [
   {
     title: "Recommended",
     items: [
@@ -95,6 +96,28 @@ const sections: { title: string; items: NodeChip[] }[] = [
     ],
   },
 ];
+
+const categoryColorMap: Record<string, string> = {
+  triggers: "bg-green-500",
+  integrations: "bg-zinc-400",
+  "logic & control": "bg-blue-500",
+  "ai & agents": "bg-violet-600",
+  "data & transform": "bg-teal-500",
+};
+
+function mapCatalogToSections(groups: { id: string; label: string; node_types: string[] }[], nodes: { type: string; label: string; category: string; description: string }[]): { title: string; items: NodeChip[] }[] {
+  return groups.map(g => ({
+    title: g.label,
+    items: g.node_types.map(t => {
+      const node = nodes.find(n => n.type === t);
+      return {
+        name: node?.label ?? t,
+        subtitle: node?.description ?? "",
+        color: categoryColorMap[g.label.toLowerCase()] ?? "bg-zinc-400",
+      };
+    }),
+  }));
+}
 
 /* ─── Outline data ─── */
 const outlineSteps = [
@@ -189,6 +212,15 @@ export function StudioInsertPane({
   const [search, setSearch] = useState("");
   const [noteText, setNoteText] = useState(defaultNoteText);
   const [recentTab, setRecentTab] = useState<"recent" | "starred">("recent");
+  const { data: catalogData } = useNodeCatalog();
+
+  // Use API catalog if available, otherwise fallback
+  const sections = useMemo(() => {
+    if (catalogData && catalogData.groups.length > 0 && catalogData.nodes.length > 0) {
+      return mapCatalogToSections(catalogData.groups, catalogData.nodes);
+    }
+    return fallbackSections;
+  }, [catalogData]);
 
   return (
     <div className="flex w-[280px] flex-col border-r border-zinc-100 bg-white">
@@ -206,7 +238,7 @@ export function StudioInsertPane({
       </div>
 
       {/* Content */}
-      {context === "nodes" && <NodesPane search={search} setSearch={setSearch} recentTab={recentTab} setRecentTab={setRecentTab} />}
+      {context === "nodes" && <NodesPane search={search} setSearch={setSearch} recentTab={recentTab} setRecentTab={setRecentTab} sections={sections} />}
       {context === "outline" && <OutlinePane />}
       {context === "connections" && <ConnectionsPane />}
       {context === "assets" && <AssetsPane />}
@@ -220,10 +252,11 @@ export function StudioInsertPane({
 
 /* ─── NODES pane ─── */
 function NodesPane({
-  search, setSearch, recentTab, setRecentTab,
+  search, setSearch, recentTab, setRecentTab, sections,
 }: {
   search: string; setSearch: (v: string) => void;
   recentTab: "recent" | "starred"; setRecentTab: (v: "recent" | "starred") => void;
+  sections: { title: string; items: NodeChip[] }[];
 }) {
   return (
     <div className="flex-1 overflow-y-auto">

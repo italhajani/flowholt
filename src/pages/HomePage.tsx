@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { GitBranch, Bot, Play, AlertTriangle, ArrowRight, CheckCircle2, Circle, Clock, Zap, Key, Webhook, TrendingUp, Activity, DollarSign, Cpu, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useWorkflows, useExecutions, useHealth } from "@/hooks/useApi";
 
 /* ── Mock data for a populated dashboard ── */
 const recentExecutions = [
@@ -73,6 +74,39 @@ function getGreeting() {
 
 export function HomePage() {
   const navigate = useNavigate();
+  const { data: apiWorkflows, isLoading: wfLoading } = useWorkflows({ limit: 50 });
+  const { data: apiExecutions, isLoading: exLoading } = useExecutions({ limit: 10 });
+  const { data: health } = useHealth();
+
+  const isLoading = wfLoading || exLoading;
+
+  // Derive metric card values from real data
+  const activeWfCount = useMemo(() => apiWorkflows?.filter(w => w.status === "active").length ?? 7, [apiWorkflows]);
+  const totalExToday = useMemo(() => apiExecutions?.length ?? 142, [apiExecutions]);
+  const failedCount = useMemo(() => apiExecutions?.filter(e => e.status === "failed").length ?? 3, [apiExecutions]);
+
+  // Map real executions to recent executions display format
+  const liveRecentExecutions = useMemo(() => {
+    if (apiExecutions && apiExecutions.length > 0) {
+      return apiExecutions.slice(0, 5).map(e => {
+        const started = new Date(e.started_at);
+        const ago = Math.round((Date.now() - started.getTime()) / 60000);
+        const timeStr = ago < 1 ? "Just now" : ago < 60 ? `${ago} min ago` : ago < 1440 ? `${Math.round(ago / 60)} hr ago` : `${Math.round(ago / 1440)} days ago`;
+        const durStr = e.status === "running" ? "Running…" : e.duration_ms ? `${(e.duration_ms / 1000).toFixed(1)}s` : "—";
+        const statusMap: Record<string, "success" | "active" | "failed"> = { success: "success", failed: "failed", running: "active", paused: "active", cancelled: "failed" };
+        return {
+          id: e.id,
+          workflow: e.workflow_name,
+          status: statusMap[e.status] ?? ("active" as const),
+          duration: durStr,
+          time: timeStr,
+          trigger: e.trigger_type as string,
+        };
+      });
+    }
+    return recentExecutions;
+  }, [apiExecutions]);
+
   return (
     <div className="mx-auto max-w-[960px] px-8 py-8">
       {/* Page heading */}
@@ -87,20 +121,20 @@ export function HomePage() {
       <div className="grid grid-cols-4 gap-3 mb-8">
         <MetricCard
           label="Active Workflows"
-          value="7"
+          value={isLoading ? "…" : activeWfCount.toString()}
           delta="+2 this week"
           icon={<GitBranch size={14} className="text-green-500" />}
         />
         <MetricCard
           label="Executions Today"
-          value="142"
+          value={isLoading ? "…" : totalExToday.toString()}
           delta="+18% vs yesterday"
           icon={<Play size={14} className="text-blue-500" />}
         />
         <MetricCard
           label="Failed (24 h)"
-          value="3"
-          delta="2.1% error rate"
+          value={isLoading ? "…" : failedCount.toString()}
+          delta={failedCount > 0 && totalExToday > 0 ? `${((failedCount / totalExToday) * 100).toFixed(1)}% error rate` : "0% error rate"}
           icon={<AlertTriangle size={14} className="text-red-500" />}
           danger
         />
@@ -153,7 +187,7 @@ export function HomePage() {
           <section>
             <SectionHeader title="Recent Executions" action="View all" />
             <div className="mt-3 rounded-lg border border-zinc-100 bg-white overflow-hidden shadow-xs divide-y divide-zinc-50">
-              {recentExecutions.map((ex) => (
+              {liveRecentExecutions.map((ex) => (
                 <div key={ex.id} onClick={() => navigate(`/executions/${ex.id}`)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50/50 transition-colors cursor-pointer">
                   <StatusDot
                     status={ex.status === "success" ? "success" : ex.status === "failed" ? "failed" : "active"}
@@ -285,9 +319,9 @@ export function HomePage() {
             <SectionHeader title="System Health" />
             <div className="mt-3 rounded-lg border border-zinc-100 bg-white p-4 shadow-xs space-y-2.5">
               {[
-                { label: "Runtime", status: "healthy" as const },
+                { label: "Runtime", status: (health ? "healthy" : "warning") as "healthy" | "warning" },
                 { label: "Queue", status: "active" as const },
-                { label: "API", status: "healthy" as const },
+                { label: "API", status: (health ? "healthy" : "warning") as "healthy" | "warning" },
                 { label: "Workers", status: "warning" as const },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">

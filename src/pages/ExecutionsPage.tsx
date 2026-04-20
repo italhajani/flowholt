@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Play, Search, CheckCircle2, XCircle, Clock, RotateCcw, Loader2,
@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useExecutions } from "@/hooks/useApi";
 
 interface Execution {
   id: string;
@@ -40,6 +41,32 @@ const mockExecutions: Execution[] = [
   { id: "ex-9", workflowName: "Email Campaign Automation", status: "success", trigger: "Schedule", duration: "8.4s", durationMs: 8400, startedAt: "5 hrs ago", steps: 6, stepsCompleted: 6, env: "production", credits: 54 },
   { id: "ex-10", workflowName: "Data Sync Pipeline", status: "paused", trigger: "Schedule", duration: "—", durationMs: 0, startedAt: "6 hrs ago", steps: 12, stepsCompleted: 7, env: "staging", credits: 0 },
 ];
+
+function mapApiExecution(e: { id: string; workflow_name: string; status: string; trigger_type: string; started_at: string; duration_ms: number | null; steps: { status: string }[]; environment: string }): Execution {
+  const statusMap: Record<string, Execution["status"]> = { success: "success", failed: "failed", running: "active", paused: "paused", cancelled: "failed" };
+  const triggerMap: Record<string, Execution["trigger"]> = { webhook: "Webhook", schedule: "Schedule", manual: "Manual", form: "Manual", chat: "Manual", error: "Manual" };
+  const envMap: Record<string, Execution["env"]> = { production: "production", staging: "staging", draft: "draft" };
+  const durationMs = e.duration_ms ?? 0;
+  const durationStr = durationMs > 0 ? `${(durationMs / 1000).toFixed(1)}s` : "—";
+  const started = new Date(e.started_at);
+  const ago = Math.round((Date.now() - started.getTime()) / 60000);
+  const startedStr = ago < 1 ? "Just now" : ago < 60 ? `${ago} min ago` : ago < 1440 ? `${Math.round(ago / 60)} hr ago` : `${Math.round(ago / 1440)} days ago`;
+  const stepsCompleted = e.steps.filter(s => s.status === "success").length;
+
+  return {
+    id: e.id,
+    workflowName: e.workflow_name,
+    status: statusMap[e.status] ?? "active",
+    trigger: triggerMap[e.trigger_type] ?? "Manual",
+    duration: durationStr,
+    durationMs,
+    startedAt: startedStr,
+    steps: e.steps.length || 1,
+    stepsCompleted,
+    env: envMap[e.environment] ?? "production",
+    credits: Math.round(durationMs / 100),
+  };
+}
 
 const triggerIcons: Record<string, React.ElementType> = { Manual: Zap, Webhook: Globe, Schedule: Clock };
 
@@ -88,9 +115,8 @@ function StepProgress({ completed, total, status }: { completed: number; total: 
   );
 }
 
-const maxDurationMs = Math.max(...mockExecutions.map((e) => e.durationMs));
-
-const columns: Column<Execution>[] = [
+function getColumns(maxMs: number): Column<Execution>[] {
+  return [
   {
     id: "workflow",
     header: "Workflow",
@@ -122,7 +148,7 @@ const columns: Column<Execution>[] = [
     header: "Duration",
     sortable: true,
     hideBelow: "md",
-    accessor: (row) => <DurationBar durationMs={row.durationMs} maxMs={maxDurationMs} status={row.status} />,
+    accessor: (row) => <DurationBar durationMs={row.durationMs} maxMs={maxMs} status={row.status} />,
   },
   {
     id: "steps",
@@ -170,7 +196,8 @@ const columns: Column<Execution>[] = [
       </div>
     ),
   },
-];
+  ];
+}
 
 const filters = ["All", "Running", "Success", "Failed", "Waiting"] as const;
 type Filter = (typeof filters)[number];
@@ -362,6 +389,7 @@ function InsightsDashboard() {
 
 export function ExecutionsPage() {
   const navigate = useNavigate();
+  const { data: apiExecutions, isLoading } = useExecutions({ limit: 200 });
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<(typeof dateRanges)[number]>("Last 24h");
@@ -370,20 +398,32 @@ export function ExecutionsPage() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Map API data to local Execution type, fallback to mock if backend offline
+  const executions: Execution[] = useMemo(() => {
+    if (apiExecutions && apiExecutions.length > 0) {
+      return apiExecutions.map(mapApiExecution);
+    }
+    return mockExecutions;
+  }, [apiExecutions]);
+
+  const maxMs = useMemo(() => Math.max(...executions.map((e) => e.durationMs), 1), [executions]);
+  const columns = useMemo(() => getColumns(maxMs), [maxMs]);
+
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => setLastRefresh(new Date()), 10000);
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
-  const running = mockExecutions.filter((e) => e.status === "active").length;
-  const success24h = mockExecutions.filter((e) => e.status === "success").length;
-  const failed24h = mockExecutions.filter((e) => e.status === "failed").length;
-  const avgDuration = Math.round(mockExecutions.filter((e) => e.durationMs > 0).reduce((s, e) => s + e.durationMs, 0) / mockExecutions.filter((e) => e.durationMs > 0).length);
-  const totalCredits = mockExecutions.reduce((s, e) => s + e.credits, 0);
-  const successRate = Math.round((success24h / mockExecutions.length) * 100);
+  const running = executions.filter((e) => e.status === "active").length;
+  const success24h = executions.filter((e) => e.status === "success").length;
+  const failed24h = executions.filter((e) => e.status === "failed").length;
+  const withDuration = executions.filter((e) => e.durationMs > 0);
+  const avgDuration = withDuration.length > 0 ? Math.round(withDuration.reduce((s, e) => s + e.durationMs, 0) / withDuration.length) : 0;
+  const totalCredits = executions.reduce((s, e) => s + e.credits, 0);
+  const successRate = executions.length > 0 ? Math.round((success24h / executions.length) * 100) : 0;
 
-  const filtered = mockExecutions.filter((e) => {
+  const filtered = executions.filter((e) => {
     if (activeFilter !== "All" && e.status !== statusMap[activeFilter]) return false;
     if (search && !e.workflowName.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -421,12 +461,12 @@ export function ExecutionsPage() {
 
       {/* Metric strip */}
       <div className="mt-6 grid grid-cols-6 gap-3">
-        <MetricPill icon={<Loader2 size={13} className="text-blue-500" />} label="Running" value={running.toString()} />
-        <MetricPill icon={<CheckCircle2 size={13} className="text-green-500" />} label="Success" value={success24h.toString()} />
-        <MetricPill icon={<XCircle size={13} className="text-red-500" />} label="Failed" value={failed24h.toString()} />
-        <MetricPill icon={<TrendingUp size={13} className="text-zinc-400" />} label="Success Rate" value={`${successRate}%`} highlight={successRate >= 80 ? "green" : "red"} />
-        <MetricPill icon={<Clock size={13} className="text-zinc-400" />} label="Avg Duration" value={`${(avgDuration / 1000).toFixed(1)}s`} />
-        <MetricPill icon={<Zap size={13} className="text-amber-500" />} label="Credits Used" value={totalCredits.toString()} />
+        <MetricPill icon={<Loader2 size={13} className="text-blue-500" />} label="Running" value={isLoading ? "…" : running.toString()} />
+        <MetricPill icon={<CheckCircle2 size={13} className="text-green-500" />} label="Success" value={isLoading ? "…" : success24h.toString()} />
+        <MetricPill icon={<XCircle size={13} className="text-red-500" />} label="Failed" value={isLoading ? "…" : failed24h.toString()} />
+        <MetricPill icon={<TrendingUp size={13} className="text-zinc-400" />} label="Success Rate" value={isLoading ? "…" : `${successRate}%`} highlight={successRate >= 80 ? "green" : "red"} />
+        <MetricPill icon={<Clock size={13} className="text-zinc-400" />} label="Avg Duration" value={isLoading ? "…" : `${(avgDuration / 1000).toFixed(1)}s`} />
+        <MetricPill icon={<Zap size={13} className="text-amber-500" />} label="Credits Used" value={isLoading ? "…" : totalCredits.toString()} />
       </div>
 
       {/* Sparkline chart */}
@@ -508,6 +548,12 @@ export function ExecutionsPage() {
 
       {/* Data table */}
       <div className="mt-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 text-zinc-400 gap-2">
+            <Loader2 size={18} className="animate-spin" />
+            <span className="text-sm">Loading executions…</span>
+          </div>
+        ) : (
         <DataTable
           columns={columns}
           data={filtered}
@@ -526,6 +572,7 @@ export function ExecutionsPage() {
             />
           }
         />
+        )}
       </div>
     </div>
   );

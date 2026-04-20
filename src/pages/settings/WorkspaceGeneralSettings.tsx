@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Upload, Globe, Lock, AlertTriangle, CreditCard, Zap } from "lucide-react";
+import { Shield, Users, Upload, Globe, Lock, AlertTriangle, CreditCard, Zap, Loader2, Check, Trash2, Plus, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/hooks/useApi";
 
 export function WorkspaceGeneralSettings() {
   const [name, setName] = useState("FlowHolt Workspace");
@@ -13,6 +14,12 @@ export function WorkspaceGeneralSettings() {
   const [ssoEnabled, setSsoEnabled] = useState(false);
   const [ssoProvider, setSsoProvider] = useState("none");
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [newKeyName, setNewKeyName] = useState("");
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+
+  const { data: apiKeys } = useApiKeys();
+  const createKeyMut = useCreateApiKey();
+  const deleteKeyMut = useDeleteApiKey();
 
   return (
     <div className="space-y-8">
@@ -153,15 +160,50 @@ export function WorkspaceGeneralSettings() {
           <span className="text-[13px] font-semibold text-zinc-700">API Access</span>
         </div>
         <p className="text-[11px] text-zinc-400 mb-3">Manage workspace-level API keys for programmatic access.</p>
-        <div className="rounded-md border border-zinc-100 bg-zinc-50 p-3 flex items-center justify-between">
-          <div>
-            <p className="text-[12px] font-medium text-zinc-700">Production API Key</p>
-            <p className="text-[11px] text-zinc-400 font-mono">fh_prod_••••••••xxq7</p>
+
+        {createdKey && (
+          <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-[11px] text-emerald-700 font-medium mb-1">New API key created! Copy it now — it won't be shown again.</p>
+            <div className="flex items-center gap-2">
+              <code className="text-[11px] text-emerald-800 font-mono flex-1 truncate">{createdKey}</code>
+              <button onClick={() => { navigator.clipboard.writeText(createdKey); }} className="text-emerald-600 hover:text-emerald-800"><Copy size={12} /></button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">Reveal</Button>
-            <Button variant="ghost" size="sm">Regenerate</Button>
-          </div>
+        )}
+
+        <div className="space-y-2">
+          {(apiKeys ?? []).map(k => (
+            <div key={k.id} className="rounded-md border border-zinc-100 bg-zinc-50 p-3 flex items-center justify-between">
+              <div>
+                <p className="text-[12px] font-medium text-zinc-700">{k.name}</p>
+                <p className="text-[11px] text-zinc-400 font-mono">{k.key_prefix}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400">{k.last_used_at ? `Used ${new Date(k.last_used_at).toLocaleDateString()}` : "Never used"}</span>
+                <Button variant="ghost" size="sm" onClick={() => deleteKeyMut.mutate(k.id)} disabled={deleteKeyMut.isPending}>
+                  <Trash2 size={12} />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {(!apiKeys || apiKeys.length === 0) && (
+            <div className="rounded-md border border-zinc-100 bg-zinc-50 p-3 text-center text-[11px] text-zinc-400">No API keys yet</div>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <input
+            value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)}
+            placeholder="Key name (e.g. Production)"
+            className="flex-1 rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-[12px] text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-400/30"
+          />
+          <Button variant="secondary" size="sm" disabled={createKeyMut.isPending} onClick={() => {
+            createKeyMut.mutate(newKeyName || "Default", {
+              onSuccess: (data) => { setCreatedKey(data.key); setNewKeyName(""); },
+            });
+          }}>
+            {createKeyMut.isPending ? <Loader2 size={12} className="animate-spin" /> : <><Plus size={12} /> Create Key</>}
+          </Button>
         </div>
       </div>
 

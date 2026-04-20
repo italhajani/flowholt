@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,8 +11,10 @@ import {
   Check,
   ExternalLink,
   Link2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProfile, useUpdateProfile } from "@/hooks/useApi";
 
 const timezones = [
   "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
@@ -35,11 +37,31 @@ const connectedAccounts: ConnectedAccount[] = [
 ];
 
 export function ProfileSettings() {
-  const [name, setName] = useState("Gouhar Ali");
-  const [email, setEmail] = useState("gouhar@flowholt.com");
-  const [timezone, setTimezone] = useState("Asia/Kolkata");
+  const { data: profile, isLoading } = useProfile();
+  const updateMut = useUpdateProfile();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [timezone, setTimezone] = useState("UTC");
+  const [bio, setBio] = useState("");
   const [copied, setCopied] = useState(false);
-  const profileUrl = "https://flowholt.com/@gouhar";
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name);
+      setEmail(profile.email);
+      setTimezone(profile.timezone);
+      setBio(profile.bio);
+    }
+  }, [profile]);
+
+  const profileUrl = `https://flowholt.com/@${profile?.name?.toLowerCase().replace(/\s+/g, "") ?? "user"}`;
+
+  const handleSave = () => {
+    updateMut.mutate({ name, bio, timezone }, {
+      onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2000); },
+    });
+  };
 
   const copyUrl = () => {
     navigator.clipboard.writeText(profileUrl);
@@ -97,9 +119,17 @@ export function ProfileSettings() {
             className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400/30 transition-all resize-none"
             rows={3}
             placeholder="A short bio about yourself…"
-            defaultValue="Building the future of workflow automation."
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
           />
         </SettingsField>
+
+        <div className="flex items-center gap-3 pt-2">
+          <Button size="sm" onClick={handleSave} disabled={updateMut.isPending}>
+            {updateMut.isPending ? <><Loader2 size={12} className="animate-spin mr-1" />Saving…</> : saved ? <><Check size={12} className="mr-1" />Saved</> : "Save changes"}
+          </Button>
+          {isLoading && <span className="text-[11px] text-zinc-400">Loading profile…</span>}
+        </div>
 
         {/* Public profile URL */}
         <SettingsField label="Public profile URL">

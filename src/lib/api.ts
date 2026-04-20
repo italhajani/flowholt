@@ -1300,6 +1300,98 @@ export function fetchExecutionTimeline(days = 7) {
 }
 
 
+// ── Vault CRUD ──
+
+export interface VaultAssetSummary {
+  id: string;
+  kind: "connection" | "credential" | "variable";
+  name: string;
+  app: string;
+  subtitle: string | null;
+  logo_url: string | null;
+  credential_type: string | null;
+  scope: string;
+  status: "active" | "expiring" | "error";
+  workflows_count: number;
+  people_with_access: number;
+  last_used_at: string | null;
+  updated_at: string;
+  masked: boolean;
+  secret: Record<string, unknown> | null;
+}
+
+export interface VaultOverview {
+  connections: VaultAssetSummary[];
+  credentials: VaultAssetSummary[];
+  variables: VaultAssetSummary[];
+}
+
+export interface VaultAssetCreate {
+  kind: "connection" | "credential" | "variable";
+  name: string;
+  app?: string;
+  subtitle?: string;
+  logo_url?: string;
+  credential_type?: string;
+  scope?: string;
+  status?: string;
+  masked?: boolean;
+  secret?: Record<string, unknown>;
+}
+
+export interface VaultAssetUpdate {
+  name?: string;
+  app?: string;
+  subtitle?: string;
+  credential_type?: string;
+  scope?: string;
+  status?: string;
+  masked?: boolean;
+  secret?: Record<string, unknown>;
+}
+
+export function fetchVaultOverview() {
+  return apiFetch<VaultOverview>("/api/vault");
+}
+
+export function fetchVaultCredentials() {
+  return apiFetch<VaultAssetSummary[]>("/api/vault/credentials");
+}
+
+export function fetchVaultConnections() {
+  return apiFetch<VaultAssetSummary[]>("/api/vault/connections");
+}
+
+export function fetchVaultVariables() {
+  return apiFetch<VaultAssetSummary[]>("/api/vault/variables");
+}
+
+export function createVaultAsset(payload: VaultAssetCreate) {
+  return apiFetch<VaultAssetSummary>("/api/vault/assets", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateVaultAsset(assetId: string, payload: VaultAssetUpdate) {
+  return apiFetch<VaultAssetSummary>(`/api/vault/assets/${assetId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteVaultAsset(assetId: string) {
+  return apiFetch<{ deleted: boolean }>(`/api/vault/assets/${assetId}`, { method: "DELETE" });
+}
+
+export function verifyVaultAsset(assetId: string) {
+  return apiFetch<{ asset_id: string; healthy: boolean; checks: { check: string; status: string; detail: string }[] }>(
+    `/api/vault/assets/${assetId}/verify`,
+    { method: "POST" },
+  );
+}
+
+
 // ── Vault Connection Test ──
 
 export interface ConnectionTestResult {
@@ -1522,4 +1614,75 @@ export function purgeOldDeliveries(days?: number) {
 
 export function fetchRetentionInfo() {
   return apiFetch<{ retention_days: number }>("/api/webhooks/retention-info");
+}
+
+// ── Settings: Profile, Preferences, API Keys ─────────────────────────
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatar_initials: string;
+  bio: string;
+  timezone: string;
+  created_at: string;
+}
+
+export interface UserProfileUpdate {
+  name?: string;
+  bio?: string;
+  timezone?: string;
+  avatar_initials?: string;
+}
+
+export interface UserPreferences {
+  theme: string;
+  editor_font_size: number;
+  editor_minimap: boolean;
+  editor_word_wrap: boolean;
+  code_theme: string;
+  keyboard_shortcuts: string;
+  language: string;
+  sidebar_collapsed: boolean;
+}
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  scope: string;
+  last_used_at: string | null;
+  created_at: string;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  key: string;
+}
+
+export function fetchProfile() {
+  return apiFetch<UserProfile>("/api/me/profile");
+}
+
+export function updateProfile(data: UserProfileUpdate) {
+  return apiFetch<UserProfile>("/api/me/profile", { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export function fetchPreferences() {
+  return apiFetch<UserPreferences>("/api/me/preferences");
+}
+
+export function updatePreferences(data: Partial<UserPreferences>) {
+  return apiFetch<UserPreferences>("/api/me/preferences", { method: "PATCH", body: JSON.stringify(data) });
+}
+
+export function fetchApiKeys() {
+  return apiFetch<ApiKey[]>("/api/api-keys");
+}
+
+export function createApiKey(name = "Default") {
+  return apiFetch<ApiKeyCreated>("/api/api-keys", { method: "POST", body: JSON.stringify({ name }) });
+}
+
+export function deleteApiKey(keyId: string) {
+  return apiFetch<{ status: string }>(`/api/api-keys/${keyId}`, { method: "DELETE" });
 }

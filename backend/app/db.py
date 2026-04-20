@@ -562,6 +562,36 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
 );
 CREATE INDEX IF NOT EXISTS idx_kb_chunks_doc ON knowledge_chunks(doc_id, chunk_index);
 CREATE INDEX IF NOT EXISTS idx_kb_chunks_kb ON knowledge_chunks(kb_id);
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id TEXT PRIMARY KEY,
+    bio TEXT DEFAULT '',
+    timezone TEXT DEFAULT 'UTC',
+    theme TEXT DEFAULT 'system',
+    editor_font_size INTEGER DEFAULT 13,
+    editor_minimap BOOLEAN DEFAULT 0,
+    editor_word_wrap BOOLEAN DEFAULT 1,
+    code_theme TEXT DEFAULT 'vs-dark',
+    keyboard_shortcuts TEXT DEFAULT 'default',
+    language TEXT DEFAULT 'en',
+    sidebar_collapsed BOOLEAN DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT 'Default',
+    key_prefix TEXT NOT NULL,
+    key_hash TEXT NOT NULL,
+    scope TEXT DEFAULT 'full',
+    created_by TEXT NOT NULL,
+    last_used_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY(created_by) REFERENCES users(id)
+);
 """
 
 SCHEMA_WEBHOOKS = """

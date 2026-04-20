@@ -114,6 +114,24 @@ import {
   purgeDeadLetters,
   purgeOldDeliveries,
   fetchRetentionInfo,
+  fetchVaultOverview,
+  fetchVaultCredentials,
+  fetchVaultConnections,
+  fetchVaultVariables,
+  createVaultAsset,
+  updateVaultAsset,
+  deleteVaultAsset,
+  verifyVaultAsset,
+  type VaultAssetCreate,
+  type VaultAssetUpdate,
+  fetchProfile,
+  updateProfile,
+  fetchPreferences,
+  updatePreferences,
+  fetchApiKeys,
+  createApiKey,
+  deleteApiKey,
+  type UserProfileUpdate,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -844,6 +862,68 @@ export function useExecutionTimeline(days = 7) {
 
 // ── Vault Connection Hooks ──
 
+export function useVaultOverview() {
+  return useQuery({
+    queryKey: ["vault", "overview"],
+    queryFn: fetchVaultOverview,
+    staleTime: 30_000,
+  });
+}
+
+export function useVaultCredentials() {
+  return useQuery({
+    queryKey: ["vault", "credentials"],
+    queryFn: fetchVaultCredentials,
+    staleTime: 30_000,
+  });
+}
+
+export function useVaultConnections() {
+  return useQuery({
+    queryKey: ["vault", "connections"],
+    queryFn: fetchVaultConnections,
+    staleTime: 30_000,
+  });
+}
+
+export function useVaultVariables() {
+  return useQuery({
+    queryKey: ["vault", "variables"],
+    queryFn: fetchVaultVariables,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateVaultAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: VaultAssetCreate) => createVaultAsset(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vault"] }),
+  });
+}
+
+export function useUpdateVaultAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: VaultAssetUpdate }) => updateVaultAsset(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vault"] }),
+  });
+}
+
+export function useDeleteVaultAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteVaultAsset(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vault"] }),
+  });
+}
+
+export function useVerifyVaultAsset() {
+  return useMutation({
+    mutationFn: (assetId: string) => verifyVaultAsset(assetId),
+  });
+}
+
 export function useTestConnection() {
   return useMutation({
     mutationFn: (assetId: string) => testConnection(assetId),
@@ -997,5 +1077,51 @@ export function useRetentionInfo() {
     queryKey: ["webhook-retention"],
     queryFn: fetchRetentionInfo,
     staleTime: 300_000,
+  });
+}
+
+// ── Settings: Profile, Preferences, API Keys ─────────────────────────
+
+export function useProfile() {
+  return useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 120_000 });
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UserProfileUpdate) => updateProfile(data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["profile"] }); qc.invalidateQueries({ queryKey: ["session"] }); },
+  });
+}
+
+export function usePreferences() {
+  return useQuery({ queryKey: ["preferences"], queryFn: fetchPreferences, staleTime: 120_000 });
+}
+
+export function useUpdatePreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Record<string, unknown>>) => updatePreferences(data as any),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["preferences"] }),
+  });
+}
+
+export function useApiKeys() {
+  return useQuery({ queryKey: ["api-keys"], queryFn: fetchApiKeys, staleTime: 60_000 });
+}
+
+export function useCreateApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name?: string) => createApiKey(name),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+export function useDeleteApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (keyId: string) => deleteApiKey(keyId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
   });
 }

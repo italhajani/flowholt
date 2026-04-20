@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
-import { Type, Palette, Keyboard, Accessibility, Monitor, Sun, Moon, Eye, MousePointer } from "lucide-react";
+import { Type, Palette, Keyboard, Accessibility, Monitor, Sun, Moon, Eye, MousePointer, Loader2, Check } from "lucide-react";
+import { usePreferences, useUpdatePreferences } from "@/hooks/useApi";
 
 interface TogglePref {
   id: string;
@@ -41,6 +42,9 @@ const colorThemes = [
 ];
 
 export function PreferencesSettings() {
+  const { data: prefs_data } = usePreferences();
+  const updateMut = useUpdatePreferences();
+  const [saved, setSaved] = useState(false);
   const [values, setValues] = useState<Record<string, boolean>>(
     Object.fromEntries(prefs.map((p) => [p.id, p.defaultOn]))
   );
@@ -52,7 +56,27 @@ export function PreferencesSettings() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
 
+  // Sync from backend preferences
+  useEffect(() => {
+    if (prefs_data) {
+      setFontSize(String(prefs_data.editor_font_size));
+      if (prefs_data.theme && prefs_data.theme !== "system") setTheme(prefs_data.theme as any);
+      if (prefs_data.code_theme) setAccentColor(prefs_data.code_theme);
+    }
+  }, [prefs_data]);
+
   const toggle = (id: string) => setValues((v) => ({ ...v, [id]: !v[id] }));
+
+  const handleSave = () => {
+    updateMut.mutate({
+      theme: theme as string,
+      editor_font_size: parseInt(fontSize) || 13,
+      code_theme: accentColor,
+      keyboard_shortcuts: "default",
+    }, {
+      onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2000); },
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -274,7 +298,9 @@ export function PreferencesSettings() {
       </div>
 
       <div className="pt-4 flex items-center gap-3" style={{ borderTop: "1px solid #f4f4f5" }}>
-        <Button variant="primary" size="md">Save Changes</Button>
+        <Button variant="primary" size="md" onClick={handleSave} disabled={updateMut.isPending}>
+          {updateMut.isPending ? <><Loader2 size={12} className="animate-spin mr-1" />Saving…</> : saved ? <><Check size={12} className="mr-1" />Saved</> : "Save Changes"}
+        </Button>
         <Button variant="ghost" size="md">Cancel</Button>
       </div>
     </div>

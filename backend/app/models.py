@@ -1912,3 +1912,64 @@ class WebhookQueueItem(BaseModel):
     error_message: str | None = None
     created_at: str
     processed_at: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# User Profile & Preferences
+# ---------------------------------------------------------------------------
+
+class UserProfileResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    avatar_initials: str
+    bio: str = ""
+    timezone: str = "UTC"
+    created_at: str
+
+
+class UserProfileUpdate(BaseModel):
+    name: str | None = None
+    bio: str | None = None
+    timezone: str | None = None
+    avatar_initials: str | None = None
+
+
+class UserPreferencesResponse(BaseModel):
+    theme: str = "system"
+    editor_font_size: int = 13
+    editor_minimap: bool = False
+    editor_word_wrap: bool = True
+    code_theme: str = "vs-dark"
+    keyboard_shortcuts: str = "default"
+    language: str = "en"
+    sidebar_collapsed: bool = False
+
+
+class UserPreferencesUpdate(BaseModel):
+    theme: str | None = None
+    editor_font_size: int | None = None
+    editor_minimap: bool | None = None
+    editor_word_wrap: bool | None = None
+    code_theme: str | None = None
+    keyboard_shortcuts: str | None = None
+    language: str | None = None
+    sidebar_collapsed: bool | None = None
+
+
+class ApiKeyCreate(BaseModel):
+    name: str = "Default"
+
+
+class ApiKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    scope: str = "full"
+    last_used_at: str | None = None
+    created_at: str
+
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+    """Returned only on creation — includes the full key (shown once)."""
+    key: str

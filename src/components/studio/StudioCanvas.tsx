@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useContext, useMemo } from "r
 import {
   Plus, Minus, Maximize2, Map, CheckCircle2, XCircle,
   Loader2, Copy, Trash2, StickyNote, Edit2, Layers, CornerDownRight,
-  Search, X, Play, Pause, Eye, Zap, ArrowRight, Pin,
+  Search, X, Play, Pause, Eye, Pencil, Zap, ArrowRight, Pin,
   ChevronRight, GitBranch, Clock, Hash, Home, Undo2, Redo2,
   Clipboard, Scissors, Replace, Fingerprint, MousePointerSquareDashed,
   Download, Share2, MessageSquare, Sparkles, Bot, Send, Link,
@@ -476,6 +476,7 @@ function CanvasStickyNote({ note, onUpdate, onDelete }: {
   const [width, setWidth] = useState(note.width ?? 200);
   const [height, setHeight] = useState(note.height ?? 100);
   const [showColors, setShowColors] = useState(false);
+  const [editing, setEditing] = useState(false);
   const colorInfo = stickyColors.find(c => c.bg === note.color) ?? stickyColors[0];
   const resizeRef = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
 
@@ -497,6 +498,18 @@ function CanvasStickyNote({ note, onUpdate, onDelete }: {
     window.addEventListener("mouseup", onUp);
   }, [width, height]);
 
+  /* Simple markdown: **bold**, *italic*, [link](url), `code`, \n → <br/> */
+  const renderMarkdown = useMemo(() => {
+    const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    let html = escaped
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(0,0,0,0.06);padding:0 3px;border-radius:3px;font-size:10px">$1</code>')
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" style="text-decoration:underline;opacity:0.8">$1</a>')
+      .replace(/\n/g, '<br/>');
+    return html;
+  }, [text]);
+
   return (
     <div
       className="absolute rounded-lg shadow-sm group/sticky select-none"
@@ -510,6 +523,13 @@ function CanvasStickyNote({ note, onUpdate, onDelete }: {
           <span className="text-[9px] font-medium opacity-50" style={{ color: colorInfo.text }}>Note</span>
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/sticky:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); setEditing(p => !p); }}
+            className="h-4 w-4 rounded flex items-center justify-center hover:bg-black/5 transition-colors"
+            title={editing ? "Preview" : "Edit"}
+          >
+            {editing ? <Eye size={9} style={{ color: colorInfo.text }} /> : <Pencil size={9} style={{ color: colorInfo.text }} />}
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowColors(p => !p); }}
             className="h-4 w-4 rounded flex items-center justify-center hover:bg-black/5 transition-colors"
@@ -536,14 +556,24 @@ function CanvasStickyNote({ note, onUpdate, onDelete }: {
           ))}
         </div>
       )}
-      {/* Editable text */}
-      <textarea
-        value={text}
-        onChange={(e) => { setText(e.target.value); onUpdate({ text: e.target.value }); }}
-        className="w-full resize-none bg-transparent px-2.5 pb-2 text-[11px] leading-relaxed placeholder:opacity-40 focus:outline-none"
-        style={{ color: colorInfo.text, minHeight: height - 32 }}
-        placeholder="Type a note..."
-      />
+      {/* Editable text / Markdown preview */}
+      {editing ? (
+        <textarea
+          value={text}
+          onChange={(e) => { setText(e.target.value); onUpdate({ text: e.target.value }); }}
+          className="w-full resize-none bg-transparent px-2.5 pb-2 text-[11px] leading-relaxed placeholder:opacity-40 focus:outline-none"
+          style={{ color: colorInfo.text, minHeight: height - 32 }}
+          placeholder="**Bold** *italic* `code` [link](url)"
+          autoFocus
+        />
+      ) : (
+        <div
+          className="w-full px-2.5 pb-2 text-[11px] leading-relaxed cursor-text"
+          style={{ color: colorInfo.text, minHeight: height - 32 }}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown || '<span style="opacity:0.4">Double-click to edit…</span>' }}
+          onDoubleClick={() => setEditing(true)}
+        />
+      )}
       {/* Resize handle */}
       <div
         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover/sticky:opacity-40 transition-opacity"
@@ -558,30 +588,61 @@ function CanvasStickyNote({ note, onUpdate, onDelete }: {
 }
 
 /* ── Canvas Search Overlay ── */
-function CanvasSearch({ query, onChange, results, onSelect, onClose }: {
+function CanvasSearch({ query, onChange, results, onSelect, onClose, familyFilter, onFamilyFilter }: {
   query: string;
   onChange: (v: string) => void;
   results: CanvasNodeData[];
   onSelect: (id: string) => void;
   onClose: () => void;
+  familyFilter: string | null;
+  onFamilyFilter: (f: string | null) => void;
 }) {
+  const families = useMemo(() => {
+    const fams = new Set(results.map(r => r.family));
+    return Array.from(fams).sort();
+  }, [results]);
+  const filtered = familyFilter ? results.filter(r => r.family === familyFilter) : results;
+
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 w-72 rounded-xl border border-zinc-200 bg-white shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 w-80 rounded-xl border border-zinc-200 bg-white shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-100">
         <Search size={13} className="text-zinc-400" />
         <input
           autoFocus
           value={query}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Search nodes…"
+          placeholder="Search nodes… (Ctrl+F)"
           className="flex-1 text-[12px] outline-none bg-transparent text-zinc-700 placeholder:text-zinc-300"
           onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
         />
+        {query && <span className="text-[9px] text-zinc-400 font-medium">{filtered.length} found</span>}
         <button onClick={onClose} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>
       </div>
-      {query && results.length > 0 && (
+      {query && families.length > 1 && (
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-50 bg-zinc-50/50">
+          <button
+            onClick={() => onFamilyFilter(null)}
+            className={cn("text-[9px] px-1.5 py-0.5 rounded-full transition-colors", !familyFilter ? "bg-zinc-200 text-zinc-700 font-medium" : "text-zinc-400 hover:text-zinc-600")}
+          >All ({results.length})</button>
+          {families.map(f => {
+            const count = results.filter(r => r.family === f).length;
+            const colors = familyColors[f as keyof typeof familyColors];
+            return (
+              <button
+                key={f}
+                onClick={() => onFamilyFilter(familyFilter === f ? null : f)}
+                className={cn("text-[9px] px-1.5 py-0.5 rounded-full capitalize transition-colors flex items-center gap-1", familyFilter === f ? "bg-zinc-200 text-zinc-700 font-medium" : "text-zinc-400 hover:text-zinc-600")}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full inline-block", colors?.dot ?? "bg-zinc-300")} />
+                {f} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {query && filtered.length > 0 && (
         <div className="max-h-[200px] overflow-y-auto">
-          {results.map((node) => {
+          {filtered.map((node) => {
             const colors = familyColors[node.family];
             return (
               <button
@@ -597,7 +658,7 @@ function CanvasSearch({ query, onChange, results, onSelect, onClose }: {
           })}
         </div>
       )}
-      {query && results.length === 0 && (
+      {query && filtered.length === 0 && (
         <div className="px-3 py-3 text-[11px] text-zinc-400 text-center">No nodes found</div>
       )}
     </div>
@@ -605,11 +666,12 @@ function CanvasSearch({ query, onChange, results, onSelect, onClose }: {
 }
 
 /* ── Minimap ── */
-function Minimap({ nodes, edges, execStates, selectedNodeId, canvasW, canvasH, zoom, pan, onPan }: {
+function Minimap({ nodes, edges, execStates, selectedNodeId, pinnedNodes, canvasW, canvasH, zoom, pan, onPan }: {
   nodes: CanvasNodeData[];
   edges: [string, string][];
   execStates: Record<string, NodeExecState>;
   selectedNodeId: string | null;
+  pinnedNodes: Set<string>;
   canvasW: number;
   canvasH: number;
   zoom: number;
@@ -660,18 +722,22 @@ function Minimap({ nodes, edges, execStates, selectedNodeId, canvasW, canvasH, z
           const colors = familyColors[node.family];
           const isSelected = selectedNodeId === node.id;
           const state = execStates[node.id] ?? "idle";
+          const isPinned = pinnedNodes.has(node.id);
+          const nx = node.left * scale + 8;
+          const ny = node.top * scale + 8;
+          const nw = NODE_W * scale;
+          const nh = NODE_H * scale;
           return (
-            <rect
-              key={node.id}
-              x={node.left * scale + 8}
-              y={node.top * scale + 8}
-              width={NODE_W * scale}
-              height={NODE_H * scale}
-              rx={2}
-              fill={state === "success" ? "#bbf7d0" : state === "error" ? "#fecaca" : state === "running" ? "#bfdbfe" : "#f4f4f5"}
-              stroke={isSelected ? "#18181b" : colors.accent}
-              strokeWidth={isSelected ? 1.5 : 0.5}
-            />
+            <g key={node.id}>
+              <rect
+                x={nx} y={ny} width={nw} height={nh} rx={2}
+                fill={state === "success" ? "#bbf7d0" : state === "error" ? "#fecaca" : state === "running" ? "#bfdbfe" : "#f4f4f5"}
+                stroke={isSelected ? "#18181b" : colors.accent}
+                strokeWidth={isSelected ? 1.5 : 0.5}
+              />
+              {isPinned && <circle cx={nx + nw - 1} cy={ny + 1} r={1.5} fill="#f59e0b" stroke="#fff" strokeWidth={0.3} />}
+              {isSelected && <rect x={nx - 1} y={ny - 1} width={nw + 2} height={nh + 2} rx={3} fill="none" stroke="#6366f1" strokeWidth={0.5} strokeDasharray="2 1" />}
+            </g>
           );
         })}
         {/* Viewport rectangle */}
@@ -899,6 +965,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
   const [showMinimap, setShowMinimap] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFamilyFilter, setSearchFamilyFilter] = useState<string | null>(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [showAiChat, setShowAiChat] = useState(false);
   const [aiChatInput, setAiChatInput] = useState("");
@@ -1521,7 +1588,9 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
           onChange={setSearchQuery}
           results={searchResults}
           onSelect={(id) => { onNodeSelect(id); setSearchQuery(""); }}
-          onClose={() => { setShowSearch(false); setSearchQuery(""); }}
+          onClose={() => { setShowSearch(false); setSearchQuery(""); setSearchFamilyFilter(null); }}
+          familyFilter={searchFamilyFilter}
+          onFamilyFilter={setSearchFamilyFilter}
         />
       )}
 
@@ -1634,6 +1703,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
             edges={edgeList}
             execStates={execStates}
             selectedNodeId={selectedNodeId}
+            pinnedNodes={store.pinnedNodes}
             canvasW={CANVAS_W}
             canvasH={CANVAS_H}
             zoom={zoom}

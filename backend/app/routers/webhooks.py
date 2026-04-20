@@ -205,29 +205,62 @@ def trigger_workflow_run(
     body: dict[str, Any] | None = None,
     session: dict[str, Any] = Depends(get_session_context),
 ) -> dict[str, Any]:
-    """Trigger a workflow execution via API. Like n8n's webhook trigger but explicit."""
+    """Trigger a workflow execution via API with full executor pipeline.
+
+    Accepts JSON payload, creates an execution record, runs the workflow
+    engine, and returns results with timing + step info.
+    """
     require_workspace_role(session, "owner", "admin", "builder")
     wf = repo.get_workflow(workflow_id)
     if not wf:
         raise HTTPException(404, "Workflow not found")
 
+    input_data = body or {}
     start_ms = time.time()
-    exec_data = {
-        "workflow_id": workflow_id,
-        "status": "running",
-        "trigger_type": "api",
-        "payload_json": json.dumps(body or {}),
-    }
-    execution = repo.create_execution(exec_data)
-    latency = int((time.time() - start_ms) * 1000)
+
+    # Create execution record
+    job = repo.create_workflow_job(
+        workflow_id, trigger_type="api", input_data=json.dumps(input_data),
+    )
+    exec_id = job["id"]
+
+    # Attempt actual execution via the engine
+    definition = wf.get("definition") or wf.get("workflow_definition")
+    if definition and isinstance(definition, str):
+        try:
+            definition = json.loads(definition)
+        except Exception:
+            definition = None
+
+    result_data: dict[str, Any] = {}
+    step_results: list[dict[str, Any]] = []
+    status = "completed"
+
+    if definition and definition.get("steps"):
+        try:
+            from ..executor import run_workflow_definition
+            outcome = run_workflow_definition(definition, input_data)
+            step_results = outcome.get("step_results", [])
+            result_data = outcome.get("result", {})
+            status = outcome.get("status", "completed")
+        except Exception as exc:
+            status = "error"
+            result_data = {"error": str(exc)}
+    else:
+        status = "completed"
+        result_data = {"message": "Workflow has no executable definition", "input": input_data}
+
+    duration_ms = int((time.time() - start_ms) * 1000)
 
     return {
-        "execution_id": execution["id"],
+        "execution_id": exec_id,
         "workflow_id": workflow_id,
-        "status": "running",
+        "status": status,
         "trigger": "api",
-        "latency_ms": latency,
-        "input": body or {},
+        "duration_ms": duration_ms,
+        "steps_executed": len(step_results),
+        "input": input_data,
+        "output": result_data,
     }
 
 
@@ -311,21 +344,6 @@ def delete_incomplete(
 
 
 # ── API Trigger ── Run workflow via API
-
-@router.post("/workflows/{wf_id}/run")
-def api_trigger_workflow(
-    wf_id: str,
-    body: dict[str, Any] | None = None,
-    session: dict[str, Any] = Depends(get_session_context),
-) -> dict[str, Any]:
-    """Trigger a workflow run via API with optional input data."""
-    require_workspace_role(session, "owner", "admin", "builder")
-    wf = repo.get_workflow(wf_id)
-    if not wf:
-        raise HTTPException(404, "Workflow not found")
-    input_data = body or {}
-    job = repo.create_workflow_job(wf_id, trigger_type="api", input_data=json.dumps(input_data))
-    return {"execution_id": job["id"], "workflow_id": wf_id, "status": "queued"}
 
 
 def _verify_hmac_signature(

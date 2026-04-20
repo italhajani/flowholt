@@ -11,8 +11,8 @@ import { useCanvasStore } from "./useCanvasStore";
 import { ExpressionEditorModal } from "@/components/modals/ExpressionEditorModal";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { CodeEditorPanel as CodeEditorPanelInline } from "./CodeEditorPanel";
-import { useStepEditor, useUpdateWorkflowStep } from "@/hooks/useApi";
-import { testWorkflowStep } from "@/lib/api";
+import { useStepEditor, useUpdateWorkflowStep, useNodeEditor } from "@/hooks/useApi";
+import { testWorkflowStep, type NodeEditorResponse, type NodeEditorField, type NodeEditorSection } from "@/lib/api";
 
 type DataView = "schema" | "table" | "json" | "html" | "binary";
 type ParamFieldType = "select" | "text" | "number" | "textarea" | "code" | "expression";
@@ -170,8 +170,9 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
   const colors = familyColors[node.family];
   const config = nodeConfigs[node.id] || { fields: [] };
 
-  // Wire to real API when workflowId is available
-  const { data: _stepEditor } = useStepEditor(workflowId, node.id);
+  // Fetch dynamic node editor from backend (sections + fields from node_registry)
+  const { data: stepEditor } = useStepEditor(workflowId, node.id);
+  const { data: nodeEditor } = useNodeEditor(node.subtitle, { workflowId, stepId: node.id });
   const updateStep = useUpdateWorkflowStep(workflowId ?? "");
 
   const handleRunNode = () => {
@@ -256,7 +257,19 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "Parameters" && <ParametersContent config={config} nodeFamily={node.family} nodeName={node.name} />}
+        {activeTab === "Parameters" && (
+          <ParametersContent
+            config={config}
+            nodeFamily={node.family}
+            nodeName={node.name}
+            editorResponse={stepEditor ?? nodeEditor}
+            onFieldChange={(key, value) => {
+              if (workflowId) {
+                updateStep.mutate({ stepId: node.id, payload: { config: { [key]: value } } });
+              }
+            }}
+          />
+        )}
         {activeTab === "Input" && <InputPanel nodeId={node.id} pinned={pinned} />}
         {activeTab === "Output" && <DataPanel nodeId={node.id} direction="output" pinned={pinned} />}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
@@ -1834,14 +1847,28 @@ function NodeTypeHero({ family, name, config }: { family: string; name: string; 
 }
 
 /* ── PARAMETERS content with expression editor ── */
-function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof nodeConfigs[string]; nodeFamily: string; nodeName: string }) {
+function ParametersContent({
+  config,
+  nodeFamily,
+  nodeName,
+  editorResponse,
+  onFieldChange,
+}: {
+  config: typeof nodeConfigs[string];
+  nodeFamily: string;
+  nodeName: string;
+  editorResponse?: NodeEditorResponse;
+  onFieldChange?: (key: string, value: unknown) => void;
+}) {
   const [advanced, setAdvanced] = useState(false);
   const [exprFields, setExprFields] = useState<Record<string, boolean>>({});
   const [exprModalField, setExprModalField] = useState<string | null>(null);
   const [exprModalValue, setExprModalValue] = useState("");
+  const [localConfig, setLocalConfig] = useState<Record<string, unknown>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
-  const toggleExpr = (label: string) => {
-    setExprFields(p => ({ ...p, [label]: !p[label] }));
+  const toggleExpr = (key: string) => {
+    setExprFields(p => ({ ...p, [key]: !p[key] }));
   };
 
   const openExpressionEditor = (field: { label: string; value: string }) => {
@@ -1849,9 +1876,122 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
     setExprModalValue(field.value);
   };
 
+  const handleChange = (key: string, value: unknown) => {
+    setLocalConfig(p => ({ ...p, [key]: value }));
+    onFieldChange?.(key, value);
+  };
+
+  const toggleSection = (key: string) => {
+    setCollapsedSections(p => {
+      const next = new Set(p);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  // Check if a field should be visible based on show_when / depends_on
+  const isFieldVisible = (field: NodeEditorField) => {
+    const dep = field.depends_on as { field?: string; equals?: unknown } | undefined;
+    if (!dep?.field) return true;
+    const depValue = localConfig[dep.field] ?? editorResponse?.sections
+      .flatMap(s => s.fields)
+      .find(f => f.key === dep.field)?.default;
+    return depValue === dep.equals;
+  };
+
+  /* ── Render API-driven sections when available ── */
+  if (editorResponse?.sections?.length) {
+    return (
+      <div className="space-y-4">
+        <NodeTypeHero family={nodeFamily} name={nodeName} config={config} />
+
+        {editorResponse.warnings?.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 space-y-1">
+            {editorResponse.warnings.map((w, i) => (
+              <div key={i} className="flex items-start gap-1.5">
+                <AlertTriangle size={10} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                <p className="text-[10px] text-amber-700">{w}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {editorResponse.sections.map((section) => {
+          const isCollapsed = collapsedSections.has(section.key);
+          const visibleFields = section.fields.filter(isFieldVisible);
+          if (visibleFields.length === 0) return null;
+
+          return (
+            <div key={section.key}>
+              {section.label && (
+                <button
+                  onClick={() => toggleSection(section.key)}
+                  className="flex w-full items-center gap-1.5 mb-2"
+                >
+                  <ChevronDown size={10} className={cn("text-zinc-400 transition-transform", isCollapsed && "-rotate-90")} />
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">{section.label}</p>
+                  <span className="ml-auto text-[9px] text-zinc-300">{visibleFields.length}</span>
+                </button>
+              )}
+
+              {!isCollapsed && (
+                <div className="space-y-3">
+                  {visibleFields.map((field) => (
+                    <DynamicField
+                      key={field.key}
+                      field={field}
+                      value={localConfig[field.key] ?? field.default}
+                      isExprMode={exprFields[field.key] ?? false}
+                      onToggleExpr={() => toggleExpr(field.key)}
+                      onChange={(v) => handleChange(field.key, v)}
+                      onOpenExprEditor={() => openExpressionEditor({ label: field.label, value: String(localConfig[field.key] ?? field.default ?? "") })}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Node-specific custom parameter panels */}
+        <NodeSpecificParams nodeName={nodeName} />
+
+        <button
+          onClick={() => setAdvanced((o) => !o)}
+          className="flex w-full items-center gap-1.5 rounded-md px-1 py-1.5 text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
+        >
+          <ChevronDown size={11} className={cn("transition-transform", advanced ? "rotate-0" : "-rotate-90")} />
+          Advanced Settings
+        </button>
+        {advanced && editorResponse.node_settings?.map((section) => (
+          <div key={section.key} className="space-y-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-3">
+            {section.fields.map((field) => (
+              <DynamicField
+                key={field.key}
+                field={field}
+                value={localConfig[field.key] ?? field.default}
+                isExprMode={false}
+                onToggleExpr={() => {}}
+                onChange={(v) => handleChange(field.key, v)}
+                onOpenExprEditor={() => {}}
+              />
+            ))}
+          </div>
+        ))}
+
+        <ExpressionEditorModal
+          open={exprModalField !== null}
+          onClose={() => setExprModalField(null)}
+          value={exprModalValue}
+          fieldLabel={exprModalField ?? "Expression"}
+        />
+      </div>
+    );
+  }
+
+  /* ── Fallback: mock config for demo nodes ── */
   return (
     <div className="space-y-4">
-      {/* Node-type-specific hero section */}
       <NodeTypeHero family={nodeFamily} name={nodeName} config={config} />
 
       {config.model && (
@@ -1890,7 +2030,6 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
                 {field.description && (
                   <span className="text-[8px] text-zinc-300 max-w-[120px] truncate" title={field.description}>ⓘ</span>
                 )}
-                {/* Expression toggle (fx button) — like n8n */}
                 {field.type !== "select" && (
                   <button
                     onClick={() => toggleExpr(field.label)}
@@ -1907,7 +2046,6 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
             </div>
 
             {isExprMode ? (
-              /* Expression editor with inline validation + autocomplete */
               <ExpressionFieldWithValidation field={field} onOpenEditor={openExpressionEditor} />
             ) : field.type === "select" ? (
               <select defaultValue={field.value} className="h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all">
@@ -1952,36 +2090,7 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
         </div>
       )}
 
-      {/* ── Node-specific parameter sections ── */}
-      {nodeName === "Wait" && <WaitNodeParams />}
-      {nodeName === "Switch" && <SwitchNodeParams />}
-      {nodeName === "Merge" && <MergeNodeParams />}
-      {nodeName === "Sort" && <SortNodeParams />}
-      {nodeName === "Summarize" && <SummarizeNodeParams />}
-      {(nodeName === "Compare Datasets" || nodeName === "Compare") && <CompareNodeParams />}
-      {(nodeName === "Set" || nodeName === "Edit Fields" || nodeName === "Set / Edit Fields") && <EditFieldsParams />}
-      {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
-      {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
-      {nodeName === "Chat Trigger" && <ChatTriggerParams />}
-      {(nodeName === "RSS Feed Trigger" || nodeName === "RSS Trigger") && <RssTriggerParams />}
-      {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
-      {nodeName === "Vector Store" && <VectorStoreParams />}
-      {(nodeName === "Knowledge Search" || nodeName === "Retriever") && <KnowledgeSearchParams />}
-      {nodeName === "MCP Client Tool" && <MCPClientToolParams />}
-      {nodeName === "MCP Server Trigger" && <MCPServerTriggerParams />}
-      {nodeName === "MCP Client" && <MCPClientToolParams />}
-      {nodeName === "Human Approval" && <HumanApprovalParams />}
-      {nodeName === "Agent Evaluation" && <AgentEvaluationParams />}
-      {(nodeName === "Code" || nodeName === "Function" || nodeName === "JavaScript" || nodeName === "Python") && (
-        <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 360 }}>
-          <CodeEditorPanelInline nodeType="Code" />
-        </div>
-      )}
-      {(nodeName === "HTTP Request" || nodeName === "HTTP") && (
-        <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 280 }}>
-          <CodeEditorPanelInline nodeType="HTTP Request" />
-        </div>
-      )}
+      <NodeSpecificParams nodeName={nodeName} />
 
       <button
         onClick={() => setAdvanced((o) => !o)}
@@ -2012,7 +2121,6 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
         </div>
       )}
 
-      {/* Expression Editor Modal */}
       <ExpressionEditorModal
         open={exprModalField !== null}
         onClose={() => setExprModalField(null)}
@@ -2020,6 +2128,191 @@ function ParametersContent({ config, nodeFamily, nodeName }: { config: typeof no
         fieldLabel={exprModalField ?? "Expression"}
       />
     </div>
+  );
+}
+
+/* ── Dynamic field renderer — handles all backend field types ── */
+function DynamicField({
+  field,
+  value,
+  isExprMode,
+  onToggleExpr,
+  onChange,
+  onOpenExprEditor,
+}: {
+  field: NodeEditorField;
+  value: unknown;
+  isExprMode: boolean;
+  onToggleExpr: () => void;
+  onChange: (value: unknown) => void;
+  onOpenExprEditor: () => void;
+}) {
+  const strVal = value != null ? String(value) : String(field.default ?? "");
+  const fieldInputClass = "h-8 w-full rounded-md border border-zinc-200 bg-white px-3 text-[12px] text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all";
+
+  const showExprToggle = !["select", "boolean", "credential"].includes(field.type);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-[11px] font-medium text-zinc-500">
+          {field.label}
+          {field.required && <span className="text-red-400 ml-0.5">*</span>}
+        </label>
+        <div className="flex items-center gap-1">
+          {field.help && (
+            <span className="text-[8px] text-zinc-300 max-w-[120px] truncate" title={field.help}>ⓘ</span>
+          )}
+          {showExprToggle && (
+            <button
+              onClick={onToggleExpr}
+              className={cn(
+                "flex h-5 items-center gap-0.5 rounded px-1.5 text-[9px] font-bold transition-all",
+                isExprMode ? "bg-violet-100 text-violet-700 border border-violet-200" : "text-zinc-300 hover:text-zinc-500 hover:bg-zinc-50"
+              )}
+              title="Toggle expression mode"
+            >
+              <Braces size={9} /> fx
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isExprMode ? (
+        <div
+          onClick={onOpenExprEditor}
+          className="h-8 w-full cursor-pointer rounded-md border border-violet-200 bg-violet-50 px-3 flex items-center text-[12px] text-violet-700 font-mono hover:bg-violet-100 transition-colors"
+        >
+          {strVal.startsWith("={{") ? strVal : `={{ ${strVal || "..."} }}`}
+        </div>
+      ) : field.type === "select" ? (
+        <select
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          className={fieldInputClass}
+        >
+          {field.options?.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      ) : field.type === "boolean" ? (
+        <button
+          onClick={() => onChange(strVal !== "true")}
+          className={cn(
+            "relative h-6 w-11 rounded-full transition-colors",
+            strVal === "true" ? "bg-green-500" : "bg-zinc-200"
+          )}
+        >
+          <span className={cn(
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+            strVal === "true" ? "translate-x-5" : "translate-x-0.5"
+          )} />
+        </button>
+      ) : field.type === "number" ? (
+        <input
+          type="number"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
+          placeholder={field.placeholder ?? ""}
+          className={fieldInputClass}
+        />
+      ) : field.type === "textarea" ? (
+        <textarea
+          rows={3}
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder ?? ""}
+          className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-[12px] text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none"
+        />
+      ) : field.type === "code" ? (
+        <CodeEditor
+          value={strVal}
+          language="json"
+          height="100px"
+          showToolbar={true}
+          showAIAssist={false}
+          showLineNumbers={false}
+          compact
+        />
+      ) : field.type === "credential" ? (
+        <div className="flex items-center gap-2 rounded-md border border-zinc-100 bg-zinc-50/50 px-3 py-2 hover:bg-zinc-50 transition-colors cursor-pointer">
+          <span className="h-[6px] w-[6px] rounded-full bg-green-500 flex-shrink-0 animate-pulse" />
+          <span className="text-[12px] text-zinc-700 flex-1 truncate">{strVal || "Select credential…"}</span>
+          <ChevronRight size={10} className="text-zinc-300" />
+        </div>
+      ) : field.type === "password" ? (
+        <input
+          type="password"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder ?? ""}
+          className={fieldInputClass}
+        />
+      ) : field.type === "tags" ? (
+        <input
+          type="text"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder ?? "Enter tags, comma-separated…"}
+          className={fieldInputClass}
+        />
+      ) : field.type === "keyvalue" ? (
+        <div className="space-y-1.5 rounded-md border border-zinc-200 p-2">
+          <div className="flex items-center gap-2">
+            <input type="text" placeholder="Key" className="h-7 flex-1 rounded border border-zinc-200 px-2 text-[11px]" />
+            <input type="text" placeholder="Value" className="h-7 flex-1 rounded border border-zinc-200 px-2 text-[11px]" />
+            <button className="h-7 w-7 flex items-center justify-center rounded bg-zinc-100 hover:bg-zinc-200 transition-colors">
+              <Plus size={10} className="text-zinc-500" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <input
+          type="text"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder ?? ""}
+          className={fieldInputClass}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Node-specific parameter panels (extracted for reuse) ── */
+function NodeSpecificParams({ nodeName }: { nodeName: string }) {
+  return (
+    <>
+      {nodeName === "Wait" && <WaitNodeParams />}
+      {nodeName === "Switch" && <SwitchNodeParams />}
+      {nodeName === "Merge" && <MergeNodeParams />}
+      {nodeName === "Sort" && <SortNodeParams />}
+      {nodeName === "Summarize" && <SummarizeNodeParams />}
+      {(nodeName === "Compare Datasets" || nodeName === "Compare") && <CompareNodeParams />}
+      {(nodeName === "Set" || nodeName === "Edit Fields" || nodeName === "Set / Edit Fields") && <EditFieldsParams />}
+      {(nodeName === "Sub-workflow" || nodeName === "Execute Workflow") && <ExecuteWorkflowParams />}
+      {(nodeName === "Form Trigger" || nodeName === "Form") && <FormBuilderParams nodeName={nodeName} />}
+      {nodeName === "Chat Trigger" && <ChatTriggerParams />}
+      {(nodeName === "RSS Feed Trigger" || nodeName === "RSS Trigger") && <RssTriggerParams />}
+      {(nodeName === "Schedule Trigger" || nodeName === "Schedule" || nodeName === "Cron") && <ScheduleBuilderParams />}
+      {nodeName === "Vector Store" && <VectorStoreParams />}
+      {(nodeName === "Knowledge Search" || nodeName === "Retriever") && <KnowledgeSearchParams />}
+      {nodeName === "MCP Client Tool" && <MCPClientToolParams />}
+      {nodeName === "MCP Server Trigger" && <MCPServerTriggerParams />}
+      {nodeName === "MCP Client" && <MCPClientToolParams />}
+      {nodeName === "Human Approval" && <HumanApprovalParams />}
+      {nodeName === "Agent Evaluation" && <AgentEvaluationParams />}
+      {(nodeName === "Code" || nodeName === "Function" || nodeName === "JavaScript" || nodeName === "Python") && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 360 }}>
+          <CodeEditorPanelInline nodeType="Code" />
+        </div>
+      )}
+      {(nodeName === "HTTP Request" || nodeName === "HTTP") && (
+        <div className="rounded-lg border border-zinc-200 overflow-hidden" style={{ height: 280 }}>
+          <CodeEditorPanelInline nodeType="HTTP Request" />
+        </div>
+      )}
+    </>
   );
 }
 /* ── Expression field with inline validation + autocomplete ── */

@@ -387,6 +387,19 @@ export function fetchNodeDefinitions() {
   return apiFetch<NodeDefinitionSummary[]>("/api/studio/nodes");
 }
 
+export function fetchNodeDefinition(nodeType: string) {
+  return apiFetch<NodeDefinitionSummary>(`/api/studio/nodes/${nodeType}`);
+}
+
+export function fetchNodeEditor(nodeType: string, opts?: { workflowId?: string; stepId?: string; triggerType?: string }) {
+  const params = new URLSearchParams();
+  if (opts?.workflowId) params.set("workflow_id", opts.workflowId);
+  if (opts?.stepId) params.set("step_id", opts.stepId);
+  if (opts?.triggerType) params.set("trigger_type", opts.triggerType);
+  const qs = params.toString();
+  return apiFetch<NodeEditorResponse>(`/api/studio/nodes/${nodeType}/editor${qs ? `?${qs}` : ""}`);
+}
+
 // Studio bundle — loads entire workflow + catalog + editors in one call
 export interface StudioStepEditorEntry {
   step_id: string;

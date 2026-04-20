@@ -8,6 +8,8 @@ import {
   fetchExecutions,
   fetchExecution,
   fetchNodeCatalog,
+  fetchNodeDefinition,
+  fetchNodeEditor,
   fetchHealth,
   fetchWorkspaces,
   fetchStudioBundle,
@@ -164,6 +166,24 @@ export function useNodeCatalog() {
     queryKey: ["nodeCatalog"],
     queryFn: fetchNodeCatalog,
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useNodeDefinition(nodeType: string | undefined) {
+  return useQuery({
+    queryKey: ["node-definition", nodeType],
+    queryFn: () => fetchNodeDefinition(nodeType!),
+    enabled: !!nodeType,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useNodeEditor(nodeType: string | undefined, opts?: { workflowId?: string; stepId?: string; triggerType?: string }) {
+  return useQuery({
+    queryKey: ["node-editor", nodeType, opts?.workflowId, opts?.stepId],
+    queryFn: () => fetchNodeEditor(nodeType!, opts),
+    enabled: !!nodeType,
+    staleTime: 60_000,
   });
 }
 

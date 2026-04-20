@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     chat_attachment_max_bytes: int = 5 * 1024 * 1024
     chat_attachment_text_preview_chars: int = 8000
     vault_encryption_key: str = ""
+    copilot_model: str = ""  # override LLM for copilot/chat; empty = use default chain
+    copilot_max_tokens: int = 2048
+    free_tier_monthly_tokens: int = 50000  # AI tokens per user/month (0 = unlimited)
+    free_tier_monthly_executions: int = 1000  # workflow runs per user/month
     db_pool_min: int = 2
     db_pool_max: int = 10
     supabase_url: str = ""

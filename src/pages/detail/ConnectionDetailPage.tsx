@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   Plug, Shield, Lock, GitBranch, HeartPulse, FileText, Settings,
-  CheckCircle2, AlertTriangle, RefreshCw, Clock,
+  CheckCircle2, AlertTriangle, RefreshCw, Clock, Zap, RotateCw, Download, Upload,
 } from "lucide-react";
 import { EntityDetailLayout, DetailSection, DetailRow } from "@/layouts/EntityDetailLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { useTestConnection, useRotateSecret } from "@/hooks/useApi";
 
 const connection = {
   id: "conn-001",
@@ -59,6 +60,25 @@ const tabs = [
 export function ConnectionDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
+  const testConn = useTestConnection();
+  const rotateSec = useRotateSecret();
+  const [testResult, setTestResult] = useState<{ success: boolean; checks: { check: string; status: string; detail: string }[]; latency_ms: number } | null>(null);
+
+  const handleTest = async () => {
+    if (!id) return;
+    setTestResult(null);
+    try {
+      const result = await testConn.mutateAsync(id);
+      setTestResult(result);
+    } catch {
+      setTestResult({ success: false, checks: [{ check: "connection", status: "fail", detail: "Test failed — check credentials" }], latency_ms: 0 });
+    }
+  };
+
+  const handleRotate = () => {
+    if (!id) return;
+    rotateSec.mutate(id);
+  };
 
   return (
     <EntityDetailLayout
@@ -73,7 +93,13 @@ export function ConnectionDetailPage() {
       onTabChange={setActiveTab}
       actions={
         <>
-          <Button variant="secondary" size="sm"><RefreshCw size={12} /> Verify Now</Button>
+          <Button variant="secondary" size="sm" onClick={handleTest} disabled={testConn.isPending}>
+            {testConn.isPending ? <RefreshCw size={12} className="animate-spin" /> : <Zap size={12} />}
+            {testConn.isPending ? "Testing…" : "Test Connection"}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleRotate} disabled={rotateSec.isPending}>
+            <RotateCw size={12} /> Rotate Secret
+          </Button>
           <Button variant="secondary" size="sm">Reauthorize</Button>
         </>
       }
@@ -95,6 +121,41 @@ export function ConnectionDetailPage() {
             <MiniStat label="API Calls (30d)" value="2,169" />
             <MiniStat label="Uptime (30d)" value="99.8%" color="green" />
           </div>
+
+          {/* Connection Test Results */}
+          {testResult && (
+            <div className={cn(
+              "rounded-lg border p-4",
+              testResult.success ? "border-green-200 bg-green-50/50" : "border-red-200 bg-red-50/50"
+            )}>
+              <div className="flex items-center gap-2 mb-2">
+                {testResult.success ? <CheckCircle2 size={14} className="text-green-600" /> : <AlertTriangle size={14} className="text-red-600" />}
+                <span className={cn("text-[13px] font-medium", testResult.success ? "text-green-800" : "text-red-800")}>
+                  {testResult.success ? "Connection test passed" : "Connection test failed"}
+                </span>
+                {testResult.latency_ms > 0 && (
+                  <span className="text-[11px] text-zinc-500 ml-auto">{testResult.latency_ms}ms</span>
+                )}
+              </div>
+              <div className="space-y-1 ml-5">
+                {testResult.checks.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[12px]">
+                    <span className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      c.status === "pass" ? "bg-green-500" : c.status === "warn" ? "bg-amber-500" : c.status === "skip" ? "bg-zinc-300" : "bg-red-500"
+                    )} />
+                    <span className="text-zinc-600">{c.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rotateSec.isSuccess && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+              <p className="text-[12px] text-blue-800">Secret rotation scheduled successfully.</p>
+            </div>
+          )}
         </div>
       )}
 

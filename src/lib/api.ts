@@ -1054,3 +1054,38 @@ export interface TimelineEntry {
 export function fetchExecutionTimeline(days = 7) {
   return apiFetch<TimelineEntry[]>(`/api/analytics/timeline?days=${days}`);
 }
+
+
+// ── Vault Connection Test ──
+
+export interface ConnectionTestResult {
+  asset_id: string;
+  connection_name: string;
+  app: string;
+  success: boolean;
+  checks: { check: string; status: string; detail: string }[];
+  latency_ms: number;
+  tested_at: string;
+}
+
+export function testConnection(assetId: string) {
+  return apiFetch<ConnectionTestResult>(`/api/vault/connections/${assetId}/test`, { method: "POST" });
+}
+
+export function rotateSecret(assetId: string) {
+  return apiFetch<{ asset_id: string; name: string; rotation_status: string; message: string }>(
+    `/api/vault/assets/${assetId}/rotate`,
+    { method: "POST" },
+  );
+}
+
+export function exportVault() {
+  return apiFetch<{ workspace_id: string; count: number; assets: Record<string, unknown>[] }>("/api/vault/export");
+}
+
+export function importVault(assets: Record<string, unknown>[]) {
+  return apiFetch<{ imported: number; errors: string[]; total: number }>("/api/vault/import", {
+    method: "POST",
+    body: JSON.stringify({ assets }),
+  });
+}

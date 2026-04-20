@@ -73,6 +73,10 @@ import {
   updateLogConfig,
   fetchLatencyPercentiles,
   fetchExecutionTimeline,
+  testConnection,
+  rotateSecret,
+  exportVault,
+  importVault,
 } from "@/lib/api";
 
 // ── Queries ─────────────────────────────────────────────────────────
@@ -596,5 +600,34 @@ export function useExecutionTimeline(days = 7) {
     queryKey: ["analytics-timeline", days],
     queryFn: () => fetchExecutionTimeline(days),
     staleTime: 30_000,
+  });
+}
+
+
+// ── Vault Connection Hooks ──
+
+export function useTestConnection() {
+  return useMutation({
+    mutationFn: (assetId: string) => testConnection(assetId),
+  });
+}
+
+export function useRotateSecret() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (assetId: string) => rotateSecret(assetId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vault"] }),
+  });
+}
+
+export function useExportVault() {
+  return useMutation({ mutationFn: exportVault });
+}
+
+export function useImportVault() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (assets: Record<string, unknown>[]) => importVault(assets),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vault"] }),
   });
 }

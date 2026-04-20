@@ -4,7 +4,7 @@ import {
   KeyRound, Plus, Search, Link2, Variable, ShieldCheck, Shield,
   Clock, AlertTriangle, User, Cpu, ChevronRight, ChevronDown,
   CheckCircle2, Globe, MoreHorizontal, RefreshCw, Zap, Eye, EyeOff,
-  ArrowRight, Lock, Unlock, Activity,
+  ArrowRight, Lock, Unlock, Activity, Download, Upload,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { CreateCredentialModal } from "@/components/modals/CreateCredentialModal";
 import { CreateVariableModal } from "@/components/modals/CreateVariableModal";
 import { cn } from "@/lib/utils";
+import { useExportVault, useImportVault } from "@/hooks/useApi";
 
 const vaultTabs = [
   { id: "credentials",      label: "Credentials",      icon: KeyRound },
@@ -257,10 +258,36 @@ export function VaultPage() {
   const [showCredModal, setShowCredModal] = useState(false);
   const [showVarModal, setShowVarModal] = useState(false);
   const empty = emptyMessages[activeTab];
+  const exportVaultMut = useExportVault();
+  const importVaultMut = useImportVault();
 
   const handleNewClick = () => {
     if (activeTab === "credentials") setShowCredModal(true);
     else if (activeTab === "variables") setShowVarModal(true);
+  };
+
+  const handleExport = () => {
+    exportVaultMut.mutate(undefined, {
+      onSuccess: (data) => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = "vault-export.json"; a.click();
+        URL.revokeObjectURL(url);
+      },
+    });
+  };
+
+  const handleImport = () => {
+    const input = document.createElement("input"); input.type = "file"; input.accept = ".json";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      file.text().then((text) => {
+        const parsed = JSON.parse(text);
+        importVaultMut.mutate(parsed.assets || parsed);
+      });
+    };
+    input.click();
   };
 
   const summaryStats = {
@@ -280,6 +307,12 @@ export function VaultPage() {
         description="Credentials, connections, variables, and secrets."
         actions={
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-[11px]" onClick={handleExport} disabled={exportVaultMut.isPending}>
+              <Download size={12} /> Export
+            </Button>
+            <Button variant="ghost" size="sm" className="text-[11px]" onClick={handleImport} disabled={importVaultMut.isPending}>
+              <Upload size={12} /> Import
+            </Button>
             <Button variant="secondary" size="md">
               <RefreshCw size={13} /> Verify All
             </Button>

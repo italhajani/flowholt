@@ -5,7 +5,52 @@
 
 ---
 
-## Session 44 — Sprints 54-55: Execution Wiring & Copilot AI (Latest)
+## Session 45 — Sprints 56-58: Executions, Credentials, Settings Wiring (Latest)
+
+**Sprints completed:** 56, 57, 58
+**Todos done:** 383+ total
+**Build:** 140 KB main + 438 KB studio chunk | 0 errors
+**Commits:** `6061c921` (lazy-load fix), `2e104844` (Sprint 56), `cf06b973` (Sprint 57), `ccd1495a` (Sprint 58)
+
+### Bug Fix — "Cannot access 'qt' before initialization"
+- Root cause: StudioLayout eagerly imported in App.tsx pulled 14+ components into main bundle
+- Rollup misordered module initialization → TDZ error on production build
+- Fix: lazy(() => import("@/layouts/StudioLayout")) with PageSuspense wrapper
+- Main bundle: 578KB → 140KB, studio loads on-demand at 438KB
+
+### Sprint 56 — Executions Tab + Node Test Output
+- Replaced placeholder Executions tab with StudioExecutionsTab
+- Real useWorkflowExecutions hook with status filters, retry/delete actions
+- Enhanced Node Test button: captures TestStepResponse, Output tab shows live results
+- LIVE badge indicator for real vs pinned data
+
+### Sprint 57 — Credential Management UI Wiring
+- VaultPage wired to real backend (useVaultCredentials/Connections/Variables)
+- Falls back to mock data when backend unavailable
+- CredentialPicker component: live dropdown from vault with status indicators
+- StudioInspector Parameters tab uses CredentialPicker instead of static display
+- CreateCredentialModal already wired to useCreateVaultAsset
+
+### Sprint 58 — Settings Backend + Frontend Wiring
+- New backend settings router: /api/me/profile, /api/me/preferences, /api/api-keys
+- user_preferences table + api_keys table in SQLite schema
+- ProfileSettings: real profile load/save (name, bio, timezone)
+- PreferencesSettings: real save for theme, editor font, code theme
+- WorkspaceGeneralSettings: real API key management (create, list, delete)
+- 7 new API functions + 7 new React Query hooks
+
+**Files modified:** App.tsx, StudioLayout.tsx, StudioInspector.tsx, VaultPage.tsx,
+ProfileSettings.tsx, PreferencesSettings.tsx, WorkspaceGeneralSettings.tsx,
+api.ts, useApi.ts, CreateCredentialModal.tsx, backend settings router + db + models + main
+
+### Next Priorities
+- Sprint 59+: Workflow pinned data UI, human approval UI, error handler workflow
+- Supabase integration planning, auth/login/signup
+- Free tier token system, .env template
+
+---
+
+## Session 44 — Sprints 54-55: Execution Wiring & Copilot AI
 
 **Sprints completed:** 54, 55
 **Todos done:** 370+ total

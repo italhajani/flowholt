@@ -112,11 +112,16 @@ function Divider() {
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname.startsWith(path);
+
+  const go = (path: string) => {
+    navigate(path);
+    onNavigate?.();
+  };
 
   return (
     <nav
@@ -129,7 +134,7 @@ export function AppSidebar() {
     >
       {/* Brand mark */}
       <button
-        onClick={() => navigate("/home")}
+        onClick={() => go("/home")}
         title="FlowHolt"
         className="mb-3 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white transition-opacity duration-150 hover:opacity-80"
         style={{ background: "var(--color-fg-default)" }}
@@ -146,7 +151,7 @@ export function AppSidebar() {
             label={item.label}
             active={isActive(item.path)}
             badge={item.badge}
-            onClick={() => navigate(item.path)}
+            onClick={() => go(item.path)}
           />
         ))}
 
@@ -159,7 +164,7 @@ export function AppSidebar() {
             label={item.label}
             active={isActive(item.path)}
             badge={item.badge}
-            onClick={() => navigate(item.path)}
+            onClick={() => go(item.path)}
           />
         ))}
 
@@ -172,7 +177,7 @@ export function AppSidebar() {
             label={item.label}
             active={isActive(item.path)}
             badge={item.badge}
-            onClick={() => navigate(item.path)}
+            onClick={() => go(item.path)}
           />
         ))}
       </div>
@@ -183,7 +188,7 @@ export function AppSidebar() {
         style={{ borderTop: "1px solid var(--color-border-default)" }}
       >
         <button
-          onClick={() => navigate("/settings")}
+          onClick={() => go("/settings")}
           title="Settings"
           className="flex w-full flex-col items-center justify-center gap-[3px] rounded-lg py-[7px] px-1 text-zinc-400 transition-all duration-150 hover:bg-zinc-50 hover:text-zinc-600 select-none"
         >

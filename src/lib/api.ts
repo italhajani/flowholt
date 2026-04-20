@@ -34,6 +34,7 @@ export interface WorkflowStep {
   type: string;
   name: string;
   config: Record<string, unknown>;
+  position?: { x: number; y: number };
 }
 
 export interface WorkflowEdge {

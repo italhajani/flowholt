@@ -5,7 +5,61 @@
 
 ---
 
-## Session 45 — Sprints 56-58: Executions, Credentials, Settings Wiring (Latest)
+## Session 46 — Sprints 59-63: Data Wiring, Auth, Studio Canvas Loading (Latest)
+
+**Sprints completed:** 59, 60, 61, 62, 63
+**Todos done:** 400+ total
+**Build:** 141 KB main + 440 KB studio chunk | 0 errors
+**Commits:** `ee586308` (S59), `776c6d09` (S60), `ff8deb43` (S61), `3652fb8f` (S62), `658925f9` (TDZ fix)
+
+### Sprint 59 — Pinned Data UI Wiring
+- Pin Data tab pulse indicator dot when node has pinned data
+- runWorkflow API/hook accepts pinnedData param
+- StudioRuntimeBar collects pinned data from canvas store on run
+
+### Sprint 60 — Error Handling Persistence + OAuth Wiring
+- SettingsContent persists error config via useUpdateWorkflowStep
+- 4 OAuth API functions + 4 React Query hooks
+- ProvidersPage wired to backend /api/oauth2/providers with mock fallback
+
+### Sprint 61 — Wire Remaining Pages to Real Backend
+- HumanTasksPage: useHumanTasks with approve/reject via useCompleteHumanTask
+- DataPage: useKnowledgeBases for Knowledge tab
+- OperationsPage: useErrorTrackedWorkflows + useDeadLetters
+
+### Sprint 62 — Login/Signup Auth + Route Guard
+- LoginPage: email/password form wired to useAuth().login with error/loading states
+- SignupPage: form wired to useAuth().signup with password validation
+- RequireAuth route guard: auto dev-login fallback, redirect to /auth/login
+- App.tsx: protected routes wrapped with RequireAuth
+
+### Bug Fix — Studio TDZ Error (second occurrence)
+- StudioCanvas re-exported from canvasTypes while importing useCanvasStore
+- Created circular dependency → 'Cannot access qt before initialization'
+- Fix: removed re-export line from StudioCanvas.tsx
+
+### Sprint 63 — Canvas Data from Backend
+- StudioLayout calls canvasStore.loadWorkflow(bundle.workflow) when bundle arrives
+- Canvas now shows real workflow steps/edges from backend instead of demo nodes
+- WorkflowStep gains position field for persisting node x/y coordinates
+- toDefinition() saves positions back; stepToCanvasNode reads them
+
+**Files modified:** LoginPage.tsx, SignupPage.tsx, RequireAuth.tsx (new), App.tsx,
+StudioLayout.tsx, StudioCanvas.tsx, useCanvasStore.tsx, api.ts,
+StudioInspector.tsx, StudioRuntimeBar.tsx, useApi.ts,
+ProvidersPage.tsx, HumanTasksPage.tsx, DataPage.tsx, OperationsPage.tsx
+
+### Next Priorities
+- Supabase integration as primary database
+- Per-user workspace isolation
+- Free tier token tracking system
+- .env template for credentials
+- Settings pages → real API binding
+- Detail pages → real data binding
+
+---
+
+## Session 45 — Sprints 56-58: Executions, Credentials, Settings Wiring
 
 **Sprints completed:** 56, 57, 58
 **Todos done:** 383+ total

@@ -18,8 +18,8 @@ function stepToCanvasNode(step: WorkflowStep, idx: number): CanvasNodeData {
     name: step.name,
     subtitle: step.type,
     family,
-    top: 120 + Math.floor(idx / 4) * 140,
-    left: 80 + (idx % 4) * 260,
+    top: step.position?.y ?? (120 + Math.floor(idx / 4) * 140),
+    left: step.position?.x ?? (80 + (idx % 4) * 260),
   };
 }
 
@@ -272,6 +272,7 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
       type: n.subtitle || "unknown",
       name: n.name,
       config: {},
+      position: { x: n.left, y: n.top },
     }));
     const defEdges: ApiEdge[] = edges.map(([src, tgt], i) => ({
       id: `e${i}`,

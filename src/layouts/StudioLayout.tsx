@@ -26,6 +26,13 @@ function StudioLayoutInner() {
   const { workflowId } = useParams();
   const canvasStore = useCanvasStore();
 
+  // Load workflow definition into canvas when bundle arrives
+  useEffect(() => {
+    if (bundle?.workflow) {
+      canvasStore.loadWorkflow(bundle.workflow);
+    }
+  }, [bundle?.workflow?.id]);
+
   // Auto-save: debounce canvas changes → backend
   const updateMutation = useUpdateWorkflow(workflowId ?? "");
   const { data: bundle } = useStudioBundle(workflowId);

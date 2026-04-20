@@ -2938,3 +2938,198 @@ def complete_webhook_queue_item(q_id: str, *, success: bool, error: str | None =
                         "UPDATE webhook_queue SET status='pending', next_retry_at=?, error_message=? WHERE id=?",
                         (retry_at, error, q_id),
                     )
+
+
+# ── Webhook Queue Listing & Management ──
+
+def list_webhook_queue(
+    *, status: str | None = None, webhook_id: str | None = None, limit: int = 50
+) -> list[dict]:
+    clauses, params = [], []
+    if status:
+        clauses.append("status=?")
+        params.append(status)
+    if webhook_id:
+        clauses.append("webhook_id=?")
+        params.append(webhook_id)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit)
+    with get_db() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM webhook_queue {where} ORDER BY created_at DESC LIMIT ?", params
+        ).fetchall()
+    return [row_to_dict(r) for r in rows]
+
+
+def retry_webhook_queue_item(q_id: str) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM webhook_queue WHERE id=?", (q_id,)).fetchone()
+        if not row:
+            return None
+        conn.execute(
+            "UPDATE webhook_queue SET status='pending', next_retry_at=NULL, error_message=NULL WHERE id=?",
+            (q_id,),
+        )
+        return {**row_to_dict(row), "status": "pending"}
+
+
+def delete_webhook_queue_item(q_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM webhook_queue WHERE id=?", (q_id,))
+    return cur.rowcount > 0
+
+
+# ── Polling Triggers ──
+
+def create_polling_trigger(data: dict) -> dict:
+    pt_id = f"pt-{uuid.uuid4().hex[:12]}"
+    now = utc_now()
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO polling_triggers
+               (id, workflow_id, name, url, method, headers_json, auth_type, auth_config_json,
+                interval_seconds, last_polled_at, last_cursor, active, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,NULL,NULL,1,?,?)""",
+            (pt_id, data["workflow_id"], data.get("name", "Polling Trigger"),
+             data["url"], data.get("method", "GET"),
+             json.dumps(data.get("headers", {})), data.get("auth_type", "none"),
+             json.dumps(data.get("auth_config", {})),
+             data.get("interval_seconds", 300), now, now),
+        )
+    return get_polling_trigger(pt_id)  # type: ignore[return-value]
+
+
+def get_polling_trigger(pt_id: str) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM polling_triggers WHERE id=?", (pt_id,)).fetchone()
+    if not row:
+        return None
+    item = row_to_dict(row)
+    item["active"] = bool(item.get("active", 1))
+    for col in ("headers_json", "auth_config_json"):
+        if isinstance(item.get(col), str):
+            item[col] = json.loads(item[col])
+    return item
+
+
+def list_polling_triggers(workflow_id: str | None = None) -> list[dict]:
+    with get_db() as conn:
+        if workflow_id:
+            rows = conn.execute(
+                "SELECT * FROM polling_triggers WHERE workflow_id=? ORDER BY created_at DESC",
+                (workflow_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM polling_triggers ORDER BY created_at DESC"
+            ).fetchall()
+    results = []
+    for r in rows:
+        item = row_to_dict(r)
+        item["active"] = bool(item.get("active", 1))
+        for col in ("headers_json", "auth_config_json"):
+            if isinstance(item.get(col), str):
+                item[col] = json.loads(item[col])
+        results.append(item)
+    return results
+
+
+def update_polling_trigger(pt_id: str, data: dict) -> dict | None:
+    updates, params = [], []
+    for col in ("name", "url", "method", "auth_type", "interval_seconds", "last_polled_at", "last_cursor"):
+        if col in data and data[col] is not None:
+            updates.append(f"{col}=?")
+            params.append(data[col])
+    if "headers" in data:
+        updates.append("headers_json=?")
+        params.append(json.dumps(data["headers"]))
+    if "auth_config" in data:
+        updates.append("auth_config_json=?")
+        params.append(json.dumps(data["auth_config"]))
+    if "active" in data:
+        updates.append("active=?")
+        params.append(1 if data["active"] else 0)
+    if not updates:
+        return get_polling_trigger(pt_id)
+    updates.append("updated_at=?")
+    params.append(utc_now())
+    params.append(pt_id)
+    with get_db() as conn:
+        conn.execute(f"UPDATE polling_triggers SET {','.join(updates)} WHERE id=?", params)
+    return get_polling_trigger(pt_id)
+
+
+def delete_polling_trigger(pt_id: str) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM polling_triggers WHERE id=?", (pt_id,))
+    return cur.rowcount > 0
+
+
+# ── Internal Event Bus ──
+
+def emit_internal_event(data: dict) -> dict:
+    evt_id = f"evt-{uuid.uuid4().hex[:12]}"
+    now = utc_now()
+    workspace_id = data.get("workspace_id", "default")
+    event_type = data["event_type"]
+    payload = json.dumps(data.get("payload", {}))
+
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO internal_events
+               (id, workspace_id, event_type, payload_json, source_workflow_id, created_at)
+               VALUES (?,?,?,?,?,?)""",
+            (evt_id, workspace_id, event_type, payload,
+             data.get("source_workflow_id"), now),
+        )
+        # Find workflows listening for this event type
+        listeners = conn.execute(
+            """SELECT * FROM polling_triggers
+               WHERE active=1 AND url=? AND method='EVENT'""",
+            (event_type,),
+        ).fetchall()
+
+    # Queue jobs for listening workflows
+    triggered = []
+    for listener in listeners:
+        lt = row_to_dict(listener)
+        job = create_workflow_job(
+            workspace_id=workspace_id,
+            workflow_id=lt["workflow_id"],
+            workflow_version_id=None,
+            initiated_by_user_id=None,
+            environment="draft",
+            trigger_type="event",
+            payload={"_event_type": event_type, **data.get("payload", {})},
+        )
+        triggered.append({"workflow_id": lt["workflow_id"], "job_id": job["id"]})
+
+    return {
+        "id": evt_id,
+        "event_type": event_type,
+        "triggered_workflows": len(triggered),
+        "details": triggered,
+    }
+
+
+def list_internal_events(
+    *, event_type: str | None = None, limit: int = 50
+) -> list[dict]:
+    with get_db() as conn:
+        if event_type:
+            rows = conn.execute(
+                "SELECT * FROM internal_events WHERE event_type=? ORDER BY created_at DESC LIMIT ?",
+                (event_type, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM internal_events ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+    results = []
+    for r in rows:
+        item = row_to_dict(r)
+        if isinstance(item.get("payload_json"), str):
+            item["payload"] = json.loads(item["payload_json"])
+        results.append(item)
+    return results

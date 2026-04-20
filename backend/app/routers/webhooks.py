@@ -1,8 +1,9 @@
-"""Webhook endpoints, delivery logs, and workflow trigger API."""
+"""Webhook endpoints, delivery logs, queue management, and workflow trigger API."""
 from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -11,6 +12,9 @@ from .. import repository as repo
 from ..deps import get_session_context, require_workspace_role, record_audit_event
 
 router = APIRouter(prefix="/api", tags=["webhooks"])
+
+# In-memory sliding window counters for per-webhook rate limiting
+_webhook_rate_windows: dict[str, list[float]] = {}
 
 
 # ── Webhook Endpoint CRUD ──
@@ -87,6 +91,106 @@ def list_deliveries(
     return repo.list_webhook_deliveries(wh_id, limit=limit, offset=offset)
 
 
+# ── Webhook Queue ──
+
+@router.get("/webhooks/queue/items")
+def list_queue_items(
+    status: str | None = None,
+    webhook_id: str | None = None,
+    limit: int = 50,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    """List webhook queue items (pending, processing, dead_letter)."""
+    return repo.list_webhook_queue(status=status, webhook_id=webhook_id, limit=limit)
+
+
+@router.post("/webhooks/queue/{q_id}/retry")
+def retry_queue_item(
+    q_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Reset a dead-lettered or failed queue item for retry."""
+    require_workspace_role(session, "owner", "admin", "builder")
+    result = repo.retry_webhook_queue_item(q_id)
+    if not result:
+        raise HTTPException(404, "Queue item not found")
+    return result
+
+
+@router.delete("/webhooks/queue/{q_id}")
+def drop_queue_item(
+    q_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, str]:
+    """Remove a queue item (dead letter) permanently."""
+    require_workspace_role(session, "owner", "admin")
+    if not repo.delete_webhook_queue_item(q_id):
+        raise HTTPException(404, "Queue item not found")
+    return {"status": "deleted"}
+
+
+# ── Polling Triggers ──
+
+@router.get("/polling-triggers")
+def list_polling_triggers(
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    return repo.list_polling_triggers()
+
+
+@router.post("/polling-triggers", status_code=201)
+def create_polling_trigger(
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    require_workspace_role(session, "owner", "admin", "builder")
+    return repo.create_polling_trigger(body)
+
+
+@router.patch("/polling-triggers/{trigger_id}")
+def update_polling_trigger(
+    trigger_id: str,
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    require_workspace_role(session, "owner", "admin", "builder")
+    result = repo.update_polling_trigger(trigger_id, body)
+    if not result:
+        raise HTTPException(404, "Polling trigger not found")
+    return result
+
+
+@router.delete("/polling-triggers/{trigger_id}", status_code=204)
+def delete_polling_trigger(
+    trigger_id: str,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> None:
+    require_workspace_role(session, "owner", "admin")
+    if not repo.delete_polling_trigger(trigger_id):
+        raise HTTPException(404, "Polling trigger not found")
+
+
+# ── Internal Event Bus ──
+
+@router.post("/events/emit")
+def emit_event(
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Emit an internal event that can trigger listening workflows."""
+    require_workspace_role(session, "owner", "admin", "builder")
+    return repo.emit_internal_event(body)
+
+
+@router.get("/events")
+def list_events(
+    event_type: str | None = None,
+    limit: int = 50,
+    session: dict[str, Any] = Depends(get_session_context),
+) -> list[dict[str, Any]]:
+    return repo.list_internal_events(event_type=event_type, limit=limit)
+
+
 # ── Workflow Run Trigger (API Trigger) ──
 
 @router.post("/workflows/{workflow_id}/run")
@@ -126,7 +230,7 @@ def trigger_workflow_run(
 
 @router.api_route("/webhook/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 async def receive_webhook(path: str, request: Request) -> dict[str, Any]:
-    """Catch-all webhook receiver — logs delivery, enqueues for processing."""
+    """Catch-all webhook receiver — enforces rate limits, expiration, logs delivery, enqueues."""
     method = request.method
     headers = dict(request.headers)
     query = dict(request.query_params)
@@ -147,6 +251,29 @@ async def receive_webhook(path: str, request: Request) -> dict[str, Any]:
 
     if not target.get("active", True):
         raise HTTPException(410, "Webhook is disabled")
+
+    # Expiration check
+    expires_at = target.get("expires_at")
+    if expires_at:
+        try:
+            exp_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) > exp_dt:
+                _repo.update_webhook_endpoint(target["id"], {"active": False})
+                raise HTTPException(410, "Webhook has expired")
+        except (ValueError, TypeError):
+            pass
+
+    # Per-webhook rate limiting (sliding window)
+    rate_max = target.get("rate_limit_max", 300)
+    rate_window = target.get("rate_limit_window_sec", 10)
+    wh_id = target["id"]
+    now = time.time()
+    window = _webhook_rate_windows.setdefault(wh_id, [])
+    cutoff = now - rate_window
+    _webhook_rate_windows[wh_id] = [t for t in window if t > cutoff]
+    if len(_webhook_rate_windows[wh_id]) >= rate_max:
+        raise HTTPException(429, f"Rate limit exceeded: {rate_max} requests per {rate_window}s")
+    _webhook_rate_windows[wh_id].append(now)
 
     start = time.time()
     delivery = _repo.record_webhook_delivery({

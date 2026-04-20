@@ -620,44 +620,147 @@ export function markNotificationRead(id: string) {
 
 export interface WebhookEndpoint {
   id: string;
-  name: string;
+  workflow_id: string;
   path: string;
   method: string;
-  workflow_id: string;
-  status: "active" | "paused" | "disabled";
-  signing_secret: string | null;
+  auth_type: string;
+  auth_config: Record<string, unknown>;
+  rate_limit_max: number;
+  rate_limit_window_sec: number;
+  active: boolean;
+  expires_at: string | null;
   created_at: string;
-  last_triggered: string | null;
+  updated_at: string;
 }
 
 export interface WebhookDelivery {
   id: string;
-  endpoint_id: string;
-  status: "success" | "failed" | "pending";
+  webhook_id: string;
+  execution_id: string | null;
+  method: string;
+  path: string;
+  headers: Record<string, string>;
+  body: string | null;
+  query_params: Record<string, string>;
+  source_ip: string | null;
   status_code: number;
-  duration_ms: number;
-  timestamp: string;
+  response_body: string | null;
+  latency_ms: number;
+  created_at: string;
+}
+
+export interface WebhookQueueItem {
+  id: string;
+  webhook_id: string;
+  delivery_id: string;
+  payload: string;
+  priority: number;
+  attempts: number;
+  max_retries: number;
+  next_retry_at: string | null;
+  status: "pending" | "processing" | "completed" | "dead_letter";
+  error_message: string | null;
+  created_at: string;
+  processed_at: string | null;
+}
+
+export interface PollingTrigger {
+  id: string;
+  workflow_id: string;
+  name: string;
+  url: string;
+  method: string;
+  headers_json: Record<string, string>;
+  auth_type: string;
+  auth_config_json: Record<string, unknown>;
+  interval_seconds: number;
+  last_polled_at: string | null;
+  last_cursor: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InternalEvent {
+  id: string;
+  workspace_id: string;
+  event_type: string;
+  payload: Record<string, unknown>;
+  source_workflow_id: string | null;
+  created_at: string;
 }
 
 export function fetchWebhookEndpoints() {
   return apiFetch<WebhookEndpoint[]>("/api/webhooks");
 }
 
-export function createWebhookEndpoint(payload: { name: string; workflow_id: string; method?: string }) {
+export function fetchWebhookEndpoint(id: string) {
+  return apiFetch<WebhookEndpoint>(`/api/webhooks/${id}`);
+}
+
+export function createWebhookEndpoint(payload: Record<string, unknown>) {
   return apiFetch<WebhookEndpoint>("/api/webhooks", { method: "POST", body: JSON.stringify(payload) });
 }
 
 export function updateWebhookEndpoint(id: string, payload: Partial<WebhookEndpoint>) {
-  return apiFetch<WebhookEndpoint>(`/api/webhooks/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  return apiFetch<WebhookEndpoint>(`/api/webhooks/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
 export function deleteWebhookEndpoint(id: string) {
   return apiFetch<void>(`/api/webhooks/${id}`, { method: "DELETE" });
 }
 
-export function fetchWebhookDeliveries(webhookId: string, limit?: number) {
-  const qs = limit ? `?limit=${limit}` : "";
+export function fetchWebhookDeliveries(webhookId: string, limit?: number, offset?: number) {
+  const params = new URLSearchParams();
+  if (limit) params.set("limit", String(limit));
+  if (offset) params.set("offset", String(offset));
+  const qs = params.toString() ? `?${params}` : "";
   return apiFetch<WebhookDelivery[]>(`/api/webhooks/${webhookId}/deliveries${qs}`);
+}
+
+export function fetchWebhookQueue(status?: string, webhookId?: string, limit?: number) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (webhookId) params.set("webhook_id", webhookId);
+  if (limit) params.set("limit", String(limit));
+  const qs = params.toString() ? `?${params}` : "";
+  return apiFetch<WebhookQueueItem[]>(`/api/webhooks/queue/items${qs}`);
+}
+
+export function retryQueueItem(queueId: string) {
+  return apiFetch<WebhookQueueItem>(`/api/webhooks/queue/${queueId}/retry`, { method: "POST" });
+}
+
+export function dropQueueItem(queueId: string) {
+  return apiFetch<void>(`/api/webhooks/queue/${queueId}`, { method: "DELETE" });
+}
+
+export function fetchPollingTriggers() {
+  return apiFetch<PollingTrigger[]>("/api/polling-triggers");
+}
+
+export function createPollingTrigger(payload: Record<string, unknown>) {
+  return apiFetch<PollingTrigger>("/api/polling-triggers", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function updatePollingTrigger(id: string, payload: Partial<PollingTrigger>) {
+  return apiFetch<PollingTrigger>(`/api/polling-triggers/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export function deletePollingTrigger(id: string) {
+  return apiFetch<void>(`/api/polling-triggers/${id}`, { method: "DELETE" });
+}
+
+export function emitInternalEvent(payload: { event_type: string; payload?: Record<string, unknown>; source_workflow_id?: string }) {
+  return apiFetch<InternalEvent>("/api/events/emit", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function fetchInternalEvents(eventType?: string, limit?: number) {
+  const params = new URLSearchParams();
+  if (eventType) params.set("event_type", eventType);
+  if (limit) params.set("limit", String(limit));
+  const qs = params.toString() ? `?${params}` : "";
+  return apiFetch<InternalEvent[]>(`/api/events${qs}`);
 }
 
 // ---------------------------------------------------------------------------

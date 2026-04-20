@@ -30,10 +30,20 @@ import {
   fetchNotifications,
   markNotificationRead,
   fetchWebhookEndpoints,
+  fetchWebhookEndpoint,
   createWebhookEndpoint,
   updateWebhookEndpoint,
   deleteWebhookEndpoint,
   fetchWebhookDeliveries,
+  fetchWebhookQueue,
+  retryQueueItem,
+  dropQueueItem,
+  fetchPollingTriggers,
+  createPollingTrigger,
+  updatePollingTrigger,
+  deletePollingTrigger,
+  emitInternalEvent,
+  fetchInternalEvents,
   fetchHumanTasks,
   completeHumanTask,
   fetchAgents,
@@ -353,19 +363,36 @@ export function useWebhookEndpoints() {
   });
 }
 
-export function useWebhookDeliveries(webhookId: string | undefined, limit?: number) {
+export function useWebhookEndpoint(id: string | undefined) {
   return useQuery({
-    queryKey: ["webhookDeliveries", webhookId, limit],
-    queryFn: () => fetchWebhookDeliveries(webhookId!, limit),
+    queryKey: ["webhookEndpoint", id],
+    queryFn: () => fetchWebhookEndpoint(id!),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+}
+
+export function useWebhookDeliveries(webhookId: string | undefined, limit?: number, offset?: number) {
+  return useQuery({
+    queryKey: ["webhookDeliveries", webhookId, limit, offset],
+    queryFn: () => fetchWebhookDeliveries(webhookId!, limit, offset),
     enabled: !!webhookId,
     staleTime: 15_000,
+  });
+}
+
+export function useWebhookQueue(status?: string, webhookId?: string) {
+  return useQuery({
+    queryKey: ["webhookQueue", status, webhookId],
+    queryFn: () => fetchWebhookQueue(status, webhookId),
+    staleTime: 10_000,
   });
 }
 
 export function useCreateWebhookEndpoint() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { name: string; workflow_id: string; method?: string }) =>
+    mutationFn: (payload: Record<string, unknown>) =>
       createWebhookEndpoint(payload),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookEndpoints"] }); },
   });
@@ -376,7 +403,10 @@ export function useUpdateWebhookEndpoint() {
   return useMutation({
     mutationFn: (opts: { id: string; payload: Record<string, unknown> }) =>
       updateWebhookEndpoint(opts.id, opts.payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookEndpoints"] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhookEndpoints"] });
+      qc.invalidateQueries({ queryKey: ["webhookEndpoint"] });
+    },
   });
 }
 
@@ -385,6 +415,74 @@ export function useDeleteWebhookEndpoint() {
   return useMutation({
     mutationFn: (id: string) => deleteWebhookEndpoint(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookEndpoints"] }); },
+  });
+}
+
+export function useRetryQueueItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (queueId: string) => retryQueueItem(queueId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookQueue"] }); },
+  });
+}
+
+export function useDropQueueItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (queueId: string) => dropQueueItem(queueId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["webhookQueue"] }); },
+  });
+}
+
+// ── Sprint 40: Polling Triggers & Event Bus ─────────────────────────
+
+export function usePollingTriggers() {
+  return useQuery({
+    queryKey: ["pollingTriggers"],
+    queryFn: fetchPollingTriggers,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreatePollingTrigger() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) => createPollingTrigger(payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pollingTriggers"] }); },
+  });
+}
+
+export function useUpdatePollingTrigger() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (opts: { id: string; payload: Record<string, unknown> }) =>
+      updatePollingTrigger(opts.id, opts.payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pollingTriggers"] }); },
+  });
+}
+
+export function useDeletePollingTrigger() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deletePollingTrigger(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["pollingTriggers"] }); },
+  });
+}
+
+export function useInternalEvents(eventType?: string) {
+  return useQuery({
+    queryKey: ["internalEvents", eventType],
+    queryFn: () => fetchInternalEvents(eventType),
+    staleTime: 15_000,
+  });
+}
+
+export function useEmitEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { event_type: string; payload?: Record<string, unknown> }) =>
+      emitInternalEvent(payload),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["internalEvents"] }); },
   });
 }
 

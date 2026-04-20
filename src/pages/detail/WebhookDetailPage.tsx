@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   Webhook, Copy, CheckCircle, XCircle, Clock, RefreshCw,
@@ -12,115 +12,64 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  useWebhookEndpoint,
+  useWebhookDeliveries,
+  useWebhookQueue,
+  useUpdateWebhookEndpoint,
+  useRetryQueueItem,
+  useDropQueueItem,
+} from "@/hooks/useApi";
+import type { WebhookDelivery as APIDelivery, WebhookQueueItem } from "@/lib/api";
 
-/* ── Mock data ── */
-const webhook = {
-  id: "wh1",
-  name: "Stripe Events",
-  status: "active" as const,
-  path: "/hooks/stripe-events",
-  method: "POST",
-  workflow: "Lead Qualification Pipeline",
-  url: "https://api.flowholt.com/webhooks/hooks/stripe-events",
-  createdAt: "Jan 8, 2026",
-  lastTriggered: "2 min ago",
-  deliveries24h: 47,
-  successRate: 100,
-  avgLatency: "124ms",
-  queuePending: 0,
-  signingSecret: "whsec_••••••••••••••••",
-  requireSignature: true,
-  rateLimit: 1000,
-  expiryDays: 5,
-  sequentialProcessing: false,
-};
-
-/* ── Delivery rows ── */
-interface Delivery {
-  id: string;
-  event: string;
-  status: "success" | "failed";
-  httpStatus: number;
-  duration: string;
-  timestamp: string;
+function formatTimeAgo(iso: string | null): string {
+  if (!iso) return "Never";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
-const mockDeliveries: Delivery[] = [
-  { id: "dl1", event: "invoice.paid", status: "success", httpStatus: 200, duration: "124ms", timestamp: "2 min ago" },
-  { id: "dl2", event: "customer.created", status: "success", httpStatus: 200, duration: "98ms", timestamp: "10 min ago" },
-  { id: "dl3", event: "charge.failed", status: "failed", httpStatus: 502, duration: "30.1s", timestamp: "25 min ago" },
-  { id: "dl4", event: "invoice.upcoming", status: "success", httpStatus: 200, duration: "112ms", timestamp: "1h ago" },
-  { id: "dl5", event: "payment_intent.succeeded", status: "success", httpStatus: 200, duration: "89ms", timestamp: "2h ago" },
-  { id: "dl6", event: "subscription.updated", status: "success", httpStatus: 200, duration: "145ms", timestamp: "3h ago" },
-];
-
-const deliveryColumns: Column<Delivery>[] = [
+const deliveryColumns: Column<APIDelivery>[] = [
   {
     id: "status", header: "", className: "w-8",
-    accessor: (row) => row.status === "success"
+    accessor: (row) => row.status_code < 300
       ? <CheckCircle size={14} className="text-green-500" />
       : <XCircle size={14} className="text-red-500" />,
   },
   {
-    id: "event", header: "Event",
-    accessor: (row) => <code className="text-[11px] font-mono text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded">{row.event}</code>,
+    id: "method", header: "Method",
+    accessor: (row) => <span className="font-mono text-[11px] text-zinc-600">{row.method}</span>,
+  },
+  {
+    id: "path", header: "Path",
+    accessor: (row) => <code className="text-[11px] font-mono text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded">{row.path}</code>,
   },
   {
     id: "httpStatus", header: "HTTP Status",
     accessor: (row) => (
-      <Badge variant={row.httpStatus < 300 ? "success" : row.httpStatus < 500 ? "warning" : "danger"}>
-        {row.httpStatus}
+      <Badge variant={row.status_code < 300 ? "success" : row.status_code < 500 ? "warning" : "danger"}>
+        {row.status_code}
       </Badge>
     ),
   },
-  { id: "duration", header: "Duration", sortable: true, hideBelow: "md", accessor: (row) => <span className="font-mono text-[12px] text-zinc-500">{row.duration}</span> },
-  { id: "timestamp", header: "Time", sortable: true, accessor: (row) => <span className="text-zinc-400 text-[12px]">{row.timestamp}</span> },
-  {
-    id: "actions", header: "", className: "w-12",
-    accessor: (row) => row.status === "failed"
-      ? <Button variant="ghost" size="sm" className="text-[11px]"><RefreshCw size={10} /> Retry</Button>
-      : null,
-  },
+  { id: "duration", header: "Latency", sortable: true, hideBelow: "md", accessor: (row) => <span className="font-mono text-[12px] text-zinc-500">{row.latency_ms}ms</span> },
+  { id: "ip", header: "Source IP", hideBelow: "lg", accessor: (row) => <span className="text-zinc-400 text-[11px] font-mono">{row.source_ip || "—"}</span> },
+  { id: "timestamp", header: "Time", sortable: true, accessor: (row) => <span className="text-zinc-400 text-[12px]">{formatTimeAgo(row.created_at)}</span> },
 ];
 
-/* ── Queue rows ── */
-interface QueueItem {
-  id: string;
-  status: "pending" | "processing" | "failed";
-  received: string;
-  processed: string;
-  error: string;
-}
-
-const mockQueue: QueueItem[] = [
-  { id: "q1", status: "pending", received: "30s ago", processed: "—", error: "—" },
-  { id: "q2", status: "processing", received: "2 min ago", processed: "In progress…", error: "—" },
-  { id: "q3", status: "failed", received: "15 min ago", processed: "14 min ago", error: "Connection timeout" },
-];
-
-const queueStatusVariant: Record<QueueItem["status"], "warning" | "info" | "danger"> = {
-  pending: "warning",
-  processing: "info",
-  failed: "danger",
-};
-
-const queueColumns: Column<QueueItem>[] = [
+const queueColumns: Column<WebhookQueueItem>[] = [
   {
     id: "status", header: "Status",
-    accessor: (row) => <Badge variant={queueStatusVariant[row.status]}>{row.status}</Badge>,
+    accessor: (row) => <Badge variant={row.status === "dead_letter" ? "danger" : row.status === "processing" ? "info" : "warning"}>{row.status}</Badge>,
   },
-  { id: "received", header: "Received", accessor: (row) => <span className="text-zinc-500 text-[12px]">{row.received}</span> },
-  { id: "processed", header: "Processed", accessor: (row) => <span className="text-zinc-500 text-[12px]">{row.processed}</span> },
-  { id: "error", header: "Error", accessor: (row) => <span className="text-zinc-500 text-[12px]">{row.error}</span> },
-  {
-    id: "actions", header: "", className: "w-24",
-    accessor: (row) => (
-      <div className="flex items-center gap-1">
-        {row.status === "failed" && <Button variant="ghost" size="sm" className="text-[11px]"><RefreshCw size={10} /></Button>}
-        <Button variant="ghost" size="sm" className="text-[11px] text-red-500 hover:text-red-600"><Trash2 size={10} /></Button>
-      </div>
-    ),
-  },
+  { id: "attempts", header: "Attempts", accessor: (row) => <span className="font-mono text-[12px] text-zinc-600">{row.attempts}/{row.max_retries}</span> },
+  { id: "created", header: "Created", accessor: (row) => <span className="text-zinc-500 text-[12px]">{formatTimeAgo(row.created_at)}</span> },
+  { id: "processed", header: "Processed", accessor: (row) => <span className="text-zinc-500 text-[12px]">{row.processed_at ? formatTimeAgo(row.processed_at) : "—"}</span> },
+  { id: "error", header: "Error", accessor: (row) => <span className="text-zinc-500 text-[12px]">{row.error_message || "—"}</span> },
 ];
 
 /* ── Tabs ── */
@@ -136,29 +85,63 @@ export function WebhookDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
   const [copied, setCopied] = useState(false);
-  const [sigToggle, setSigToggle] = useState(webhook.requireSignature);
-  const [seqToggle, setSeqToggle] = useState(webhook.sequentialProcessing);
+
+  const { data: webhook } = useWebhookEndpoint(id);
+  const { data: deliveries = [] } = useWebhookDeliveries(id, 50);
+  const { data: queueItems = [] } = useWebhookQueue(undefined, id);
+  const updateMut = useUpdateWebhookEndpoint();
+  const retryMut = useRetryQueueItem();
+  const dropMut = useDropQueueItem();
+
+  const [sigToggle, setSigToggle] = useState(false);
+  const [rateLimit, setRateLimit] = useState(300);
+  const [rateLimitWindow, setRateLimitWindow] = useState(10);
+
+  useEffect(() => {
+    if (webhook) {
+      setSigToggle(webhook.auth_type !== "none");
+      setRateLimit(webhook.rate_limit_max);
+      setRateLimitWindow(webhook.rate_limit_window_sec);
+    }
+  }, [webhook]);
+
+  if (!webhook) {
+    return <div className="flex items-center justify-center h-64 text-zinc-400">Loading webhook…</div>;
+  }
+
+  const webhookUrl = `${window.location.origin}/api/webhook/${webhook.path}`;
 
   const copyUrl = () => {
-    navigator.clipboard.writeText(webhook.url);
+    navigator.clipboard.writeText(webhookUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = () => {
+    updateMut.mutate({
+      id: webhook.id,
+      payload: {
+        auth_type: sigToggle ? "hmac" : "none",
+        rate_limit_max: rateLimit,
+        rate_limit_window_sec: rateLimitWindow,
+      },
+    });
   };
 
   return (
     <EntityDetailLayout
       backLabel="Webhooks"
       backTo="/webhooks"
-      name={webhook.name}
-      status={{ label: webhook.status, variant: "success" }}
-      subtitle={`${webhook.method} ${webhook.path} · ${webhook.workflow}`}
+      name={webhook.path}
+      status={{ label: webhook.active ? "active" : "disabled", variant: webhook.active ? "success" : "neutral" }}
+      subtitle={`${webhook.method} /${webhook.path} · ${webhook.workflow_id}`}
       icon={<Webhook size={18} className="text-amber-400" />}
       tabs={tabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       actions={
         <>
-          <Button variant="secondary" size="sm"><Copy size={12} /> Copy URL</Button>
+          <Button variant="secondary" size="sm" onClick={copyUrl}><Copy size={12} /> Copy URL</Button>
           <Button variant="secondary" size="sm"><Settings size={12} /> Configure</Button>
         </>
       }
@@ -171,7 +154,7 @@ export function WebhookDetailPage() {
               label="URL"
               value={
                 <div className="flex items-center gap-2">
-                  <code className="rounded bg-zinc-50 px-2 py-0.5 font-mono text-[11px] text-zinc-600">{webhook.url}</code>
+                  <code className="rounded bg-zinc-50 px-2 py-0.5 font-mono text-[11px] text-zinc-600">{webhookUrl}</code>
                   <button onClick={copyUrl} className="text-zinc-300 hover:text-zinc-500 transition-colors">
                     {copied ? <CheckCircle size={12} className="text-green-500" /> : <Copy size={12} />}
                   </button>
@@ -182,37 +165,36 @@ export function WebhookDetailPage() {
               label="Method"
               value={<span className="inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-50 text-blue-600">{webhook.method}</span>}
             />
-            <DetailRow label="Workflow" value={<span className="text-blue-600 text-[13px]">{webhook.workflow}</span>} />
-            <DetailRow label="Created" value={webhook.createdAt} />
-            <DetailRow label="Last triggered" value={webhook.lastTriggered} />
+            <DetailRow label="Workflow" value={<span className="text-blue-600 text-[13px] font-mono">{webhook.workflow_id}</span>} />
+            <DetailRow label="Created" value={formatTimeAgo(webhook.created_at)} />
+            <DetailRow label="Updated" value={formatTimeAgo(webhook.updated_at)} />
           </DetailSection>
 
-          <DetailSection title="Health">
-            <DetailRow label="24h Deliveries" value={<span className="font-mono">{webhook.deliveries24h}</span>} />
-            <DetailRow label="Success Rate" value={<span className="font-mono text-green-600">{webhook.successRate}%</span>} />
-            <DetailRow label="Average Latency" value={<span className="font-mono">{webhook.avgLatency}</span>} />
-            <DetailRow label="Queue Pending" value={<span className="font-mono">{webhook.queuePending}</span>} />
+          <DetailSection title="Rate Limiting">
+            <DetailRow label="Max Requests" value={<span className="font-mono">{webhook.rate_limit_max}</span>} />
+            <DetailRow label="Window" value={<span className="font-mono">{webhook.rate_limit_window_sec}s</span>} />
           </DetailSection>
 
           <DetailSection title="Security">
-            <DetailRow
-              label="Signing Secret"
-              value={<code className="rounded bg-zinc-50 px-2 py-0.5 font-mono text-[11px] text-zinc-400">{webhook.signingSecret}</code>}
-            />
-            <DetailRow label="Require Signature" value={<Badge variant="success">Yes</Badge>} />
-            <DetailRow label="Rate Limit" value={<span className="font-mono">{webhook.rateLimit.toLocaleString()}/min</span>} />
+            <DetailRow label="Auth Type" value={<Badge variant={webhook.auth_type !== "none" ? "success" : "neutral"}>{webhook.auth_type}</Badge>} />
+            {webhook.expires_at && <DetailRow label="Expires" value={formatTimeAgo(webhook.expires_at)} />}
+          </DetailSection>
+
+          <DetailSection title="Queue">
+            <DetailRow label="Pending" value={<span className="font-mono">{queueItems.filter(q => q.status === "pending").length}</span>} />
+            <DetailRow label="Dead Letters" value={<span className="font-mono text-red-600">{queueItems.filter(q => q.status === "dead_letter").length}</span>} />
           </DetailSection>
         </div>
       )}
 
       {/* ── Test ── */}
-      {activeTab === "test" && <WebhookTestPanel url={webhook.url} method={webhook.method} />}
+      {activeTab === "test" && <WebhookTestPanel url={webhookUrl} method={webhook.method} />}
 
       {/* ── Deliveries ── */}
       {activeTab === "deliveries" && (
         <DataTable
           columns={deliveryColumns}
-          data={mockDeliveries}
+          data={deliveries}
           getRowId={(d) => d.id}
           emptyState={<p className="py-8 text-center text-[13px] text-zinc-400">No deliveries yet.</p>}
         />
@@ -220,33 +202,29 @@ export function WebhookDetailPage() {
 
       {/* ── Queue ── */}
       {activeTab === "queue" && (
-        <DataTable
-          columns={queueColumns}
-          data={mockQueue}
-          getRowId={(q) => q.id}
-          emptyState={<p className="py-8 text-center text-[13px] text-zinc-400">Queue is empty.</p>}
-        />
+        <div className="space-y-2">
+          <DataTable
+            columns={queueColumns}
+            data={queueItems}
+            getRowId={(q) => q.id}
+            emptyState={<p className="py-8 text-center text-[13px] text-zinc-400">Queue is empty.</p>}
+          />
+          {queueItems.filter(q => q.status === "dead_letter" || q.status === "pending").length > 0 && (
+            <div className="flex gap-2 mt-2">
+              {queueItems.filter(q => q.status === "dead_letter").map(q => (
+                <div key={q.id} className="flex items-center gap-1">
+                  <Button variant="secondary" size="sm" className="text-[11px]" onClick={() => retryMut.mutate(q.id)}><RefreshCw size={10} /> Retry {q.id.slice(-6)}</Button>
+                  <Button variant="ghost" size="sm" className="text-[11px] text-red-500" onClick={() => dropMut.mutate(q.id)}><Trash2 size={10} /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Settings ── */}
       {activeTab === "settings" && (
         <div className="space-y-5">
-          <DetailSection title="General">
-            <div className="space-y-4">
-              <FieldGroup label="Name">
-                <Input defaultValue={webhook.name} className="max-w-sm" />
-              </FieldGroup>
-              <FieldGroup label="Endpoint URL">
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded bg-zinc-50 border border-zinc-100 px-3 py-1.5 font-mono text-[11px] text-zinc-500">{webhook.url}</code>
-                  <button onClick={copyUrl} className="text-zinc-300 hover:text-zinc-500 transition-colors">
-                    <Copy size={12} />
-                  </button>
-                </div>
-              </FieldGroup>
-            </div>
-          </DetailSection>
-
           <DetailSection title="Security">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -267,32 +245,17 @@ export function WebhookDetailPage() {
 
           <DetailSection title="Rate Limiting">
             <div className="space-y-4">
-              <FieldGroup label="Requests per minute">
-                <Input type="number" defaultValue={webhook.rateLimit} className="max-w-[160px]" />
+              <FieldGroup label="Max requests per window">
+                <Input type="number" value={rateLimit} onChange={e => setRateLimit(Number(e.target.value))} className="max-w-[160px]" />
               </FieldGroup>
-              <FieldGroup label="Expiry (days inactive)">
-                <Input type="number" defaultValue={webhook.expiryDays} className="max-w-[160px]" />
+              <FieldGroup label="Window (seconds)">
+                <Input type="number" value={rateLimitWindow} onChange={e => setRateLimitWindow(Number(e.target.value))} className="max-w-[160px]" />
               </FieldGroup>
-            </div>
-          </DetailSection>
-
-          <DetailSection title="Processing">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[13px] font-medium text-zinc-800">Sequential Processing</p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">Process deliveries one at a time in order received</p>
-              </div>
-              <button
-                onClick={() => setSeqToggle((v) => !v)}
-                className={cn("relative w-9 h-5 rounded-full transition-colors duration-200", seqToggle ? "bg-zinc-800" : "bg-zinc-200")}
-              >
-                <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all duration-200", seqToggle ? "left-[18px]" : "left-0.5")} />
-              </button>
             </div>
           </DetailSection>
 
           <div className="flex justify-end">
-            <Button variant="primary" size="md">Save Changes</Button>
+            <Button variant="primary" size="md" onClick={handleSave}>Save Changes</Button>
           </div>
         </div>
       )}

@@ -661,6 +661,33 @@ CREATE TABLE IF NOT EXISTS eval_runs (
     FOREIGN KEY(dataset_id) REFERENCES eval_datasets(id) ON DELETE CASCADE,
     FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS polling_triggers (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT 'Polling Trigger',
+    url TEXT NOT NULL,
+    method TEXT DEFAULT 'GET',
+    headers_json TEXT DEFAULT '{}',
+    auth_type TEXT DEFAULT 'none',
+    auth_config_json TEXT DEFAULT '{}',
+    interval_seconds INTEGER DEFAULT 300,
+    last_polled_at TEXT,
+    last_cursor TEXT,
+    active INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS internal_events (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    payload_json TEXT DEFAULT '{}',
+    source_workflow_id TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 

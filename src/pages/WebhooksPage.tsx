@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Webhook, Plus, Search, Copy, ExternalLink, Clock, Zap, ArrowUpRight, CheckCircle, XCircle, RefreshCw, BarChart3, AlertTriangle, Activity, ChevronRight, ShieldCheck, Globe } from "lucide-react";
+import { Webhook, Plus, Search, Copy, ExternalLink, Clock, Zap, ArrowUpRight, CheckCircle, XCircle, RefreshCw, BarChart3, AlertTriangle, Activity, ChevronRight, ShieldCheck, Globe, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,97 +9,38 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
-import { useWebhookEndpoints } from "@/hooks/useApi";
+import {
+  useWebhookEndpoints,
+  useWebhookDeliveries,
+  useWebhookQueue,
+  useRetryQueueItem,
+  useDropQueueItem,
+} from "@/hooks/useApi";
+import type { WebhookEndpoint as APIWebhookEndpoint, WebhookDelivery as APIDelivery, WebhookQueueItem } from "@/lib/api";
 
 const tabs = ["Endpoints", "Delivery Log", "Queue"] as const;
 type Tab = (typeof tabs)[number];
 
-/* ── Endpoint mock data ── */
-interface WebhookEndpoint {
-  id: string;
-  name: string;
-  path: string;
-  method: "POST" | "GET" | "PUT";
-  workflow: string;
-  status: "active" | "paused" | "disabled";
-  deliveries24h: number;
-  successRate: number;
-  lastTriggered: string;
-  signingSecret: boolean;
-  sparkline: number[];
-}
-
-const mockEndpoints: WebhookEndpoint[] = [
-  { id: "wh1", name: "Stripe Events", path: "/hooks/stripe-events", method: "POST", workflow: "Invoice Processing Pipeline", status: "active", deliveries24h: 47, successRate: 100, lastTriggered: "2 min ago", signingSecret: true, sparkline: [3, 5, 2, 8, 4, 6, 3, 5, 7, 4, 2, 3] },
-  { id: "wh2", name: "GitHub PR Sync", path: "/hooks/github-pr", method: "POST", workflow: "GitHub PR → Jira Sync", status: "active", deliveries24h: 12, successRate: 91.7, lastTriggered: "15 min ago", signingSecret: true, sparkline: [1, 0, 2, 1, 3, 0, 1, 2, 0, 1, 0, 1] },
-  { id: "wh3", name: "Form Submissions", path: "/hooks/form-submit", method: "POST", workflow: "Lead Qualification Pipeline", status: "active", deliveries24h: 89, successRate: 98.9, lastTriggered: "Just now", signingSecret: false, sparkline: [5, 8, 12, 10, 7, 9, 6, 8, 11, 7, 5, 1] },
-  { id: "wh4", name: "Slack Commands", path: "/hooks/slack-cmd", method: "POST", workflow: "Slack Command Router", status: "paused", deliveries24h: 0, successRate: 100, lastTriggered: "3 days ago", signingSecret: true, sparkline: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-  { id: "wh5", name: "Health Check", path: "/hooks/health", method: "GET", workflow: "—", status: "active", deliveries24h: 1440, successRate: 100, lastTriggered: "1 min ago", signingSecret: false, sparkline: [120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120] },
-];
-
-/* ── Delivery log mock ── */
-interface DeliveryLog {
-  id: string;
-  endpoint: string;
-  status: "success" | "failed" | "pending";
-  statusCode: number;
-  duration: string;
-  payload: string;
-  timestamp: string;
-  requestHeaders?: Record<string, string>;
-  responseBody?: string;
-  retryCount?: number;
-}
-
-const mockDeliveries: DeliveryLog[] = [
-  { id: "d1", endpoint: "Stripe Events", status: "success", statusCode: 200, duration: "124ms", payload: "invoice.paid", timestamp: "2 min ago", requestHeaders: { "content-type": "application/json", "stripe-signature": "t=1713450497,v1=..." }, responseBody: '{"received": true}' },
-  { id: "d2", endpoint: "Form Submissions", status: "success", statusCode: 200, duration: "89ms", payload: "form_submit", timestamp: "Just now", requestHeaders: { "content-type": "application/json" }, responseBody: '{"status": "ok", "lead_id": "lead-442"}' },
-  { id: "d3", endpoint: "GitHub PR Sync", status: "failed", statusCode: 502, duration: "30.1s", payload: "pull_request.opened", timestamp: "15 min ago", retryCount: 2, requestHeaders: { "x-github-event": "pull_request", "x-github-delivery": "abc-123" }, responseBody: 'Bad Gateway' },
-  { id: "d4", endpoint: "Health Check", status: "success", statusCode: 200, duration: "12ms", payload: "GET /health", timestamp: "1 min ago" },
-  { id: "d5", endpoint: "Stripe Events", status: "success", statusCode: 200, duration: "98ms", payload: "customer.created", timestamp: "10 min ago" },
-  { id: "d6", endpoint: "Form Submissions", status: "success", statusCode: 200, duration: "145ms", payload: "form_submit", timestamp: "20 min ago" },
-  { id: "d7", endpoint: "GitHub PR Sync", status: "success", statusCode: 200, duration: "1.2s", payload: "pull_request.synchronize", timestamp: "1 hr ago" },
-  { id: "d8", endpoint: "Stripe Events", status: "success", statusCode: 200, duration: "110ms", payload: "charge.succeeded", timestamp: "2 hrs ago" },
-];
-
-/* Queue items */
-interface QueueItem {
-  id: string;
-  endpoint: string;
-  payload: string;
-  attempts: number;
-  maxAttempts: number;
-  nextRetry: string;
-  lastError: string;
-}
-
-const mockQueue: QueueItem[] = [
-  { id: "q1", endpoint: "GitHub PR Sync", payload: "pull_request.opened", attempts: 2, maxAttempts: 5, nextRetry: "In 4 min", lastError: "502 Bad Gateway — upstream timeout" },
-];
-
-/* Sparkline mini chart */
-function MiniSparkline({ data, color = "emerald" }: { data: number[]; color?: "emerald" | "red" | "blue" }) {
-  const max = Math.max(...data, 1);
-  const c = color === "emerald" ? "bg-emerald-400" : color === "red" ? "bg-red-400" : "bg-blue-400";
-  return (
-    <div className="flex items-end gap-px h-3 w-16">
-      {data.map((v, i) => (
-        <div key={i} className={cn("flex-1 rounded-t-sm", c)} style={{ height: `${Math.max(1, (v / max) * 12)}px`, opacity: 0.4 + (v / max) * 0.6 }} />
-      ))}
-    </div>
-  );
+function formatTimeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 /* ── Column defs ── */
-const endpointColumns: Column<WebhookEndpoint>[] = [
+const endpointColumns: Column<APIWebhookEndpoint>[] = [
   {
     id: "name", header: "Endpoint", sortable: true,
     accessor: (row) => (
       <div className="flex items-center gap-2">
-        <Zap size={13} className={row.status === "active" ? "text-amber-400" : "text-zinc-300"} />
+        <Zap size={13} className={row.active ? "text-amber-400" : "text-zinc-300"} />
         <div>
-          <p className="font-medium text-zinc-800 text-[13px]">{row.name}</p>
-          <p className="text-[10px] text-zinc-400 font-mono">{row.path}</p>
+          <p className="font-medium text-zinc-800 text-[13px]">{row.path}</p>
+          <p className="text-[10px] text-zinc-400 font-mono">/{row.path}</p>
         </div>
       </div>
     ),
@@ -107,74 +48,56 @@ const endpointColumns: Column<WebhookEndpoint>[] = [
   {
     id: "method", header: "Method",
     accessor: (row) => {
-      const colors = { POST: "bg-blue-50 text-blue-600", GET: "bg-green-50 text-green-600", PUT: "bg-amber-50 text-amber-600" };
-      return <span className={cn("inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-medium", colors[row.method])}>{row.method}</span>;
+      const colors: Record<string, string> = { POST: "bg-blue-50 text-blue-600", GET: "bg-green-50 text-green-600", PUT: "bg-amber-50 text-amber-600", PATCH: "bg-purple-50 text-purple-600", DELETE: "bg-red-50 text-red-600" };
+      return <span className={cn("inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-medium", colors[row.method] || "bg-zinc-50 text-zinc-600")}>{row.method}</span>;
     },
   },
-  { id: "workflow", header: "Workflow", hideBelow: "md", accessor: (row) => <span className="text-zinc-500 text-[12px]">{row.workflow}</span> },
-  { id: "status", header: "Status", accessor: (row) => <StatusDot status={row.status} label={row.status} /> },
+  { id: "workflow", header: "Workflow", hideBelow: "md", accessor: (row) => <span className="text-zinc-500 text-[12px] font-mono">{row.workflow_id}</span> },
+  { id: "status", header: "Status", accessor: (row) => <StatusDot status={row.active ? "active" : "disabled"} label={row.active ? "active" : "disabled"} /> },
   {
-    id: "volume", header: "24h Volume", sortable: true, hideBelow: "md",
-    accessor: (row) => (
-      <div className="flex items-center gap-2">
-        <MiniSparkline data={row.sparkline} />
-        <span className="font-mono text-[12px] text-zinc-600">{row.deliveries24h}</span>
-      </div>
-    ),
-  },
-  {
-    id: "rate", header: "Success", sortable: true, hideBelow: "lg",
-    accessor: (row) => (
-      <span className={cn("text-[12px] font-medium", row.successRate >= 99 ? "text-green-600" : row.successRate >= 90 ? "text-amber-600" : "text-red-600")}>
-        {row.successRate}%
-      </span>
-    ),
+    id: "rateLimit", header: "Rate Limit", hideBelow: "md",
+    accessor: (row) => <span className="font-mono text-[12px] text-zinc-500">{row.rate_limit_max}/{row.rate_limit_window_sec}s</span>,
   },
   {
     id: "security", header: "", hideBelow: "lg", className: "w-8",
-    accessor: (row) => row.signingSecret ? <ShieldCheck size={12} className="text-green-400" title="Signing secret configured" /> : <ShieldCheck size={12} className="text-zinc-200" title="No signing secret" />,
+    accessor: (row) => row.auth_type !== "none" ? <ShieldCheck size={12} className="text-green-400" title={`Auth: ${row.auth_type}`} /> : <ShieldCheck size={12} className="text-zinc-200" title="No auth" />,
   },
-  { id: "last", header: "Last", hideBelow: "lg", accessor: (row) => <span className="text-zinc-400 text-[12px]">{row.lastTriggered}</span> },
+  { id: "created", header: "Created", hideBelow: "lg", accessor: (row) => <span className="text-zinc-400 text-[12px]">{formatTimeAgo(row.created_at)}</span> },
 ];
 
-const deliveryColumns: Column<DeliveryLog>[] = [
+const deliveryColumns: Column<APIDelivery>[] = [
   {
     id: "status", header: "", className: "w-8",
-    accessor: (row) => row.status === "success" ? <CheckCircle size={14} className="text-green-500" /> : row.status === "failed" ? <XCircle size={14} className="text-red-500" /> : <Clock size={14} className="text-amber-400" />,
+    accessor: (row) => row.status_code < 300 ? <CheckCircle size={14} className="text-green-500" /> : row.status_code < 500 ? <Clock size={14} className="text-amber-400" /> : <XCircle size={14} className="text-red-500" />,
   },
-  { id: "endpoint", header: "Endpoint", sortable: true, accessor: (row) => <span className="font-medium text-zinc-800">{row.endpoint}</span> },
+  { id: "method", header: "Method", accessor: (row) => <span className="font-mono text-[11px] text-zinc-600">{row.method}</span> },
+  { id: "path", header: "Path", accessor: (row) => <span className="font-medium text-zinc-800 text-[12px]">{row.path}</span> },
   {
     id: "code", header: "Status",
     accessor: (row) => (
-      <Badge variant={row.statusCode < 300 ? "success" : row.statusCode < 500 ? "warning" : "danger"}>
-        {row.statusCode}
+      <Badge variant={row.status_code < 300 ? "success" : row.status_code < 500 ? "warning" : "danger"}>
+        {row.status_code}
       </Badge>
     ),
   },
-  { id: "payload", header: "Event", hideBelow: "md", accessor: (row) => <code className="text-[11px] font-mono text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded">{row.payload}</code> },
-  { id: "duration", header: "Duration", sortable: true, hideBelow: "md", accessor: (row) => <span className={cn("font-mono text-[12px]", parseFloat(row.duration) > 5000 ? "text-red-500" : "text-zinc-500")}>{row.duration}</span> },
-  {
-    id: "retry", header: "Retries", hideBelow: "lg",
-    accessor: (row) => row.retryCount ? <span className="text-[11px] text-amber-600 font-medium">{row.retryCount}x</span> : <span className="text-zinc-300">—</span>,
-  },
-  { id: "time", header: "Time", sortable: true, accessor: (row) => <span className="text-zinc-400 text-[12px]">{row.timestamp}</span> },
-  {
-    id: "actions", header: "", className: "w-12",
-    accessor: (row) => row.status === "failed" ? <Button variant="ghost" size="sm" className="text-[11px]"><RefreshCw size={10} /></Button> : null,
-  },
+  { id: "ip", header: "Source IP", hideBelow: "md", accessor: (row) => <code className="text-[11px] font-mono text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded">{row.source_ip || "—"}</code> },
+  { id: "duration", header: "Latency", sortable: true, hideBelow: "md", accessor: (row) => <span className={cn("font-mono text-[12px]", row.latency_ms > 5000 ? "text-red-500" : "text-zinc-500")}>{row.latency_ms}ms</span> },
+  { id: "time", header: "Time", sortable: true, accessor: (row) => <span className="text-zinc-400 text-[12px]">{formatTimeAgo(row.created_at)}</span> },
 ];
 
 export function WebhooksPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Endpoints");
   const [search, setSearch] = useState("");
   const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
+  const [selectedEndpoint, setSelectedEndpoint] = useState<string | undefined>();
   const navigate = useNavigate();
-  const { data: _apiEndpoints } = useWebhookEndpoints();
-  // Use mock data while API isn't connected; swap to _apiEndpoints when backend is live
+  const { data: endpoints = [] } = useWebhookEndpoints();
+  const { data: deliveries = [] } = useWebhookDeliveries(selectedEndpoint || endpoints[0]?.id, 50);
+  const { data: queueItems = [] } = useWebhookQueue();
+  const retryMut = useRetryQueueItem();
+  const dropMut = useDropQueueItem();
 
-  const totalDeliveries = mockEndpoints.reduce((s, e) => s + e.deliveries24h, 0);
-  const avgSuccess = Math.round(mockEndpoints.filter(e => e.status === "active").reduce((s, e) => s + e.successRate, 0) / mockEndpoints.filter(e => e.status === "active").length * 10) / 10;
-  const failedCount = mockDeliveries.filter(d => d.status === "failed").length;
+  const activeCount = endpoints.filter(e => e.active).length;
 
   return (
     <div className="mx-auto max-w-[1020px] px-8 py-8">
@@ -191,11 +114,11 @@ export function WebhooksPage() {
 
       {/* Summary strip */}
       <div className="mt-6 grid grid-cols-5 gap-3">
-        <MetricPill icon={<Globe size={13} className="text-zinc-400" />} label="Endpoints" value={mockEndpoints.length.toString()} />
-        <MetricPill icon={<Activity size={13} className="text-blue-500" />} label="Active" value={mockEndpoints.filter(e => e.status === "active").length.toString()} highlight="green" />
-        <MetricPill icon={<BarChart3 size={13} className="text-zinc-400" />} label="24h Deliveries" value={totalDeliveries.toLocaleString()} />
-        <MetricPill icon={<CheckCircle size={13} className="text-green-500" />} label="Success Rate" value={`${avgSuccess}%`} highlight={avgSuccess >= 98 ? "green" : "red"} />
-        <MetricPill icon={<AlertTriangle size={13} className="text-red-500" />} label="Failed (24h)" value={failedCount.toString()} highlight={failedCount > 0 ? "red" : undefined} />
+        <MetricPill icon={<Globe size={13} className="text-zinc-400" />} label="Endpoints" value={endpoints.length.toString()} />
+        <MetricPill icon={<Activity size={13} className="text-blue-500" />} label="Active" value={activeCount.toString()} highlight="green" />
+        <MetricPill icon={<BarChart3 size={13} className="text-zinc-400" />} label="Deliveries" value={deliveries.length.toString()} />
+        <MetricPill icon={<CheckCircle size={13} className="text-green-500" />} label="Queue Pending" value={queueItems.filter(q => q.status === "pending").length.toString()} />
+        <MetricPill icon={<AlertTriangle size={13} className="text-red-500" />} label="Dead Letters" value={queueItems.filter(q => q.status === "dead_letter").length.toString()} highlight={queueItems.some(q => q.status === "dead_letter") ? "red" : undefined} />
       </div>
 
       {/* Tabs */}
@@ -211,8 +134,8 @@ export function WebhooksPage() {
               )}
             >
               {t}
-              {t === "Queue" && mockQueue.length > 0 && (
-                <span className="ml-1 rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold">{mockQueue.length}</span>
+              {t === "Queue" && queueItems.filter(q => q.status !== "completed").length > 0 && (
+                <span className="ml-1 rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-semibold">{queueItems.filter(q => q.status !== "completed").length}</span>
               )}
             </button>
           ))}
@@ -226,7 +149,7 @@ export function WebhooksPage() {
           <>
             <DataTable
               columns={endpointColumns}
-              data={mockEndpoints.filter((e) => !search || e.name.toLowerCase().includes(search.toLowerCase()))}
+              data={endpoints.filter((e) => !search || e.path.toLowerCase().includes(search.toLowerCase()))}
               getRowId={(e) => e.id}
               selectable
               onRowClick={(row) => navigate(`/webhooks/${row.id}`)}
@@ -242,7 +165,7 @@ export function WebhooksPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <code className="rounded bg-zinc-50 px-2.5 py-1 font-mono text-[11px] text-zinc-600 flex-1 truncate">
-                      https://api.flowholt.com/webhooks&#123;path&#125;
+                      https://api.flowholt.com/api/webhook/&#123;path&#125;
                     </code>
                     <button className="rounded px-1.5 py-0.5 text-[9px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors flex items-center gap-1">
                       <Copy size={10} /> Copy
@@ -256,7 +179,7 @@ export function WebhooksPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <code className="rounded bg-amber-50 px-2.5 py-1 font-mono text-[11px] text-amber-700 flex-1 truncate">
-                      https://test.flowholt.com/webhooks&#123;path&#125;
+                      http://localhost:8001/api/webhook/&#123;path&#125;
                     </code>
                     <button className="rounded px-1.5 py-0.5 text-[9px] text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors flex items-center gap-1">
                       <Copy size={10} /> Copy
@@ -264,41 +187,57 @@ export function WebhooksPage() {
                   </div>
                 </div>
               </div>
-              <p className="text-[9px] text-zinc-400">Test URLs route to the workflow editor for debugging. Production URLs trigger live executions.</p>
+              <p className="text-[9px] text-zinc-400">Test URLs route to the local dev server for debugging. Production URLs trigger live executions.</p>
             </div>
           </>
         )}
 
         {activeTab === "Delivery Log" && (
           <div className="space-y-3">
+            {/* Endpoint selector for deliveries */}
+            {endpoints.length > 0 && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[11px] text-zinc-500">Endpoint:</span>
+                <select
+                  value={selectedEndpoint || endpoints[0]?.id || ""}
+                  onChange={(e) => setSelectedEndpoint(e.target.value)}
+                  className="h-7 rounded-md border border-zinc-200 bg-white px-2 text-[11px] text-zinc-700 focus:outline-none"
+                >
+                  {endpoints.map(ep => (
+                    <option key={ep.id} value={ep.id}>{ep.path} ({ep.method})</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <DataTable
               columns={deliveryColumns}
-              data={mockDeliveries.filter((d) => !search || d.endpoint.toLowerCase().includes(search.toLowerCase()))}
+              data={deliveries.filter((d) => !search || d.path.toLowerCase().includes(search.toLowerCase()))}
               getRowId={(d) => d.id}
               onRowClick={(d) => setExpandedDelivery(expandedDelivery === d.id ? null : d.id)}
               emptyState={<EmptyState icon={<ArrowUpRight size={32} strokeWidth={1.25} />} title="No deliveries yet" description="Deliveries will appear here when webhooks receive events." />}
             />
             {/* Expanded delivery detail */}
             {expandedDelivery && (() => {
-              const delivery = mockDeliveries.find(d => d.id === expandedDelivery);
-              if (!delivery?.requestHeaders) return null;
+              const delivery = deliveries.find(d => d.id === expandedDelivery);
+              if (!delivery) return null;
               return (
                 <div className="rounded-lg border border-zinc-100 bg-zinc-50 overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-100">
                     <ChevronRight size={12} className="text-zinc-400 rotate-90" />
-                    <span className="text-[11px] font-semibold text-zinc-600">{delivery.endpoint} — {delivery.payload}</span>
-                    <span className="ml-auto text-[10px] text-zinc-400">{delivery.timestamp}</span>
+                    <span className="text-[11px] font-semibold text-zinc-600">{delivery.method} {delivery.path}</span>
+                    <Badge variant={delivery.status_code < 300 ? "success" : "danger"}>{delivery.status_code}</Badge>
+                    <span className="ml-auto text-[10px] text-zinc-400">{formatTimeAgo(delivery.created_at)}</span>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-zinc-100">
                     <div className="p-3">
                       <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Request Headers</p>
                       <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed">
-                        {Object.entries(delivery.requestHeaders).map(([k, v]) => `${k}: ${v}`).join("\n")}
+                        {delivery.headers ? Object.entries(delivery.headers).map(([k, v]) => `${k}: ${v}`).join("\n") : "—"}
                       </pre>
                     </div>
                     <div className="p-3">
-                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Response Body</p>
-                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed">{delivery.responseBody}</pre>
+                      <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-1.5">Body</p>
+                      <pre className="text-[10px] font-mono text-zinc-600 leading-relaxed max-h-[200px] overflow-auto">{delivery.body || "—"}</pre>
                     </div>
                   </div>
                 </div>
@@ -308,26 +247,30 @@ export function WebhooksPage() {
         )}
 
         {activeTab === "Queue" && (
-          mockQueue.length > 0 ? (
+          queueItems.filter(q => q.status !== "completed").length > 0 ? (
             <div className="space-y-2">
-              {mockQueue.map((item) => (
-                <div key={item.id} className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              {queueItems.filter(q => q.status !== "completed").map((item) => (
+                <div key={item.id} className={cn(
+                  "rounded-lg border p-4",
+                  item.status === "dead_letter" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"
+                )}>
                   <div className="flex items-start gap-3">
-                    <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                    {item.status === "dead_letter" ? <XCircle size={14} className="text-red-500 mt-0.5 flex-shrink-0" /> : <AlertTriangle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[13px] font-medium text-zinc-800">{item.endpoint}</span>
-                        <code className="text-[10px] font-mono text-zinc-500 bg-white px-1.5 py-0.5 rounded border border-zinc-200">{item.payload}</code>
+                        <Badge variant={item.status === "dead_letter" ? "danger" : item.status === "processing" ? "info" : "warning"}>{item.status}</Badge>
+                        <span className="text-[11px] font-mono text-zinc-500">{item.webhook_id}</span>
                       </div>
-                      <p className="text-[11px] text-amber-700 mb-2">{item.lastError}</p>
+                      {item.error_message && <p className="text-[11px] text-amber-700 mb-2">{item.error_message}</p>}
                       <div className="flex items-center gap-4 text-[11px] text-zinc-500">
-                        <span>Attempts: <span className="font-medium text-amber-700">{item.attempts}/{item.maxAttempts}</span></span>
-                        <span>Next retry: <span className="font-medium text-zinc-700">{item.nextRetry}</span></span>
+                        <span>Attempts: <span className="font-medium text-amber-700">{item.attempts}/{item.max_retries}</span></span>
+                        {item.next_retry_at && <span>Next retry: <span className="font-medium text-zinc-700">{formatTimeAgo(item.next_retry_at)}</span></span>}
+                        <span>Created: {formatTimeAgo(item.created_at)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button variant="secondary" size="sm" className="text-[11px]"><RefreshCw size={10} /> Retry Now</Button>
-                      <Button variant="ghost" size="sm" className="text-[11px] text-red-500">Drop</Button>
+                      <Button variant="secondary" size="sm" className="text-[11px]" onClick={() => retryMut.mutate(item.id)}><RefreshCw size={10} /> Retry Now</Button>
+                      <Button variant="ghost" size="sm" className="text-[11px] text-red-500" onClick={() => dropMut.mutate(item.id)}><Trash2 size={10} /> Drop</Button>
                     </div>
                   </div>
                 </div>

@@ -8,7 +8,7 @@ import {
   Download, Share2, MessageSquare, Sparkles, Bot, Send, Link,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCanvasStore } from "./useCanvasStore";
+import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import { useStudioBundle } from "@/hooks/useApi";
 
 /* ── Types & data re-exported from canvasTypes (avoids circular dep with useCanvasStore) ── */
@@ -1013,16 +1013,15 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
       top: midY,
       left: midX,
     };
-    setNodes(prev => [...prev, newNode]);
-    setExecStates(prev => ({ ...prev, [newNode.id]: "idle" }));
-    setEdgeList(prev => [
-      ...prev.filter(([f, t]) => !(f === fromId && t === toId)),
-      [fromId, newNode.id],
-      [newNode.id, toId],
+    store.applyActions([
+      { type: "remove-edge", edge: [fromId, toId] },
+      { type: "add-node", nodeId: newNode.id, node: newNode },
+      { type: "add-edge", edge: [fromId, newNode.id] },
+      { type: "add-edge", edge: [newNode.id, toId] },
     ]);
     onNodeSelect(newNode.id);
     setHoveredEdge(null);
-  }, [nodeMap, setNodes, setExecStates, setEdgeList, onNodeSelect]);
+  }, [nodeMap, store, onNodeSelect]);
 
   const handleContextMenu = useCallback((nodeId: string, e: React.MouseEvent) => {
     setContextMenu({ nodeId, x: e.clientX, y: e.clientY });
@@ -1043,13 +1042,28 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
         const src = nodeMap[nodeId];
         if (src) {
           const dup: CanvasNodeData = { ...src, id: `n${Date.now()}`, top: src.top + 40, left: src.left + 40 };
-          setNodes(prev => [...prev, dup]);
-          setExecStates(prev => ({ ...prev, [dup.id]: "idle" }));
+          store.applyActions([{ type: "add-node", nodeId: dup.id, node: dup }]);
         }
       }
       if (label === "Delete") {
-        setNodes(prev => prev.filter(n => n.id !== nodeId));
-        setEdgeList(prev => prev.filter(([f, t]) => f !== nodeId && t !== nodeId));
+        // Smart delete: reconnect upstream → downstream edges
+        const inEdges = edgeList.filter(([, t]) => t === nodeId);
+        const outEdges = edgeList.filter(([f]) => f === nodeId);
+        const actions: CanvasAction[] = [];
+        // Remove all edges touching this node
+        for (const e of [...inEdges, ...outEdges]) {
+          actions.push({ type: "remove-edge", edge: e });
+        }
+        // Reconnect: each upstream source → each downstream target
+        for (const [src] of inEdges) {
+          for (const [, tgt] of outEdges) {
+            if (!edgeList.some(([f, t]) => f === src && t === tgt)) {
+              actions.push({ type: "add-edge", edge: [src, tgt] });
+            }
+          }
+        }
+        actions.push({ type: "remove-node", nodeId, prevNode: nodeMap[nodeId] });
+        store.applyActions(actions);
         onCanvasClick();
       }
       if (label === "Pin output") {
@@ -1100,13 +1114,12 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
         const cx = rect ? ((contextMenu?.x ?? 0) - rect.left - pan.x) / zoom : 400;
         const cy = rect ? ((contextMenu?.y ?? 0) - rect.top - pan.y) / zoom : 200;
         const newNode: CanvasNodeData = { id: `n${Date.now()}`, name: "New Node", subtitle: "Select type...", family: "logic", top: cy, left: cx };
-        setNodes(prev => [...prev, newNode]);
-        setExecStates(prev => ({ ...prev, [newNode.id]: "idle" }));
+        store.applyActions([{ type: "add-node", nodeId: newNode.id, node: newNode }]);
         onNodeSelect(newNode.id);
       }
     }
     setContextMenu(null);
-  }, [contextMenu, nodeMap, nodes, setNodes, setExecStates, setEdgeList, onNodeSelect, onCanvasClick, fitView, store, pan, zoom]);
+  }, [contextMenu, nodeMap, nodes, edgeList, setNodes, setExecStates, setEdgeList, onNodeSelect, onCanvasClick, fitView, store, pan, zoom]);
 
   function toggleDisabled(nodeId: string) {
     setExecStates((prev) => ({
@@ -1162,10 +1175,9 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
         top: y - 30,
         left: x - 96,
       };
-      setNodes(prev => [...prev, newNode]);
-      setExecStates(prev => ({ ...prev, [newNode.id]: "idle" }));
+      store.applyActions([{ type: "add-node", nodeId: newNode.id, node: newNode }]);
     } catch { /* ignore bad data */ }
-  }, [pan, zoom]);
+  }, [pan, zoom, store]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -1223,11 +1235,30 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (isPanning) { setIsPanning(false); return; }
     if (draggingNodeId) {
-      // Snap to grid on release if enabled
-      if (snapEnabled) {
-        setNodes(prev => prev.map(n =>
-          n.id === draggingNodeId ? { ...n, top: snapToGrid(n.top), left: snapToGrid(n.left) } : n
-        ));
+      // Record the move as an undoable action
+      const finalNode = nodes.find(n => n.id === draggingNodeId);
+      if (finalNode) {
+        const snappedTop = snapEnabled ? snapToGrid(finalNode.top) : finalNode.top;
+        const snappedLeft = snapEnabled ? snapToGrid(finalNode.left) : finalNode.left;
+        const origTop = dragStart.current.nodeTop;
+        const origLeft = dragStart.current.nodeLeft;
+        // Only record if position actually changed
+        if (origTop !== snappedTop || origLeft !== snappedLeft) {
+          // Apply snap first, then record action
+          setNodes(prev => prev.map(n =>
+            n.id === draggingNodeId ? { ...n, top: snappedTop, left: snappedLeft } : n
+          ));
+          store.applyActions([{
+            type: "move-node",
+            nodeId: draggingNodeId,
+            node: { top: snappedTop, left: snappedLeft },
+            prevNode: { top: origTop, left: origLeft },
+          }]);
+        } else if (snapEnabled) {
+          setNodes(prev => prev.map(n =>
+            n.id === draggingNodeId ? { ...n, top: snappedTop, left: snappedLeft } : n
+          ));
+        }
       }
       setDraggingNodeId(null);
       setAlignGuides({});
@@ -1245,7 +1276,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
           my >= n.top && my <= n.top + NODE_H
         );
         if (targetNode && !edgeList.some(([f, t]) => f === drawingEdge.fromId && t === targetNode.id)) {
-          setEdgeList(prev => [...prev, [drawingEdge.fromId, targetNode.id]]);
+          store.applyActions([{ type: "add-edge", edge: [drawingEdge.fromId, targetNode.id] }]);
         }
       }
       setDrawingEdge(null);
@@ -1297,8 +1328,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
         const src = nodeMap[selectedNodeId];
         if (src) {
           const dup: CanvasNodeData = { ...src, id: `n${Date.now()}`, top: src.top + 40, left: src.left + 40 };
-          setNodes(prev => [...prev, dup]);
-          setExecStates(prev => ({ ...prev, [dup.id]: "idle" }));
+          store.applyActions([{ type: "add-node", nodeId: dup.id, node: dup }]);
           onNodeSelect(dup.id);
         }
       }
@@ -1322,20 +1352,43 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         if (selectedNodeIds.size > 0) {
-          const idsToDelete = selectedNodeIds;
-          setNodes(prev => prev.filter(n => !idsToDelete.has(n.id)));
-          setEdgeList(prev => prev.filter(([f, t]) => !idsToDelete.has(f) && !idsToDelete.has(t)));
+          const actions: CanvasAction[] = [];
+          for (const nid of selectedNodeIds) {
+            const inE = edgeList.filter(([, t]) => t === nid);
+            const outE = edgeList.filter(([f]) => f === nid);
+            for (const ed of [...inE, ...outE]) actions.push({ type: "remove-edge", edge: ed });
+            for (const [src] of inE) {
+              for (const [, tgt] of outE) {
+                if (!selectedNodeIds.has(src) && !selectedNodeIds.has(tgt) && !edgeList.some(([f, t]) => f === src && t === tgt)) {
+                  actions.push({ type: "add-edge", edge: [src, tgt] });
+                }
+              }
+            }
+            actions.push({ type: "remove-node", nodeId: nid, prevNode: nodeMap[nid] });
+          }
+          store.applyActions(actions);
           setSelectedNodeIds(new Set());
         } else if (selectedNodeId) {
-          setNodes(prev => prev.filter(n => n.id !== selectedNodeId));
-          setEdgeList(prev => prev.filter(([f, t]) => f !== selectedNodeId && t !== selectedNodeId));
+          const inE = edgeList.filter(([, t]) => t === selectedNodeId);
+          const outE = edgeList.filter(([f]) => f === selectedNodeId);
+          const actions: CanvasAction[] = [];
+          for (const ed of [...inE, ...outE]) actions.push({ type: "remove-edge", edge: ed });
+          for (const [src] of inE) {
+            for (const [, tgt] of outE) {
+              if (!edgeList.some(([f, t]) => f === src && t === tgt)) {
+                actions.push({ type: "add-edge", edge: [src, tgt] });
+              }
+            }
+          }
+          actions.push({ type: "remove-node", nodeId: selectedNodeId, prevNode: nodeMap[selectedNodeId] });
+          store.applyActions(actions);
           onCanvasClick();
         }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedNodeId, selectedNodeIds, nodes, nodeMap, onCanvasClick, store, fitView]);
+  }, [selectedNodeId, selectedNodeIds, nodes, nodeMap, edgeList, onCanvasClick, store, fitView]);
 
   const CANVAS_W = 1200;
   const CANVAS_H = 600;
@@ -1466,22 +1519,48 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
             </g>
           );
         })}
-        {/* Drawing edge preview */}
+        {/* Drawing edge preview with snap target highlight */}
         {drawingEdge && (() => {
           const from = nodeMap[drawingEdge.fromId];
           if (!from) return null;
           const x1 = from.left + NODE_W;
           const y1 = from.top + NODE_H / 2;
-          const dx = (drawingEdge.toX - x1) * 0.5;
+          // Find nearest valid target port
+          let snapTarget: CanvasNodeData | null = null;
+          let minDist = 40; // snap radius
+          for (const n of nodes) {
+            if (n.id === drawingEdge.fromId) continue;
+            if (edgeList.some(([f, t]) => f === drawingEdge.fromId && t === n.id)) continue;
+            const px = n.left;
+            const py = n.top + NODE_H / 2;
+            const dist = Math.hypot(drawingEdge.toX - px, drawingEdge.toY - py);
+            if (dist < minDist) { minDist = dist; snapTarget = n; }
+          }
+          const endX = snapTarget ? snapTarget.left : drawingEdge.toX;
+          const endY = snapTarget ? snapTarget.top + NODE_H / 2 : drawingEdge.toY;
+          const dx = (endX - x1) * 0.5;
           return (
-            <path
-              d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${drawingEdge.toX - dx} ${drawingEdge.toY}, ${drawingEdge.toX} ${drawingEdge.toY}`}
-              fill="none"
-              stroke="#a78bfa"
-              strokeWidth={2}
-              strokeDasharray="6 4"
-              opacity={0.7}
-            />
+            <>
+              <path
+                d={`M ${x1} ${y1} C ${x1 + dx} ${y1}, ${endX - dx} ${endY}, ${endX} ${endY}`}
+                fill="none"
+                stroke={snapTarget ? "#8b5cf6" : "#a78bfa"}
+                strokeWidth={snapTarget ? 2.5 : 2}
+                strokeDasharray={snapTarget ? "0" : "6 4"}
+                opacity={snapTarget ? 0.9 : 0.7}
+              />
+              {snapTarget && (
+                <circle
+                  cx={snapTarget.left}
+                  cy={snapTarget.top + NODE_H / 2}
+                  r={6}
+                  fill="rgba(139,92,246,0.15)"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  className="animate-pulse"
+                />
+              )}
+            </>
           );
         })()}
       </svg>
@@ -1623,7 +1702,12 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
           zoom={zoom}
           pan={pan}
           onReplace={(newName, newFamily, newSubtitle) => {
-            setNodes(prev => prev.map(n => n.id === replacePickerNode ? { ...n, name: newName, family: newFamily, subtitle: newSubtitle } : n));
+            store.applyActions([{
+              type: "modify-node",
+              nodeId: replacePickerNode,
+              node: { name: newName, family: newFamily, subtitle: newSubtitle },
+              prevNode: nodeMap[replacePickerNode],
+            }]);
             setReplacePickerNode(null);
           }}
           onClose={() => setReplacePickerNode(null)}

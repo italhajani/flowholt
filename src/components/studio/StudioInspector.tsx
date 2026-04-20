@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   X, ChevronRight, ChevronDown, ChevronLeft, Copy, Pin, PinOff, RefreshCw,
   AlertTriangle, Play, Braces, Code2, Eye, EyeOff, Hash, MoreHorizontal,
@@ -281,27 +281,48 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [inputView, setInputView] = useState<"schema" | "table" | "json">("schema");
   const [dragField, setDragField] = useState<string | null>(null);
+  const [hoveredField, setHoveredField] = useState<string | null>(null);
+  const [currentItem, setCurrentItem] = useState(0);
 
-  const copyExpression = (fieldPath: string) => {
-    const expr = `{{ $node["${upstream.find(u => u.id === selectedUpstream)?.name ?? ""}"].json["${fieldPath}"] }}`;
+  // Mock multi-item data (n8n-style: each item is a {json: {...}} wrapper)
+  const mockItems = useMemo(() => [
+    { json: { id: 42, name: "John Doe", email: "john@example.com", status: "active", score: 87, metadata: { source: "typeform", timestamp: "2025-01-06T09:00:00Z" }, tags: ["vip", "trial"] } },
+    { json: { id: 43, name: "Jane Smith", email: "jane@example.com", status: "pending", score: 62, metadata: { source: "hubspot", timestamp: "2025-01-06T10:15:00Z" }, tags: ["trial"] } },
+    { json: { id: 44, name: "Bob Wilson", email: "bob@example.com", status: "active", score: 91, metadata: { source: "api", timestamp: "2025-01-06T11:30:00Z" }, tags: ["vip", "enterprise"] } },
+  ], []);
+
+  const totalItems = mockItems.length;
+  const activeItem = mockItems[currentItem]?.json ?? {};
+
+  // Build schema tree dynamically from active item
+  const schemaTree = useMemo(() => {
+    const rows: { key: string; type: string; sample: string; depth: number }[] = [];
+    const walk = (obj: Record<string, unknown>, prefix: string, depth: number) => {
+      for (const [k, v] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${k}` : k;
+        const t = Array.isArray(v) ? "array" : typeof v === "object" && v !== null ? "object" : typeof v;
+        const sample = typeof v === "string" ? v : JSON.stringify(v);
+        rows.push({ key: fullKey, type: t, sample: sample.slice(0, 50), depth });
+        if (typeof v === "object" && v !== null && !Array.isArray(v)) walk(v as Record<string, unknown>, fullKey, depth + 1);
+        if (Array.isArray(v)) v.slice(0, 2).forEach((el, i) => rows.push({ key: `${fullKey}[${i}]`, type: typeof el, sample: String(el), depth: depth + 1 }));
+      }
+    };
+    walk(activeItem as Record<string, unknown>, "", 0);
+    return rows;
+  }, [activeItem]);
+
+  const upstreamName = upstream.find(u => u.id === selectedUpstream)?.name ?? "";
+
+  const copyExpression = useCallback((fieldPath: string) => {
+    const expr = `{{ $node["${upstreamName}"].json["${fieldPath}"] }}`;
     navigator.clipboard.writeText(expr);
     setCopiedField(fieldPath);
     setTimeout(() => setCopiedField(null), 1500);
-  };
+  }, [upstreamName]);
 
-  // Mock schema tree
-  const schemaTree = [
-    { key: "id", type: "number" as const, sample: "42", depth: 0 },
-    { key: "name", type: "string" as const, sample: "John Doe", depth: 0 },
-    { key: "email", type: "string" as const, sample: "john@example.com", depth: 0 },
-    { key: "status", type: "string" as const, sample: "active", depth: 0 },
-    { key: "score", type: "number" as const, sample: "87", depth: 0 },
-    { key: "metadata", type: "object" as const, sample: "{...}", depth: 0 },
-    { key: "metadata.source", type: "string" as const, sample: "typeform", depth: 1 },
-    { key: "metadata.timestamp", type: "string" as const, sample: "2025-01-06T09:00:00Z", depth: 1 },
-    { key: "tags", type: "array" as const, sample: '["vip", "trial"]', depth: 0 },
-    { key: "tags[0]", type: "string" as const, sample: "vip", depth: 1 },
-  ];
+  const getExpressionForField = useCallback((fieldPath: string) => {
+    return `{{ $json.${fieldPath.replace(/\[(\d+)\]/g, "[$1]")} }}`;
+  }, []);
 
   const typeColor: Record<string, string> = {
     string: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -309,12 +330,6 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
     boolean: "bg-amber-100 text-amber-700 border-amber-200",
     array: "bg-purple-100 text-purple-700 border-purple-200",
     object: "bg-zinc-100 text-zinc-600 border-zinc-200",
-  };
-
-  const rawJson = {
-    id: 42, name: "John Doe", email: "john@example.com", status: "active", score: 87,
-    metadata: { source: "typeform", timestamp: "2025-01-06T09:00:00Z" },
-    tags: ["vip", "trial"],
   };
 
   if (upstream.length === 0) {
@@ -332,11 +347,11 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
       {/* Upstream node selector */}
       <div className="space-y-1.5">
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Input from</p>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {upstream.map((u) => (
             <button
               key={u.id}
-              onClick={() => setSelectedUpstream(u.id)}
+              onClick={() => { setSelectedUpstream(u.id); setCurrentItem(0); }}
               className={cn(
                 "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all",
                 selectedUpstream === u.id
@@ -351,8 +366,27 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
         </div>
       </div>
 
-      {/* View toggle */}
-      <div className="flex items-center justify-between">
+      {/* Item navigator + View toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setCurrentItem(i => Math.max(0, i - 1))}
+            disabled={currentItem === 0}
+            className={cn("rounded p-0.5 transition-colors", currentItem === 0 ? "text-zinc-200" : "text-zinc-500 hover:bg-zinc-100")}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <span className="text-[10px] font-medium text-zinc-600 tabular-nums min-w-[64px] text-center">
+            Item {currentItem + 1} of {totalItems}
+          </span>
+          <button
+            onClick={() => setCurrentItem(i => Math.min(totalItems - 1, i + 1))}
+            disabled={currentItem >= totalItems - 1}
+            className={cn("rounded p-0.5 transition-colors", currentItem >= totalItems - 1 ? "text-zinc-200" : "text-zinc-500 hover:bg-zinc-100")}
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
         <div className="flex rounded-lg border border-zinc-200 p-0.5">
           {(["schema", "table", "json"] as const).map(v => (
             <button
@@ -367,14 +401,17 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
             </button>
           ))}
         </div>
-        <span className="text-[9px] text-zinc-400">3 items</span>
       </div>
 
-      {/* Drag hint */}
+      {/* Drag hint / expression preview */}
       <div className="rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 px-2.5 py-1.5 flex items-center gap-1.5">
-        <Zap size={10} className="text-blue-500" />
-        <span className="text-[9px] text-blue-600">
-          {dragField ? `Dragging: {{ $json.${dragField} }}` : "Drag a field pill to insert expression, or click to copy"}
+        <Zap size={10} className="text-blue-500 flex-shrink-0" />
+        <span className="text-[9px] text-blue-600 font-mono truncate">
+          {dragField
+            ? `Dragging: ${getExpressionForField(dragField)}`
+            : hoveredField
+              ? getExpressionForField(hoveredField)
+              : "Drag a field to insert expression, or click to copy"}
         </span>
       </div>
 
@@ -386,12 +423,15 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
               key={field.key}
               className={cn(
                 "flex items-center gap-2 rounded-lg px-2 py-1.5 transition-all cursor-grab hover:bg-zinc-50 group",
-                copiedField === field.key && "bg-emerald-50 ring-1 ring-emerald-200"
+                copiedField === field.key && "bg-emerald-50 ring-1 ring-emerald-200",
+                hoveredField === field.key && !copiedField && "bg-blue-50/50 ring-1 ring-blue-100"
               )}
               style={{ paddingLeft: `${field.depth * 16 + 8}px` }}
               draggable
-              onDragStart={(e) => { e.dataTransfer.setData("text/plain", field.key); setDragField(field.key); }}
+              onDragStart={(e) => { e.dataTransfer.setData("text/plain", getExpressionForField(field.key)); setDragField(field.key); }}
               onDragEnd={() => setDragField(null)}
+              onMouseEnter={() => setHoveredField(field.key)}
+              onMouseLeave={() => setHoveredField(null)}
               onClick={() => copyExpression(field.key)}
             >
               {field.depth > 0 && <span className="text-zinc-300 text-[9px]">└</span>}
@@ -406,7 +446,7 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
                   ? "border-blue-400 bg-blue-100 text-blue-700 shadow-sm scale-105"
                   : "border-zinc-200 bg-white text-zinc-700 group-hover:border-zinc-400 group-hover:shadow-sm"
               )}>
-                {field.key.includes(".") ? field.key.split(".").pop() : field.key}
+                {field.key.includes(".") || field.key.includes("[") ? field.key.split(/[.\[]/g).pop()?.replace("]", "") : field.key}
               </span>
               {/* Sample value */}
               <span className="text-[9px] text-zinc-400 truncate flex-1 font-mono">{field.sample}</span>
@@ -437,6 +477,8 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
                   key={field.key}
                   className="border-b border-zinc-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
                   onClick={() => copyExpression(field.key)}
+                  onMouseEnter={() => setHoveredField(field.key)}
+                  onMouseLeave={() => setHoveredField(null)}
                 >
                   <td className="px-2 py-1.5 font-mono font-medium text-zinc-700">{field.key}</td>
                   <td className="px-2 py-1.5">
@@ -455,7 +497,7 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
       {/* JSON view */}
       {inputView === "json" && (
         <pre className="rounded-lg border border-zinc-200 bg-zinc-950 p-3 text-[10px] font-mono text-emerald-400 max-h-64 overflow-auto leading-relaxed">
-          {JSON.stringify(rawJson, null, 2)}
+          {JSON.stringify(activeItem, null, 2)}
         </pre>
       )}
 
@@ -471,6 +513,7 @@ function DataPanel({ nodeId, direction, pinned, onFieldClick, copiedField }: { n
   const [page, setPage] = useState(1);
   const [searchFilter, setSearchFilter] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [currentItem, setCurrentItem] = useState(0);
   const pageSize = 10;
 
   const data = direction === "input" ? mockInputData[nodeId] : mockOutputData[nodeId];
@@ -543,8 +586,31 @@ function DataPanel({ nodeId, direction, pinned, onFieldClick, copiedField }: { n
             </button>
           )}
           <span className="ml-auto text-[9px] text-zinc-400">
-            {filteredSchema.length} fields · Item {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)} of {totalItems}
+            {filteredSchema.length} fields
           </span>
+        </div>
+      )}
+
+      {/* Per-item navigator */}
+      {hasData && totalItems > 1 && (
+        <div className="flex items-center justify-between rounded-md border border-zinc-100 bg-zinc-50/50 px-2.5 py-1.5">
+          <button
+            onClick={() => setCurrentItem(i => Math.max(0, i - 1))}
+            disabled={currentItem === 0}
+            className={cn("rounded p-0.5 transition-colors", currentItem === 0 ? "text-zinc-200" : "text-zinc-500 hover:bg-zinc-200")}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <span className="text-[10px] font-medium text-zinc-600 tabular-nums">
+            Item {currentItem + 1} of {totalItems}
+          </span>
+          <button
+            onClick={() => setCurrentItem(i => Math.min(totalItems - 1, i + 1))}
+            disabled={currentItem >= totalItems - 1}
+            className={cn("rounded p-0.5 transition-colors", currentItem >= totalItems - 1 ? "text-zinc-200" : "text-zinc-500 hover:bg-zinc-200")}
+          >
+            <ChevronRight size={12} />
+          </button>
         </div>
       )}
 
@@ -908,10 +974,40 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: strin
     { json: { id: 43, name: "Jane Smith", email: "jane@example.com", status: "pending" } },
     { json: { id: 44, name: "Bob Wilson", email: "bob@example.com", status: "active" } },
   ], null, 2));
+  const [savedJson, setSavedJson] = useState(pinnedJson);
   const [copied, setCopied] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
 
+  // JSON validation
+  const jsonValidation = useMemo(() => {
+    try {
+      const parsed = JSON.parse(pinnedJson);
+      const isArray = Array.isArray(parsed);
+      const itemCount = isArray ? parsed.length : 1;
+      const sizeKB = (new Blob([pinnedJson]).size / 1024).toFixed(1);
+      return { valid: true, itemCount, sizeKB, error: null };
+    } catch (e) {
+      return { valid: false, itemCount: 0, sizeKB: "0", error: (e as Error).message };
+    }
+  }, [pinnedJson]);
+
+  const isModified = pinnedJson !== savedJson;
+
   const handleCopy = () => { navigator.clipboard.writeText(pinnedJson); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+
+  const handleFormat = () => {
+    try {
+      const parsed = JSON.parse(pinnedJson);
+      setPinnedJson(JSON.stringify(parsed, null, 2));
+    } catch { /* ignore if invalid */ }
+  };
+
+  const handleSave = () => {
+    if (jsonValidation.valid) {
+      setSavedJson(pinnedJson);
+      setEditMode(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -927,7 +1023,7 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: strin
             </div>
             <div>
               <p className="text-[11px] font-semibold text-zinc-700">{pinned ? "Data Pinned" : "No Pinned Data"}</p>
-              <p className="text-[9px] text-zinc-500">{pinned ? "3 items · 1.2 KB" : "Pin output to freeze upstream data"}</p>
+              <p className="text-[9px] text-zinc-500">{pinned ? `${jsonValidation.itemCount} items · ${jsonValidation.sizeKB} KB` : "Pin output to freeze upstream data"}</p>
             </div>
           </div>
           <button
@@ -966,10 +1062,22 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: strin
       {pinned && (
         <div className="rounded-lg border border-zinc-200 overflow-hidden">
           <div className="flex items-center justify-between bg-zinc-50 px-3 py-2 border-b border-zinc-200">
-            <span className="text-[10px] font-medium text-zinc-600">Pinned Data</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-zinc-600">Pinned Data</span>
+              {/* Validation indicator */}
+              {editMode && (
+                jsonValidation.valid
+                  ? <span className="flex items-center gap-0.5 text-[8px] text-emerald-600"><CheckCircle2 size={8} /> Valid</span>
+                  : <span className="flex items-center gap-0.5 text-[8px] text-red-500"><XCircle size={8} /> Invalid JSON</span>
+              )}
+              {isModified && <span className="rounded bg-amber-100 px-1 py-0 text-[8px] font-medium text-amber-700">Modified</span>}
+            </div>
             <div className="flex items-center gap-1">
-              <button onClick={() => setEditMode(!editMode)} className={cn("rounded px-2 py-0.5 text-[9px] transition-colors", editMode ? "bg-amber-100 text-amber-700" : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100")}>
-                {editMode ? "Done" : "Edit"}
+              <button onClick={handleFormat} className="rounded px-2 py-0.5 text-[9px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Format JSON">
+                <Braces size={10} />
+              </button>
+              <button onClick={() => { if (editMode) handleSave(); else setEditMode(true); }} className={cn("rounded px-2 py-0.5 text-[9px] transition-colors", editMode ? (jsonValidation.valid ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-400 cursor-not-allowed") : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100")}>
+                {editMode ? "Save" : "Edit"}
               </button>
               <button onClick={handleCopy} className="rounded px-2 py-0.5 text-[9px] text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
                 {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
@@ -979,6 +1087,13 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin }: { nodeId: strin
               </button>
             </div>
           </div>
+          {/* Validation error detail */}
+          {editMode && !jsonValidation.valid && (
+            <div className="bg-red-50 border-b border-red-100 px-3 py-1.5 flex items-center gap-1.5">
+              <AlertTriangle size={10} className="text-red-400 flex-shrink-0" />
+              <span className="text-[9px] text-red-600 font-mono truncate">{jsonValidation.error}</span>
+            </div>
+          )}
           {editMode ? (
             <textarea
               value={pinnedJson}

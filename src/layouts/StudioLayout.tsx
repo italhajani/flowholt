@@ -104,13 +104,16 @@ function StudioLayoutInner() {
     setLastExecution(exec);
     setRuntimeDrawerOpen(true);
     const newStates: Record<string, "idle" | "running" | "success" | "error" | "disabled"> = {};
+    const newOutputs: Record<string, unknown> = {};
     for (const step of exec.steps) {
       if (step.step_id) {
         const s = step.status;
         newStates[step.step_id] = s === "success" ? "success" : s === "failed" ? "error" : s === "running" ? "running" : s === "skipped" ? "disabled" : "idle";
+        if (step.output !== undefined) newOutputs[step.step_id] = step.output;
       }
     }
     canvasStore.setExecStates(prev => ({ ...prev, ...newStates }));
+    canvasStore.setExecOutputs(prev => ({ ...prev, ...newOutputs }));
   }, [canvasStore]);
 
   const handleExecutionStart = useCallback(() => {

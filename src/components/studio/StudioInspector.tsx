@@ -171,10 +171,16 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
   const colors = familyColors[node.family];
   const config = nodeConfigs[node.id] || { fields: [] };
 
+  // Use nodeType (executor key) for API lookup; fall back to subtitle for legacy demo nodes
+  const nodeTypeKey = node.nodeType || node.subtitle;
+
   // Fetch dynamic node editor from backend (sections + fields from node_registry)
   const { data: stepEditor } = useStepEditor(workflowId, node.id);
-  const { data: nodeEditor } = useNodeEditor(node.subtitle, { workflowId, stepId: node.id });
+  const { data: nodeEditor } = useNodeEditor(nodeTypeKey, { workflowId, stepId: node.id });
   const updateStep = useUpdateWorkflowStep(workflowId ?? "");
+
+  // Real execution output for this node (populated after a run)
+  const execOutput = store.execOutputs?.[node.id];
 
   const handleRunNode = () => {
     if (workflowId) {
@@ -273,7 +279,11 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
             nodeFamily={node.family}
             nodeName={node.name}
             editorResponse={stepEditor ?? nodeEditor}
+            initialConfig={node.config}
             onFieldChange={(key, value) => {
+              // Always update the canvas store (persists on save)
+              store.updateNode(node.id, { config: { ...(node.config ?? {}), [key]: value } });
+              // Also sync to backend if we have a workflow context
               if (workflowId) {
                 updateStep.mutate({ stepId: node.id, payload: { config: { [key]: value } } });
               }
@@ -303,13 +313,23 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
                 </pre>
               )}
             </div>
+          ) : execOutput ? (
+            // Show last workflow execution output for this node
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600">LAST RUN</span>
+              </div>
+              <pre className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-[11px] font-mono text-zinc-700 overflow-auto max-h-[400px] whitespace-pre-wrap">
+                {JSON.stringify(execOutput, null, 2)}
+              </pre>
+            </div>
           ) : (
             <DataPanel nodeId={node.id} direction="output" pinned={pinned} />
           )
         )}
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
         {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} workflowId={workflowId} />}
-        {activeTab === "Settings" && <SettingsContent nodeId={node.id} workflowId={workflowId} />}
+        {activeTab === "Settings" && <SettingsContent nodeId={node.id} workflowId={workflowId} isDisabled={store.execStates[node.id] === "disabled"} onToggleDisabled={() => store.setExecStates(prev => ({ ...prev, [node.id]: prev[node.id] === "disabled" ? "idle" : "disabled" }))} />}
       </div>
     </div>
   );
@@ -1303,7 +1323,7 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin, workflowId }: { n
 }
 
 /* ── SETTINGS content ── */
-function SettingsContent({ nodeId, workflowId }: { nodeId: string; workflowId?: string }) {
+function SettingsContent({ nodeId, workflowId, isDisabled, onToggleDisabled }: { nodeId: string; workflowId?: string; isDisabled?: boolean; onToggleDisabled?: () => void }) {
   const [retryEnabled, setRetryEnabled] = useState(false);
   const [continueOnError, setContinueOnError] = useState(false);
   const [retryCount, setRetryCount] = useState(3);
@@ -1342,6 +1362,26 @@ function SettingsContent({ nodeId, workflowId }: { nodeId: string; workflowId?: 
 
   return (
     <div className="space-y-5">
+      {/* Node disable toggle */}
+      <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5">
+        <div>
+          <p className="text-[12px] font-medium text-zinc-800">Disable this node</p>
+          <p className="text-[10px] text-zinc-400 mt-0.5">Disabled nodes are skipped during workflow execution</p>
+        </div>
+        <button
+          onClick={onToggleDisabled}
+          className={cn(
+            "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 transition-colors duration-200 focus:outline-none",
+            isDisabled ? "border-zinc-400 bg-zinc-400" : "border-transparent bg-zinc-200"
+          )}
+        >
+          <span className={cn(
+            "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200",
+            isDisabled ? "translate-x-4" : "translate-x-0"
+          )} />
+        </button>
+      </div>
+
       <FieldGroup label="Node timeout (ms)" description="Maximum execution time before timeout">
         <input
           type="number"
@@ -1932,19 +1972,23 @@ function ParametersContent({
   nodeFamily,
   nodeName,
   editorResponse,
+  initialConfig,
   onFieldChange,
 }: {
   config: typeof nodeConfigs[string];
   nodeFamily: string;
   nodeName: string;
   editorResponse?: NodeEditorResponse;
+  /** Current node config from canvas store (from prior edits or loaded workflow) */
+  initialConfig?: Record<string, unknown>;
   onFieldChange?: (key: string, value: unknown) => void;
 }) {
   const [advanced, setAdvanced] = useState(false);
   const [exprFields, setExprFields] = useState<Record<string, boolean>>({});
   const [exprModalField, setExprModalField] = useState<string | null>(null);
   const [exprModalValue, setExprModalValue] = useState("");
-  const [localConfig, setLocalConfig] = useState<Record<string, unknown>>({});
+  // Seed localConfig from the node's saved config so prior values are shown
+  const [localConfig, setLocalConfig] = useState<Record<string, unknown>>(initialConfig ?? {});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const toggleExpr = (key: string) => {

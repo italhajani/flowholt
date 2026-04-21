@@ -1,26 +1,41 @@
 import { createContext, useContext, useState, useCallback, useRef, useMemo, type ReactNode } from "react";
-import { canvasNodes, type CanvasNodeData, type NodeExecState } from "./canvasTypes";
+import { canvasNodes, type CanvasNodeData, type NodeExecState, type StickyNoteData } from "./canvasTypes";
 import type { WorkflowDetail, WorkflowStep, WorkflowEdge as ApiEdge, WorkflowDefinition } from "@/lib/api";
 
 /* ── Helpers: map backend definition → canvas state ── */
 
 const familyFromType: Record<string, CanvasNodeData["family"]> = {
   trigger: "trigger", webhook: "trigger", schedule: "trigger", chat_trigger: "trigger",
+  error_trigger: "error", rss_trigger: "trigger", form_trigger: "trigger", polling_trigger: "trigger",
+  event_trigger: "trigger", api_trigger: "trigger", execute_workflow_trigger: "trigger",
+  mcp_server_trigger: "trigger",
   openai: "ai", anthropic: "ai", ai_transform: "ai", text_classifier: "ai", summarization_chain: "ai",
-  if_node: "logic", switch: "logic", merge: "logic", wait: "logic",
-  set: "data", code: "data", filter: "data", aggregate: "data", split_out: "data",
+  llm: "ai", ai_agent: "ai", agent_evaluation: "ai",
+  if_node: "logic", switch: "logic", merge: "logic", wait: "logic", condition: "logic",
+  loop: "logic", execute_workflow: "logic", human: "human", human_approval: "human",
+  callback: "human", form_node: "human",
+  set: "data", transform: "data", code: "code", filter: "data", aggregate: "data", split_out: "data",
+  sort: "data", summarize: "data", compare_datasets: "data",
+  vector_store: "data", document_loader: "data", text_splitter: "data",
+  http_request: "integration", mcp_client: "integration", mcp_client_tool: "integration",
+  stop_and_error: "error",
 };
 
 function stepToCanvasNode(step: WorkflowStep, idx: number): CanvasNodeData {
   const family = familyFromType[step.type] ?? "integration";
+  // Check if this node was saved as disabled
+  const isDisabled = step.config?._enabled === false;
   return {
     id: step.id,
     name: step.name,
     subtitle: step.type,
+    nodeType: step.type,
+    config: step.config ?? {},
     family,
     top: step.position?.y ?? (120 + Math.floor(idx / 4) * 140),
     left: step.position?.x ?? (80 + (idx % 4) * 260),
-  };
+    ...(isDisabled ? { disabled: true } : {}),
+  } as CanvasNodeData;
 }
 
 function apiEdgeToTuple(edge: ApiEdge): [string, string] {
@@ -43,12 +58,17 @@ interface CanvasStore {
   edges: [string, string][];
   execStates: Record<string, NodeExecState>;
   pinnedNodes: Set<string>;
+  stickyNotes: StickyNoteData[];
   loadedWorkflowId: string | null;
+  /** Last execution output per node id, populated after a run */
+  execOutputs: Record<string, unknown>;
+  setExecOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
   loadWorkflow: (workflow: WorkflowDetail) => void;
   togglePin: (nodeId: string) => void;
   addNode: (node: CanvasNodeData) => void;
   removeNode: (id: string) => void;
   updateNode: (id: string, patch: Partial<CanvasNodeData>) => void;
+  setStickyNotes: React.Dispatch<React.SetStateAction<StickyNoteData[]>>;
   setNodes: React.Dispatch<React.SetStateAction<CanvasNodeData[]>>;
   setEdges: React.Dispatch<React.SetStateAction<[string, string][]>>;
   setExecStates: React.Dispatch<React.SetStateAction<Record<string, NodeExecState>>>;
@@ -82,6 +102,8 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   const [edges, setEdges] = useState<[string, string][]>(defaultEdges);
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(defaultExecStates);
   const [pinnedNodes, setPinnedNodes] = useState<Set<string>>(new Set(["n2"])); // n2 pre-pinned for demo
+  const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
+  const [execOutputs, setExecOutputs] = useState<Record<string, unknown>>({});
   const [loadedWorkflowId, setLoadedWorkflowId] = useState<string | null>(null);
   const undoStackRef = useRef<CanvasAction[][]>([]);
   const redoStackRef = useRef<CanvasAction[][]>([]);
@@ -96,13 +118,24 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
     const newEdges: [string, string][] = def.edges.length > 0
       ? def.edges.map(apiEdgeToTuple)
       : defaultEdges;
+
+    // Restore exec states — mark disabled nodes from saved config
     const newExecStates: Record<string, NodeExecState> = {};
-    newNodes.forEach(n => { newExecStates[n.id] = "idle"; });
+    newNodes.forEach(n => {
+      const step = def.steps.find(s => s.id === n.id);
+      newExecStates[n.id] = step?.config?._enabled === false ? "disabled" : "idle";
+    });
 
     setNodes(newNodes);
     setEdges(newEdges);
     setExecStates(newExecStates);
     setPinnedNodes(new Set());
+    // Restore sticky notes from the definition settings (if any)
+    if (Array.isArray((def.settings as Record<string, unknown>)?.sticky_notes)) {
+      setStickyNotes((def.settings as Record<string, unknown>).sticky_notes as StickyNoteData[]);
+    } else {
+      setStickyNotes([]);
+    }
     setLoadedWorkflowId(workflow.id);
     undoStackRef.current = [];
     redoStackRef.current = [];
@@ -267,26 +300,39 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
 
   /* Serialize canvas → WorkflowDefinition for API persistence */
   const toDefinition = useCallback((): WorkflowDefinition => {
-    const steps: WorkflowStep[] = nodes.map(n => ({
-      id: n.id,
-      type: n.subtitle || "unknown",
-      name: n.name,
-      config: {},
-      position: { x: n.left, y: n.top },
-    }));
+    const steps: WorkflowStep[] = nodes.map(n => {
+      const isDisabled = execStates[n.id] === "disabled";
+      const baseConfig = n.config ?? {};
+      const config = isDisabled
+        ? { ...baseConfig, _enabled: false }
+        : (({ _enabled: _, ...rest }) => rest)(baseConfig as Record<string, unknown>) as Record<string, unknown>;
+      return {
+        id: n.id,
+        type: n.nodeType || n.subtitle || "unknown",
+        name: n.name,
+        config,
+        position: { x: n.left, y: n.top },
+      };
+    });
     const defEdges: ApiEdge[] = edges.map(([src, tgt], i) => ({
       id: `e${i}`,
       source: src,
       target: tgt,
       label: null,
     }));
-    return { steps, edges: defEdges, settings: {} };
-  }, [nodes, edges]);
+    return {
+      steps,
+      edges: defEdges,
+      settings: { sticky_notes: stickyNotes },
+    };
+  }, [nodes, edges, execStates, stickyNotes]);
 
   return (
     <CanvasStoreCtx.Provider value={{
       nodes, edges, execStates,
       pinnedNodes, togglePin,
+      stickyNotes, setStickyNotes,
+      execOutputs, setExecOutputs,
       loadedWorkflowId, loadWorkflow,
       addNode, removeNode, updateNode,
       setNodes, setEdges, setExecStates,

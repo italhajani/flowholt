@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useCanvasStore, type CanvasAction } from "./useCanvasStore";
 import { useStudioBundle } from "@/hooks/useApi";
-import { type CanvasNodeData, type NodeExecState, familyColors } from "./canvasTypes";
+import { type CanvasNodeData, type NodeExecState, type StickyNoteData, familyColors } from "./canvasTypes";
 
 
 const execStateDefaults: Record<string, NodeExecState> = {
@@ -40,19 +40,6 @@ const connections: [string, string][] = [
 ];
 
 /* ─── Sticky notes ─── */
-interface StickyNoteData {
-  id: string;
-  text: string;
-  top: number;
-  left: number;
-  color: string;
-  width?: number;
-  height?: number;
-}
-
-const initialNotes: StickyNoteData[] = [
-  { id: "s1", text: "Score ≥ 70 → High Quality\nRoute to Salesforce CRM", top: 320, left: 80, color: "#fef9c3" },
-];
 
 function getPath(from: CanvasNodeData, to: CanvasNodeData) {
   const x1 = from.left + NODE_W;
@@ -213,6 +200,7 @@ function CanvasNode({
           <span className={cn("h-2 w-2 rounded-full flex-shrink-0", colors.dot)} />
           <span className="text-[13px] font-medium text-zinc-800 truncate">{node.name}</span>
           {isPinned && <Pin size={9} className="text-amber-500 flex-shrink-0" />}
+          {isDisabled && <span className="flex-shrink-0 rounded bg-zinc-100 border border-zinc-200 px-1 py-0.5 text-[7px] font-semibold text-zinc-400 uppercase tracking-wide">Off</span>}
         </div>
         <p className="mt-0.5 pl-4 text-[11px] text-zinc-400">{node.subtitle}</p>
       </div>
@@ -959,7 +947,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
   const setEdgeList = store.setEdges;
   const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
   const [contextMenu, setContextMenu] = useState<{ nodeId: string | null; x: number; y: number } | null>(null);
-  const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>(initialNotes);
+  const { stickyNotes, setStickyNotes } = store;
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
@@ -1030,6 +1018,28 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
     e.preventDefault();
     setContextMenu({ nodeId: null, x: e.clientX, y: e.clientY });
   }, []);
+
+  // ── Zoom helpers — defined BEFORE any useCallback that references them ──
+  const zoomIn = () => setZoom(z => Math.min(2, z + 0.15));
+  const zoomOut = () => setZoom(z => Math.max(0.25, z - 0.15));
+  const fitView = () => {
+    if (nodes.length === 0) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
+    const minX = Math.min(...nodes.map(n => n.left));
+    const maxX = Math.max(...nodes.map(n => n.left + NODE_W));
+    const minY = Math.min(...nodes.map(n => n.top));
+    const maxY = Math.max(...nodes.map(n => n.top + NODE_H));
+    const bw = maxX - minX + 80;
+    const bh = maxY - minY + 80;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
+    const scaleX = rect.width / bw;
+    const scaleY = rect.height / bh;
+    const newZoom = Math.min(Math.max(Math.min(scaleX, scaleY) * 0.85, 0.25), 1.5);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    setPan({ x: rect.width / 2 - cx * newZoom, y: rect.height / 2 - cy * newZoom });
+    setZoom(newZoom);
+  };
 
   const handleContextAction = useCallback((label: string) => {
     const nodeId = contextMenu?.nodeId;
@@ -1134,34 +1144,13 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
     setZoom(z => Math.max(0.25, Math.min(2, z + delta)));
   }, []);
 
-  const zoomIn = () => setZoom(z => Math.min(2, z + 0.15));
-  const zoomOut = () => setZoom(z => Math.max(0.25, z - 0.15));
-  const fitView = () => {
-    if (nodes.length === 0) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
-    const minX = Math.min(...nodes.map(n => n.left));
-    const maxX = Math.max(...nodes.map(n => n.left + NODE_W));
-    const minY = Math.min(...nodes.map(n => n.top));
-    const maxY = Math.max(...nodes.map(n => n.top + NODE_H));
-    const bw = maxX - minX + 80;
-    const bh = maxY - minY + 80;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) { setZoom(1); setPan({ x: 0, y: 0 }); return; }
-    const scaleX = rect.width / bw;
-    const scaleY = rect.height / bh;
-    const newZoom = Math.min(Math.max(Math.min(scaleX, scaleY) * 0.85, 0.25), 1.5);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    setPan({ x: rect.width / 2 - cx * newZoom, y: rect.height / 2 - cy * newZoom });
-    setZoom(newZoom);
-  };
-
   // ── Drop handler for inserting nodes from the InsertPane ──
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const data = e.dataTransfer.getData("application/flowholt-node");
     if (!data) return;
     try {
-      const nodeInfo = JSON.parse(data) as { name: string; subtitle: string; family: string };
+      const nodeInfo = JSON.parse(data) as { name: string; subtitle: string; nodeType?: string; family: string };
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
       const x = (e.clientX - rect.left - pan.x) / zoom;
@@ -1170,6 +1159,8 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
         id: `n${Date.now()}`,
         name: nodeInfo.name,
         subtitle: nodeInfo.subtitle,
+        nodeType: nodeInfo.nodeType || nodeInfo.subtitle,
+        config: {},
         family: (nodeInfo.family || "integration") as CanvasNodeData["family"],
         top: y - 30,
         left: x - 96,

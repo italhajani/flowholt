@@ -201,6 +201,13 @@ class NodeFieldDefinition(BaseModel):
         "credential",
         "messages",
         "keyvalue",
+        "readonly_text",
+        "expression",
+        "branch_list",
+        "field_list",
+        "tag_list",
+        "sort_key_list",
+        "aggregation_list",
     ]
     required: bool = False
     default: Any | None = None
@@ -275,6 +282,13 @@ class NodeEditorField(BaseModel):
         "credential",
         "messages",
         "keyvalue",
+        "readonly_text",
+        "expression",
+        "branch_list",
+        "field_list",
+        "tag_list",
+        "sort_key_list",
+        "aggregation_list",
     ]
     required: bool = False
     help: str | None = None
@@ -487,7 +501,7 @@ class IntegrationAppSummary(BaseModel):
     key: str
     label: str
     category: str
-    auth_kind: Literal["oauth", "api_key", "token", "none", "database"]
+    auth_kind: Literal["oauth", "oauth2", "api_key", "token", "none", "database"]
     node_types: list[str] = Field(default_factory=list)
     description: str
     operations: list[IntegrationOperationSummary] = Field(default_factory=list)

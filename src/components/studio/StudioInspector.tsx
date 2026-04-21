@@ -324,6 +324,7 @@ export function StudioInspector({ node, onClose, workflowId, startRenameMode, on
             nodeName={node.name}
             editorResponse={stepEditor ?? nodeEditor}
             initialConfig={node.config}
+            nodeId={node.id}
             onFieldChange={(key, value) => {
               // Always update the canvas store (persists on save)
               store.updateNode(node.id, { config: { ...(node.config ?? {}), [key]: value } });
@@ -2242,6 +2243,7 @@ function ParametersContent({
   editorResponse,
   initialConfig,
   onFieldChange,
+  nodeId,
 }: {
   config: typeof nodeConfigs[string];
   nodeFamily: string;
@@ -2250,21 +2252,50 @@ function ParametersContent({
   /** Current node config from canvas store (from prior edits or loaded workflow) */
   initialConfig?: Record<string, unknown>;
   onFieldChange?: (key: string, value: unknown) => void;
+  nodeId?: string;
 }) {
+  const store = useCanvasStore();
   const [advanced, setAdvanced] = useState(false);
   const [exprFields, setExprFields] = useState<Record<string, boolean>>({});
   const [exprModalField, setExprModalField] = useState<string | null>(null);
+  const [exprModalFieldKey, setExprModalFieldKey] = useState<string | null>(null);
   const [exprModalValue, setExprModalValue] = useState("");
   // Seed localConfig from the node's saved config so prior values are shown
   const [localConfig, setLocalConfig] = useState<Record<string, unknown>>(initialConfig ?? {});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
+  // Build upstream node outputs for the expression modal
+  const upstreamNodeOutputs = useMemo(() => {
+    if (!nodeId) return undefined;
+    const upstreamIds = store.edges.filter(([, t]) => t === nodeId).map(([s]) => s);
+    return upstreamIds.map(uid => {
+      const n = store.nodes.find(n => n.id === uid);
+      if (!n) return null;
+      const family = n.family as string;
+      const colorMap: Record<string, string> = {
+        trigger: "bg-green-500", ai: "bg-violet-500", logic: "bg-amber-500",
+        integration: "bg-blue-500", data: "bg-cyan-500", human: "bg-pink-500",
+      };
+      return {
+        nodeId: n.id,
+        nodeName: n.name,
+        nodeType: family as "trigger" | "integration" | "ai" | "logic",
+        color: colorMap[family] ?? "bg-zinc-500",
+        variables: [
+          { name: "json", path: "$json", type: "object" as const, value: "{}", node: n.name },
+          { name: "$input.first()", path: "$input.first().json", type: "object" as const, value: "{}", node: n.name },
+        ],
+      };
+    }).filter(Boolean) as import("@/components/modals/ExpressionEditorModal").NodeOutput[];
+  }, [nodeId, store.edges, store.nodes]);
+
   const toggleExpr = (key: string) => {
     setExprFields(p => ({ ...p, [key]: !p[key] }));
   };
 
-  const openExpressionEditor = (field: { label: string; value: string }) => {
+  const openExpressionEditor = (field: { label: string; key?: string; value: string }) => {
     setExprModalField(field.label);
+    setExprModalFieldKey(field.key ?? null);
     setExprModalValue(field.value);
   };
 
@@ -2336,7 +2367,7 @@ function ParametersContent({
                       isExprMode={exprFields[field.key] ?? false}
                       onToggleExpr={() => toggleExpr(field.key)}
                       onChange={(v) => handleChange(field.key, v)}
-                      onOpenExprEditor={() => openExpressionEditor({ label: field.label, value: String(localConfig[field.key] ?? field.default ?? "") })}
+                      onOpenExprEditor={() => openExpressionEditor({ label: field.label, key: field.key, value: String(localConfig[field.key] ?? field.default ?? "") })}
                     />
                   ))}
                 </div>
@@ -2373,9 +2404,13 @@ function ParametersContent({
 
         <ExpressionEditorModal
           open={exprModalField !== null}
-          onClose={() => setExprModalField(null)}
+          onClose={() => { setExprModalField(null); setExprModalFieldKey(null); }}
           value={exprModalValue}
           fieldLabel={exprModalField ?? "Expression"}
+          nodeOutputs={upstreamNodeOutputs}
+          onChange={(v) => {
+            if (exprModalFieldKey) handleChange(exprModalFieldKey, v);
+          }}
         />
       </div>
     );
@@ -2510,9 +2545,13 @@ function ParametersContent({
 
       <ExpressionEditorModal
         open={exprModalField !== null}
-        onClose={() => setExprModalField(null)}
+        onClose={() => { setExprModalField(null); setExprModalFieldKey(null); }}
         value={exprModalValue}
         fieldLabel={exprModalField ?? "Expression"}
+        nodeOutputs={upstreamNodeOutputs}
+        onChange={(v) => {
+          if (exprModalFieldKey) handleChange(exprModalFieldKey, v);
+        }}
       />
     </div>
   );

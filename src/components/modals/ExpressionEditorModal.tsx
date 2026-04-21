@@ -2,13 +2,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   X, Search, ChevronDown, ChevronRight, Copy, Check, AlertTriangle,
   CheckCircle2, Braces, Hash, AtSign, Zap, Eye, Code2, ArrowRight,
-  Clock, Layers, Sparkles, FileJson, RotateCcw,
+  Clock, Layers, Sparkles, FileJson, RotateCcw, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
+import { testExpression } from "@/lib/api";
 
 /* ── Types ── */
-interface ExpressionVariable {
+export interface ExpressionVariable {
   name: string;
   path: string;
   type: "string" | "number" | "boolean" | "object" | "array";
@@ -16,7 +17,7 @@ interface ExpressionVariable {
   node?: string;
 }
 
-interface NodeOutput {
+export interface NodeOutput {
   nodeId: string;
   nodeName: string;
   nodeType: "trigger" | "integration" | "ai" | "logic";
@@ -31,6 +32,8 @@ interface ExpressionEditorModalProps {
   onChange?: (value: string) => void;
   fieldLabel?: string;
   nodeContext?: string;
+  /** Real upstream canvas nodes — replaces mock data when provided */
+  nodeOutputs?: NodeOutput[];
 }
 
 /* ── Mock node outputs for variable picker ── */
@@ -128,32 +131,6 @@ function highlightExpression(text: string): React.ReactNode[] {
   return parts;
 }
 
-function evaluateExpression(expr: string): { value: string; type: string; error?: string } {
-  // Simulated expression evaluation
-  const trimmed = expr.trim();
-  if (!trimmed) return { value: "", type: "empty" };
-  if (trimmed.startsWith("={{") && trimmed.endsWith("}}")) {
-    const inner = trimmed.slice(3, -2).trim();
-    // Look up known paths
-    for (const nodeOut of mockNodeOutputs) {
-      for (const v of nodeOut.variables) {
-        if (inner === v.path) return { value: v.value, type: v.type };
-      }
-    }
-    for (const bv of builtinVars) {
-      if (inner === bv.path) return { value: bv.value, type: bv.type };
-    }
-    // Simple comparisons
-    if (inner.includes(">=") || inner.includes("<=") || inner.includes("==")) {
-      return { value: "true", type: "boolean" };
-    }
-    // Unknown
-    return { value: "[resolved at runtime]", type: "dynamic" };
-  }
-  // Plain string
-  return { value: `"${trimmed}"`, type: "string" };
-}
-
 /* ── Main Component ── */
 export function ExpressionEditorModal({
   open,
@@ -162,18 +139,46 @@ export function ExpressionEditorModal({
   onChange,
   fieldLabel = "Expression",
   nodeContext,
+  nodeOutputs,
 }: ExpressionEditorModalProps) {
   const [expr, setExpr] = useState(value);
   const [search, setSearch] = useState("");
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["n1", "n2"]));
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [showBuiltins, setShowBuiltins] = useState(true);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<"variables" | "functions" | "examples">("variables");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const result = evaluateExpression(expr);
+  // Live evaluation state — calls backend /api/expressions/test
+  const [evalResult, setEvalResult] = useState<{ value: string; type: string; error?: string } | null>(null);
+  const [evalLoading, setEvalLoading] = useState(false);
+  const evalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setExpr(value); }, [value]);
+
+  // Debounced live evaluation
+  useEffect(() => {
+    if (evalTimer.current) clearTimeout(evalTimer.current);
+    if (!expr || !expr.trim()) { setEvalResult(null); return; }
+    evalTimer.current = setTimeout(async () => {
+      setEvalLoading(true);
+      try {
+        const res = await testExpression(expr);
+        setEvalResult(res.success
+          ? { value: String(res.result ?? ""), type: res.result_type ?? "string" }
+          : { value: "", type: "error", error: res.error ?? "Evaluation failed" });
+      } catch {
+        setEvalResult({ value: "", type: "error", error: "Backend unavailable" });
+      } finally { setEvalLoading(false); }
+    }, 400);
+    return () => { if (evalTimer.current) clearTimeout(evalTimer.current); };
+  }, [expr]);
+
+  // Auto-expand first two upstream nodes
+  useEffect(() => {
+    const outputs = nodeOutputs ?? mockNodeOutputs;
+    setExpandedNodes(new Set(outputs.slice(0, 2).map(n => n.nodeId)));
+  }, [nodeOutputs]);
 
   const toggleNode = (id: string) => {
     setExpandedNodes(prev => {
@@ -216,7 +221,7 @@ export function ExpressionEditorModal({
     onClose();
   };
 
-  const filteredOutputs = mockNodeOutputs.map(no => ({
+  const filteredOutputs = (nodeOutputs ?? mockNodeOutputs).map(no => ({
     ...no,
     variables: no.variables.filter(v =>
       !search || v.name.toLowerCase().includes(search.toLowerCase()) || v.path.toLowerCase().includes(search.toLowerCase())
@@ -469,32 +474,37 @@ export function ExpressionEditorModal({
                   <Eye size={11} className="text-zinc-400" />
                   <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Preview</span>
                 </div>
-                {result.error ? (
+                {evalLoading ? (
+                  <span className="flex items-center gap-1 text-[10px] text-zinc-400">
+                    <Loader2 size={9} className="animate-spin" />
+                    Evaluating…
+                  </span>
+                ) : evalResult?.error ? (
                   <span className="flex items-center gap-1 text-[10px] text-red-500">
                     <AlertTriangle size={9} />
                     Error
                   </span>
-                ) : result.value ? (
+                ) : evalResult?.value ? (
                   <span className="flex items-center gap-1 text-[10px] text-green-500">
                     <CheckCircle2 size={9} />
-                    {result.type}
+                    {evalResult.type}
                   </span>
                 ) : null}
               </div>
               <div className="px-4 py-3 min-h-[60px] max-h-[100px] overflow-auto">
-                {result.error ? (
+                {evalResult?.error ? (
                   <div className="flex items-start gap-2">
                     <AlertTriangle size={12} className="text-red-400 mt-0.5" />
-                    <span className="text-[11px] text-red-600">{result.error}</span>
+                    <span className="text-[11px] text-red-600">{evalResult.error}</span>
                   </div>
-                ) : result.value ? (
+                ) : evalResult?.value ? (
                   <div className="flex items-start gap-2">
                     <ArrowRight size={10} className="text-zinc-400 mt-1 flex-shrink-0" />
                     <code className={cn(
                       "text-[12px] font-mono rounded px-1.5 py-0.5",
-                      typeColors[result.type] ?? "text-zinc-600 bg-zinc-100"
+                      typeColors[evalResult.type] ?? "text-zinc-600 bg-zinc-100"
                     )}>
-                      {result.value}
+                      {evalResult.value}
                     </code>
                   </div>
                 ) : (

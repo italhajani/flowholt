@@ -37,6 +37,8 @@ function StudioLayoutInner() {
   useEffect(() => {
     if (bundle?.workflow) {
       canvasStore.loadWorkflow(bundle.workflow);
+      // Auto fit-view after load (small delay to let React render first)
+      setTimeout(() => canvasStore.requestFitView(), 150);
     }
   }, [bundle?.workflow?.id]);
 

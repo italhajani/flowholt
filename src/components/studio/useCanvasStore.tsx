@@ -16,6 +16,8 @@ const familyFromType: Record<string, CanvasNodeData["family"]> = {
   callback: "human", form_node: "human",
   set: "data", transform: "data", code: "code", filter: "data", aggregate: "data", split_out: "data",
   sort: "data", summarize: "data", compare_datasets: "data",
+  rename_keys: "data", remove_duplicates: "data", limit: "data", datetime: "data",
+  edit_fields: "data", extract_fields: "data", remove_fields: "data",
   vector_store: "data", document_loader: "data", text_splitter: "data",
   http_request: "integration", mcp_client: "integration", mcp_client_tool: "integration",
   stop_and_error: "error",
@@ -64,6 +66,9 @@ interface CanvasStore {
   /** Last execution output per node id, populated after a run */
   execOutputs: Record<string, unknown>;
   setExecOutputs: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  /** Increment to request StudioCanvas to call fitView() */
+  fitViewRequested: number;
+  requestFitView: () => void;
   loadWorkflow: (workflow: WorkflowDetail) => void;
   togglePin: (nodeId: string) => void;
   addNode: (node: CanvasNodeData) => void;
@@ -108,6 +113,8 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
   const [execOutputs, setExecOutputs] = useState<Record<string, unknown>>({});
   const [loadedWorkflowId, setLoadedWorkflowId] = useState<string | null>(null);
+  const [fitViewRequested, setFitViewRequested] = useState(0);
+  const requestFitView = useCallback(() => setFitViewRequested(c => c + 1), []);
   const undoStackRef = useRef<CanvasAction[][]>([]);
   const redoStackRef = useRef<CanvasAction[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -349,6 +356,7 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
       pinnedNodes, togglePin,
       stickyNotes, setStickyNotes,
       execOutputs, setExecOutputs,
+      fitViewRequested, requestFitView,
       loadedWorkflowId, loadWorkflow,
       addNode, removeNode, updateNode,
       setNodes, setEdges, setEdgeLabels, setExecStates,

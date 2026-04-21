@@ -1043,6 +1043,14 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, onRe
     setZoom(newZoom);
   };
 
+  // Auto fit-view when StudioLayout requests it (e.g., after workflow loads)
+  useEffect(() => {
+    if (store.fitViewRequested > 0) {
+      fitView();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.fitViewRequested]);
+
   const handleContextAction = useCallback((label: string) => {
     const nodeId = contextMenu?.nodeId;
     if (nodeId) {

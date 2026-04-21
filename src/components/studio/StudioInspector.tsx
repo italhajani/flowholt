@@ -1591,43 +1591,52 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin, workflowId }: { n
 
 /* ── SETTINGS content ── */
 function SettingsContent({ nodeId, workflowId, isDisabled, onToggleDisabled }: { nodeId: string; workflowId?: string; isDisabled?: boolean; onToggleDisabled?: () => void }) {
-  const [retryEnabled, setRetryEnabled] = useState(false);
-  const [continueOnError, setContinueOnError] = useState(false);
-  const [retryCount, setRetryCount] = useState(3);
-  const [notes, setNotes] = useState("");
-  const [executeOnce, setExecuteOnce] = useState(false);
-  const [alwaysOutput, setAlwaysOutput] = useState(false);
-  const [displayNoteInFlow, setDisplayNoteInFlow] = useState(false);
-  const [errorWorkflow, setErrorWorkflow] = useState("none");
-  const [errorOutput, setErrorOutput] = useState<"stop" | "branch" | "ignore">("stop");
-  const [timeoutMs, setTimeoutMs] = useState(10000);
+  const store = useCanvasStore();
+  const nodeConfig = store.nodes.find(n => n.id === nodeId)?.config ?? {};
+  const eh = (nodeConfig.error_handling as Record<string, unknown>) ?? {};
+
+  const [retryEnabled, setRetryEnabled] = useState(() => Boolean(eh.retry_enabled ?? false));
+  const [continueOnError, setContinueOnError] = useState(() => Boolean(eh.continue_on_error ?? false));
+  const [retryCount, setRetryCount] = useState(() => Number(eh.retry_count ?? 3));
+  const [notes, setNotes] = useState(() => String(nodeConfig.notes ?? ""));
+  const [executeOnce, setExecuteOnce] = useState(() => Boolean(eh.execute_once ?? false));
+  const [alwaysOutput, setAlwaysOutput] = useState(() => Boolean(eh.always_output ?? false));
+  const [displayNoteInFlow, setDisplayNoteInFlow] = useState(() => Boolean(nodeConfig.display_note_in_flow ?? false));
+  const [errorWorkflow, setErrorWorkflow] = useState(() => String(eh.error_workflow ?? "none"));
+  const [errorOutput, setErrorOutput] = useState<"stop" | "branch" | "ignore">(() => {
+    const v = String(eh.on_error ?? "stop");
+    return (["stop", "branch", "ignore"] as const).includes(v as "stop" | "branch" | "ignore") ? v as "stop" | "branch" | "ignore" : "stop";
+  });
+  const [timeoutMs, setTimeoutMs] = useState(() => Number(eh.timeout_ms ?? 10000));
   const [saved, setSaved] = useState(false);
   const updateStep = useUpdateWorkflowStep(workflowId ?? "");
 
   const handleSave = useCallback(() => {
-    if (!workflowId) return;
-    updateStep.mutate({
-      stepId: nodeId,
-      payload: {
-        config: {
-          error_handling: {
-            on_error: errorOutput,
-            continue_on_error: continueOnError,
-            retry_enabled: retryEnabled,
-            retry_count: retryCount,
-            error_workflow: errorWorkflow !== "none" ? errorWorkflow : null,
-            timeout_ms: timeoutMs,
-            execute_once: executeOnce,
-            always_output: alwaysOutput,
-          },
-          notes,
-          display_note_in_flow: displayNoteInFlow,
-        },
+    const settingsConfig = {
+      error_handling: {
+        on_error: errorOutput,
+        continue_on_error: continueOnError,
+        retry_enabled: retryEnabled,
+        retry_count: retryCount,
+        error_workflow: errorWorkflow !== "none" ? errorWorkflow : null,
+        timeout_ms: timeoutMs,
+        execute_once: executeOnce,
+        always_output: alwaysOutput,
       },
-    }, {
-      onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2000); },
-    });
-  }, [workflowId, nodeId, errorOutput, continueOnError, retryEnabled, retryCount, errorWorkflow, timeoutMs, executeOnce, alwaysOutput, notes, displayNoteInFlow, updateStep]);
+      notes,
+      display_note_in_flow: displayNoteInFlow,
+    };
+    // Always persist to canvas store (so auto-save picks it up)
+    store.updateNode(nodeId, { config: { ...nodeConfig, ...settingsConfig } });
+    if (workflowId) {
+      updateStep.mutate({ stepId: nodeId, payload: { config: settingsConfig } }, {
+        onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2000); },
+      });
+    } else {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  }, [workflowId, nodeId, nodeConfig, store, errorOutput, continueOnError, retryEnabled, retryCount, errorWorkflow, timeoutMs, executeOnce, alwaysOutput, notes, displayNoteInFlow, updateStep]);
 
   return (
     <div className="space-y-5">
@@ -2264,7 +2273,7 @@ function ParametersContent({
   const [localConfig, setLocalConfig] = useState<Record<string, unknown>>(initialConfig ?? {});
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
-  // Build upstream node outputs for the expression modal
+  // Build upstream node outputs for the expression modal — enriched with real exec data when available
   const upstreamNodeOutputs = useMemo(() => {
     if (!nodeId) return undefined;
     const upstreamIds = store.edges.filter(([, t]) => t === nodeId).map(([s]) => s);
@@ -2276,18 +2285,43 @@ function ParametersContent({
         trigger: "bg-green-500", ai: "bg-violet-500", logic: "bg-amber-500",
         integration: "bg-blue-500", data: "bg-cyan-500", human: "bg-pink-500",
       };
+
+      // Extract actual field names from last execution output if available
+      const execOut = store.execOutputs?.[uid];
+      let variables: import("@/components/modals/ExpressionEditorModal").ExpressionVariable[];
+      if (execOut && typeof execOut === "object" && !Array.isArray(execOut)) {
+        const topKeys = Object.keys(execOut as Record<string, unknown>).filter(k => !k.startsWith("_"));
+        variables = [
+          { name: "$json", path: "$json", type: "object" as const, value: JSON.stringify(execOut).slice(0, 120), node: n.name },
+          ...topKeys.map(k => {
+            const val = (execOut as Record<string, unknown>)[k];
+            const valType = Array.isArray(val) ? "array" : typeof val === "object" && val !== null ? "object" : typeof val === "number" ? "number" : "string";
+            return {
+              name: k,
+              path: `$json.${k}`,
+              type: valType as "string" | "number" | "boolean" | "object" | "array",
+              value: String(val).slice(0, 80),
+              node: n.name,
+            };
+          }),
+        ];
+      } else {
+        // Fallback placeholders
+        variables = [
+          { name: "$json", path: "$json", type: "object" as const, value: "{}", node: n.name },
+          { name: "$input.first().json", path: "$input.first().json", type: "object" as const, value: "{}", node: n.name },
+        ];
+      }
+
       return {
         nodeId: n.id,
         nodeName: n.name,
         nodeType: family as "trigger" | "integration" | "ai" | "logic",
         color: colorMap[family] ?? "bg-zinc-500",
-        variables: [
-          { name: "json", path: "$json", type: "object" as const, value: "{}", node: n.name },
-          { name: "$input.first()", path: "$input.first().json", type: "object" as const, value: "{}", node: n.name },
-        ],
+        variables,
       };
     }).filter(Boolean) as import("@/components/modals/ExpressionEditorModal").NodeOutput[];
-  }, [nodeId, store.edges, store.nodes]);
+  }, [nodeId, store.edges, store.nodes, store.execOutputs]);
 
   const toggleExpr = (key: string) => {
     setExprFields(p => ({ ...p, [key]: !p[key] }));

@@ -945,6 +945,7 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, onRe
   const execStates = store.execStates;
   const setExecStates = store.setExecStates;
   const edgeList = store.edges;
+  const edgeLabels = store.edgeLabels;
   const setEdgeList = store.setEdges;
   const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
   const [contextMenu, setContextMenu] = useState<{ nodeId: string | null; x: number; y: number } | null>(null);
@@ -1268,6 +1269,25 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, onRe
         );
         if (targetNode && !edgeList.some(([f, t]) => f === drawingEdge.fromId && t === targetNode.id)) {
           store.applyActions([{ type: "add-edge", edge: [drawingEdge.fromId, targetNode.id] }]);
+          // Auto-assign branch label for condition/if_node/switch
+          const fromNode = nodeMap[drawingEdge.fromId];
+          const branchTypes = ["condition", "if_node", "switch", "if", "branch"];
+          if (fromNode && branchTypes.includes(fromNode.nodeType ?? "")) {
+            const existingOutgoing = edgeList.filter(([f]) => f === drawingEdge.fromId);
+            const branchIdx = existingOutgoing.length; // 0 = first branch
+            const switchBranches = fromNode.config?.branches as { label: string }[] | undefined;
+            let label: string | null = null;
+            if (fromNode.nodeType === "switch" && switchBranches?.[branchIdx]?.label) {
+              label = switchBranches[branchIdx].label;
+            } else if (branchIdx === 0) {
+              label = "true";
+            } else if (branchIdx === 1) {
+              label = "false";
+            } else {
+              label = `branch ${branchIdx + 1}`;
+            }
+            store.setEdgeLabels(prev => ({ ...prev, [`${drawingEdge.fromId}-${targetNode.id}`]: label }));
+          }
         }
       }
       setDrawingEdge(null);
@@ -1480,6 +1500,24 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, onRe
                   opacity={0.8}
                 />
               )}
+              {/* Branch label (True/False/branch name) near edge start */}
+              {(() => {
+                const label = edgeLabels[edgeKey];
+                if (!label) return null;
+                const labelX = from.left + NODE_W + 14;
+                const labelY = from.top + NODE_H / 2;
+                const isTrue = label.toLowerCase() === "true";
+                const isFalse = label.toLowerCase() === "false";
+                const bg = isTrue ? "#bbf7d0" : isFalse ? "#fecaca" : "#e4e4e7";
+                const fg = isTrue ? "#166534" : isFalse ? "#991b1b" : "#52525b";
+                const labelW = Math.max(label.length * 5.5 + 8, 28);
+                return (
+                  <g className="pointer-events-none">
+                    <rect x={labelX - labelW / 2} y={labelY - 7} width={labelW} height={14} rx={3} fill={bg} />
+                    <text x={labelX} y={labelY + 4} textAnchor="middle" fill={fg} fontSize={8} fontWeight={600} fontFamily="system-ui">{label}</text>
+                  </g>
+                );
+              })()}
               {/* Connection label — item count on successful edges */}
               {isSuccess && items > 0 && showOverlay && (
                 <g className="pointer-events-none">

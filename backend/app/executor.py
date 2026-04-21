@@ -1349,6 +1349,97 @@ def run_workflow_definition(
                 context["renamed_items"] = renamed_items
                 context.update(output)
 
+            elif step_type == "set":
+                # Set/edit fields on each item — add, modify, or remove fields
+                items = _resolve_collection_source(config.get("source", "items"), context, payload)
+                assignments: list[dict] = config.get("assignments", [])
+                set_items = []
+                for item in items:
+                    new_item = dict(item) if isinstance(item, dict) else {"_value": item}
+                    for assignment in assignments:
+                        key = str(assignment.get("key", ""))
+                        op = str(assignment.get("operation", "set"))
+                        if not key:
+                            continue
+                        if op == "remove":
+                            new_item.pop(key, None)
+                        else:
+                            raw_val = assignment.get("value", "")
+                            evaluated = _render_template(str(raw_val), expression_scope | {"$item": new_item}) if isinstance(raw_val, str) else raw_val
+                            # Support dot-path: "a.b.c" sets nested key
+                            parts = key.split(".")
+                            target = new_item
+                            for part in parts[:-1]:
+                                if part not in target or not isinstance(target[part], dict):
+                                    target[part] = {}
+                                target = target[part]
+                            target[parts[-1]] = evaluated
+                    set_items.append(new_item)
+                output = {"items": set_items, "count": len(set_items)}
+                context["set_items"] = set_items
+                context.update(output)
+
+            elif step_type == "datetime":
+                # Date/time manipulation — format, parse, add/subtract, diff, now
+                import datetime as _dt
+                operation = str(config.get("operation", "now"))
+                tz_str = str(config.get("timezone", "UTC"))
+                try:
+                    import zoneinfo as _zi
+                    tz = _zi.ZoneInfo(tz_str)
+                except Exception:
+                    tz = _dt.timezone.utc
+
+                if operation == "now":
+                    now = _dt.datetime.now(tz=tz)
+                    fmt = str(config.get("format", "iso"))
+                    result = now.isoformat() if fmt == "iso" else now.strftime(fmt)
+                    output = {"datetime": result, "timestamp": now.timestamp(), "iso": now.isoformat()}
+
+                elif operation == "format":
+                    raw_input = _render_template(str(config.get("input", "")), expression_scope)
+                    out_fmt = str(config.get("output_format", "iso"))
+                    in_fmt = config.get("input_format")
+                    try:
+                        parsed = _dt.datetime.fromisoformat(raw_input) if not in_fmt else _dt.datetime.strptime(raw_input, str(in_fmt))
+                        result = parsed.isoformat() if out_fmt == "iso" else parsed.strftime(out_fmt)
+                    except Exception as exc:
+                        result = f"[datetime parse error: {exc}]"
+                    output = {"datetime": result}
+
+                elif operation == "add":
+                    raw_input = _render_template(str(config.get("input", "")), expression_scope)
+                    try:
+                        parsed = _dt.datetime.fromisoformat(raw_input)
+                    except Exception:
+                        parsed = _dt.datetime.now(_dt.timezone.utc)
+                    delta = _dt.timedelta(
+                        days=int(config.get("days", 0)),
+                        hours=int(config.get("hours", 0)),
+                        minutes=int(config.get("minutes", 0)),
+                        seconds=int(config.get("seconds", 0)),
+                    )
+                    output = {"datetime": (parsed + delta).isoformat()}
+
+                elif operation == "diff":
+                    a_raw = _render_template(str(config.get("date_a", "")), expression_scope)
+                    b_raw = _render_template(str(config.get("date_b", "")), expression_scope)
+                    unit = str(config.get("unit", "days"))
+                    try:
+                        a = _dt.datetime.fromisoformat(a_raw)
+                        b = _dt.datetime.fromisoformat(b_raw)
+                        diff_secs = (b - a).total_seconds()
+                        divisors = {"seconds": 1, "minutes": 60, "hours": 3600, "days": 86400}
+                        output = {"diff": diff_secs / divisors.get(unit, 86400), "unit": unit}
+                    except Exception as exc:
+                        output = {"diff": None, "error": str(exc)}
+
+                else:
+                    output = {"error": f"Unknown datetime operation: {operation}"}
+
+                context["datetime_result"] = output
+                context.update(output)
+
             elif step_type == "stop_and_error":
                 error_message = _render_template(str(config.get("error_message", "Workflow stopped with error.")), expression_scope)
                 error_type_key = str(config.get("error_type", "error"))

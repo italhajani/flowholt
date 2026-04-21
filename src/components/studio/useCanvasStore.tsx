@@ -56,6 +56,7 @@ export interface CanvasAction {
 interface CanvasStore {
   nodes: CanvasNodeData[];
   edges: [string, string][];
+  edgeLabels: Record<string, string | null>;
   execStates: Record<string, NodeExecState>;
   pinnedNodes: Set<string>;
   stickyNotes: StickyNoteData[];
@@ -71,8 +72,9 @@ interface CanvasStore {
   setStickyNotes: React.Dispatch<React.SetStateAction<StickyNoteData[]>>;
   setNodes: React.Dispatch<React.SetStateAction<CanvasNodeData[]>>;
   setEdges: React.Dispatch<React.SetStateAction<[string, string][]>>;
+  setEdgeLabels: React.Dispatch<React.SetStateAction<Record<string, string | null>>>;
   setExecStates: React.Dispatch<React.SetStateAction<Record<string, NodeExecState>>>;
-  addEdge: (from: string, to: string) => void;
+  addEdge: (from: string, to: string, label?: string | null) => void;
   removeEdge: (from: string, to: string) => void;
   applyActions: (actions: CanvasAction[]) => void;
   undoStack: CanvasAction[][];
@@ -100,6 +102,7 @@ const defaultExecStates: Record<string, NodeExecState> = {
 export function CanvasStoreProvider({ children }: { children: ReactNode }) {
   const [nodes, setNodes] = useState<CanvasNodeData[]>(canvasNodes);
   const [edges, setEdges] = useState<[string, string][]>(defaultEdges);
+  const [edgeLabels, setEdgeLabels] = useState<Record<string, string | null>>({});
   const [execStates, setExecStates] = useState<Record<string, NodeExecState>>(defaultExecStates);
   const [pinnedNodes, setPinnedNodes] = useState<Set<string>>(new Set(["n2"])); // n2 pre-pinned for demo
   const [stickyNotes, setStickyNotes] = useState<StickyNoteData[]>([]);
@@ -118,6 +121,11 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
     const newEdges: [string, string][] = def.edges.length > 0
       ? def.edges.map(apiEdgeToTuple)
       : defaultEdges;
+    // Populate edge labels from definition
+    const newEdgeLabels: Record<string, string | null> = {};
+    (def.edges.length > 0 ? def.edges : []).forEach(e => {
+      if (e.label) newEdgeLabels[`${e.source}-${e.target}`] = e.label;
+    });
 
     // Restore exec states — mark disabled nodes from saved config
     const newExecStates: Record<string, NodeExecState> = {};
@@ -128,6 +136,7 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
 
     setNodes(newNodes);
     setEdges(newEdges);
+    setEdgeLabels(newEdgeLabels);
     setExecStates(newExecStates);
     setPinnedNodes(new Set());
     // Restore sticky notes from the definition settings (if any)
@@ -157,22 +166,28 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
 
   const removeNode = useCallback((id: string) => {
     setNodes(prev => prev.filter(n => n.id !== id));
-    setEdges(prev => prev.filter(([f, t]) => f !== id && t !== id));
+    setEdges(prev => {
+      const removed = prev.filter(([f, t]) => f === id || t === id);
+      removed.forEach(([f, t]) => setEdgeLabels(labels => { const next = { ...labels }; delete next[`${f}-${t}`]; return next; }));
+      return prev.filter(([f, t]) => f !== id && t !== id);
+    });
   }, []);
 
   const updateNode = useCallback((id: string, patch: Partial<CanvasNodeData>) => {
     setNodes(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
   }, []);
 
-  const addEdge = useCallback((from: string, to: string) => {
+  const addEdge = useCallback((from: string, to: string, label?: string | null) => {
     setEdges(prev => {
       if (prev.some(([f, t]) => f === from && t === to)) return prev;
       return [...prev, [from, to]];
     });
+    if (label) setEdgeLabels(prev => ({ ...prev, [`${from}-${to}`]: label }));
   }, []);
 
   const removeEdge = useCallback((from: string, to: string) => {
     setEdges(prev => prev.filter(([f, t]) => !(f === from && t === to)));
+    setEdgeLabels(prev => { const next = { ...prev }; delete next[`${from}-${to}`]; return next; });
   }, []);
 
   /* Snapshot a node's current state for undo */
@@ -318,7 +333,7 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
       id: `e${i}`,
       source: src,
       target: tgt,
-      label: null,
+      label: edgeLabels[`${src}-${tgt}`] ?? null,
     }));
     return {
       steps,
@@ -329,13 +344,14 @@ export function CanvasStoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <CanvasStoreCtx.Provider value={{
-      nodes, edges, execStates,
+      nodes, edges, edgeLabels,
+      execStates,
       pinnedNodes, togglePin,
       stickyNotes, setStickyNotes,
       execOutputs, setExecOutputs,
       loadedWorkflowId, loadWorkflow,
       addNode, removeNode, updateNode,
-      setNodes, setEdges, setExecStates,
+      setNodes, setEdges, setEdgeLabels, setExecStates,
       addEdge, removeEdge,
       applyActions,
       undoStack: undoStackRef.current,

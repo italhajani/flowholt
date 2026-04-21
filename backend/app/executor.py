@@ -1349,6 +1349,97 @@ def run_workflow_definition(
                 context["renamed_items"] = renamed_items
                 context.update(output)
 
+            elif step_type == "http_request":
+                # Make an HTTP request to any URL — core utility node
+                url = _render_template(str(config.get("url", "")), expression_scope)
+                method = str(config.get("method", "GET")).upper()
+                headers_raw: dict = config.get("headers", {})
+                headers = {k: _render_template(str(v), expression_scope) for k, v in headers_raw.items()}
+                # Build body
+                body_type = str(config.get("body_type", "none"))
+                body_content = None
+                if body_type == "json":
+                    raw_body = config.get("body", {})
+                    if isinstance(raw_body, str):
+                        try:
+                            raw_body = json.loads(_render_template(raw_body, expression_scope))
+                        except Exception:
+                            raw_body = _render_template(raw_body, expression_scope)
+                    body_content = raw_body
+                elif body_type == "form":
+                    form_data = config.get("body", {})
+                    body_content = {k: _render_template(str(v), expression_scope) for k, v in (form_data if isinstance(form_data, dict) else {}).items()}
+                elif body_type == "raw":
+                    body_content = _render_template(str(config.get("body", "")), expression_scope)
+                # Auth
+                auth_type = str(config.get("auth_type", "none"))
+                auth = None
+                if auth_type == "basic":
+                    auth = (str(config.get("auth_username", "")), str(config.get("auth_password", "")))
+                elif auth_type == "bearer":
+                    headers["Authorization"] = f"Bearer {_render_template(str(config.get('auth_token', '')), expression_scope)}"
+                # Timeout and retry
+                timeout = float(config.get("timeout_seconds", 30))
+                # Execute request
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    kwargs: dict[str, Any] = {"headers": headers}
+                    if auth:
+                        kwargs["auth"] = auth
+                    if body_type == "json" and body_content is not None:
+                        kwargs["json"] = body_content
+                    elif body_type == "form" and body_content is not None:
+                        kwargs["data"] = body_content
+                    elif body_type == "raw" and body_content is not None:
+                        kwargs["content"] = str(body_content)
+                    resp = await client.request(method, url, **kwargs)
+                # Parse response
+                response_type = str(config.get("response_type", "auto"))
+                resp_body: Any = None
+                if response_type == "json" or (response_type == "auto" and "application/json" in resp.headers.get("content-type", "")):
+                    try:
+                        resp_body = resp.json()
+                    except Exception:
+                        resp_body = resp.text
+                else:
+                    resp_body = resp.text
+                output = {
+                    "status_code": resp.status_code,
+                    "ok": resp.is_success,
+                    "headers": dict(resp.headers),
+                    "body": resp_body,
+                    "url": str(resp.url),
+                }
+                if not resp.is_success and config.get("raise_on_error", True):
+                    raise RuntimeError(f"HTTP {resp.status_code} error from {url}: {str(resp_body)[:200]}")
+                context["http_response"] = output
+                context.update(output)
+
+            elif step_type == "code":
+                # Run a user-provided Python code snippet (sandboxed)
+                code_str = str(config.get("code", ""))
+                code_str = _render_template(code_str, expression_scope)
+                # Build a restricted execution environment
+                sandbox: dict[str, Any] = {
+                    "items": context.get("items", payload.get("data", [])),
+                    "payload": payload,
+                    "json": json,
+                    "re": re,
+                    "__builtins__": {
+                        "len": len, "range": range, "int": int, "float": float, "str": str,
+                        "bool": bool, "list": list, "dict": dict, "tuple": tuple, "set": set,
+                        "abs": abs, "round": round, "min": min, "max": max, "sum": sum,
+                        "sorted": sorted, "reversed": reversed, "enumerate": enumerate,
+                        "zip": zip, "map": map, "filter": filter, "isinstance": isinstance,
+                        "print": print, "repr": repr, "type": type,
+                    },
+                }
+                exec(compile(code_str, "<code_node>", "exec"), sandbox)  # noqa: S102
+                # Convention: code sets `output` variable
+                code_output = sandbox.get("output", sandbox.get("items", {}))
+                output = {"result": code_output, "items": code_output if isinstance(code_output, list) else []}
+                context["code_result"] = code_output
+                context.update(output)
+
             elif step_type == "set":
                 # Set/edit fields on each item — add, modify, or remove fields
                 items = _resolve_collection_source(config.get("source", "items"), context, payload)

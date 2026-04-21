@@ -677,8 +677,8 @@ function WorkflowSettingsModal({ open, onClose }: { open: boolean; onClose: () =
   );
 }
 
-export function StudioHeader({ onBack, workflowId, saveState = "clean", onSave }: { onBack: () => void; workflowId?: string; saveState?: "clean" | "dirty" | "saving" | "saved" | "error"; onSave?: () => void }) {
-  const [workflowName, setWorkflowName] = useState("Lead Qualification Pipeline");
+export function StudioHeader({ onBack, workflowId, workflowName: nameProp, saveState = "clean", onSave }: { onBack: () => void; workflowId?: string; workflowName?: string; saveState?: "clean" | "dirty" | "saving" | "saved" | "error"; onSave?: () => void }) {
+  const [workflowName, setWorkflowName] = useState(nameProp || "Lead Qualification Pipeline");
   const [editingName, setEditingName] = useState(false);
   const [publishState, setPublishState] = useState<PublishState>("unsaved");
   const [environment, setEnvironment] = useState<Environment>("production");
@@ -696,10 +696,8 @@ export function StudioHeader({ onBack, workflowId, saveState = "clean", onSave }
 
   // Sync workflow name from loaded canvas store data
   useEffect(() => {
-    if (store.loadedWorkflowId && store.nodes.length > 0) {
-      // Name is on the workflow detail, not nodes — keep mock name as fallback
-    }
-  }, [store.loadedWorkflowId, store.nodes]);
+    if (nameProp) setWorkflowName(nameProp);
+  }, [nameProp]);
 
   useEffect(() => {
     if (editingName) nameRef.current?.select();

@@ -25,9 +25,45 @@ interface NodeChip {
   name: string;
   subtitle: string;
   color: string;
+  nodeType?: string;
   icon?: string;
   popular?: boolean;
 }
+
+/* Display name → executor type key mapping */
+const nameToNodeType: Record<string, string> = {
+  "HTTP Request": "http_request",
+  "Set": "set",
+  "Edit Fields": "set",
+  "IF / Switch": "condition",
+  "IF": "condition",
+  "Switch": "switch",
+  "Webhook": "webhook",
+  "Schedule": "trigger",
+  "Manual": "trigger",
+  "Chat Trigger": "chat_trigger",
+  "Form Trigger": "form_trigger",
+  "Error Trigger": "error_trigger",
+  "AI Agent": "ai_agent",
+  "OpenAI": "llm",
+  "Anthropic": "llm",
+  "Classifier": "text_classifier",
+  "Summarizer": "summarize",
+  "Embeddings": "embedding",
+  "Code": "code",
+  "Function": "code",
+  "Aggregate": "aggregate",
+  "Filter": "filter",
+  "Merge": "merge",
+  "Loop": "loop",
+  "Wait": "wait",
+  "Sub-workflow": "execute_workflow",
+  "Stop & Error": "stop_and_error",
+  "Date & Time": "datetime",
+  "Rename Keys": "rename_keys",
+  "Remove Duplicates": "remove_duplicates",
+  "Limit": "limit",
+};
 
 const fallbackSections: { title: string; items: NodeChip[] }[] = [
   {
@@ -87,12 +123,14 @@ const fallbackSections: { title: string; items: NodeChip[] }[] = [
   {
     title: "Data & Transform",
     items: [
-      { name: "Set",          subtitle: "Assign fields",         color: "bg-teal-500" },
-      { name: "Code",         subtitle: "JavaScript sandbox",    color: "bg-teal-500" },
-      { name: "Function",     subtitle: "JS function block",     color: "bg-teal-500" },
-      { name: "Spreadsheet",  subtitle: "Read Excel / CSV",      color: "bg-teal-500" },
-      { name: "Aggregate",    subtitle: "Group & summarize",     color: "bg-teal-500" },
-      { name: "HTML Extract", subtitle: "Scrape HTML content",   color: "bg-teal-500" },
+      { name: "Set",          subtitle: "Add/modify item fields",  color: "bg-teal-500" },
+      { name: "Code",         subtitle: "Python sandbox",          color: "bg-teal-500" },
+      { name: "Function",     subtitle: "Python function block",   color: "bg-teal-500" },
+      { name: "Date & Time",  subtitle: "Format/calculate dates",  color: "bg-teal-500" },
+      { name: "Aggregate",    subtitle: "Group & summarize",       color: "bg-teal-500" },
+      { name: "Filter",       subtitle: "Filter items by condition",color: "bg-teal-500" },
+      { name: "Rename Keys",  subtitle: "Rename fields in items",  color: "bg-teal-500" },
+      { name: "HTML Extract", subtitle: "Scrape HTML content",     color: "bg-teal-500" },
     ],
   },
 ];
@@ -113,6 +151,7 @@ function mapCatalogToSections(groups: { id: string; label: string; node_types: s
       return {
         name: node?.label ?? t,
         subtitle: node?.description ?? "",
+        nodeType: t,
         color: categoryColorMap[g.label.toLowerCase()] ?? "bg-zinc-400",
       };
     }),
@@ -343,9 +382,11 @@ function NodesPane({
                     key={`${section.title}-${item.name}`}
                     draggable
                     onDragStart={(e) => {
+                      const resolvedNodeType = item.nodeType || nameToNodeType[item.name] || item.name.toLowerCase().replace(/\s+/g, "_");
                       e.dataTransfer.setData("application/flowholt-node", JSON.stringify({
                         name: item.name,
                         subtitle: item.subtitle,
+                        nodeType: resolvedNodeType,
                         family: colorToFamily[item.color] ?? "integration",
                       }));
                       e.dataTransfer.effectAllowed = "copy";

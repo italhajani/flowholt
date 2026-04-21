@@ -169,7 +169,7 @@ function StudioLayoutInner() {
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
       {/* Header — 48px */}
-      <StudioHeader onBack={() => navigate("/workflows")} workflowId={workflowId} saveState={saveState} onSave={handleManualSave} />
+      <StudioHeader onBack={() => navigate("/workflows")} workflowId={workflowId} workflowName={bundle?.workflow?.name} saveState={saveState} onSave={handleManualSave} />
 
       {/* Tab bar — 36px */}
       <StudioTabBar activeTab={activeTab} onTabChange={setActiveTab} />

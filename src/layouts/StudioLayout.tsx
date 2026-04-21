@@ -26,19 +26,19 @@ function StudioLayoutInner() {
   const { workflowId } = useParams();
   const canvasStore = useCanvasStore();
 
+  // Declare these first so the effects below can reference them
+  const updateMutation = useUpdateWorkflow(workflowId ?? "");
+  const { data: bundle } = useStudioBundle(workflowId);
+  const [saveState, setSaveState] = useState<"clean" | "dirty" | "saving" | "saved" | "error">("clean");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHistoryRef = useRef(0);
+
   // Load workflow definition into canvas when bundle arrives
   useEffect(() => {
     if (bundle?.workflow) {
       canvasStore.loadWorkflow(bundle.workflow);
     }
   }, [bundle?.workflow?.id]);
-
-  // Auto-save: debounce canvas changes → backend
-  const updateMutation = useUpdateWorkflow(workflowId ?? "");
-  const { data: bundle } = useStudioBundle(workflowId);
-  const [saveState, setSaveState] = useState<"clean" | "dirty" | "saving" | "saved" | "error">("clean");
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastHistoryRef = useRef(0);
 
   // Track dirty state from canvas store
   useEffect(() => {

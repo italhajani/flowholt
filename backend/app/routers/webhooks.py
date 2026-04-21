@@ -74,14 +74,15 @@ def update_webhook(
     return item
 
 
-@router.delete("/webhooks/{wh_id}", status_code=204)
+@router.delete("/webhooks/{wh_id}")
 def delete_webhook(
     wh_id: str,
     session: dict[str, Any] = Depends(get_session_context),
-) -> None:
+) -> Response:
     require_workspace_role(session, "owner", "admin")
     if not repo.delete_webhook_endpoint(wh_id):
         raise HTTPException(404, "Webhook not found")
+    return Response(status_code=204)
 
 
 # ── Delivery Logs ──
@@ -165,14 +166,15 @@ def update_polling_trigger(
     return result
 
 
-@router.delete("/polling-triggers/{trigger_id}", status_code=204)
+@router.delete("/polling-triggers/{trigger_id}")
 def delete_polling_trigger(
     trigger_id: str,
     session: dict[str, Any] = Depends(get_session_context),
-) -> None:
+) -> Response:
     require_workspace_role(session, "owner", "admin")
     if not repo.delete_polling_trigger(trigger_id):
         raise HTTPException(404, "Polling trigger not found")
+    return Response(status_code=204)
 
 
 # ── Internal Event Bus ──
@@ -333,14 +335,15 @@ def resolve_incomplete(
     return result
 
 
-@router.delete("/incomplete-executions/{ie_id}", status_code=204)
+@router.delete("/incomplete-executions/{ie_id}")
 def delete_incomplete(
     ie_id: str,
     session: dict[str, Any] = Depends(get_session_context),
-) -> None:
+) -> Response:
     require_workspace_role(session, "owner", "admin")
     if not repo.delete_incomplete_execution(ie_id):
         raise HTTPException(404, "Incomplete execution not found")
+    return Response(status_code=204)
 
 
 # ── API Trigger ── Run workflow via API
@@ -518,6 +521,32 @@ async def receive_webhook(path: str, request: Request) -> Any:
     })
 
     _repo.enqueue_webhook(target["id"], delivery["id"], raw_body)
+
+    # If a workflow is linked to this webhook endpoint, execute it
+    workflow_id = target.get("workflow_id")
+    execution_result: dict[str, Any] = {}
+    if workflow_id:
+        try:
+            from .. import repository as _wfrepo
+            from ..executor import run_workflow_definition as _exec
+            wf = _wfrepo.get_workflow(workflow_id)
+            if wf:
+                defn = wf.get("definition") or wf.get("workflow_definition")
+                if isinstance(defn, str):
+                    import json as _json
+                    defn = _json.loads(defn)
+                if defn:
+                    trigger_payload = {
+                        "method": method,
+                        "headers": headers,
+                        "query": query,
+                        "body": raw_body,
+                        "source_ip": source_ip,
+                    }
+                    outcome = _exec(defn, trigger_payload)
+                    execution_result = outcome if isinstance(outcome, dict) else {}
+        except Exception:
+            pass  # Don't fail the webhook acceptance on execution error
 
     # Custom response based on respond_mode
     respond_mode = target.get("respond_mode", "immediately")

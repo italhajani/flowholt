@@ -1,12 +1,15 @@
-"""Public-facing endpoints — invites, public forms, public chat agents."""
+"""Public-facing endpoints — invites, public forms, public chat agents, and workflow triggers."""
 
 from __future__ import annotations
 
+import json
+import time
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..deps import get_db
@@ -121,3 +124,103 @@ async def public_chat(agent_id: str, req: PublicChatRequest):
         )
 
     return PublicChatResponse(reply=reply, session_id=session_id)
+
+
+# ── Public Workflow Trigger (no auth) ──────────────────────────────
+
+class TriggerResponse(BaseModel):
+    ok: bool
+    execution_id: str
+    status: str
+    outputs: dict[str, Any] = {}
+    error: Optional[str] = None
+
+
+@router.api_route(
+    f"{PREFIX}/trigger/{{workflow_id}}",
+    methods=["GET", "POST", "PUT", "PATCH"],
+    response_model=TriggerResponse,
+    summary="Trigger workflow via public URL (no auth)",
+)
+async def trigger_workflow(workflow_id: str, request: Request) -> TriggerResponse:
+    """Public endpoint — anyone with the URL can trigger this workflow.
+    Pass JSON body as initial payload; query params are merged in as well.
+    Returns execution results synchronously.
+    """
+    db = get_db()
+
+    # Load workflow
+    row = db.execute(
+        "SELECT id, name, definition, active FROM workflows WHERE id = ?",
+        (workflow_id,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(404, f"Workflow {workflow_id} not found")
+
+    if not row["active"]:
+        raise HTTPException(403, "Workflow is not active")
+
+    # Parse payload
+    payload: dict[str, Any] = {}
+    try:
+        body_bytes = await request.body()
+        if body_bytes:
+            payload = json.loads(body_bytes.decode("utf-8", errors="replace"))
+    except Exception:
+        payload = {}
+    # Merge query params
+    payload.update({k: v for k, v in request.query_params.items()})
+
+    # Parse workflow definition
+    try:
+        definition = json.loads(row["definition"]) if isinstance(row["definition"], str) else row["definition"]
+    except Exception:
+        raise HTTPException(500, "Workflow definition is invalid JSON")
+
+    # Create execution record
+    exec_id = f"exec-{uuid.uuid4().hex[:12]}"
+    started = datetime.utcnow().isoformat()
+    db.execute(
+        """INSERT INTO executions
+           (id, workflow_id, workflow_name, status, trigger_type, started_at, payload_json, steps_json)
+           VALUES (?, ?, ?, 'running', 'webhook', ?, ?, ?)""",
+        (exec_id, workflow_id, row["name"], started, json.dumps(payload), "[]"),
+    )
+    db.commit()
+
+    # Execute
+    from ..executor import run_workflow_definition  # type: ignore
+    try:
+        t0 = time.time()
+        result = run_workflow_definition(definition, payload)
+        steps = result.get("step_results", []) if isinstance(result, dict) else []
+        elapsed = int((time.time() - t0) * 1000)
+        outputs = {s["node_id"]: s.get("output", {}) for s in steps if s.get("node_id")}
+        status = result.get("status", "success") if isinstance(result, dict) else "success"
+        error_msg = None
+    except Exception as exc:
+        steps = []
+        outputs = {}
+        elapsed = 0
+        status = "error"
+        error_msg = str(exc)
+
+    # Update execution record
+    db.execute(
+        """UPDATE executions
+           SET status = ?, finished_at = ?, duration_ms = ?, steps_json = ?, result_json = ?, error_text = ?
+           WHERE id = ?""",
+        (
+            status,
+            datetime.utcnow().isoformat(),
+            elapsed,
+            json.dumps(steps),
+            json.dumps(outputs),
+            error_msg,
+            exec_id,
+        ),
+    )
+    db.commit()
+
+    return TriggerResponse(ok=status == "success", execution_id=exec_id, status=status, outputs=outputs, error=error_msg)
+

@@ -636,6 +636,7 @@ function InputPanel({
 function OutputItemsPanel({ execOutput }: { execOutput: Record<string, unknown> }) {
   const [currentItem, setCurrentItem] = useState(0);
   const [view, setView] = useState<"schema" | "json">("schema");
+  const [copied, setCopied] = useState(false);
 
   const items = useMemo(() => {
     if (!execOutput) return [];
@@ -670,10 +671,20 @@ function OutputItemsPanel({ execOutput }: { execOutput: Record<string, unknown> 
     object: "bg-zinc-100 text-zinc-600 border-zinc-200",
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(JSON.stringify(activeJson, null, 2)).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-[12px] text-zinc-400">No output items</p>
+      <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
+        <div className="rounded-full bg-zinc-100 p-3">
+          <span className="text-lg">📭</span>
+        </div>
+        <p className="text-[12px] font-medium text-zinc-500">No output yet</p>
+        <p className="text-[10px] text-zinc-400">Run this node to see output data here</p>
       </div>
     );
   }
@@ -701,20 +712,35 @@ function OutputItemsPanel({ execOutput }: { execOutput: Record<string, unknown> 
             <ChevronRight size={12} />
           </button>
         </div>
-        <div className="flex rounded-lg border border-zinc-200 p-0.5">
-          {(["schema", "json"] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={cn(
-                "rounded-md px-2.5 py-1 text-[10px] font-medium transition-all capitalize",
-                view === v ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"
-              )}
-            >
-              {v === "schema" ? "🌳 Schema" : "{ } JSON"}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleCopy}
+            title="Copy JSON"
+            className="rounded px-2 py-1 text-[9px] font-medium text-zinc-500 hover:bg-zinc-100 transition-colors border border-zinc-200 flex items-center gap-1"
+          >
+            {copied ? "✓ Copied" : "Copy"}
+          </button>
+          <div className="flex rounded-lg border border-zinc-200 p-0.5">
+            {(["schema", "json"] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-[10px] font-medium transition-all capitalize",
+                  view === v ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                )}
+              >
+                {v === "schema" ? "🌳 Schema" : "{ } JSON"}
+              </button>
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Items count badge */}
+      <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 px-1">
+        <span className="rounded-full bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 text-[9px]">{totalItems}</span>
+        <span>{totalItems === 1 ? "item" : "items"} · {schemaRows.filter(r => r.depth === 0).length} top-level fields</span>
       </div>
 
       {view === "schema" && (

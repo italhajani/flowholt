@@ -303,6 +303,14 @@ export function updateWorkflow(id: string, payload: WorkflowUpdatePayload) {
   });
 }
 
+/** Partial PATCH for quick single-field updates (e.g., toggling active status). */
+export function patchWorkflow(id: string, payload: Partial<WorkflowUpdatePayload & { active: boolean }>) {
+  return apiFetch<WorkflowDetail>(`/api/workflows/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function deleteWorkflow(id: string) {
   return apiFetch<void>(`/api/workflows/${id}`, { method: "DELETE" });
 }

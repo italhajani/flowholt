@@ -1582,6 +1582,46 @@ def patch_workflow_settings(
     }
 
 
+@router.patch(f"{settings.api_prefix}/workflows/{{workflow_id}}")
+def patch_workflow(
+    workflow_id: str,
+    body: dict[str, Any],
+    session: dict[str, Any] = Depends(get_session_context),
+) -> dict[str, Any]:
+    """Lightweight PATCH — update individual fields like status without requiring full definition."""
+    require_workspace_role(session, "owner", "admin", "builder")
+    workspace_id = str(session["workspace"]["id"])
+    wf = get_workflow(workflow_id, workspace_id=workspace_id)
+    if wf is None:
+        raise HTTPException(status_code=404, detail="Workflow not found")
+
+    allowed = {"name", "status", "active", "category", "trigger_type"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No patchable fields provided")
+
+    # Map 'active' bool to status string if provided
+    if "active" in updates:
+        updates["status"] = "active" if updates.pop("active") else "paused"
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    values = list(updates.values()) + [workflow_id]
+    with get_db() as db:
+        db.execute(f"UPDATE workflows SET {set_clause} WHERE id = ?", values)
+
+    record_audit_event(
+        session=session,
+        workspace_id=workspace_id,
+        action="workflow.patched",
+        target_type="workflow",
+        target_id=workflow_id,
+        status="success",
+        details={"changed_keys": list(updates.keys())},
+    )
+
+    return {"workflow_id": workflow_id, "updated": updates, "status": "ok"}
+
+
 
 def post_workflow_from_template(
     payload: WorkflowFromTemplateRequest,

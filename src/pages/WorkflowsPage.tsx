@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, GitBranch, Play, Pause, Trash2, Tag, Clock, User, Pencil,
   Folder, FolderOpen, ChevronRight, MoreHorizontal, FolderPlus, X, Check,
-  GripVertical, ChevronDown, Upload, Loader2,
+  GripVertical, ChevronDown, Upload, Loader2, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 import { useWorkflows } from "@/hooks/useApi";
+import { patchWorkflow } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ── Types ── */
 interface Workflow {
@@ -282,7 +284,8 @@ function FolderTreeItem({
   );
 }
 
-const columns: Column<Workflow>[] = [
+function makeColumns(onToggleActive: (id: string, current: Workflow["status"]) => void): Column<Workflow>[] {
+  return [
   {
     id: "name",
     header: "Name",
@@ -298,7 +301,23 @@ const columns: Column<Workflow>[] = [
     id: "status",
     header: "Status",
     sortable: true,
-    accessor: (row) => <StatusDot status={row.status} />,
+    accessor: (row) => (
+      <div className="flex items-center gap-2">
+        <StatusDot status={row.status} />
+        <button
+          title={row.status === "active" ? "Deactivate" : "Activate"}
+          onClick={(e) => { e.stopPropagation(); onToggleActive(row.id, row.status); }}
+          className={cn(
+            "rounded px-1.5 py-0.5 text-[9px] font-medium border transition-colors",
+            row.status === "active"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100"
+          )}
+        >
+          {row.status === "active" ? "Active" : row.status === "paused" ? "Paused" : row.status}
+        </button>
+      </div>
+    ),
   },
   {
     id: "tags",
@@ -359,13 +378,15 @@ const columns: Column<Workflow>[] = [
       </span>
     ),
   },
-];
+  ]; // end makeColumns
+}
 
 const filters = ["All", "Active", "Draft", "Paused", "Failed"] as const;
 type Filter = (typeof filters)[number];
 
 export function WorkflowsPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { data: apiWorkflows, isLoading, isError } = useWorkflows({ limit: 200 });
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [activeFolder, setActiveFolder] = useState("all");
@@ -385,6 +406,18 @@ export function WorkflowsPage() {
     }
     return fallbackWorkflows;
   }, [apiWorkflows]);
+
+  const handleToggleActive = useCallback(async (id: string, currentStatus: Workflow["status"]) => {
+    const newStatus = currentStatus === "active" ? "paused" : "active";
+    try {
+      await patchWorkflow(id, { status: newStatus });
+      qc.invalidateQueries({ queryKey: ["workflows"] });
+    } catch {
+      // silent — backend may be offline, UI stays optimistic
+    }
+  }, [qc]);
+
+  const columns = useMemo(() => makeColumns(handleToggleActive), [handleToggleActive]);
 
   const toggleTag = (name: string) => {
     setActiveTags((prev) => {

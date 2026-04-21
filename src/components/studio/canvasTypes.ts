@@ -5,6 +5,10 @@ export interface CanvasNodeData {
   id: string;
   name: string;
   subtitle: string;
+  /** Technical type key used by the executor (e.g. "http_request", "llm"). Falls back to subtitle. */
+  nodeType?: string;
+  /** Node configuration object persisted with the workflow definition. */
+  config?: Record<string, unknown>;
   family: "trigger" | "integration" | "logic" | "ai" | "data" | "code" | "human" | "error";
   top: number;
   left: number;
@@ -24,9 +28,19 @@ export const familyColors: Record<string, { border: string; dot: string; accent:
 };
 
 export const canvasNodes: CanvasNodeData[] = [
-  { id: "n1", name: "Webhook Trigger",  subtitle: "Webhook",        family: "trigger",     top: 120, left: 80  },
-  { id: "n2", name: "Enrich Lead Data", subtitle: "Clearbit",       family: "integration", top: 120, left: 340 },
-  { id: "n3", name: "Score with AI",    subtitle: "OpenAI GPT-4o",  family: "ai",          top: 120, left: 600 },
-  { id: "n4", name: "Route by Score",   subtitle: "IF / Switch",    family: "logic",       top: 250, left: 600 },
-  { id: "n5", name: "Update CRM",       subtitle: "Salesforce",     family: "integration", top: 250, left: 860 },
+  { id: "n1", name: "Webhook Trigger",  subtitle: "trigger",        nodeType: "trigger",     family: "trigger",     top: 120, left: 80  },
+  { id: "n2", name: "Enrich Lead Data", subtitle: "http_request",   nodeType: "http_request",family: "integration", top: 120, left: 340 },
+  { id: "n3", name: "Score with AI",    subtitle: "llm",            nodeType: "llm",         family: "ai",          top: 120, left: 600 },
+  { id: "n4", name: "Route by Score",   subtitle: "condition",      nodeType: "condition",   family: "logic",       top: 250, left: 600 },
+  { id: "n5", name: "Update CRM",       subtitle: "http_request",   nodeType: "http_request",family: "integration", top: 250, left: 860 },
 ];
+
+/** Canvas sticky note annotation */
+export interface StickyNoteData {
+  id: string;
+  text: string;
+  top: number;
+  left: number;
+  color: string;
+  width?: number;
+}

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     database_url: str = ""
     database_path: str = str(Path(__file__).resolve().parents[1] / "flowholt.db")
+    database_backend: str = "sqlite"  # sqlite | postgres — explicit override
     cors_origin: str = "http://localhost:5173"
     llm_mode: str = "mock"  # legacy, kept for backwards compat
     llm_provider: str = "auto"  # auto | ollama | gemini | groq | openai | anthropic | deepseek | xai | mock

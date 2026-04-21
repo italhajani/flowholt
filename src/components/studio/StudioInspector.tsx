@@ -522,7 +522,7 @@ function InputPanel({
                 inputView === v ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"
               )}
             >
-              {v === "schema" ? "🌳 Schema" : v === "table" ? "📊 Table" : "{ } JSON"}
+              {v === "schema" ? "Schema" : v === "table" ? "Table" : "JSON"}
             </button>
           ))}
         </div>
@@ -730,7 +730,7 @@ function OutputItemsPanel({ execOutput }: { execOutput: Record<string, unknown> 
                   view === v ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"
                 )}
               >
-                {v === "schema" ? "🌳 Schema" : "{ } JSON"}
+                {v === "schema" ? "Schema" : "JSON"}
               </button>
             ))}
           </div>

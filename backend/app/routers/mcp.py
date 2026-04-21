@@ -4,7 +4,7 @@ import json
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from ..db import get_db, row_to_dict
@@ -116,8 +116,8 @@ def update_mcp_server(server_id: str, payload: MCPServerUpdate, ctx=get_session_
     return row_to_dict(row)
 
 
-@router.delete("/servers/{server_id}", status_code=204)
-def delete_mcp_server(server_id: str, ctx=get_session_context):
+@router.delete("/servers/{server_id}")
+def delete_mcp_server(server_id: str, ctx=get_session_context) -> Response:
     with get_db() as conn:
         cur = conn.execute(
             "DELETE FROM mcp_servers WHERE id = ? AND workspace_id = ?",
@@ -126,6 +126,7 @@ def delete_mcp_server(server_id: str, ctx=get_session_context):
         conn.commit()
     if cur.rowcount == 0:
         raise HTTPException(404, "MCP server not found")
+    return Response(status_code=204)
 
 
 # ── MCP Tool call (proxy to external MCP server) ────────────────────

@@ -119,15 +119,16 @@ def api_update_agent(
     return _agent_row_to_detail(row)
 
 
-@router.delete(f"{settings.api_prefix}/agents/{{agent_id}}", status_code=204)
+@router.delete(f"{settings.api_prefix}/agents/{{agent_id}}")
 def api_delete_agent(
     agent_id: str,
     session: dict[str, Any] = Depends(get_session_context),
-) -> None:
+) -> Response:
     workspace_id = str(session["workspace"]["id"])
     deleted = delete_agent(agent_id, workspace_id=workspace_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Agent not found")
+    return Response(status_code=204)
 
 
 @router.post(f"{settings.api_prefix}/agents/{{agent_id}}/chat")
@@ -234,10 +235,11 @@ async def api_create_thread(agent_id: str, title: str | None = None):
     return {**row, "message_count": 0, "last_message_at": None}
 
 
-@router.delete(f"{settings.api_prefix}/agents/threads/{{thread_id}}", status_code=204)
-async def api_delete_thread(thread_id: str):
+@router.delete(f"{settings.api_prefix}/agents/threads/{{thread_id}}")
+async def api_delete_thread(thread_id: str) -> Response:
     if not delete_thread(thread_id):
         raise HTTPException(status_code=404, detail="Thread not found")
+    return Response(status_code=204)
 
 
 @router.get(f"{settings.api_prefix}/agents/threads/{{thread_id}}/messages", response_model=list[ChatMessageOut])

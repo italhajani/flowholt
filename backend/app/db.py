@@ -427,13 +427,17 @@ CREATE TABLE IF NOT EXISTS chat_threads (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
+    agent_id TEXT,
+    resource_id TEXT NOT NULL DEFAULT 'default',
+    title TEXT NOT NULL DEFAULT '',
     model TEXT NOT NULL DEFAULT '',
     pinned INTEGER NOT NULL DEFAULT 0,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY(workspace_id) REFERENCES workspaces(id),
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS chat_messages (
@@ -492,17 +496,7 @@ CREATE TABLE IF NOT EXISTS agents (
 
 CREATE INDEX IF NOT EXISTS idx_agents_workspace ON agents(workspace_id, updated_at DESC);
 
--- ── Chat Memory ──
-CREATE TABLE IF NOT EXISTS chat_threads (
-    id TEXT PRIMARY KEY,
-    agent_id TEXT NOT NULL,
-    resource_id TEXT NOT NULL DEFAULT 'default',
-    title TEXT,
-    metadata_json TEXT NOT NULL DEFAULT '{}',
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY(agent_id) REFERENCES agents(id) ON DELETE CASCADE
-);
+-- ── Chat Memory (indexes for agent-based lookups) ──
 CREATE INDEX IF NOT EXISTS idx_chat_threads_agent ON chat_threads(agent_id, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS chat_messages (
@@ -822,6 +816,12 @@ def utc_now() -> str:
 
 def get_database_backend() -> str:
     settings = get_settings()
+    # Explicit override takes precedence
+    if settings.database_backend in ("postgres", "postgresql"):
+        return "postgres"
+    if settings.database_backend == "sqlite":
+        return "sqlite"
+    # Auto-detect from DATABASE_URL only if backend is set to "auto"
     target = settings.database_url or settings.database_path
     parsed = urlparse(target)
     if parsed.scheme in {"postgres", "postgresql"}:

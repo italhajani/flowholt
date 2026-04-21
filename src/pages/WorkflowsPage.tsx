@@ -302,21 +302,19 @@ function makeColumns(onToggleActive: (id: string, current: Workflow["status"]) =
     header: "Status",
     sortable: true,
     accessor: (row) => (
-      <div className="flex items-center gap-2">
+      <button
+        title={row.status === "active" ? "Click to pause" : row.status === "paused" ? "Click to activate" : undefined}
+        disabled={row.status === "draft"}
+        onClick={(e) => { e.stopPropagation(); if (row.status !== "draft") onToggleActive(row.id, row.status); }}
+        className="group/st flex items-center gap-1.5 disabled:cursor-default"
+      >
         <StatusDot status={row.status} />
-        <button
-          title={row.status === "active" ? "Deactivate" : "Activate"}
-          onClick={(e) => { e.stopPropagation(); onToggleActive(row.id, row.status); }}
-          className={cn(
-            "rounded px-1.5 py-0.5 text-[9px] font-medium border transition-colors",
-            row.status === "active"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-              : "border-zinc-200 bg-zinc-50 text-zinc-500 hover:bg-zinc-100"
-          )}
-        >
-          {row.status === "active" ? "Active" : row.status === "paused" ? "Paused" : row.status}
-        </button>
-      </div>
+        {row.status !== "draft" && (
+          row.status === "active"
+            ? <Pause size={10} className="text-zinc-300 opacity-0 group-hover/st:opacity-100 transition-opacity" />
+            : <Play  size={10} className="text-zinc-300 opacity-0 group-hover/st:opacity-100 transition-opacity" />
+        )}
+      </button>
     ),
   },
   {

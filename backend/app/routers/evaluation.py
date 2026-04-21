@@ -4,7 +4,7 @@ import json
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 
 from ..db import get_db, row_to_dict
@@ -107,8 +107,8 @@ def update_dataset(dataset_id: str, payload: EvalDatasetUpdate, ctx=get_session_
     return row_to_dict(row)
 
 
-@router.delete("/datasets/{dataset_id}", status_code=204)
-def delete_dataset(dataset_id: str, ctx=get_session_context):
+@router.delete("/datasets/{dataset_id}")
+def delete_dataset(dataset_id: str, ctx=get_session_context) -> Response:
     with get_db() as conn:
         cur = conn.execute(
             "DELETE FROM eval_datasets WHERE id = ? AND workspace_id = ?",
@@ -117,6 +117,7 @@ def delete_dataset(dataset_id: str, ctx=get_session_context):
         conn.commit()
     if cur.rowcount == 0:
         raise HTTPException(404, "Dataset not found")
+    return Response(status_code=204)
 
 
 # ── Evaluation Runs ──────────────────────────────────────────────────

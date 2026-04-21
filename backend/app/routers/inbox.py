@@ -4,6 +4,7 @@ Inbox router — extracted from main.py.
 from __future__ import annotations
 
 from .._router_imports import *  # noqa: F401,F403
+from ..helpers import _resume_paused_execution, _cancel_paused_execution  # noqa: F401
 
 router = APIRouter()
 

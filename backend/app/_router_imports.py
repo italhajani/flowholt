@@ -388,5 +388,14 @@ from . import runtime_state
 
 # ── Shared helpers ─────────────────────────────────────────────────────
 from .helpers import *  # noqa: F401,F403
+# Private helpers are excluded from * imports — import them explicitly
+from .helpers import (  # noqa: F401
+    _execute_workflow,
+    _resume_paused_execution,
+    _cancel_paused_execution,
+    _dispatch_error_workflow,
+    _workflow_settings_from_definition,
+    _apply_execution_retention,
+)
 
 _logger = logging.getLogger("flowholt.api")

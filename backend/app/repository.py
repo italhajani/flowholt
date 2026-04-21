@@ -23,7 +23,7 @@ def create_user_with_workspace(
     workspace_id = f"ws-{uuid.uuid4().hex[:12]}"
     slug = f"{name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
     membership_id = f"wm-{uuid.uuid4().hex[:12]}"
-    now = utcutc_now()
+    now = utc_now()
 
     with get_db() as conn:
         conn.execute(
@@ -98,7 +98,7 @@ def upsert_user_identity(*, user_id: str, provider: str, provider_subject: str, 
                 user_id = excluded.user_id,
                 email = excluded.email
             """,
-            (identity_id, user_id, provider, provider_subject, email, utcutc_now()),
+            (identity_id, user_id, provider, provider_subject, email, utc_now()),
         )
         row = conn.execute(
             "SELECT * FROM user_identities WHERE provider = ? AND provider_subject = ?",
@@ -338,7 +338,7 @@ def invite_workspace_member(*, workspace_id: str, email: str, role: str) -> dict
             raise ValueError("A member or invite with this email already exists in the workspace")
 
         user_row = conn.execute("SELECT * FROM users WHERE lower(email) = lower(?)", (normalized_email,)).fetchone()
-        now = utcutc_now()
+        now = utc_now()
 
         if user_row is None:
             local_part = normalized_email.split("@", 1)[0]
@@ -435,7 +435,7 @@ def create_audit_event(
     actor_email: str | None = None,
 ) -> dict[str, Any]:
     event_id = f"ae-{uuid.uuid4().hex[:10]}"
-    created_at = utcutc_now()
+    created_at = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -517,7 +517,7 @@ def get_workspace_settings(workspace_id: str) -> dict[str, Any]:
             "notify_on_failure": True,
             "notify_on_success": False,
             "notify_on_approval_requests": True,
-            "updated_at": utcutc_now(),
+            "updated_at": utc_now(),
         }
     item = row_to_dict(row)
     item["require_webhook_signature"] = bool(item.get("require_webhook_signature", 0))
@@ -574,7 +574,7 @@ def update_workspace_settings(
     notify_on_success: bool = False,
     notify_on_approval_requests: bool = True,
 ) -> dict[str, Any]:
-    now = utcutc_now()
+    now = utc_now()
     current = get_workspace_settings(workspace_id)
     next_secret = webhook_signing_secret if webhook_signing_secret is not None else current.get("webhook_signing_secret")
     with get_db() as conn:
@@ -833,7 +833,7 @@ def create_workflow_job(
     max_attempts: int = 3,
 ) -> dict[str, Any]:
     job_id = f"job-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -895,7 +895,7 @@ def get_workflow_job(job_id: str, *, workspace_id: str | None = None) -> dict[st
 
 
 def cancel_workflow_job(job_id: str, *, workspace_id: str) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         row = conn.execute(
             "SELECT * FROM workflow_jobs WHERE id = ? AND workspace_id = ?",
@@ -922,7 +922,7 @@ def cancel_workflow_job(job_id: str, *, workspace_id: str) -> dict[str, Any] | N
 
 
 def claim_pending_workflow_jobs(*, limit: int, lease_seconds: int) -> list[dict[str, Any]]:
-    now = utcutc_now()
+    now = utc_now()
     claimed: list[dict[str, Any]] = []
     with get_db() as conn:
         rows = conn.execute(
@@ -956,7 +956,7 @@ def claim_pending_workflow_jobs(*, limit: int, lease_seconds: int) -> list[dict[
 
 
 def complete_workflow_job(job_id: str, *, execution_id: str | None) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -971,7 +971,7 @@ def complete_workflow_job(job_id: str, *, execution_id: str | None) -> dict[str,
 
 
 def fail_workflow_job(job_id: str, *, error_text: str, retry_delay_seconds: int = 30) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         row = conn.execute("SELECT * FROM workflow_jobs WHERE id = ?", (job_id,)).fetchone()
         if row is None:
@@ -1069,7 +1069,7 @@ def get_vault_asset_by_name(*, kind: str, name: str, workspace_id: str | None = 
 def create_vault_asset(payload: VaultAssetCreate, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
     from .encryption import encrypt_secret
     asset_id = f"va-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     secret_str = json.dumps(payload.secret)
     encrypted_secret = encrypt_secret(secret_str)
     with get_db() as conn:
@@ -1135,7 +1135,7 @@ def update_vault_asset(asset_id: str, payload: VaultAssetUpdate, *, workspace_id
                 payload.status,
                 payload.workflows_count,
                 payload.people_with_access,
-                utcutc_now(),
+                utc_now(),
                 1 if payload.masked else 0,
                 encrypted_secret,
                 asset_id,
@@ -1168,7 +1168,7 @@ def update_vault_asset_access(
                 visibility,
                 json.dumps(allowed_roles),
                 json.dumps(allowed_user_ids),
-                utcutc_now(),
+                utc_now(),
                 asset_id,
                 workspace_id,
             ),
@@ -1263,7 +1263,7 @@ def delete_workflow(workflow_id: str, *, workspace_id: str) -> bool:
 
 def create_workflow(payload: WorkflowCreate, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
     workflow_id = f"w-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1308,7 +1308,7 @@ def create_workflow_version(
     notes: str | None = None,
 ) -> dict[str, Any]:
     version_id = f"wv-{uuid.uuid4().hex[:10]}"
-    created_at = utcutc_now()
+    created_at = utc_now()
     next_version_number = int(workflow.get("current_version_number") or 0) + 1
 
     with get_db() as conn:
@@ -1381,7 +1381,7 @@ def create_workflow_deployment(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     deployment_id = f"wd-{uuid.uuid4().hex[:10]}"
-    created_at = utcutc_now()
+    created_at = utc_now()
     payload = metadata or {}
     with get_db() as conn:
         conn.execute(
@@ -1424,7 +1424,7 @@ def create_workflow_deployment_review(
     notes: str | None = None,
 ) -> dict[str, Any]:
     review_id = f"wr-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1496,7 +1496,7 @@ def update_workflow_deployment_review(
     reviewed_by_user_id: str | None = None,
     review_comment: str | None = None,
 ) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     reviewed_at = now if status in {"approved", "rejected", "cancelled"} else None
     with get_db() as conn:
         conn.execute(
@@ -1689,7 +1689,7 @@ def create_execution_record(
     environment: str = "draft",
 ) -> dict[str, Any]:
     execution_id = f"e-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     record = {
         "id": execution_id,
         "workspace_id": workflow["workspace_id"],
@@ -1747,7 +1747,7 @@ def finish_execution_record(
     result: dict[str, Any] | None,
     error_text: str | None,
 ) -> dict[str, Any]:
-    finished_at = utcutc_now()
+    finished_at = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1773,7 +1773,7 @@ def finish_execution_record(
 
 def touch_workflow_run(workflow_id: str) -> None:
     with get_db() as conn:
-        conn.execute("UPDATE workflows SET last_run_at = ? WHERE id = ?", (utcutc_now(), workflow_id))
+        conn.execute("UPDATE workflows SET last_run_at = ? WHERE id = ?", (utc_now(), workflow_id))
 
 
 def create_trigger_event(
@@ -1787,7 +1787,7 @@ def create_trigger_event(
 ) -> dict[str, Any]:
     event_id = f"te-{uuid.uuid4().hex[:10]}"
     payload_hash = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
-    created_at = utcutc_now()
+    created_at = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1850,7 +1850,7 @@ def create_execution_pause(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pause_id = f"ep-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -1915,7 +1915,7 @@ def get_execution_pause_by_token(*, token: str, token_kind: str) -> dict[str, An
 
 
 def update_execution_pause_status(pause_id: str, *, status: str) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             "UPDATE execution_pauses SET status = ?, updated_at = ? WHERE id = ?",
@@ -1926,7 +1926,7 @@ def update_execution_pause_status(pause_id: str, *, status: str) -> dict[str, An
 
 
 def list_due_execution_pauses(*, limit: int = 25) -> list[dict[str, Any]]:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         rows = conn.execute(
             """
@@ -1961,7 +1961,7 @@ def create_human_task(
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     task_id = f"ht-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2049,7 +2049,7 @@ def complete_human_task(
     comment: str | None,
     response_payload: dict[str, Any],
 ) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2064,7 +2064,7 @@ def complete_human_task(
 
 
 def cancel_human_task(task_id: str, *, comment: str | None = None) -> dict[str, Any] | None:
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2091,7 +2091,7 @@ def create_execution_event(
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     event_id = f"ee-{uuid.uuid4().hex[:10]}"
-    created_at = utcutc_now()
+    created_at = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2165,7 +2165,7 @@ def create_execution_artifact(
                 direction,
                 encoded,
                 len(encoded.encode("utf-8")),
-                utcutc_now(),
+                utc_now(),
             ),
         )
         row = conn.execute("SELECT * FROM execution_artifacts WHERE id = ?", (artifact_id,)).fetchone()
@@ -2376,7 +2376,7 @@ def create_user_notification(
 ) -> dict[str, Any]:
     _ensure_notifications_table()
     notif_id = f"notif-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             "INSERT INTO notifications (id, workspace_id, user_id, title, body, kind, link, read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)",
@@ -2443,7 +2443,7 @@ def resume_execution_record(execution_id: str) -> dict[str, Any] | None:
 
 def create_agent(payload: Any, *, workspace_id: str, created_by_user_id: str) -> dict[str, Any]:
     agent_id = f"ag-{uuid.uuid4().hex[:10]}"
-    now = utcutc_now()
+    now = utc_now()
     with get_db() as conn:
         conn.execute(
             """
@@ -2534,7 +2534,7 @@ def update_agent(agent_id: str, payload: Any, *, workspace_id: str) -> dict[str,
         return get_agent(agent_id, workspace_id=workspace_id)
 
     fields.append("updated_at = ?")
-    values.append(utcutc_now())
+    values.append(utc_now())
     values.extend([agent_id, workspace_id])
 
     with get_db() as conn:
@@ -3416,27 +3416,30 @@ def list_dead_letters(limit: int = 50, offset: int = 0) -> list[dict]:
 
 def purge_dead_letters() -> int:
     """Delete all dead-letter queue items. Returns count deleted."""
-    cur = conn.execute("DELETE FROM webhook_queue WHERE status='dead_letter'")
-    conn.commit()
-    return cur.rowcount
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM webhook_queue WHERE status='dead_letter'")
+        conn.commit()
+        return cur.rowcount
 
 
 def purge_old_deliveries(days: int | None = None) -> int:
     """Delete delivery log entries older than `days`. Returns count deleted."""
     d = days if days is not None else WEBHOOK_LOG_RETENTION_DAYS
     cutoff = (datetime.utcnow() - timedelta(days=d)).isoformat()
-    cur = conn.execute("DELETE FROM webhook_deliveries WHERE created_at < ?", (cutoff,))
-    conn.commit()
-    return cur.rowcount
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM webhook_deliveries WHERE created_at < ?", (cutoff,))
+        conn.commit()
+        return cur.rowcount
 
 
 def deactivate_expired_webhooks() -> int:
     """Deactivate webhooks past their expires_at. Returns count deactivated."""
     now = datetime.utcnow().isoformat()
-    cur = conn.execute(
-        "UPDATE webhook_endpoints SET is_active=0 WHERE is_active=1 AND expires_at IS NOT NULL AND expires_at != '' AND expires_at < ?",
-        (now,),
-    )
-    conn.commit()
-    return cur.rowcount
+    with get_db() as conn:
+        cur = conn.execute(
+            "UPDATE webhook_endpoints SET active=0 WHERE active=1 AND expires_at IS NOT NULL AND expires_at != '' AND expires_at < ?",
+            (now,),
+        )
+        conn.commit()
+        return cur.rowcount
 

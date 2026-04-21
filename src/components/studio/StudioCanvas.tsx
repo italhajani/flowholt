@@ -925,10 +925,11 @@ interface StudioCanvasProps {
   selectedNodeId: string | null;
   onNodeSelect: (id: string) => void;
   onCanvasClick: () => void;
+  onRenameNode?: (id: string) => void;
   workflowId?: string;
 }
 
-export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, workflowId }: StudioCanvasProps) {
+export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, onRenameNode, workflowId }: StudioCanvasProps) {
   const store = useCanvasStore();
   const { data: bundle } = useStudioBundle(workflowId);
 
@@ -1338,6 +1339,8 @@ export function StudioCanvas({ selectedNodeId, onNodeSelect, onCanvasClick, work
       }
       // 1: fit to view
       if (e.key === "1" && !e.ctrlKey && !e.metaKey) { fitView(); }
+      // F2: rename selected node (opens inspector rename mode)
+      if (e.key === "F2" && selectedNodeId) { e.preventDefault(); onRenameNode?.(selectedNodeId); }
 
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();

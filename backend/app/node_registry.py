@@ -4044,6 +4044,142 @@ NODE_DEFINITIONS: list[dict[str, Any]] = [
              "help": "JSON Schema to validate incoming request body"},
         ],
     },
+    # ── Stop and Error ───────────────────────────────────────────
+    {
+        "type": "stop_and_error",
+        "label": "Stop and Error",
+        "category": "Flow Control",
+        "description": "Immediately halt the workflow and throw an error (or success stop) with a custom message.",
+        "icon": "octagon-x",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "error_message",
+                "label": "Error Message",
+                "type": "textarea",
+                "required": True,
+                "default": "Workflow stopped with error.",
+                "help": "The message to include in the error. Supports expressions.",
+            },
+            {
+                "key": "error_type",
+                "label": "Stop Type",
+                "type": "select",
+                "required": False,
+                "default": "error",
+                "options": [
+                    {"value": "error", "label": "Error (fail the execution)"},
+                    {"value": "success", "label": "Success Stop (halt cleanly)"},
+                ],
+                "help": "Error will mark the execution as failed. Success Stop halts without failure.",
+            },
+        ],
+    },
+    # ── Limit node ──────────────────────────────────────────────────
+    {
+        "type": "limit",
+        "label": "Limit",
+        "category": "Data Transformation",
+        "description": "Keep only the first N items from a list, with optional offset.",
+        "icon": "scissors",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "items",
+                "label": "Items (expression or field name)",
+                "type": "text",
+                "required": False,
+                "default": "",
+                "help": "Leave blank to use items from previous node output.",
+            },
+            {
+                "key": "max_items",
+                "label": "Max Items",
+                "type": "number",
+                "required": True,
+                "default": 10,
+                "help": "Maximum number of items to keep.",
+            },
+            {
+                "key": "offset",
+                "label": "Offset (skip first N)",
+                "type": "number",
+                "required": False,
+                "default": 0,
+                "help": "Number of items to skip from the start before taking max_items.",
+            },
+            {
+                "key": "keep_remainder",
+                "label": "Output Remainder",
+                "type": "boolean",
+                "required": False,
+                "default": False,
+                "help": "If enabled, also outputs items not kept as 'remainder'.",
+            },
+        ],
+    },
+    # ── Remove Duplicates node ──────────────────────────────────────
+    {
+        "type": "remove_duplicates",
+        "label": "Remove Duplicates",
+        "category": "Data Transformation",
+        "description": "Remove duplicate items from a list based on a field value or full object equality.",
+        "icon": "layers",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "items",
+                "label": "Items (expression or field name)",
+                "type": "text",
+                "required": False,
+                "default": "",
+                "help": "Leave blank to use items from previous node output.",
+            },
+            {
+                "key": "compare_field",
+                "label": "Compare by Field",
+                "type": "text",
+                "required": False,
+                "default": "",
+                "help": "Field path to use for comparison (e.g. 'email'). Leave blank for full object comparison.",
+            },
+        ],
+    },
+    # ── Rename Keys node ────────────────────────────────────────────
+    {
+        "type": "rename_keys",
+        "label": "Rename Keys",
+        "category": "Data Transformation",
+        "description": "Rename fields in each item in a list. Useful for normalizing data shapes.",
+        "icon": "pencil",
+        "supports_branches": False,
+        "fields": [
+            {
+                "key": "items",
+                "label": "Items (expression or field name)",
+                "type": "text",
+                "required": False,
+                "default": "",
+                "help": "Leave blank to use items from previous node output.",
+            },
+            {
+                "key": "renames",
+                "label": "Field Renames (JSON array of {from, to})",
+                "type": "code",
+                "required": True,
+                "default": '[{"from": "old_field", "to": "new_field"}]',
+                "help": "Array of rename rules. Each rule has 'from' (original key) and 'to' (new key).",
+            },
+            {
+                "key": "remove_originals",
+                "label": "Remove Original Keys",
+                "type": "boolean",
+                "required": False,
+                "default": True,
+                "help": "If enabled, removes the original field after renaming.",
+            },
+        ],
+    },
 ]
 
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   X, ChevronRight, ChevronDown, ChevronLeft, Copy, Pin, PinOff, RefreshCw,
   AlertTriangle, Play, Braces, Code2, Eye, EyeOff, Hash, MoreHorizontal,
@@ -19,11 +19,12 @@ type ParamFieldType = "select" | "text" | "number" | "textarea" | "code" | "expr
 
 const inspectorTabs = [
   { key: "Parameters", badge: null },
-  { key: "Input",      badge: "3" },
-  { key: "Output",     badge: "3" },
+  { key: "Input",      badge: null },
+  { key: "Output",     badge: null },
   { key: "Diff",       badge: null },
   { key: "Pin Data",   badge: null },
   { key: "Settings",   badge: null },
+  { key: "Diagnostics", badge: null },
 ];
 
 /* ── Per-node mock parameter configs ── */
@@ -160,9 +161,11 @@ interface StudioInspectorProps {
   node: CanvasNodeData;
   onClose: () => void;
   workflowId?: string;
+  startRenameMode?: boolean;
+  onRenameModeConsumed?: () => void;
 }
 
-export function StudioInspector({ node, onClose, workflowId }: StudioInspectorProps) {
+export function StudioInspector({ node, onClose, workflowId, startRenameMode, onRenameModeConsumed }: StudioInspectorProps) {
   const [activeTab, setActiveTab] = useState("Parameters");
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
   const [testResult, setTestResult] = useState<{ status: string; output: Record<string, unknown> | null; error: string | null; duration_ms: number } | null>(null);
@@ -181,6 +184,32 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
 
   // Real execution output for this node (populated after a run)
   const execOutput = store.execOutputs?.[node.id];
+
+  // Inline rename state
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(node.name);
+  // Reset draft when selected node changes; activate rename if triggered externally (F2)
+  useEffect(() => { setDraftName(node.name); setRenaming(false); }, [node.id, node.name]);
+  useEffect(() => {
+    if (startRenameMode) { setDraftName(node.name); setRenaming(true); onRenameModeConsumed?.(); }
+  }, [startRenameMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commitRename = useCallback(() => {
+    const trimmed = draftName.trim();
+    if (trimmed && trimmed !== node.name) {
+      store.updateNode(node.id, { name: trimmed });
+      if (workflowId) updateStep.mutate({ stepId: node.id, payload: { name: trimmed } });
+    }
+    setRenaming(false);
+  }, [draftName, node.id, node.name, store, workflowId, updateStep]);
+
+  // Compute real upstream nodes from canvas edges
+  const upstreamNodesList = useMemo(() => {
+    return store.edges
+      .filter(([, target]) => target === node.id)
+      .map(([src]) => store.nodes.find(n => n.id === src))
+      .filter((n): n is CanvasNodeData => !!n);
+  }, [store.edges, store.nodes, node.id]);
 
   const handleRunNode = () => {
     if (workflowId) {
@@ -211,7 +240,22 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <span className={cn("h-2.5 w-2.5 rounded-full flex-shrink-0", colors.dot)} />
-            <span className="text-[13px] font-semibold text-zinc-900 truncate">{node.name}</span>
+            {renaming ? (
+              <input
+                autoFocus
+                value={draftName}
+                onChange={e => setDraftName(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenaming(false); }}
+                className="text-[13px] font-semibold text-zinc-900 border-b border-zinc-400 bg-transparent focus:outline-none w-full max-w-[260px]"
+              />
+            ) : (
+              <span
+                className="text-[13px] font-semibold text-zinc-900 truncate cursor-text select-none"
+                title="Double-click to rename"
+                onDoubleClick={() => { setDraftName(node.name); setRenaming(true); }}
+              >{node.name}</span>
+            )}
             {pinned && <span className="flex-shrink-0 rounded bg-amber-50 border border-amber-200 px-1 py-0.5 text-[8px] font-semibold text-amber-600">PINNED</span>}
           </div>
           <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -290,7 +334,7 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
             }}
           />
         )}
-        {activeTab === "Input" && <InputPanel nodeId={node.id} pinned={pinned} />}
+        {activeTab === "Input" && <InputPanel nodeId={node.id} pinned={pinned} upstreamNodes={upstreamNodesList} execOutputs={store.execOutputs} />}
         {activeTab === "Output" && (
           testResult ? (
             <div className="flex-1 overflow-auto p-4 space-y-3">
@@ -308,20 +352,15 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-[12px] text-red-600 font-mono whitespace-pre-wrap">{testResult.error}</div>
               )}
               {testResult.output && (
-                <pre className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-[11px] font-mono text-zinc-700 overflow-auto max-h-[400px] whitespace-pre-wrap">
-                  {JSON.stringify(testResult.output, null, 2)}
-                </pre>
+                <OutputItemsPanel execOutput={testResult.output} />
               )}
             </div>
           ) : execOutput ? (
-            // Show last workflow execution output for this node
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600">LAST RUN</span>
               </div>
-              <pre className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-[11px] font-mono text-zinc-700 overflow-auto max-h-[400px] whitespace-pre-wrap">
-                {JSON.stringify(execOutput, null, 2)}
-              </pre>
+              <OutputItemsPanel execOutput={execOutput as Record<string, unknown>} />
             </div>
           ) : (
             <DataPanel nodeId={node.id} direction="output" pinned={pinned} />
@@ -330,34 +369,51 @@ export function StudioInspector({ node, onClose, workflowId }: StudioInspectorPr
         {activeTab === "Diff" && <DiffPanel nodeId={node.id} />}
         {activeTab === "Pin Data" && <PinDataPanel nodeId={node.id} nodeName={node.name} pinned={pinned} onTogglePin={() => store.togglePin(node.id)} workflowId={workflowId} />}
         {activeTab === "Settings" && <SettingsContent nodeId={node.id} workflowId={workflowId} isDisabled={store.execStates[node.id] === "disabled"} onToggleDisabled={() => store.setExecStates(prev => ({ ...prev, [node.id]: prev[node.id] === "disabled" ? "idle" : "disabled" }))} />}
+        {activeTab === "Diagnostics" && <DiagnosticsContent node={node} editorResponse={stepEditor ?? nodeEditor} />}
       </div>
     </div>
   );
 }
 
 /* ── INPUT panel — upstream node selector + data viewer ── */
-const upstreamNodes: Record<string, { id: string; name: string; family: string }[]> = {
-  n2: [{ id: "n1", name: "Typeform Trigger", family: "trigger" }],
-  n3: [{ id: "n2", name: "Clearbit Enrich", family: "integration" }],
-  n4: [{ id: "n3", name: "Score Lead (GPT-4o)", family: "ai" }],
-  n5: [{ id: "n4", name: "IF Score > 70", family: "logic" }],
-};
 
-function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
-  const upstream = upstreamNodes[nodeId] ?? [];
+function InputPanel({
+  nodeId,
+  pinned,
+  upstreamNodes = [],
+  execOutputs = {},
+}: {
+  nodeId: string;
+  pinned: boolean;
+  upstreamNodes?: CanvasNodeData[];
+  execOutputs?: Record<string, unknown>;
+}) {
+  const upstream = upstreamNodes;
   const [selectedUpstream, setSelectedUpstream] = useState(upstream[0]?.id ?? "");
+  // Update selection when upstream list changes (e.g. new connection)
+  useEffect(() => { if (upstream.length > 0 && !upstream.find(u => u.id === selectedUpstream)) { setSelectedUpstream(upstream[0]?.id ?? ""); } }, [upstream, selectedUpstream]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [inputView, setInputView] = useState<"schema" | "table" | "json">("schema");
   const [dragField, setDragField] = useState<string | null>(null);
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [currentItem, setCurrentItem] = useState(0);
 
-  // Mock multi-item data (n8n-style: each item is a {json: {...}} wrapper)
-  const mockItems = useMemo(() => [
-    { json: { id: 42, name: "John Doe", email: "john@example.com", status: "active", score: 87, metadata: { source: "typeform", timestamp: "2025-01-06T09:00:00Z" }, tags: ["vip", "trial"] } },
-    { json: { id: 43, name: "Jane Smith", email: "jane@example.com", status: "pending", score: 62, metadata: { source: "hubspot", timestamp: "2025-01-06T10:15:00Z" }, tags: ["trial"] } },
-    { json: { id: 44, name: "Bob Wilson", email: "bob@example.com", status: "active", score: 91, metadata: { source: "api", timestamp: "2025-01-06T11:30:00Z" }, tags: ["vip", "enterprise"] } },
-  ], []);
+  // Use real exec output from upstream node when available; fall back to demo data
+  const mockItems = useMemo(() => {
+    const upstreamExec = execOutputs[selectedUpstream];
+    if (upstreamExec) {
+      // Normalize to items array: handle {items:[...]}, plain array, or single object
+      if (Array.isArray(upstreamExec)) return upstreamExec.map(i => ({ json: i }));
+      const asObj = upstreamExec as Record<string, unknown>;
+      if (Array.isArray(asObj.items)) return (asObj.items as unknown[]).map(i => ({ json: i }));
+      return [{ json: upstreamExec }];
+    }
+    return [
+      { json: { id: 42, name: "John Doe", email: "john@example.com", status: "active", score: 87, metadata: { source: "typeform", timestamp: "2025-01-06T09:00:00Z" }, tags: ["vip", "trial"] } },
+      { json: { id: 43, name: "Jane Smith", email: "jane@example.com", status: "pending", score: 62, metadata: { source: "hubspot", timestamp: "2025-01-06T10:15:00Z" }, tags: ["trial"] } },
+      { json: { id: 44, name: "Bob Wilson", email: "bob@example.com", status: "active", score: 91, metadata: { source: "api", timestamp: "2025-01-06T11:30:00Z" }, tags: ["vip", "enterprise"] } },
+    ];
+  }, [selectedUpstream, execOutputs]);
 
   const totalItems = mockItems.length;
   const activeItem = mockItems[currentItem]?.json ?? {};
@@ -571,6 +627,216 @@ function InputPanel({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
 
       {/* Data viewer fallback */}
       <DataPanel nodeId={selectedUpstream} direction="output" pinned={pinned} onFieldClick={copyExpression} copiedField={copiedField} />
+    </div>
+  );
+}
+
+/* ── OUTPUT ITEMS PANEL — items navigator with schema/JSON views ── */
+function OutputItemsPanel({ execOutput }: { execOutput: Record<string, unknown> }) {
+  const [currentItem, setCurrentItem] = useState(0);
+  const [view, setView] = useState<"schema" | "json">("schema");
+
+  const items = useMemo(() => {
+    if (!execOutput) return [];
+    if (Array.isArray(execOutput)) return execOutput as Record<string, unknown>[];
+    if (Array.isArray((execOutput as Record<string, unknown>).items)) return (execOutput as { items: unknown[] }).items as Record<string, unknown>[];
+    return [execOutput];
+  }, [execOutput]);
+
+  const totalItems = items.length;
+  const activeItem = items[currentItem] ?? {};
+  const activeJson = (activeItem as Record<string, unknown>).json ?? activeItem;
+
+  const schemaRows = useMemo(() => {
+    const rows: { key: string; type: string; sample: string; depth: number }[] = [];
+    const walk = (obj: Record<string, unknown>, prefix: string, depth: number) => {
+      for (const [k, v] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${k}` : k;
+        const t = Array.isArray(v) ? "array" : typeof v === "object" && v !== null ? "object" : typeof v;
+        rows.push({ key: fullKey, type: t, sample: (typeof v === "string" ? v : JSON.stringify(v)).slice(0, 60), depth });
+        if (typeof v === "object" && v !== null && !Array.isArray(v)) walk(v as Record<string, unknown>, fullKey, depth + 1);
+      }
+    };
+    walk(activeJson as Record<string, unknown>, "", 0);
+    return rows;
+  }, [activeJson]);
+
+  const typeColor: Record<string, string> = {
+    string: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    number: "bg-blue-100 text-blue-700 border-blue-200",
+    boolean: "bg-amber-100 text-amber-700 border-amber-200",
+    array: "bg-purple-100 text-purple-700 border-purple-200",
+    object: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <p className="text-[12px] text-zinc-400">No output items</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Items navigator + view toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setCurrentItem(i => Math.max(0, i - 1))}
+            disabled={currentItem === 0}
+            className={cn("rounded p-0.5 transition-colors", currentItem === 0 ? "text-zinc-200" : "text-zinc-500 hover:bg-zinc-100")}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <span className="text-[10px] font-medium text-zinc-600 tabular-nums min-w-[64px] text-center">
+            Item {currentItem + 1} of {totalItems}
+          </span>
+          <button
+            onClick={() => setCurrentItem(i => Math.min(totalItems - 1, i + 1))}
+            disabled={currentItem >= totalItems - 1}
+            className={cn("rounded p-0.5 transition-colors", currentItem >= totalItems - 1 ? "text-zinc-200" : "text-zinc-500 hover:bg-zinc-100")}
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
+        <div className="flex rounded-lg border border-zinc-200 p-0.5">
+          {(["schema", "json"] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={cn(
+                "rounded-md px-2.5 py-1 text-[10px] font-medium transition-all capitalize",
+                view === v ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              {v === "schema" ? "🌳 Schema" : "{ } JSON"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === "schema" && (
+        <div className="space-y-0.5">
+          {schemaRows.map((field) => (
+            <div
+              key={field.key}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-50 group"
+              style={{ paddingLeft: `${field.depth * 16 + 8}px` }}
+            >
+              {field.depth > 0 && <span className="text-zinc-300 text-[9px]">└</span>}
+              <span className={cn("rounded px-1 py-0 text-[8px] font-bold border", typeColor[field.type] || typeColor.string)}>
+                {field.type === "string" ? "Str" : field.type === "number" ? "Num" : field.type === "boolean" ? "Bool" : field.type === "array" ? "Arr" : "Obj"}
+              </span>
+              <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono font-medium text-zinc-700">
+                {field.key.includes(".") ? field.key.split(".").pop() : field.key}
+              </span>
+              <span className="text-[9px] text-zinc-400 truncate flex-1 font-mono">{field.sample}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {view === "json" && (
+        <pre className="rounded-lg border border-zinc-200 bg-zinc-950 p-3 text-[10px] font-mono text-emerald-400 max-h-64 overflow-auto leading-relaxed">
+          {JSON.stringify(activeJson, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+/* ── DIAGNOSTICS panel — config validation & status checks ── */
+function DiagnosticsContent({ node, editorResponse }: { node: CanvasNodeData; editorResponse?: NodeEditorResponse | null }) {
+  const store = useCanvasStore();
+  const config = node.config ?? {};
+  const nodeTypeKey = node.nodeType || node.subtitle || "";
+
+  const issues = useMemo(() => {
+    const result: { level: "error" | "warning" | "info"; message: string }[] = [];
+
+    // Check node type is recognized
+    if (!nodeTypeKey) {
+      result.push({ level: "error", message: "Node type is not set. The executor cannot run this node." });
+    }
+
+    // Check credentials
+    const credField = editorResponse?.sections?.flatMap(s => s.fields).find(f => f.type === "credential");
+    if (credField && !config[credField.key]) {
+      result.push({ level: "warning", message: `Credential "${credField.label}" is not configured.` });
+    }
+
+    // Check required fields from editor response
+    if (editorResponse?.sections) {
+      for (const section of editorResponse.sections) {
+        for (const field of section.fields) {
+          if (field.required && (config[field.key] === undefined || config[field.key] === "" || config[field.key] === null)) {
+            result.push({ level: "error", message: `Required field "${field.label}" is missing.` });
+          }
+        }
+      }
+    }
+
+    // Check if node is disabled
+    if (store.execStates[node.id] === "disabled") {
+      result.push({ level: "info", message: "This node is currently disabled and will be skipped during execution." });
+    }
+
+    // Check if node has upstream connections (not a trigger)
+    const isTrigger = node.family === "trigger";
+    const hasUpstream = store.edges.some(([, target]) => target === node.id);
+    if (!isTrigger && !hasUpstream) {
+      result.push({ level: "warning", message: "No upstream connection. This node won't receive input data during workflow execution." });
+    }
+
+    if (result.length === 0) {
+      result.push({ level: "info", message: "No issues detected." });
+    }
+    return result;
+  }, [node, config, editorResponse, store, nodeTypeKey]);
+
+  const levelStyles: Record<string, { bg: string; border: string; icon: string; text: string }> = {
+    error: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500", text: "text-red-700" },
+    warning: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-500", text: "text-amber-700" },
+    info: { bg: "bg-zinc-50", border: "border-zinc-200", icon: "text-zinc-400", text: "text-zinc-600" },
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">Node Health Check</p>
+        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[9px] font-medium text-zinc-500 font-mono">{nodeTypeKey || "unknown"}</span>
+      </div>
+
+      <div className="space-y-2">
+        {issues.map((issue, idx) => {
+          const styles = levelStyles[issue.level];
+          return (
+            <div key={idx} className={cn("flex items-start gap-2 rounded-lg border px-3 py-2.5", styles.bg, styles.border)}>
+              {issue.level === "error" ? <XCircle size={13} className={cn("flex-shrink-0 mt-0.5", styles.icon)} />
+                : issue.level === "warning" ? <AlertTriangle size={13} className={cn("flex-shrink-0 mt-0.5", styles.icon)} />
+                : <CheckCircle2 size={13} className={cn("flex-shrink-0 mt-0.5", styles.icon)} />}
+              <span className={cn("text-[11px] leading-relaxed", styles.text)}>{issue.message}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Node metadata */}
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 space-y-1.5">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 mb-2">Node Metadata</p>
+        {[
+          { label: "Node ID", value: node.id },
+          { label: "Family", value: node.family },
+          { label: "Type Key", value: nodeTypeKey || "—" },
+          { label: "Config Keys", value: Object.keys(config).length > 0 ? Object.keys(config).join(", ") : "none" },
+        ].map(row => (
+          <div key={row.label} className="flex items-start gap-2">
+            <span className="text-[10px] text-zinc-400 w-24 flex-shrink-0">{row.label}</span>
+            <span className="text-[10px] font-mono text-zinc-700 break-all">{row.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1138,7 +1404,7 @@ function PinDataPanel({ nodeId, nodeName, pinned, onTogglePin, workflowId }: { n
   const [savedJson, setSavedJson] = useState(pinnedJson);
   const [copied, setCopied] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
-  const updateStep = useUpdateWorkflowStep();
+  const updateStep = useUpdateWorkflowStep(workflowId ?? "");
 
   // JSON validation
   const jsonValidation = useMemo(() => {
@@ -1341,19 +1607,21 @@ function SettingsContent({ nodeId, workflowId, isDisabled, onToggleDisabled }: {
     if (!workflowId) return;
     updateStep.mutate({
       stepId: nodeId,
-      config: {
-        error_handling: {
-          on_error: errorOutput,
-          continue_on_error: continueOnError,
-          retry_enabled: retryEnabled,
-          retry_count: retryCount,
-          error_workflow: errorWorkflow !== "none" ? errorWorkflow : null,
-          timeout_ms: timeoutMs,
-          execute_once: executeOnce,
-          always_output: alwaysOutput,
+      payload: {
+        config: {
+          error_handling: {
+            on_error: errorOutput,
+            continue_on_error: continueOnError,
+            retry_enabled: retryEnabled,
+            retry_count: retryCount,
+            error_workflow: errorWorkflow !== "none" ? errorWorkflow : null,
+            timeout_ms: timeoutMs,
+            execute_once: executeOnce,
+            always_output: alwaysOutput,
+          },
+          notes,
+          display_note_in_flow: displayNoteInFlow,
         },
-        notes,
-        display_note_in_flow: displayNoteInFlow,
       },
     }, {
       onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2000); },

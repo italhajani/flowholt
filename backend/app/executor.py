@@ -1285,6 +1285,81 @@ def run_workflow_definition(
                 }
                 context["agent_result"] = final_answer
                 context.update(output)
+            # ── Limit node ──────────────────────────────────────────
+            elif step_type == "limit":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                max_items = int(config.get("max_items", 10))
+                offset = int(config.get("offset", 0))
+                keep_remainder = bool(config.get("keep_remainder", False))
+                limited = source_items[offset: offset + max_items]
+                remainder = source_items[offset + max_items:] if keep_remainder else []
+                output = {
+                    "items": limited,
+                    "count": len(limited),
+                    "total": len(source_items),
+                    "offset": offset,
+                }
+                if keep_remainder:
+                    output["remainder"] = remainder
+                context["limited"] = limited
+                context.update(output)
+
+            # ── Remove Duplicates node ───────────────────────────────
+            elif step_type == "remove_duplicates":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                compare_field = str(config.get("compare_field", "")).strip()
+                seen: set[str] = set()
+                unique_items: list[Any] = []
+                for item in source_items:
+                    key_val = _lookup_path_value(item, compare_field) if compare_field else json.dumps(item, sort_keys=True, default=str)
+                    key_str = str(key_val)
+                    if key_str not in seen:
+                        seen.add(key_str)
+                        unique_items.append(item)
+                removed_count = len(source_items) - len(unique_items)
+                output = {
+                    "items": unique_items,
+                    "count": len(unique_items),
+                    "original_count": len(source_items),
+                    "removed_count": removed_count,
+                }
+                context["unique_items"] = unique_items
+                context.update(output)
+
+            # ── Rename Keys node ─────────────────────────────────────
+            elif step_type == "rename_keys":
+                source_items = _resolve_collection_source(config.get("items"), context, payload)
+                renames: list[dict[str, str]] = config.get("renames", [])  # [{from: "old", to: "new"}]
+                remove_originals = bool(config.get("remove_originals", True))
+                renamed_items: list[Any] = []
+                for item in source_items:
+                    if not isinstance(item, dict):
+                        renamed_items.append(item)
+                        continue
+                    new_item = dict(item)
+                    for rule in renames:
+                        old_key = rule.get("from", "")
+                        new_key = rule.get("to", "")
+                        if old_key and new_key and old_key in new_item:
+                            new_item[new_key] = new_item[old_key]
+                            if remove_originals and old_key != new_key:
+                                del new_item[old_key]
+                    renamed_items.append(new_item)
+                output = {"items": renamed_items, "count": len(renamed_items)}
+                context["renamed_items"] = renamed_items
+                context.update(output)
+
+            elif step_type == "stop_and_error":
+                error_message = _render_template(str(config.get("error_message", "Workflow stopped with error.")), expression_scope)
+                error_type_key = str(config.get("error_type", "error"))
+                if error_type_key == "success":
+                    # Stop execution without marking as error
+                    output = {"message": error_message, "stopped": True}
+                    status = "success"
+                    step_results.append({"step_id": step.get("id"), "step_type": step_type, "name": step.get("name"), "status": status, "output": output, "duration_ms": round((time.perf_counter() - t0) * 1000)})
+                    break
+                else:
+                    raise RuntimeError(error_message)
             else:
                 output = {"note": f"Unsupported step type '{step_type}' skipped."}
                 status = "skipped"

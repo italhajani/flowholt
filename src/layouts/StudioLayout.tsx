@@ -98,6 +98,7 @@ function StudioLayoutInner() {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const [lastExecution, setLastExecution] = useState<ExecutionSummary | null>(null);
+  const [inspectorRenameMode, setInspectorRenameMode] = useState(false);
 
   // When execution finishes, map step statuses to canvas exec states
   const handleExecutionComplete = useCallback((exec: ExecutionSummary) => {
@@ -198,6 +199,7 @@ function StudioLayoutInner() {
               selectedNodeId={selectedNodeId}
               onNodeSelect={handleNodeSelect}
               onCanvasClick={handleCanvasClick}
+              onRenameNode={(id) => { setSelectedNodeId(id); setInspectorOpen(true); setInspectorRenameMode(true); }}
               workflowId={workflowId}
             />
 
@@ -205,8 +207,10 @@ function StudioLayoutInner() {
             {inspectorOpen && selectedNode && (
               <StudioInspector
                 node={selectedNode}
-                onClose={() => { setInspectorOpen(false); setSelectedNodeId(null); }}
+                onClose={() => { setInspectorOpen(false); setSelectedNodeId(null); setInspectorRenameMode(false); }}
                 workflowId={workflowId}
+                startRenameMode={inspectorRenameMode}
+                onRenameModeConsumed={() => setInspectorRenameMode(false)}
               />
             )}
 

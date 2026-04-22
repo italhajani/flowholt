@@ -1,0 +1,46 @@
+[
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-container",
+    "text": "Talha Jani Profile Affiliate program Sign out",
+    "x": 0,
+    "y": 0,
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "selector": "[class*='popover']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-popover cdk-overlay-connected-position-bounding-box",
+    "text": "Talha Jani Profile Affiliate program Sign out",
+    "x": 8,
+    "y": 46,
+    "width": 1572,
+    "height": 947
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-popover cdk-overlay-connected-position-bounding-box",
+    "text": "Talha Jani Profile Affiliate program Sign out",
+    "x": 8,
+    "y": 46,
+    "width": 1572,
+    "height": 947
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-pane",
+    "text": "Talha Jani Profile Affiliate program Sign out",
+    "x": 1446,
+    "y": 48,
+    "width": 134,
+    "height": 157
+  }
+]

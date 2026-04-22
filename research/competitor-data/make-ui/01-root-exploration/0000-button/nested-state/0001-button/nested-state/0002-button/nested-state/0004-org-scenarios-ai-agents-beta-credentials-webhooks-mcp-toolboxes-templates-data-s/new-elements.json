@@ -1,0 +1,26 @@
+[
+  {
+    "selector": "button:not([disabled])",
+    "kind": "button",
+    "tag": "button",
+    "role": "",
+    "id": "",
+    "testId": "",
+    "ariaLabel": "",
+    "title": "",
+    "href": "",
+    "text": "",
+    "className": " _dmo-btn_tr71a_9 _dmo-btn-ghost_tr71a_60 ",
+    "domPath": "imt-floating-panel-header > header._headerContainer_hc4va_2 > span._headerButtons_hc4va_14 > imt-tooltip > imt-icon-button > button.._dmo-btn_tr71a_9",
+    "disabled": false,
+    "x": 1008,
+    "y": 433,
+    "width": 28,
+    "height": 28,
+    "centerX": 1022,
+    "centerY": 447,
+    "label": "button",
+    "region": "canvas",
+    "insideOverlay": true
+  }
+]

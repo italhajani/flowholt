@@ -1,0 +1,107 @@
+0:09:19 Tab1 StartNav114 #renderer-user #link
+0:09:19 Tab1 FinishNav114
+0:09:22 Tab1 StartNav115 #renderer-user #link
+0:09:22 Tab1 FinishNav115
+0:09:25 Tab1 StartNav116 #renderer-user #link
+0:09:25 Tab1 FinishNav116
+0:09:28 Tab1 StartNav117 #renderer-user #link
+0:09:28 Tab1 FinishNav117
+0:09:29 Tab1 StartNav118 #renderer-user #auto_subframe
+0:09:30 Tab1 StartNav119 #renderer-user #link
+0:09:30 Tab1 FinishNav119
+0:09:30 Tab1 FinishNav118
+0:09:30 Tab1 PageLoad
+0:09:31 Tab1 StartNav120 #renderer-user #link
+0:09:32 Tab1 FinishNav120
+0:09:32 Tab1 StartNav121 #renderer-user #auto_subframe
+0:09:32 Tab1 StartNav122 #renderer-user #auto_subframe
+0:09:32 Tab1 FinishNav121
+0:09:32 Tab1 FinishNav122
+0:09:32 Tab1 PageLoad
+0:09:32 Tab1 PageLoad
+0:09:34 Tab1 StartNav123 #renderer-script #auto_subframe
+0:09:34 Tab1 FinishNav123
+0:09:34 Tab1 PageLoad
+0:09:34 Tab1 StartNav124 #renderer-user #auto_subframe
+0:09:34 Tab1 StartNav125 #renderer-script #auto_subframe
+0:09:34 Tab1 FinishNav125
+0:09:34 Tab1 PageLoad
+0:09:34 Tab1 StartNav126 #renderer-user #auto_subframe
+0:09:34 Tab1 FinishNav124
+0:09:35 Tab1 FinishNav126
+0:09:37 Tab1 StartNav127 #renderer-user #link
+0:09:37 Tab1 FinishNav127
+0:09:37 Tab1 PageLoad #failure
+0:09:37 Tab1 PageLoad #failure
+0:09:40 Tab1 StartNav128 #renderer-user #link
+0:09:40 Tab1 FinishNav128
+0:09:42 Tab1 StartNav129 #renderer-user #link
+0:09:42 Tab1 FinishNav129
+0:09:48 Tab1 StartNav130 #renderer-user #link
+0:09:48 Tab1 FinishNav130
+0:09:52 Tab1 StartNav131 #renderer-user #link
+0:09:52 Tab1 FinishNav131
+0:09:54 Tab1 StartNav132 #renderer-user #link
+0:09:54 Tab1 FinishNav132
+0:09:56 Tab1 StartNav133 #renderer-user #link
+0:09:56 Tab1 FinishNav133
+0:10:00 Tab1 StartNav134 #renderer-user #link
+0:10:00 Tab1 FinishNav134
+0:10:03 Tab1 StartNav135 #renderer-user #link
+0:10:03 Tab1 FinishNav135
+0:10:04 Tab1 StartNav136 #renderer-user #link
+0:10:04 Tab1 FinishNav136
+0:10:06 Tab1 StartNav137 #renderer-user #link
+0:10:06 Tab1 FinishNav137
+0:10:07 Tab1 StartNav138 #renderer-user #auto_subframe
+0:10:07 Tab1 StartNav139 #renderer-user #auto_subframe
+0:10:07 Tab1 FinishNav138
+0:10:07 Tab1 FinishNav139
+0:10:07 Tab1 PageLoad
+0:10:07 Tab1 PageLoad
+0:10:08 Tab1 StartNav140 #renderer-script #auto_subframe
+0:10:08 Tab1 FinishNav140
+0:10:08 Tab1 PageLoad
+0:10:08 Tab1 StartNav141 #renderer-user #auto_subframe
+0:10:09 Tab1 StartNav142 #renderer-script #auto_subframe
+0:10:09 Tab1 FinishNav142
+0:10:09 Tab1 PageLoad
+0:10:09 Tab1 StartNav143 #renderer-user #auto_subframe
+0:10:09 Tab1 StartNav144 #renderer-user #link
+0:10:09 Tab1 FinishNav144
+0:10:09 Tab1 FinishNav141
+0:10:09 Tab1 FinishNav143 ERR_ABORTED
+0:10:09 Tab1 PageLoad #failure
+0:10:12 Tab1 StartNav145 #renderer-user #link
+0:10:12 Tab1 FinishNav145
+0:10:14 Tab1 StartNav146 #renderer-user #link
+0:10:14 Tab1 FinishNav146
+0:10:20 Tab1 StartNav147 #renderer-user #link
+0:10:20 Tab1 FinishNav147
+0:10:22 Tab1 StartNav148 #renderer-user #link
+0:10:22 Tab1 FinishNav148
+0:10:25 Tab1 StartNav149 #renderer-user #link
+0:10:25 Tab1 FinishNav149
+0:10:37 Widget Closed: StatusBubble
+0:10:47 Tab1 StartNav150 #renderer-user #link
+0:10:47 Tab1 FinishNav150
+0:10:55 Tab1 StartNav151 #renderer-user #link
+0:10:55 Tab1 FinishNav151
+0:10:58 Tab1 StartNav152 #renderer-user #link
+0:10:58 Tab1 FinishNav152
+0:11:09 Widget Closed: StatusBubble
+0:11:22 Tab1 StartNav153 #renderer-user #link
+0:11:22 Tab1 FinishNav153
+0:11:38 Widget Closed: StatusBubble
+0:11:53 Tab1 StartNav154 #typed
+0:11:54 Tab1 RemoveInfobar73
+0:11:54 Tab1 AddInfobar73
+0:11:54 Tab1 FinishNav154
+0:11:55 Tab1 PageLoad
+0:11:59 Tab1 StartNav155 #renderer-script #auto_subframe
+0:11:59 Tab1 FinishNav155
+0:11:59 Tab1 PageLoad
+0:11:59 Tab1 StartNav156 #renderer-script #auto_subframe
+0:11:59 Tab1 FinishNav156
+0:11:59 Tab1 PageLoad
+0:12:00 Microsoft.Shutdown.ExitIgnoreUnloadHandlers

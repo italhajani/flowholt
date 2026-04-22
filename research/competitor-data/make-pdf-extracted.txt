@@ -1,0 +1,271 @@
+Help Center
+
+1. Get started
+1.1. Learn the basics
+1.1.1. What is Make?
+1.1.2. What's an API?
+1.2. Create your first scenario
+1.2.1. Step 1. Plan your scenario
+1.2.2. Step 2. Get your apps ready
+1.2.3. Step 3. Add your first app
+1.2.4. Step 4. Create a connection
+1.2.5. Step 5. Set up the trigger
+1.2.6. Step 6. Test the module
+1.2.7. Step 7. Add another module
+1.2.8. Step 8. Map data
+1.2.9. Step 9. Test your scenario
+1.2.10. Step 10. Schedule your scenario
+1.3. Expand your scenario
+1.3.1. Step 1. Get your app ready
+1.3.2. Step 2. Add a router
+1.3.3. Step 3. Set up another module
+1.3.4. Step 4. Add a filter
+1.3.5. Step 5. Test your scenario
+1.3.6. Step 6. Add an aggregator
+1.3.7. Step 7. Test the final scenario
+2. Key concepts
+2.1. Credits & operations
+2.1.1. Credits
+2.1.1.1. How features use credits
+2.1.1.2. How to track credits
+
+2.1.2. Operations
+2.2. Scenarios & connections
+2.2.1. Connect an application
+2.2.2. Schedule a scenario
+2.2.3. Clone a scenario
+2.2.4. Active and inactive scenarios
+2.2.5. Scenario execution flow
+2.2.6. Scenario history
+2.2.7. Scenario blueprints
+2.2.8. Scenario templates
+2.2.9. Scenario sharing
+2.3. Apps & modules
+2.3.1. Introduction to Make apps
+2.3.2. Types of modules
+2.3.3. Module settings
+2.3.4. Update legacy modules with new modules
+2.3.5. Webhooks
+2.3.6. Select the first bundle to process
+2.4. Data & mapping
+2.4.1. Item data types
+2.4.2. Type coercion
+2.4.3. Mapping
+2.4.4. Filtering
+2.4.5. Mapping arrays
+2.4.6. Working with files
+2.5. Tools
+2.5.1. Aggregator
+2.5.2. Iterator
+2.5.3. Router
+
+2.6. Resources
+2.6.1. Keyboard shortcuts
+3. Explore more
+3.1. Scenarios
+3.1.1. Scenario settings
+3.1.2. Scenario notes
+3.1.3. Scenario inputs and outputs
+3.1.3.1. Create the structure of scenario inputs or outputs
+3.1.3.2. Use scenario inputs
+3.1.3.3. Use scenario outputs
+3.1.3.4. Edit the structure of a scenario input or output
+3.1.3.5. Delete the scenario input or output fields
+3.1.3.6. Related APIs
+3.1.4. Subscenarios
+3.1.5. Create and manage scenario templates
+3.1.6. Custom scenario properties
+3.1.7. Variables
+3.1.7.1. System variables
+3.1.7.2. Scenario variables
+3.1.7.3. Custom variables
+3.1.7.4. Incremental variables
+3.1.8. Incomplete executions
+3.1.8.1. Automatic retry of incomplete executions
+3.1.8.2. Manage incomplete executions
+3.1.8.3. Errors that don't create incomplete executions
+3.1.8.4. Options related to incomplete executions
+3.1.9. Scenario execution, cycles, and phases
+3.1.10. Restore and recover scenario
+3.1.11. Scenario run replay
+
+3.2. Connections
+3.2.1. Call Google APIs with OAuth 2.0 HTTP request
+3.2.2. Connect to any web service using OAuth 2.0
+3.2.3. Connect to Google services using a custom OAuth client
+3.2.4. Replace connections across multiple modules
+3.2.5. Credential requests
+3.2.6. Dynamic connections
+3.2.7. On-premise agent
+3.2.8. Devices
+3.2.9. Keys and certificates
+3.2.10. Allow connections to and from Make IP addresses
+3.3. Tools
+3.3.1. If-else and Merge
+3.3.2. Flow control
+3.3.3. Converger
+3.3.4. Tools
+3.3.5. Text parser
+3.4. Functions
+3.4.1. Use functions
+3.4.2. General functions
+3.4.3. Math functions
+3.4.4. Math variables
+3.4.5. Text and binary functions
+3.4.6. Date and time functions
+3.4.7. Tokens for date/time parsing
+3.4.8. Tokens for date/time formatting
+3.4.9. Array functions
+3.4.10. Custom functions
+3.5. Securing data with Make
+
+3.5.1. Methods of securing data
+3.5.2. AES (Advanced Encryption Standard)
+3.5.3. PGP (Pretty Good Privacy)
+3.5.4. Digital signature
+3.5.5. Hash functions
+3.6. Data stores
+3.6.1. Data stores
+3.6.2. Data structures
+3.7. Developers
+3.7.1. Make DevTool
+4. Make AI Agents (New)
+4.1. Introduction to Make AI Agents (New)
+4.2. Create your first AI agent
+4.3. Sales outreach AI agent use case
+4.4. Create AI agents for different triggers
+4.4.1. Slack-triggered AI agent
+4.4.2. Telegram-triggered AI agent
+4.4.3. Email-triggered AI agent
+4.4.4. Form-triggered AI agent
+4.4.5. Webhook-triggered AI agent
+4.4.6. Mailhook-triggered AI agent
+4.5. Knowledge
+4.6. Make AI Agents (New) app
+4.7. Make AI Agents (New) best practices
+5. Make AI Agents
+5.1. Introduction to AI agents
+5.2. Manage AI agents
+5.3. Tools for AI agents
+5.3.1. Module tools for AI agents
+
+5.3.2. Scenarios for AI agents
+5.3.3. MCP tools for AI agents
+5.4. AI agent best practices
+5.5. AI Agents configuration
+5.6. Make AI Agents app
+5.7. AI agent use case
+5.7.1. Step 1. Set up the AI agent
+5.7.2. Step 2. Create the AI agent's tools
+5.7.3. Step 3. Create a scenario to send tasks to the AI agent
+6. Model Context Protocol
+6.1. Introduction to MCP
+6.2. Make MCP server
+6.2.1. Get started with Make MCP server
+6.3. MCP toolboxes
+6.3.1. Connect to Claude Desktop
+6.3.2. Connect to ChatGPT
+6.3.3. Connect to Cursor
+6.3.4. Connect to OpenAI
+6.3.5. Connect to OpenAI API
+7. Make Grid
+7.1. Introduction to Make Grid
+7.2. Access Make Grid
+7.3. Explore Make Grid GUI
+7.4. How to use Make Grid
+7.5. Tutorial: How to replace a dependency
+7.6. Best practices to use Make Grid
+8. Error handling
+8.1. Introduction to errors and warnings
+8.2. How to handle errors
+
+8.2.1. Overview of error handling
+8.2.2. Fix rate limit errors
+8.2.3. Fix connection errors
+8.2.4. Fix missing data errors
+8.2.5. Fix general errors
+8.3. Error handlers
+8.3.1. Quick error handling reference
+8.3.2. Break error handler
+8.3.3. Commit error handler
+8.3.4. Ignore error handler
+8.3.5. Resume error handler
+8.3.6. Rollback error handler
+8.4. Types of errors
+8.5. Types of warnings
+8.6. Exponential backoff
+8.7. Throw
+9. Your organization
+9.1. Organizations & teams
+9.1.1. Organizations
+9.1.2. Teams
+9.2. Subscription
+9.2.1. Change your subscription
+9.2.2. Cancel your subscription
+9.2.3. Extra credits
+9.2.4. Monthly and annual subscriptions
+9.2.5. Change payment details
+9.2.6. Coupons
+9.2.7. What to do if your payment fails
+9.2.8. View and download invoices
+
+9.2.9. Upgrade to the Enterprise plan
+9.2.10. Request sales tax exemption
+9.3. Administration
+9.3.1. Analytics dashboard
+9.3.2. Credits per team management
+9.3.3. Delete user data
+9.3.4. Set the length of your session timeout
+9.3.5. Audit logs
+9.3.6. Feature controls
+9.3.7. Two-factor authentication enforcement
+9.4. Access management
+9.4.1. Single Sign-on
+9.4.2. Google SAML
+9.4.3. MS Azure AD OIDC
+9.4.4. MS Azure AD SAML
+9.4.5. Okta SAML
+9.4.6. SAML certificate management
+9.4.7. Domain claim
+9.5. Make Managed Services (MMS)
+9.5.1. Make Managed Services (MMS) user guide
+10. Release notes
+10.1. 2026
+10.1.1. New version of API endpoint for credential requests,
+scenario usage tracking, connection filtering, and app
+updates
+10.1.2. Make now a built-in connector on Anthropic Claude
+10.1.3. OpenAI GPT-5.4 nano and mini now available in Make
+10.1.4. Make Grid workspace navigation and interaction updates
+10.1.5. Introducing Scenario recovery
+
+10.1.6. Scenario Builder improvements, new app, and AI model
+updates
+10.1.7. OpenAI GPT-5.4 and GPT-5.3 models now available in
+Make
+10.1.8. OpenAI model deprecations on March 26, 2026
+10.1.9. New feature: If-else and Merge
+10.1.10. Credential requests reauthorization, 2FA enforcement
+logs
+10.1.11. Gemini 3.1 Pro Preview model now available in Make
+10.1.12. New MMS options, app updates
+10.1.13. Deprecated OpenAI model automatically replaced
+10.1.14. Filter copying, smarter app search, and scenario sorting
+10.1.15. Introducing two-factor authentication enforcement
+10.1.16. Meet the new Make AI Agents app
+10.1.17. monday.com app v1 to v2 transition by May 1, 2026
+10.1.18. Introducing MCP toolboxes
+10.1.19. Introducing Credential requests
+10.1.20. Claude Opus 4.6 now available in Make
+10.1.21. New payment methods for greater flexibility
+10.1.22. Pipedrive API v1 to v2 transition by July 31, 2026
+10.1.23. Scenario history and run replay improvements, app
+updates
+10.2. 2025
+10.2.1. New HTTP app is now available
+10.2.2. Introducing Credit usage history
+10.2.3. Introducing Feature controls
+10.2.4. Make AI Web Search, MCP client and MCP server
+improvements
+10.2.5. New Make AI Agents Reasoning feature: OpenAI
+reasoning model users must verify organization

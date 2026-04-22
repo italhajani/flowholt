@@ -1,0 +1,51 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+M
+My Organization
+My Team
+Organization settings
+Create scenario
+Help
+TJ
+Organization
+Dashboard
+Teams
+Users
+My Plan
+Subscription
+Free
+Credit usage
+Payments
+Utilities
+Installed apps
+Variables
+Scenario properties
+Notification options
+Organization
+My Organization
+Average daily usage
+0
+0%
+Credits left
+1,000
+/1,000
+Usage reset in
+30 days
+14/5/26 12:48 PM
+Active scenarios
+0
+/2
+Upgrade
+Search for help

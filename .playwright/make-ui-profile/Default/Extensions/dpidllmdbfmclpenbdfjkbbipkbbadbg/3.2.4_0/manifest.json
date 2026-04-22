@@ -1,0 +1,26 @@
+{
+   "background": {
+      "scripts": [ "./background.js" ]
+   },
+   "browser_action": {
+      "default_icon": "img/128.png"
+   },
+   "content_security_policy": "script-src 'self' https://www.google-analytics.com/analytics.js; object-src 'self'",
+   "default_locale": "en",
+   "description": "__MSG_appDesc__",
+   "icons": {
+      "128": "img/128.png",
+      "16": "img/16.png",
+      "32": "img/32.png",
+      "48": "img/48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAy29Ap4uVKW0Q81ammL03jNyLsrhPASfeDnPV3aZqLt+jMiwuk0WpJyb9ebCdxMQQUJasbjYgmmPmvPj9sBINnOFIGyv1Pz9SgRSEIxvYev1RTPTQj9sNDAdVSceubE7TOujGjfk6WuiVfbDUUwkukXWJQcZhFcpLxj9grXoSs817hO66wp813sNCVQPtDshyAhPJOWerMKYa5onWX7kDRGyHw7wiAi1patrI/np5YMEStTLZ84c97ZbmNCrTEWfoFhe9RiSQY24Kx2577OOQ1X535B6jRpIUoT4kZ7OGSdCalykN6J2tvHz0oKJVUrop+xbBimrCzGCFGPH+k9628wIDAQAB",
+   "manifest_version": 2,
+   "minimum_chrome_version": "70",
+   "name": "__MSG_appName__",
+   "offline_enabled": true,
+   "options_page": "index.html#/settings",
+   "permissions": [ "desktopCapture" ],
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "3.2.4"
+}

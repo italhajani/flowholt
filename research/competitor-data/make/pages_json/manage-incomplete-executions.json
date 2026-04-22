@@ -1,0 +1,240 @@
+{
+  "url": "https://help.make.com/manage-incomplete-executions",
+  "slug": "manage-incomplete-executions",
+  "title": "Manage incomplete executions - Help Center",
+  "description": "Help Center",
+  "lastmod": "2026-04-08T14:40:15.836Z",
+  "markdown_path": "pages_markdown/manage-incomplete-executions.md",
+  "raw_html_path": "raw_html/manage-incomplete-executions.html",
+  "heading_count": 12,
+  "image_count": 11,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 7650,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Manage incomplete executions"
+    },
+    {
+      "level": "h2",
+      "text": "The incomplete executions tab"
+    },
+    {
+      "level": "h2",
+      "text": "Retry incomplete executions"
+    },
+    {
+      "level": "h2",
+      "text": "Resolve an incomplete execution"
+    },
+    {
+      "level": "h2",
+      "text": "Delete incomplete executions"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-3Wp3ZlMB-SU0_giw7WVdm-20250321-131457.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 298,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-3Wp3ZlMB-SU0_giw7WVdm-20250321-131457__4e8c08f78599.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-5bq7vpA7vq4WQy4J4ArQ6-20250321-124803.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 318,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-5bq7vpA7vq4WQy4J4ArQ6-20250321-124803__4c833f113fc4.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-u5x4wuL11C4wY35CYnyU1-20250321-131217.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 278,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-u5x4wuL11C4wY35CYnyU1-20250321-131217__11b45924397d.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-3etMxRwwLxrE9uyQivhc0-20250321-131235.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 281,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-3etMxRwwLxrE9uyQivhc0-20250321-131235__d6ed30f333de.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-0IneAQCnjmBkG795NjOVx-20250321-131124.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 318,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-0IneAQCnjmBkG795NjOVx-20250321-131124__a870f3b33b32.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-08PBTNLDBwatKzTSG6uUl-20250321-131028.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-08PBTNLDBwatKzTSG6uUl-20250321-131028__a62aed03dbc6.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm--4uqUZEXaQhbscyO9IDCz-20250321-130534.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm--4uqUZEXaQhbscyO9IDCz-20250321-130534__8c1738ad8a12.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-yA2n3L6msTnRNQqKtns0F-20250321-130554.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-yA2n3L6msTnRNQqKtns0F-20250321-130554__f6fbf7fa80d3.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-cbI3x4HW2Om6lsCaQSNRe-20250321-130616.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-cbI3x4HW2Om6lsCaQSNRe-20250321-130616__08ef36a17981.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-DeTuzAilAcx88-dcbbrKo-20250321-130109.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-DeTuzAilAcx88-dcbbrKo-20250321-130109__460b9ca0b665.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/G7Vz7fYsaoiCJDDxzCnCz",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/automatic-retry-of-incomplete-executions",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-and-manage-scenario-templates",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/custom-scenario-properties",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/errors-that-dont-create-incomplete-executions",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/incomplete-executions",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/manage-incomplete-executions",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/options-related-to-incomplete-executions",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/restore-and-recover-scenario",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenario-execution-cycles-and-phases",
+    "https://help.make.com/scenario-history",
+    "https://help.make.com/scenario-inputs-and-outputs",
+    "https://help.make.com/scenario-notes",
+    "https://help.make.com/scenario-run-replay",
+    "https://help.make.com/scenario-settings",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscenarios",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/variables",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

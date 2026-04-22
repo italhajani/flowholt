@@ -1,0 +1,24 @@
+[
+  {
+    "selector": "[class*='modal']",
+    "tag": "div",
+    "role": "",
+    "className": " _modal_u0q5n_137 ",
+    "text": "Make There are unsaved changes in the scenario. Discard changes Save changes",
+    "x": 544,
+    "y": 415,
+    "width": 512,
+    "height": 171
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "ai-button-container ng-tns-c648184870-1 no-overlay ng-star-inserted",
+    "text": "",
+    "x": 1532,
+    "y": 936,
+    "width": 48,
+    "height": 40
+  }
+]

@@ -1,0 +1,23 @@
+
+<--- Last few GCs --->
+
+[7300:0000014A7288F000]   118722 ms: Mark-Compact 2047.1 (2056.3) -> 2047.1 (2056.0) MB, pooled: 0 MB, 291.77 / 0.00 ms  (average mu = 0.444, current mu = 0.091) allocation failure; scavenge might not succeed
+
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF64BEDC44F node::OnFatalError+1343
+ 2: 00007FF64CB26217 v8::Function::NewInstance+423
+ 3: 00007FF64C926C07 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071
+ 4: 00007FF64C9248A6 v8::base::AddressSpaceReservation::AddressSpaceReservation+313014
+ 5: 00007FF64C93EF1A X509_STORE_set_cleanup+5098
+ 6: 00007FF64C94AD78 uv_timer_set_repeat+19096
+ 7: 00007FF64C9660D5 uv_timer_set_repeat+130549
+ 8: 00007FF64C96603C uv_timer_set_repeat+130396
+ 9: 00007FF64C94CEC9 uv_timer_set_repeat+27625
+10: 00007FF64C94D0C2 uv_timer_set_repeat+28130
+11: 00007FF64CB26012 v8::String::NewFromUtf8+258
+12: 00007FF64BD0B1BC v8::CTypeInfoBuilder<__int64>::Build+14940
+13: 00007FF64BD0B084 v8::CTypeInfoBuilder<__int64>::Build+14628
+14: 00007FF64BD0B4AD v8::CTypeInfoBuilder<__int64>::Build+15693
+15: 0000014A2FDCF77E 

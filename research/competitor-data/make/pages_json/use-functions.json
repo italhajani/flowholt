@@ -1,0 +1,189 @@
+{
+  "url": "https://help.make.com/use-functions",
+  "slug": "use-functions",
+  "title": "Use functions - Help Center",
+  "description": "Apply built-in functions to transform data and create complex formulas within your scenarios",
+  "lastmod": "2026-01-15T17:59:37.112Z",
+  "markdown_path": "pages_markdown/use-functions.md",
+  "raw_html_path": "raw_html/use-functions.html",
+  "heading_count": 11,
+  "image_count": 5,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 2036,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Use functions"
+    },
+    {
+      "level": "h2",
+      "text": "Insert functions into fields"
+    },
+    {
+      "level": "h3",
+      "text": "Example"
+    },
+    {
+      "level": "h2",
+      "text": "Google Sheets functions"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-SQ0IIEjBevOWtMvPzxgeY-20250226-090300.png?format=webp&width=800",
+      "alt": "Using functions",
+      "width": 800,
+      "height": 688,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-SQ0IIEjBevOWtMvPzxgeY-20250226-090300__9dfe421bfe85.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/TxWWjBp5q81m2jxckzAJl_uuid-17962706-05f1-025c-5f23-84c3fba03e7e.png?format=webp&width=800",
+      "alt": "Substring function",
+      "width": 800,
+      "height": 139,
+      "local_path": "assets/images/TxWWjBp5q81m2jxckzAJl_uuid-17962706-05f1-025c-5f23-84c3fba03e7e__eecda76d87e2.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm--uzAkYHo0yDmY4-BUV3Yn-20250226-091911.png?format=webp&width=800",
+      "alt": "Value field",
+      "width": 800,
+      "height": 498,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm--uzAkYHo0yDmY4-BUV3Yn-20250226-091911__559c85e14197.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-Jw-8V-7m2E42xPGYUod4J-20250226-091941.png?format=webp&width=800",
+      "alt": "Cell ID",
+      "width": 800,
+      "height": 427,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-Jw-8V-7m2E42xPGYUod4J-20250226-091941__b4180decf659.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/5UJ3-0KGuD4jwffMxAm-9",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/array-functions",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/custom-functions",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/date-and-time-functions",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/general-functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mapping",
+    "https://help.make.com/math-functions",
+    "https://help.make.com/math-variables",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/text-and-binary-functions",
+    "https://help.make.com/throw",
+    "https://help.make.com/tokens-for-datetime-formatting",
+    "https://help.make.com/tokens-for-datetime-parsing",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/use-functions",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

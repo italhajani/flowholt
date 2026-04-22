@@ -1,0 +1,26 @@
+[
+  {
+    "selector": "a[href]",
+    "kind": "link",
+    "tag": "a",
+    "role": "",
+    "id": "",
+    "testId": "",
+    "ariaLabel": "",
+    "title": "",
+    "href": "/",
+    "text": "",
+    "className": "navbar-brand",
+    "domPath": "body > div#hidden-app-init-loader > aside.loading-aside.gradient > nav.loading-navbar > div.loading-navbar-header > a.navbar-brand",
+    "disabled": false,
+    "x": 8,
+    "y": 8,
+    "width": 1584,
+    "height": 36,
+    "centerX": 800,
+    "centerY": 26,
+    "label": "a",
+    "region": "toolbar",
+    "insideOverlay": false
+  }
+]

@@ -1,0 +1,2944 @@
+{
+  "source_manifest": "D:\\My work\\flowholt3 - Copy\\research\\make-help-center-export\\manifest.json",
+  "page_count": 324,
+  "domains": {
+    "01-tenancy-identity-governance": [
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 6,
+        "slug": "teams",
+        "title": "Teams - Help Center",
+        "url": "https://help.make.com/teams",
+        "description": "Organize users into teams and assign roles to control access to scenarios and manage credit and data consumption.",
+        "markdown_path": "pages_markdown/teams.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 6,
+        "slug": "organizations",
+        "title": "Organizations - Help Center",
+        "url": "https://help.make.com/organizations",
+        "description": "Create and manage organizations to structure teams, control access, and manage credit and data consumption.",
+        "markdown_path": "pages_markdown/organizations.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 6,
+        "slug": "organizations-and-teams",
+        "title": "Organizations & teams - Help Center",
+        "url": "https://help.make.com/organizations-and-teams",
+        "description": "Add users to organizations and teams to manage roles and access.",
+        "markdown_path": "pages_markdown/organizations-and-teams.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 6,
+        "slug": "ms-azure-ad-saml",
+        "title": "MS Azure AD SAML - Help Center",
+        "url": "https://help.make.com/ms-azure-ad-saml",
+        "description": "Configure SAML single sign-on with Microsoft Azure AD to authenticate organization users.",
+        "markdown_path": "pages_markdown/ms-azure-ad-saml.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 5,
+        "slug": "ms-azure-ad-oidc",
+        "title": "MS Azure AD OIDC - Help Center",
+        "url": "https://help.make.com/ms-azure-ad-oidc",
+        "description": "Configure OIDC single sign-on with Microsoft Azure AD to authenticate organization users.",
+        "markdown_path": "pages_markdown/ms-azure-ad-oidc.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 5,
+        "slug": "google-saml",
+        "title": "Google SAML - Help Center",
+        "url": "https://help.make.com/google-saml",
+        "description": "Configure Google SAML single sign-on to authenticate users with their Google accounts.",
+        "markdown_path": "pages_markdown/google-saml.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 4,
+        "slug": "two-factor-authentication-enforcement",
+        "title": "Two-factor authentication enforcement - Help Center",
+        "url": "https://help.make.com/two-factor-authentication-enforcement",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/two-factor-authentication-enforcement.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 4,
+        "slug": "single-sign-on",
+        "title": "Single Sign-on - Help Center",
+        "url": "https://help.make.com/single-sign-on",
+        "description": "Set up single sign-on with your identity provider to authenticate users with OIDC or SAML 2.0.",
+        "markdown_path": "pages_markdown/single-sign-on.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 4,
+        "slug": "okta-saml",
+        "title": "Okta SAML - Help Center",
+        "url": "https://help.make.com/okta-saml",
+        "description": "Set up SAML SSO for Enterprise organizations.",
+        "markdown_path": "pages_markdown/okta-saml.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 4,
+        "slug": "audit-logs",
+        "title": "Audit logs - Help Center",
+        "url": "https://help.make.com/audit-logs",
+        "description": "Monitor user activity across your organization or team.",
+        "markdown_path": "pages_markdown/audit-logs.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "profile-settings",
+        "title": "Profile settings - Help Center",
+        "url": "https://help.make.com/profile-settings",
+        "description": "Manage your profile settings, including your email address, preferences, time zone, API keys, and two-factor authentication.",
+        "markdown_path": "pages_markdown/profile-settings.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "manage-your-email-preferences",
+        "title": "Manage your email preferences - Help Center",
+        "url": "https://help.make.com/manage-your-email-preferences",
+        "description": "Customize your notification settings for Make updates and manage organization-specific alerts for scenario errors, warnings, and deactivations.",
+        "markdown_path": "pages_markdown/manage-your-email-preferences.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "manage-time-zones",
+        "title": "Manage time zones - Help Center",
+        "url": "https://help.make.com/manage-time-zones",
+        "description": "Learn the difference between organization and user time zones and how to customize your settings for scenario scheduling.",
+        "markdown_path": "pages_markdown/manage-time-zones.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "make-managed-services-mms-user-guide",
+        "title": "Make Managed Services (MMS) user guide - Help Center",
+        "url": "https://help.make.com/make-managed-services-mms-user-guide",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/make-managed-services-mms-user-guide.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "introducing-two-factor-authentication-enforcement",
+        "title": "Introducing two-factor authentication enforcement - Help Center",
+        "url": "https://help.make.com/introducing-two-factor-authentication-enforcement",
+        "description": "Enforce two-factor authentication across your organization: protect all accounts with one-step 2FA enforcement",
+        "markdown_path": "pages_markdown/introducing-two-factor-authentication-enforcement.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "domain-claim",
+        "title": "Domain claim - Help Center",
+        "url": "https://help.make.com/domain-claim",
+        "description": "Claim your domain to prevent unauthorized accounts and ensure all new users are routed through Enterprise SSO.",
+        "markdown_path": "pages_markdown/domain-claim.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 3,
+        "slug": "analytics-dashboard-profile-setting-updates-and-more",
+        "title": "Analytics dashboard, profile setting updates, and more - Help Center",
+        "url": "https://help.make.com/analytics-dashboard-profile-setting-updates-and-more",
+        "description": "Explore Make's new Analytics dashboard for Enterprise users, enhanced profile settings, improved cancellation process, and UiPath & Google Ads app enhancements.",
+        "markdown_path": "pages_markdown/analytics-dashboard-profile-setting-updates-and-more.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "two-factor-authentication",
+        "title": "Two-factor authentication - Help Center",
+        "url": "https://help.make.com/two-factor-authentication",
+        "description": "Secure your account by enabling 2FA, use authenticator apps to sign in, and manage recovery codes to ensure continuous access.",
+        "markdown_path": "pages_markdown/two-factor-authentication.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "the-make-code-app-is-available",
+        "title": "The Make Code app is available - Help Center",
+        "url": "https://help.make.com/the-make-code-app-is-available",
+        "description": "Explore the new Make Code app, enabling seamless integration of JavaScript or Python with a built-in IDE, secure testing, and easy code sharing for paid plan users.",
+        "markdown_path": "pages_markdown/the-make-code-app-is-available.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "set-the-length-of-your-session-timeout",
+        "title": "Set the length of your session timeout - Help Center",
+        "url": "https://help.make.com/set-the-length-of-your-session-timeout",
+        "description": "Set session timeout to automatically log out inactive users. ",
+        "markdown_path": "pages_markdown/set-the-length-of-your-session-timeout.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "scenario-execution-fixes-new-tiktok-apps",
+        "title": "Scenario execution fixes, new TikTok apps - Help Center",
+        "url": "https://help.make.com/scenario-execution-fixes-new-tiktok-apps",
+        "description": "Discover new TikTok Conversions and Reports apps, BigCommerce integration, Azure OpenAI capabilities, and LinkedIn Search Organizations module",
+        "markdown_path": "pages_markdown/scenario-execution-fixes-new-tiktok-apps.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "new-navigation-now-live-for-all-users",
+        "title": "New navigation now live for all users - Help Center",
+        "url": "https://help.make.com/new-navigation-now-live-for-all-users",
+        "description": "Experience our platform's redesigned navigation with a streamlined sidebar, easier access to settings, and a refreshed visual interface for all users.",
+        "markdown_path": "pages_markdown/new-navigation-now-live-for-all-users.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "new-make-community-link",
+        "title": "New Make Community link - Help Center",
+        "url": "https://help.make.com/new-make-community-link",
+        "description": "Discover Make Community access in Help and subscription period information for Enterprise users",
+        "markdown_path": "pages_markdown/new-make-community-link.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "make-managed-services-mms",
+        "title": "Make Managed Services (MMS) - Help Center",
+        "url": "https://help.make.com/make-managed-services-mms",
+        "description": "Learn how to manage multiple organizations under a single entity.",
+        "markdown_path": "pages_markdown/make-managed-services-mms.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "introducing-feature-controls",
+        "title": "Introducing Feature controls - Help Center",
+        "url": "https://help.make.com/introducing-feature-controls",
+        "description": "Easily enable or disable AI and beta features across your organization with simple ON/OFF toggles for controlled rollout and risk management.",
+        "markdown_path": "pages_markdown/introducing-feature-controls.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "introducing-audit-logs",
+        "title": "Introducing Audit Logs - Help Center",
+        "url": "https://help.make.com/introducing-audit-logs",
+        "description": "Find out about Audit Logs, the new Enterprise feature for tracking account activities and monitoring who did what and when across your organization",
+        "markdown_path": "pages_markdown/introducing-audit-logs.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "incremental-variables",
+        "title": "Incremental variables - Help Center",
+        "url": "https://help.make.com/incremental-variables",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/incremental-variables.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "google-sheets-add-on-new-openai-module",
+        "title": "Google Sheets add-on, new OpenAI module - Help Center",
+        "url": "https://help.make.com/google-sheets-add-on-new-openai-module",
+        "description": "Enhance workflows with ADP Workforce Now and find the latest updates for OpenAI, Google Sheets, Teams, Monday.com, Runway, Trello, and Klaviyo for better integration and productivity.",
+        "markdown_path": "pages_markdown/google-sheets-add-on-new-openai-module.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "feature-controls",
+        "title": "Feature controls - Help Center",
+        "url": "https://help.make.com/feature-controls",
+        "description": "Enable or disable experimental and AI features across your organization.",
+        "markdown_path": "pages_markdown/feature-controls.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "delete-your-profile",
+        "title": "Delete your profile - Help Center",
+        "url": "https://help.make.com/delete-your-profile",
+        "description": "Learn how to permanently delete your account, manage connection settings during the process, and understand the impact on your organization.",
+        "markdown_path": "pages_markdown/delete-your-profile.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "credential-requests-reauthorization-2fa-enforcement-logs",
+        "title": "Credential requests reauthorization, 2FA enforcement logs - Help Center",
+        "url": "https://help.make.com/credential-requests-reauthorization-2fa-enforcement-logs",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/credential-requests-reauthorization-2fa-enforcement-logs.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "clone-a-scenario",
+        "title": "Clone a scenario - Help Center",
+        "url": "https://help.make.com/clone-a-scenario",
+        "description": "Clone scenarios across your organization to scale your workflows and save hours of manual setup",
+        "markdown_path": "pages_markdown/clone-a-scenario.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "administration",
+        "title": "Administration - Help Center",
+        "url": "https://help.make.com/administration",
+        "description": "Discover features to manage organization usage and members.",
+        "markdown_path": "pages_markdown/administration.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 2,
+        "slug": "access-management",
+        "title": "Access management - Help Center",
+        "url": "https://help.make.com/access-management",
+        "description": "Learn more about setting up SSO and managing SAML certificates.",
+        "markdown_path": "pages_markdown/access-management.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 1,
+        "slug": "your-profile",
+        "title": "Your profile - Help Center",
+        "url": "https://help.make.com/your-profile",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/your-profile.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 1,
+        "slug": "your-organization",
+        "title": "Your organization - Help Center",
+        "url": "https://help.make.com/your-organization",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/your-organization.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 1,
+        "slug": "saml-certificate-management",
+        "title": "SAML certificate management - Help Center",
+        "url": "https://help.make.com/saml-certificate-management",
+        "description": "Manage Enterprise SP certificates to ensure secure SSO and prevent login failures.",
+        "markdown_path": "pages_markdown/saml-certificate-management.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 1,
+        "slug": "enhanced-navigation-in-make",
+        "title": "Enhanced navigation in Make - Help Center",
+        "url": "https://help.make.com/enhanced-navigation-in-make",
+        "description": "Experience the redesigned navigation in Make, featuring an intuitive interface and new features that enhance user experience and streamline access to essential tools.",
+        "markdown_path": "pages_markdown/enhanced-navigation-in-make.md"
+      },
+      {
+        "domain": "01-tenancy-identity-governance",
+        "score": 1,
+        "slug": "api-key",
+        "title": "API key - Help Center",
+        "url": "https://help.make.com/api-key",
+        "description": "Generate and manage API keys, select the necessary security scopes, and safely store your tokens for external access.",
+        "markdown_path": "pages_markdown/api-key.md"
+      }
+    ],
+    "02-scenarios-builder-authoring": [
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 4,
+        "slug": "scenario-run-replay",
+        "title": "Scenario run replay - Help Center",
+        "url": "https://help.make.com/scenario-run-replay",
+        "description": "Use trigger data from a previous run to execute a current version of a scenario for testing and debugging",
+        "markdown_path": "pages_markdown/scenario-run-replay.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 4,
+        "slug": "make-devtool",
+        "title": "Make DevTool - Help Center",
+        "url": "https://help.make.com/make-devtool",
+        "description": "Debug your scenarios by inspecting API calls, responses, and execution history with Make DevTool",
+        "markdown_path": "pages_markdown/make-devtool.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 4,
+        "slug": "how-to-track-credits",
+        "title": "How to track credits - Help Center",
+        "url": "https://help.make.com/how-to-track-credits",
+        "description": "Learn where to track your credit usage and monitor consumption across scenarios, modules, and individual runs",
+        "markdown_path": "pages_markdown/how-to-track-credits.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 4,
+        "slug": "filter-copying-smarter-app-search-and-scenario-sorting",
+        "title": "Filter copying, smarter app search, and scenario sorting - Help Center",
+        "url": "https://help.make.com/filter-copying-smarter-app-search-and-scenario-sorting",
+        "description": "Save time with filter copying, smarter app search, and updated scenario sorting and filtering.",
+        "markdown_path": "pages_markdown/filter-copying-smarter-app-search-and-scenario-sorting.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "types-of-modules",
+        "title": "Types of modules - Help Center",
+        "url": "https://help.make.com/types-of-modules",
+        "description": "Discover different module types and learn how to use them to build your scenarios",
+        "markdown_path": "pages_markdown/types-of-modules.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "scenario-notes",
+        "title": "Scenario notes - Help Center",
+        "url": "https://help.make.com/scenario-notes",
+        "description": "Add notes to modules and routes to document your logic and keep track of important details",
+        "markdown_path": "pages_markdown/scenario-notes.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "scenario-history-and-run-replay-improvements-app-updates",
+        "title": "Scenario history and run replay improvements, app updates - Help Center",
+        "url": "https://help.make.com/scenario-history-and-run-replay-improvements-app-updates",
+        "description": "Learn about Make's latest improvements including enhanced scenario history and run replay, OpenAI GPT-5.2 support, and new modules for Anthropic Claude, Figma, Canva, and Google Gemini AI",
+        "markdown_path": "pages_markdown/scenario-history-and-run-replay-improvements-app-updates.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "scenario-builder-improvements-security-updates-and-new-apps",
+        "title": "Scenario builder improvements, security updates, and new apps - Help Center",
+        "url": "https://help.make.com/scenario-builder-improvements-security-updates-and-new-apps",
+        "description": "Explore scenario builder improvements, enhanced 2FA security, new Canva, Zoom, and Motion apps, plus Active Campaign and Zoom Administration updates",
+        "markdown_path": "pages_markdown/scenario-builder-improvements-security-updates-and-new-apps.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "scenario-builder-improvements-new-app-and-ai-model-updates",
+        "title": "Scenario Builder improvements, new app, and AI model updates - Help Center",
+        "url": "https://help.make.com/scenario-builder-improvements-new-app-and-ai-model-updates",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/scenario-builder-improvements-new-app-and-ai-model-updates.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "organization-and-team-info-apps-updates",
+        "title": "Organization and team info, apps updates - Help Center",
+        "url": "https://help.make.com/organization-and-team-info-apps-updates",
+        "description": "Discover the latest Scenario Builder update, featuring enhanced organization visibility. Plus app updates for OpenAI, MCP Client, Notion, Runway, Virtuagym, and Parseur.",
+        "markdown_path": "pages_markdown/organization-and-team-info-apps-updates.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "new-version-of-api-endpoint-for-credential-requests-scenario-usage-tracking-connection-filtering-and-app-updates",
+        "title": "New version of API endpoint for credential requests, scenario usage tracking, connection filtering, and app updates - Help Center",
+        "url": "https://help.make.com/new-version-of-api-endpoint-for-credential-requests-scenario-usage-tracking-connection-filtering-and-app-updates",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/new-version-of-api-endpoint-for-credential-requests-scenario-usage-tracking-connection-filtering-and-app-updates.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "improved-app-search-in-the-scenario-builder",
+        "title": "Improved app search in the Scenario Builder - Help Center",
+        "url": "https://help.make.com/improved-app-search-in-the-scenario-builder",
+        "description": "Discover faster app search with module insights, recently used apps, and quick access to tools and functions in the Scenario Builder",
+        "markdown_path": "pages_markdown/improved-app-search-in-the-scenario-builder.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "flow-control",
+        "title": "Flow control - Help Center",
+        "url": "https://help.make.com/flow-control",
+        "description": "Use repeaters, iterators, and array aggregators to control how your scenario processes multiple items and bundles",
+        "markdown_path": "pages_markdown/flow-control.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 3,
+        "slug": "filtering",
+        "title": "Filtering - Help Center",
+        "url": "https://help.make.com/filtering",
+        "description": "Manage data flow between modules with filters and operators, and copy them",
+        "markdown_path": "pages_markdown/filtering.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "mondaycom-app-v1-to-v2-transition-by-may-1-2026",
+        "title": "monday.com app v1 to v2 transition by May 1, 2026 - Help Center",
+        "url": "https://help.make.com/mondaycom-app-v1-to-v2-transition-by-may-1-2026",
+        "description": "Upgrade monday.com app from v1 to v2 by May 1, 2026: replace modules, update affected field mappings, and test your scenarios.",
+        "markdown_path": "pages_markdown/mondaycom-app-v1-to-v2-transition-by-may-1-2026.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "update-legacy-modules-with-new-modules",
+        "title": "Update legacy modules with new modules - Help Center",
+        "url": "https://help.make.com/update-legacy-modules-with-new-modules",
+        "description": "Update legacy modules to the latest versions to ensure compatibility and access new features",
+        "markdown_path": "pages_markdown/update-legacy-modules-with-new-modules.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "util",
+        "title": "Tools - Help Center",
+        "url": "https://help.make.com/util",
+        "description": "Explore built-in tools to create variables, delay flows, aggregate data, and transform values in your scenarios",
+        "markdown_path": "pages_markdown/util.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "subscenarios",
+        "title": "Subscenarios - Help Center",
+        "url": "https://help.make.com/subscenarios",
+        "description": "Build scenario chains to run complex workflows in sequence and transfer data",
+        "markdown_path": "pages_markdown/subscenarios.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "schedule-a-scenario",
+        "title": "Schedule a scenario - Help Center",
+        "url": "https://help.make.com/schedule-a-scenario",
+        "description": "Schedule your Make scenarios and set rate limits to control exactly when and how often they run",
+        "markdown_path": "pages_markdown/schedule-a-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "scenario-sharing",
+        "title": "Scenario sharing - Help Center",
+        "url": "https://help.make.com/scenario-sharing",
+        "description": "Share your scenarios via links or social media so others can view and copy your workflows",
+        "markdown_path": "pages_markdown/scenario-sharing.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "scenario-history",
+        "title": "Scenario history - Help Center",
+        "url": "https://help.make.com/scenario-history",
+        "description": "Monitor execution history and user changes, and export logs for debugging and analysis",
+        "markdown_path": "pages_markdown/scenario-history.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "blueprints",
+        "title": "Scenario blueprints - Help Center",
+        "url": "https://help.make.com/blueprints",
+        "description": "Export and import scenario blueprints to back up, reuse, and share your automations",
+        "markdown_path": "pages_markdown/blueprints.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "router",
+        "title": "Router - Help Center",
+        "url": "https://help.make.com/router",
+        "description": "Branch a scenario into multiple routes to process data differently based on specific conditions",
+        "markdown_path": "pages_markdown/router.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "restore-and-recover-scenario",
+        "title": "Restore and recover scenario - Help Center",
+        "url": "https://help.make.com/restore-and-recover-scenario",
+        "description": "Restore previous versions of your scenarios and recover unsaved changes when needed",
+        "markdown_path": "pages_markdown/restore-and-recover-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "new-gmail-app-is-now-available",
+        "title": "New Gmail app is now available - Help Center",
+        "url": "https://help.make.com/new-gmail-app-is-now-available",
+        "description": "The new Gmail app is now available, offering easier setup without GCP projects and new modules for replying, searching, drafting, and managing emails in scenarios.",
+        "markdown_path": "pages_markdown/new-gmail-app-is-now-available.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "module-settings",
+        "title": "Module settings - Help Center",
+        "url": "https://help.make.com/module-settings",
+        "description": "Learn how to configure different module fields to ensure your scenarios run correctly",
+        "markdown_path": "pages_markdown/module-settings.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "introducing-scenario-sharing",
+        "title": "Introducing scenario sharing - Help Center",
+        "url": "https://help.make.com/introducing-scenario-sharing",
+        "description": "Learn about the new scenario sharing feature that allows seamless sharing via links or social media, ensuring updated access without file hassles—no login required!",
+        "markdown_path": "pages_markdown/introducing-scenario-sharing.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "how-to-use-make-grid",
+        "title": "How to use Make Grid - Help Center",
+        "url": "https://help.make.com/how-to-use-make-grid",
+        "description": "Discover how to use Make Grid to visualize, manage, and optimize your automation ecosystem",
+        "markdown_path": "pages_markdown/how-to-use-make-grid.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "get-started-with-make-mcp-server",
+        "title": "Get started with Make MCP server - Help Center",
+        "url": "https://help.make.com/get-started-with-make-mcp-server",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/get-started-with-make-mcp-server.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "editor-revamp-and-subscenarios-launch",
+        "title": "Editor revamp and subscenarios launch - Help Center",
+        "url": "https://help.make.com/editor-revamp-and-subscenarios-launch",
+        "description": "Discover a revamped editor, subscenarios feature, and custom app improvements",
+        "markdown_path": "pages_markdown/editor-revamp-and-subscenarios-launch.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "data-stores",
+        "title": "Data stores - Help Center",
+        "url": "https://help.make.com/data-stores",
+        "description": "Use data stores as databases to store and manage data across scenarios",
+        "markdown_path": "pages_markdown/data-stores.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 2,
+        "slug": "custom-scenario-properties",
+        "title": "Custom scenario properties - Help Center",
+        "url": "https://help.make.com/custom-scenario-properties",
+        "description": "Add custom properties to organize, sort, and filter your scenarios in a table view",
+        "markdown_path": "pages_markdown/custom-scenario-properties.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "alert-an-outage-may-have-impacted-your-scenario-execution-on-4-september-2025",
+        "title": "[RESOLVED] Alert: An outage may have impacted your scenario execution on 4 September, 2025 - Help Center",
+        "url": "https://help.make.com/alert-an-outage-may-have-impacted-your-scenario-execution-on-4-september-2025",
+        "description": "On September 4, 2025, Make experienced a brief outage; learn how to check for missed events, resubmit data, and the steps taken to enhance system security.",
+        "markdown_path": "pages_markdown/alert-an-outage-may-have-impacted-your-scenario-execution-on-4-september-2025.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "x-formerly-twitter-app-integration-discontinued",
+        "title": "X (formerly Twitter) app integration discontinued - Help Center",
+        "url": "https://help.make.com/x-formerly-twitter-app-integration-discontinued",
+        "description": "The X (formerly Twitter) app integration is removed due to API policy and pricing. Existing scenarios run until May 30, 2025. Explore alternatives like Buffer, Hootsuite, Bluesky, or Mastodon.",
+        "markdown_path": "pages_markdown/x-formerly-twitter-app-integration-discontinued.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "working-with-files",
+        "title": "Working with files - Help Center",
+        "url": "https://help.make.com/working-with-files",
+        "description": "Learn how Make handles files and how to map file names and actual content",
+        "markdown_path": "pages_markdown/working-with-files.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "variables",
+        "title": "Variables - Help Center",
+        "url": "https://help.make.com/variables",
+        "description": "Understand types of variables and how to set them to store and reuse data in scenarios",
+        "markdown_path": "pages_markdown/variables.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "use-scenario-outputs",
+        "title": "Use scenario outputs - Help Center",
+        "url": "https://help.make.com/use-scenario-outputs",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/use-scenario-outputs.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "use-scenario-inputs",
+        "title": "Use scenario inputs - Help Center",
+        "url": "https://help.make.com/use-scenario-inputs",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/use-scenario-inputs.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "xcvW-tools",
+        "title": "Tools - Help Center",
+        "url": "https://help.make.com/xcvW-tools",
+        "description": "Build complex scenarios with the help of these advanced tools",
+        "markdown_path": "pages_markdown/xcvW-tools.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-9-test-your-scenario",
+        "title": "Step 9. Test your scenario - Help Center",
+        "url": "https://help.make.com/step-9-test-your-scenario",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-9-test-your-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-7-test-the-final-scenario",
+        "title": "Step 7. Test the final scenario - Help Center",
+        "url": "https://help.make.com/step-7-test-the-final-scenario",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-7-test-the-final-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-6-add-an-aggregator",
+        "title": "Step 6. Add an aggregator - Help Center",
+        "url": "https://help.make.com/step-6-add-an-aggregator",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-6-add-an-aggregator.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-5-test-your-scenario",
+        "title": "Step 5. Test your scenario - Help Center",
+        "url": "https://help.make.com/step-5-test-your-scenario",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-5-test-your-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-4-add-a-filter",
+        "title": "Step 4. Add a filter - Help Center",
+        "url": "https://help.make.com/step-4-add-a-filter",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-4-add-a-filter.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-3-create-a-scenario-to-send-tasks-to-the-ai-agent",
+        "title": "Step 3. Create a scenario to send tasks to the AI agent - Help Center",
+        "url": "https://help.make.com/step-3-create-a-scenario-to-send-tasks-to-the-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-3-create-a-scenario-to-send-tasks-to-the-ai-agent.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-2-add-a-router",
+        "title": "Step 2. Add a router - Help Center",
+        "url": "https://help.make.com/step-2-add-a-router",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-2-add-a-router.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-10-schedule-your-scenario",
+        "title": "Step 10. Schedule your scenario - Help Center",
+        "url": "https://help.make.com/step-10-schedule-your-scenario",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-10-schedule-your-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "step-1-plan-your-scenario",
+        "title": "Step 1. Plan your scenario - Help Center",
+        "url": "https://help.make.com/step-1-plan-your-scenario",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-1-plan-your-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "scenarios",
+        "title": "Scenarios - Help Center",
+        "url": "https://help.make.com/scenarios",
+        "description": "Dive deeper into scenario capabilities to build on the next level",
+        "markdown_path": "pages_markdown/scenarios.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "scenario-variables",
+        "title": "Scenario variables - Help Center",
+        "url": "https://help.make.com/scenario-variables",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/scenario-variables.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "resume-error-handler",
+        "title": "Resume error handler - Help Center",
+        "url": "https://help.make.com/resume-error-handler",
+        "description": "Add Resume error handler to set a substitute value for a failed module and continue scenario processing",
+        "markdown_path": "pages_markdown/resume-error-handler.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "operations",
+        "title": "Operations - Help Center",
+        "url": "https://help.make.com/operations",
+        "description": "Learn what operations are, how modules process data through bundles, and how to view them for debugging and optimization",
+        "markdown_path": "pages_markdown/operations.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "new-feature-if-else-and-merge",
+        "title": "New feature: If-else and Merge - Help Center",
+        "url": "https://help.make.com/new-feature-if-else-and-merge",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/new-feature-if-else-and-merge.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "make-mcp-server",
+        "title": "Make MCP server - Help Center",
+        "url": "https://help.make.com/make-mcp-server",
+        "description": "Learn how to use Make MCP server, understand requirements, and connect to MCP clients.",
+        "markdown_path": "pages_markdown/make-mcp-server.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "make-ai-tools-now-available-in-open-beta",
+        "title": "Make AI Tools now available in Open Beta - Help Center",
+        "url": "https://help.make.com/make-ai-tools-now-available-in-open-beta",
+        "description": "Unlock AI tools with Make's paid plans, featuring nine pre-built modules for tasks like sentiment analysis and translation, all without writing prompts or AI accounts. ",
+        "markdown_path": "pages_markdown/make-ai-tools-now-available-in-open-beta.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "keyboard-shortcuts",
+        "title": "Keyboard shortcuts - Help Center",
+        "url": "https://help.make.com/keyboard-shortcuts",
+        "description": "Discover the keyboard shortcuts available in Make to save time when editing scenarios",
+        "markdown_path": "pages_markdown/keyboard-shortcuts.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "introducing-scenario-recovery",
+        "title": "Introducing Scenario recovery - Help Center",
+        "url": "https://help.make.com/introducing-scenario-recovery",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/introducing-scenario-recovery.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "if-else-and-merge",
+        "title": "If-else and Merge - Help Center",
+        "url": "https://help.make.com/if-else-and-merge",
+        "description": "Discover the new If-else and Merge feature, designed for efficient, logical routing in workflows.",
+        "markdown_path": "pages_markdown/if-else-and-merge.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "how-features-use-credits",
+        "title": "How features use credits - Help Center",
+        "url": "https://help.make.com/how-features-use-credits",
+        "description": "Understand the credit cost of different Make features and modules based on their type and function",
+        "markdown_path": "pages_markdown/how-features-use-credits.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "exponential-backoff",
+        "title": "Exponential backoff - Help Center",
+        "url": "https://help.make.com/exponential-backoff",
+        "description": "Learn how Make automatically retries failed scenarios with progressively longer delays",
+        "markdown_path": "pages_markdown/exponential-backoff.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "expand-your-scenario",
+        "title": "Expand your scenario - Help Center",
+        "url": "https://help.make.com/expand-your-scenario",
+        "description": "Take your automation further by adding essential Make tools",
+        "markdown_path": "pages_markdown/expand-your-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "edit-the-structure-of-a-scenario-input-or-output",
+        "title": "Edit the structure of a scenario input or output - Help Center",
+        "url": "https://help.make.com/edit-the-structure-of-a-scenario-input-or-output",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/edit-the-structure-of-a-scenario-input-or-output.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "developers",
+        "title": "Developers - Help Center",
+        "url": "https://help.make.com/developers",
+        "description": "Discover the Make DevTool to debug your scenarios like a pro",
+        "markdown_path": "pages_markdown/developers.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "delete-the-scenario-input-or-output-fields",
+        "title": "Delete the scenario input or output fields - Help Center",
+        "url": "https://help.make.com/delete-the-scenario-input-or-output-fields",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/delete-the-scenario-input-or-output-fields.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "data-and-mapping",
+        "title": "Data & mapping - Help Center",
+        "url": "https://help.make.com/data-and-mapping",
+        "description": "Understand how to work with data and send it between modules",
+        "markdown_path": "pages_markdown/data-and-mapping.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "create-your-first-scenario",
+        "title": "Create your first scenario - Help Center",
+        "url": "https://help.make.com/create-your-first-scenario",
+        "description": "Build your first automation with this guided walkthrough",
+        "markdown_path": "pages_markdown/create-your-first-scenario.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "create-the-structure-of-scenario-inputs-or-outputs",
+        "title": "Create the structure of scenario inputs or outputs - Help Center",
+        "url": "https://help.make.com/create-the-structure-of-scenario-inputs-or-outputs",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/create-the-structure-of-scenario-inputs-or-outputs.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "converger",
+        "title": "Converger - Help Center",
+        "url": "https://help.make.com/converger",
+        "description": "Learn workarounds to converge multiple scenario routes into a single flow and avoid module duplication",
+        "markdown_path": "pages_markdown/converger.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "aggregator",
+        "title": "Aggregator - Help Center",
+        "url": "https://help.make.com/aggregator",
+        "description": "Use aggregators to merge multiple data bundles into one and group the results",
+        "markdown_path": "pages_markdown/aggregator.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "active-and-inactive-scenarios",
+        "title": "Active and inactive scenarios guide - Make Help Center - Help Center",
+        "url": "https://help.make.com/active-and-inactive-scenarios",
+        "description": "Understand when to activate scenarios for scheduled runs or keep them inactive for manual execution",
+        "markdown_path": "pages_markdown/active-and-inactive-scenarios.md"
+      },
+      {
+        "domain": "02-scenarios-builder-authoring",
+        "score": 1,
+        "slug": "aes-advanced-encryption-standard",
+        "title": "AES (Advanced Encryption Standard) - Help Center",
+        "url": "https://help.make.com/aes-advanced-encryption-standard",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/aes-advanced-encryption-standard.md"
+      }
+    ],
+    "03-data-mapping-structures": [
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 5,
+        "slug": "array-functions",
+        "title": "Array functions - Help Center",
+        "url": "https://help.make.com/array-functions",
+        "description": "Sort, filter, and transform arrays to manipulate complex data structures",
+        "markdown_path": "pages_markdown/array-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 4,
+        "slug": "item-data-types",
+        "title": "Item data types - Help Center",
+        "url": "https://help.make.com/item-data-types",
+        "description": "Learn about data types, collections, and arrays, and see how Make validates and converts data",
+        "markdown_path": "pages_markdown/item-data-types.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 3,
+        "slug": "type-coercion",
+        "title": "Type coercion - Help Center",
+        "url": "https://help.make.com/type-coercion",
+        "description": "Explore how Make handles data mismatches and when it can automatically convert it into a different type",
+        "markdown_path": "pages_markdown/type-coercion.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 3,
+        "slug": "mapping-arrays",
+        "title": "Mapping arrays - Help Center",
+        "url": "https://help.make.com/mapping-arrays",
+        "description": "Understand how to map elements of simple and complex arrays to pass specific data",
+        "markdown_path": "pages_markdown/mapping-arrays.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 3,
+        "slug": "iterator",
+        "title": "Iterator - Help Center",
+        "url": "https://help.make.com/iterator",
+        "description": "Split arrays into individual bundles using iterators to process each item separately",
+        "markdown_path": "pages_markdown/iterator.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 3,
+        "slug": "custom-functions",
+        "title": "Custom functions - Help Center",
+        "url": "https://help.make.com/custom-functions",
+        "description": "Create custom JavaScript functions to transform data in your scenarios",
+        "markdown_path": "pages_markdown/custom-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "use-functions",
+        "title": "Use functions - Help Center",
+        "url": "https://help.make.com/use-functions",
+        "description": "Apply built-in functions to transform data and create complex formulas within your scenarios",
+        "markdown_path": "pages_markdown/use-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "text-and-binary-functions",
+        "title": "Text and binary functions - Help Center",
+        "url": "https://help.make.com/text-and-binary-functions",
+        "description": "Modify and transform data using text and binary functions.",
+        "markdown_path": "pages_markdown/text-and-binary-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "system-variables",
+        "title": "System variables - Help Center",
+        "url": "https://help.make.com/system-variables",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/system-variables.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "math-variables",
+        "title": "Math variables - Help Center",
+        "url": "https://help.make.com/math-variables",
+        "description": "Generate random numbers to use in your formulas and functions",
+        "markdown_path": "pages_markdown/math-variables.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "math-functions",
+        "title": "Math functions - Help Center",
+        "url": "https://help.make.com/math-functions",
+        "description": "Perform calculations, rounding, and number formatting",
+        "markdown_path": "pages_markdown/math-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "mapping",
+        "title": "Mapping - Help Center",
+        "url": "https://help.make.com/mapping",
+        "description": "Discover how to map items between modules to move your data from one app to another",
+        "markdown_path": "pages_markdown/mapping.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "date-and-time-functions",
+        "title": "Date and time functions - Help Center",
+        "url": "https://help.make.com/date-and-time-functions",
+        "description": "Format, parse, and calculate dates and times with timezone support",
+        "markdown_path": "pages_markdown/date-and-time-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "F-qx-data-stores",
+        "title": "Data stores - Help Center",
+        "url": "https://help.make.com/F-qx-data-stores",
+        "description": "Learn how to use Make’s built-in database tool to store and manage data",
+        "markdown_path": "pages_markdown/F-qx-data-stores.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 2,
+        "slug": "custom-variables",
+        "title": "Custom variables - Help Center",
+        "url": "https://help.make.com/custom-variables",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/custom-variables.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "tokens-for-datetime-formatting",
+        "title": "Tokens for date/time formatting - Help Center",
+        "url": "https://help.make.com/tokens-for-datetime-formatting",
+        "description": "Use special formatting tokens to change the format of the date and time data",
+        "markdown_path": "pages_markdown/tokens-for-datetime-formatting.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "regexp",
+        "title": "Text parser - Help Center",
+        "url": "https://help.make.com/regexp",
+        "description": "Extract and transform text using patterns and regular expressions to parse data from any source",
+        "markdown_path": "pages_markdown/regexp.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "select-the-first-bundle-to-process",
+        "title": "Select the first bundle to process - Help Center",
+        "url": "https://help.make.com/select-the-first-bundle-to-process",
+        "description": "Select the starting bundle for your trigger module to define where data processing begins",
+        "markdown_path": "pages_markdown/select-the-first-bundle-to-process.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "hash-functions",
+        "title": "Hash functions - Help Center",
+        "url": "https://help.make.com/hash-functions",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/hash-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "general-functions",
+        "title": "General functions - Help Center",
+        "url": "https://help.make.com/general-functions",
+        "description": "Manage how specific items are extracted or omitted from your data and apply conditional logic",
+        "markdown_path": "pages_markdown/general-functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "functions",
+        "title": "Functions - Help Center",
+        "url": "https://help.make.com/functions",
+        "description": "Transform and format data using our range of functions",
+        "markdown_path": "pages_markdown/functions.md"
+      },
+      {
+        "domain": "03-data-mapping-structures",
+        "score": 1,
+        "slug": "data-structures",
+        "title": "Data structures - Help Center",
+        "url": "https://help.make.com/data-structures",
+        "description": "Define the format of the data so that Make can properly process it",
+        "markdown_path": "pages_markdown/data-structures.md"
+      }
+    ],
+    "04-integrations-connections-webhooks": [
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 6,
+        "slug": "upgrade-to-enterprise",
+        "title": "Upgrade to the Enterprise plan - Help Center",
+        "url": "https://help.make.com/upgrade-to-enterprise",
+        "description": "Migrate your scenarios to an Enterprise plan with a dedicated server and advanced features.",
+        "markdown_path": "pages_markdown/upgrade-to-enterprise.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 5,
+        "slug": "delete-user-data",
+        "title": "Delete user data - Help Center",
+        "url": "https://help.make.com/delete-user-data",
+        "description": "Delete all your user data stored on Make including scenarios, connections, and personal information.",
+        "markdown_path": "pages_markdown/delete-user-data.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 5,
+        "slug": "call-google-apis-with-oauth-20-http-request",
+        "title": "Call Google APIs with OAuth 2.0 HTTP request - Help Center",
+        "url": "https://help.make.com/call-google-apis-with-oauth-20-http-request",
+        "description": "Call Google APIs using HTTP requests with OAuth 2.0 authentication",
+        "markdown_path": "pages_markdown/call-google-apis-with-oauth-20-http-request.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 4,
+        "slug": "replace-connections-across-multiple-modules",
+        "title": "Replace connections across multiple modules - Help Center",
+        "url": "https://help.make.com/replace-connections-across-multiple-modules",
+        "description": "Replace connections in multiple modules of the same app across one or many scenarios",
+        "markdown_path": "pages_markdown/replace-connections-across-multiple-modules.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 4,
+        "slug": "new-mcp-server-connection-options-role-permission-fix-apps-updates",
+        "title": "New MCP server connection options, role permission fix, apps updates - Help Center",
+        "url": "https://help.make.com/new-mcp-server-connection-options-role-permission-fix-apps-updates",
+        "description": "Discover the latest updates on the Make MCP server, featuring new OAuth and Streamable HTTP connections, enhanced app functionalities, and critical role fixes for secure integrations.",
+        "markdown_path": "pages_markdown/new-mcp-server-connection-options-role-permission-fix-apps-updates.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 4,
+        "slug": "connect-to-any-web-service-using-oauth-20",
+        "title": "Connect to any web service using OAuth 2.0 - Help Center",
+        "url": "https://help.make.com/connect-to-any-web-service-using-oauth-20",
+        "description": "Establish OAuth 2.0 connections to securely connect any web service to Make",
+        "markdown_path": "pages_markdown/connect-to-any-web-service-using-oauth-20.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 4,
+        "slug": "connect-to-google-services-using-a-custom-oauth-client",
+        "title": "Connect to Google services using a custom OAuth client - Help Center",
+        "url": "https://help.make.com/connect-to-google-services-using-a-custom-oauth-client",
+        "description": "Create a custom OAuth client in Google Cloud Platform to connect Google services to Make",
+        "markdown_path": "pages_markdown/connect-to-google-services-using-a-custom-oauth-client.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 4,
+        "slug": "connect-an-application",
+        "title": "Connect an application - Help Center",
+        "url": "https://help.make.com/connect-an-application",
+        "description": "Learn how to connect third-party services to Make to securely access and control data in your scenarios",
+        "markdown_path": "pages_markdown/connect-an-application.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 4,
+        "slug": "allow-connections-to-and-from-make-ip-addresses",
+        "title": "Allow connections to and from Make IP addresses - Help Center",
+        "url": "https://help.make.com/allow-connections-to-and-from-make-ip-addresses",
+        "description": "Find Make's IP addresses to whitelist in your firewall for secure connections",
+        "markdown_path": "pages_markdown/allow-connections-to-and-from-make-ip-addresses.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "upcoming-adjustments-to-plans-and-pricing",
+        "title": "Upcoming adjustments to plans and pricing - Help Center",
+        "url": "https://help.make.com/upcoming-adjustments-to-plans-and-pricing",
+        "description": "Starting November 6, 2025, new credit cost structures and enhanced features will streamline user experience, allowing seamless access to AI services across all plans.",
+        "markdown_path": "pages_markdown/upcoming-adjustments-to-plans-and-pricing.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "scenarios-and-connections",
+        "title": "Scenarios & connections - Help Center",
+        "url": "https://help.make.com/scenarios-and-connections",
+        "description": "Learn how to connect applications, understand scenario basics, and manage scenario settings and templates",
+        "markdown_path": "pages_markdown/scenarios-and-connections.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "scenario-inputs-now-available-for-all-users",
+        "title": "Scenario inputs now available for all users - Help Center",
+        "url": "https://help.make.com/scenario-inputs-now-available-for-all-users",
+        "description": "Check Make's newest updates: scenario inputs now for all users, connection updates, new TikTok Audiences, Lusha, and xAI apps, plus enhanced custom app capabilities and API improvements",
+        "markdown_path": "pages_markdown/scenario-inputs-now-available-for-all-users.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "pipedrive-api-v1-to-v2-transition-by-july-31-2026",
+        "title": "Pipedrive API v1 to v2 transition by July 31, 2026 - Help Center",
+        "url": "https://help.make.com/pipedrive-api-v1-to-v2-transition-by-july-31-2026",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/pipedrive-api-v1-to-v2-transition-by-july-31-2026.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "make-ai-web-search-mcp-client-and-mcp-server-improvements",
+        "title": "Make AI Web Search, MCP client and MCP server improvements - Help Center",
+        "url": "https://help.make.com/make-ai-web-search-mcp-client-and-mcp-server-improvements",
+        "description": "Run secure, real-time web searches directly in scenarios, for precise results. Automate tasks with AI using MCP tools; select tools and execute automatically. Make MCP server now uses Stateless Streamable HTTP for reliable connections.",
+        "markdown_path": "pages_markdown/make-ai-web-search-mcp-client-and-mcp-server-improvements.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "introduction-to-make-apps",
+        "title": "Introduction to Make apps - Help Center",
+        "url": "https://help.make.com/introduction-to-make-apps",
+        "description": "Learn about verified, community, and custom apps, and see which are available on your plan",
+        "markdown_path": "pages_markdown/introduction-to-make-apps.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "introducing-dynamic-connections",
+        "title": "Introducing dynamic connections - Help Center",
+        "url": "https://help.make.com/introducing-dynamic-connections",
+        "description": "Find out about dynamic connections, an Enterprise feature that lets teams share scenarios while using their own credentials",
+        "markdown_path": "pages_markdown/introducing-dynamic-connections.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "dynamic-connections",
+        "title": "Dynamic connections - Help Center",
+        "url": "https://help.make.com/dynamic-connections",
+        "description": "Create variables to dynamically define which connection to use for a particular scenario run",
+        "markdown_path": "pages_markdown/dynamic-connections.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "connections",
+        "title": "Connections - Help Center",
+        "url": "https://help.make.com/connections",
+        "description": "Find more connection options including our on-premise agent ",
+        "markdown_path": "pages_markdown/connections.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "apps-and-modules",
+        "title": "Apps & modules - Help Center",
+        "url": "https://help.make.com/apps-and-modules",
+        "description": "Explore different types of apps, modules, and learn the fundamentals of webhooks",
+        "markdown_path": "pages_markdown/apps-and-modules.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 3,
+        "slug": "adjustments-to-plans-and-pricing",
+        "title": "Adjustments to plans and pricing - Help Center",
+        "url": "https://help.make.com/adjustments-to-plans-and-pricing",
+        "description": "Extra credit pricing updates, revised credit limits for Core and Pro plans, and custom AI provider connections now available on all paid plans.",
+        "markdown_path": "pages_markdown/adjustments-to-plans-and-pricing.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "step-4-create-a-connection",
+        "title": "Step 4. Create a connection - Help Center",
+        "url": "https://help.make.com/step-4-create-a-connection",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-4-create-a-connection.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "on-premise-agent",
+        "title": "On-premise agent - Help Center",
+        "url": "https://help.make.com/on-premise-agent",
+        "description": "Install and use on-premise agents to securely access local applications and databases",
+        "markdown_path": "pages_markdown/on-premise-agent.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "new-snapchat-integration",
+        "title": "New Snapchat integration - Help Center",
+        "url": "https://help.make.com/new-snapchat-integration",
+        "description": "Discover Make's new Snapchat Conversions app for improved conversion tracking, ServiceNow connection type updates, and enhanced LinkedIn Conversion API with multiple campaign support",
+        "markdown_path": "pages_markdown/new-snapchat-integration.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "new-mms-options-app-updates",
+        "title": "New MMS options, app updates - Help Center",
+        "url": "https://help.make.com/new-mms-options-app-updates",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/new-mms-options-app-updates.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "fix-connection-errors",
+        "title": "Fix connection errors - Help Center",
+        "url": "https://help.make.com/fix-connection-errors",
+        "description": "Understand what causes connection errors and how to manage them with error handlers",
+        "markdown_path": "pages_markdown/fix-connection-errors.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "credits",
+        "title": "Credits - Help Center",
+        "url": "https://help.make.com/credits",
+        "description": "Understand how credits work in Make, how different features consume them, and how to monitor your usage",
+        "markdown_path": "pages_markdown/credits.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "credential-requests",
+        "title": "Credential requests - Help Center",
+        "url": "https://help.make.com/credential-requests",
+        "description": "Securely collect connection credentials from third parties to build automations in Make",
+        "markdown_path": "pages_markdown/credential-requests.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 2,
+        "slug": "create-ai-agents-for-different-triggers",
+        "title": "Create AI agents for different triggers - Help Center",
+        "url": "https://help.make.com/create-ai-agents-for-different-triggers",
+        "description": "Create AI agent scenarios using common triggers: chat messages, emails, forms, and webhooks.",
+        "markdown_path": "pages_markdown/create-ai-agents-for-different-triggers.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "make-now-a-built-in-connector-on-anthropic-claude",
+        "title": "Make now a built-in connector on Anthropic Claude - Help Center",
+        "url": "https://help.make.com/make-now-a-built-in-connector-on-anthropic-claude",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/make-now-a-built-in-connector-on-anthropic-claude.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "devices",
+        "title": "Devices - Help Center",
+        "url": "https://help.make.com/devices",
+        "description": "Connect a mobile Apple iOS or Android device to your Make account",
+        "markdown_path": "pages_markdown/devices.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "connect-to-openai-api",
+        "title": "Connect to OpenAI API - Help Center",
+        "url": "https://help.make.com/connect-to-openai-api",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/connect-to-openai-api.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "connect-to-openai",
+        "title": "Connect to OpenAI - Help Center",
+        "url": "https://help.make.com/connect-to-openai",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/connect-to-openai.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "connect-to-cursor",
+        "title": "Connect to Cursor - Help Center",
+        "url": "https://help.make.com/connect-to-cursor",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/connect-to-cursor.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "connect-to-claude-desktop",
+        "title": "Connect to Claude Desktop - Help Center",
+        "url": "https://help.make.com/connect-to-claude-desktop",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/connect-to-claude-desktop.md"
+      },
+      {
+        "domain": "04-integrations-connections-webhooks",
+        "score": 1,
+        "slug": "connect-to-chatgpt",
+        "title": "Connect to ChatGPT - Help Center",
+        "url": "https://help.make.com/connect-to-chatgpt",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/connect-to-chatgpt.md"
+      }
+    ],
+    "05-runtime-executions-observability": [
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 8,
+        "slug": "scenario-settings",
+        "title": "Scenario settings - Help Center",
+        "url": "https://help.make.com/scenario-settings",
+        "description": "Define how your scenario executes and behaves if an error occurs",
+        "markdown_path": "pages_markdown/scenario-settings.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 8,
+        "slug": "overview-of-error-handling",
+        "title": "Overview of error handling - Help Center",
+        "url": "https://help.make.com/overview-of-error-handling",
+        "description": "Learn how error handlers work and how to manage errors in your scenarios",
+        "markdown_path": "pages_markdown/overview-of-error-handling.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 7,
+        "slug": "fix-rate-limit-errors",
+        "title": "Fix rate limit errors - Help Center",
+        "url": "https://help.make.com/fix-rate-limit-errors",
+        "description": "Understand what causes rate limit errors and how to prevent and resolve them",
+        "markdown_path": "pages_markdown/fix-rate-limit-errors.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 5,
+        "slug": "scenario-execution-cycles-and-phases",
+        "title": "Scenario execution, cycles, and phases - Help Center",
+        "url": "https://help.make.com/scenario-execution-cycles-and-phases",
+        "description": "Explore the cycles and phases of scenario execution to manage data processing",
+        "markdown_path": "pages_markdown/scenario-execution-cycles-and-phases.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 5,
+        "slug": "errors-that-dont-create-incomplete-executions",
+        "title": "Errors that don't create incomplete executions - Help Center",
+        "url": "https://help.make.com/errors-that-dont-create-incomplete-executions",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/errors-that-dont-create-incomplete-executions.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "webhooks",
+        "title": "Webhooks - Help Center",
+        "url": "https://help.make.com/webhooks",
+        "description": "Create webhooks to trigger scenarios instantly and manage their data processing and queues",
+        "markdown_path": "pages_markdown/webhooks.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "types-of-errors",
+        "title": "Types of errors - Help Center",
+        "url": "https://help.make.com/types-of-errors",
+        "description": "Identify different error types in your scenarios and understand what causes them",
+        "markdown_path": "pages_markdown/types-of-errors.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "scenario-run-replay-and-naming-capabilities-now-available",
+        "title": "Scenario run replay and naming capabilities now available - Help Center",
+        "url": "https://help.make.com/scenario-run-replay-and-naming-capabilities-now-available",
+        "description": "Scenario run replay and custom run names are now available on all plans, letting you replay runs to test or backfill data and label executions for easier tracking in scenario history.",
+        "markdown_path": "pages_markdown/scenario-run-replay-and-naming-capabilities-now-available.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "scenario-execution-flow",
+        "title": "Scenario execution flow - Help Center",
+        "url": "https://help.make.com/scenario-execution-flow",
+        "description": "Learn how scenarios execute, how data flows through modules, and how to interpret processed bundles",
+        "markdown_path": "pages_markdown/scenario-execution-flow.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "manage-incomplete-executions",
+        "title": "Manage incomplete executions - Help Center",
+        "url": "https://help.make.com/manage-incomplete-executions",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/manage-incomplete-executions.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "incomplete-executions-retry",
+        "title": "Incomplete executions retry - Help Center",
+        "url": "https://help.make.com/incomplete-executions-retry",
+        "description": "Users can now simultaneously retry multiple incomplete executions and optimize logo processing with updated specs for better color accuracy in our latest documentation.",
+        "markdown_path": "pages_markdown/incomplete-executions-retry.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "enhanced-notes-and-team-level-operations-management",
+        "title": "Enhanced notes & team-level operations management - Help Center",
+        "url": "https://help.make.com/enhanced-notes-and-team-level-operations-management",
+        "description": "Enhanced notes with rich text, new enterprise feature - Operations per team management, advanced modules for managing incomplete scenario executions, and updated app features for OpenAI, Workday, and Salesforce.",
+        "markdown_path": "pages_markdown/enhanced-notes-and-team-level-operations-management.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "break-error-handler",
+        "title": "Break error handler - Help Center",
+        "url": "https://help.make.com/break-error-handler",
+        "description": "Use Break error handler to store incomplete executions and enable automatic or manual retries",
+        "markdown_path": "pages_markdown/break-error-handler.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "automatic-retry-of-incomplete-executions",
+        "title": "Automatic retry of incomplete executions - Help Center",
+        "url": "https://help.make.com/automatic-retry-of-incomplete-executions",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/automatic-retry-of-incomplete-executions.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 4,
+        "slug": "analytics-dashboard",
+        "title": "Analytics dashboard - Help Center",
+        "url": "https://help.make.com/analytics-dashboard",
+        "description": "Monitor operations, errors, and execution metrics across your scenarios to optimize performance.",
+        "markdown_path": "pages_markdown/analytics-dashboard.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "types-of-warnings",
+        "title": "Types of warnings - Help Center",
+        "url": "https://help.make.com/types-of-warnings",
+        "description": "Identify different warning types in your scenarios and understand what causes them",
+        "markdown_path": "pages_markdown/types-of-warnings.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "throw",
+        "title": "Throw - Help Center",
+        "url": "https://help.make.com/throw",
+        "description": "Explore workarounds to conditionally throw errors in your scenarios and control error handling behavior",
+        "markdown_path": "pages_markdown/throw.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "rollback-error-handler",
+        "title": "Rollback error handler - Help Center",
+        "url": "https://help.make.com/rollback-error-handler",
+        "description": "Apply Rollback error handler to stop scenario execution when an error occurs and revert changes",
+        "markdown_path": "pages_markdown/rollback-error-handler.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "options-related-to-incomplete-executions",
+        "title": "Options related to incomplete executions - Help Center",
+        "url": "https://help.make.com/options-related-to-incomplete-executions",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/options-related-to-incomplete-executions.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "introduction-to-errors-and-warnings",
+        "title": "Introduction to errors and warnings - Help Center",
+        "url": "https://help.make.com/introduction-to-errors-and-warnings",
+        "description": "Understand what errors and warnings mean in Make and learn how to handle them effectively",
+        "markdown_path": "pages_markdown/introduction-to-errors-and-warnings.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "incomplete-executions",
+        "title": "Incomplete executions - Help Center",
+        "url": "https://help.make.com/incomplete-executions",
+        "description": "Store failed scenario runs and resolve them automatically or manually to prevent data loss",
+        "markdown_path": "pages_markdown/incomplete-executions.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "how-to-handle-errors",
+        "title": "How to handle errors - Help Center",
+        "url": "https://help.make.com/how-to-handle-errors",
+        "description": "Find solutions for common errors like rate limits, connection issues, missing data errors, and others",
+        "markdown_path": "pages_markdown/how-to-handle-errors.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "error-handlers",
+        "title": "Error handlers - Help Center",
+        "url": "https://help.make.com/error-handlers",
+        "description": "Explore error handlers and how they manage errors and control scenario execution",
+        "markdown_path": "pages_markdown/error-handlers.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "commit-error-handler",
+        "title": "Commit error handler - Help Center",
+        "url": "https://help.make.com/commit-error-handler",
+        "description": "Add Commit error handler to stop scenario execution when an error occurs and save the processed changes",
+        "markdown_path": "pages_markdown/commit-error-handler.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 3,
+        "slug": "affiliate-payouts-incomplete-execution-retries-new-apps",
+        "title": "Affiliate payouts, incomplete execution retries, new apps - Help Center",
+        "url": "https://help.make.com/affiliate-payouts-incomplete-execution-retries-new-apps",
+        "description": "Wise replaces PayPal for faster affiliate payouts, improves retry handling and mapping, adds new apps like Adobe Workfront, Amazon Rekognition, Kimi, and updates OpenAI GPT-4.5, Azure DevOps, Twilio, and more.",
+        "markdown_path": "pages_markdown/affiliate-payouts-incomplete-execution-retries-new-apps.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "scenario-rate-limits-for-instant-triggers",
+        "title": "Scenario rate limits for instant triggers - Help Center",
+        "url": "https://help.make.com/scenario-rate-limits-for-instant-triggers",
+        "description": "Learn how to set execution limits on instant scenarios to prevent overloads, manage high-volume tasks, and enhance workflow reliability with our new features.",
+        "markdown_path": "pages_markdown/scenario-rate-limits-for-instant-triggers.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "quick-error-handling-reference",
+        "title": "Quick error handling reference - Help Center",
+        "url": "https://help.make.com/quick-error-handling-reference",
+        "description": "Compare all error handlers at a glance and understand what each one does when an error occurs",
+        "markdown_path": "pages_markdown/quick-error-handling-reference.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "ignore-error-handler",
+        "title": "Ignore error handler - Help Center",
+        "url": "https://help.make.com/ignore-error-handler",
+        "description": "Use the Ignore error handler to disregard errors and allow the scenario to process subsequent bundles",
+        "markdown_path": "pages_markdown/ignore-error-handler.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "index",
+        "title": "Get started - Help Center",
+        "url": "https://help.make.com/",
+        "description": "Learn to automate with Make: a comprehensive guide from first steps to advanced features, error handling, and AI. Popular apps and new releases.",
+        "markdown_path": "pages_markdown/index.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "fix-missing-data-errors",
+        "title": "Fix missing data errors - Help Center",
+        "url": "https://help.make.com/fix-missing-data-errors",
+        "description": "Understand what causes missing data errors and how to handle them",
+        "markdown_path": "pages_markdown/fix-missing-data-errors.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "fix-general-errors",
+        "title": "Fix general errors - Help Center",
+        "url": "https://help.make.com/fix-general-errors",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/fix-general-errors.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "error-handling",
+        "title": "Error handling - Help Center",
+        "url": "https://help.make.com/error-handling",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/error-handling.md"
+      },
+      {
+        "domain": "05-runtime-executions-observability",
+        "score": 2,
+        "slug": "credits-and-operations",
+        "title": "Credits & operations - Help Center",
+        "url": "https://help.make.com/credits-and-operations",
+        "description": "Learn what credits and operations are, how different features use credits, and how to monitor your usage",
+        "markdown_path": "pages_markdown/credits-and-operations.md"
+      }
+    ],
+    "06-ai-agents-mcp": [
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 5,
+        "slug": "new-make-ai-agents-reasoning-feature-openai-reasoning-model-users-must-verify-organization",
+        "title": "New Make AI Agents Reasoning feature: OpenAI reasoning model users must verify organization - Help Center",
+        "url": "https://help.make.com/new-make-ai-agents-reasoning-feature-openai-reasoning-model-users-must-verify-organization",
+        "description": "On November 24th, Make AI Agents launches a new Reasoning feature, requiring OpenAI organization verification for continued use of reasoning models like GPT-5.",
+        "markdown_path": "pages_markdown/new-make-ai-agents-reasoning-feature-openai-reasoning-model-users-must-verify-organization.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 5,
+        "slug": "make-ai-agents-new-best-practices",
+        "title": "Make AI Agents (New) best practices - Help Center",
+        "url": "https://help.make.com/make-ai-agents-new-best-practices",
+        "description": "Design effective Make AI Agents (New) with tips on tools, prompts, testing, and more.",
+        "markdown_path": "pages_markdown/make-ai-agents-new-best-practices.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 5,
+        "slug": "make-ai-agents-new-app",
+        "title": "Make AI Agents (New) app - Help Center",
+        "url": "https://help.make.com/make-ai-agents-new-app",
+        "description": "Explore Make AI Agents (New) app settings: configure tools and knowledge, use chat for testing, and review credit usage by feature.",
+        "markdown_path": "pages_markdown/make-ai-agents-new-app.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 5,
+        "slug": "mcp-tools-for-ai-agents",
+        "title": "MCP tools for AI agents | Make AI agents with MCP - Help Center",
+        "url": "https://help.make.com/mcp-tools-for-ai-agents",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/mcp-tools-for-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 5,
+        "slug": "create-your-first-ai-agent",
+        "title": "Create your first AI agent - Help Center",
+        "url": "https://help.make.com/create-your-first-ai-agent",
+        "description": "Build your first AI agent: plan your agent, configure instructions, add tools and knowledge, and test before going live.",
+        "markdown_path": "pages_markdown/create-your-first-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 5,
+        "slug": "claude-opus-46-now-available-in-make",
+        "title": "Claude Opus 4.6 now available in Make - Help Center",
+        "url": "https://help.make.com/claude-opus-46-now-available-in-make",
+        "description": "Use Claude Opus 4.6 in Make for complex reasoning and autonomous workflows. Access it through Make AI Toolkit, Anthropic Claude, or Make AI Agents.",
+        "markdown_path": "pages_markdown/claude-opus-46-now-available-in-make.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "tools-for-ai-agents",
+        "title": "Tools for AI agents - Help Center",
+        "url": "https://help.make.com/tools-for-ai-agents",
+        "description": "Learn about modules, scenarios, and MCP tools and when to use each in your AI agent",
+        "markdown_path": "pages_markdown/tools-for-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "scenario-inputs-and-outputs",
+        "title": "Scenario inputs and outputs - Help Center",
+        "url": "https://help.make.com/scenario-inputs-and-outputs",
+        "description": "Set the data passed to the scenario you call, and the information it returns",
+        "markdown_path": "pages_markdown/scenario-inputs-and-outputs.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "module-tools-for-ai-agents",
+        "title": "Module tools for AI agents - Help Center",
+        "url": "https://help.make.com/module-tools-for-ai-agents",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/module-tools-for-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "make-ai-agents-the-next-step-in-automation",
+        "title": "Make AI Agents: The next step in automation - Help Center",
+        "url": "https://help.make.com/make-ai-agents-the-next-step-in-automation",
+        "description": "Discover how Make's AI Agents enhance automation for paid plans with intelligent workflows, customizable prompts, and versatile language models for real-time decision-making.",
+        "markdown_path": "pages_markdown/make-ai-agents-the-next-step-in-automation.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "make-ai-agents-app",
+        "title": "Make AI Agents app - Help Center",
+        "url": "https://help.make.com/make-ai-agents-app",
+        "description": "Explore Make AI Agents app modules and settings to use AI agents in scenarios",
+        "markdown_path": "pages_markdown/make-ai-agents-app.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "knowledge",
+        "title": "Knowledge - Help Center",
+        "url": "https://help.make.com/knowledge",
+        "description": "Learn about knowledge for AI agents: upload and manage knowledge files, understand how RAG works, and review credit usage for Knowledge modules.",
+        "markdown_path": "pages_markdown/knowledge.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "introducing-module-tools-for-ai-agents",
+        "title": "Introducing module tools for AI agents - Help Center",
+        "url": "https://help.make.com/introducing-module-tools-for-ai-agents",
+        "description": "Make's enhanced AI Agent features simplify setup by automatically creating scenarios for module tools, now easily managed in the Tools section.",
+        "markdown_path": "pages_markdown/introducing-module-tools-for-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "context-modules-added-to-make-ai-agents-app",
+        "title": "Context modules added to Make AI Agents app - Help Center",
+        "url": "https://help.make.com/context-modules-added-to-make-ai-agents-app",
+        "description": "Check out the new Make AI Agents in Open Beta, designed for effortless context file management and scenario integration for paid users.",
+        "markdown_path": "pages_markdown/context-modules-added-to-make-ai-agents-app.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 4,
+        "slug": "ai-agent-best-practices",
+        "title": "AI agent best practices - Help Center",
+        "url": "https://help.make.com/ai-agent-best-practices",
+        "description": "Design effective AI agents with tips on tools, prompts, data security, and more",
+        "markdown_path": "pages_markdown/ai-agent-best-practices.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "sales-outreach-ai-agent-use-case",
+        "title": "Sales outreach AI agent use case - Help Center",
+        "url": "https://help.make.com/sales-outreach-ai-agent-use-case",
+        "description": "Build a sales outreach AI agent: watch Gmail for leads, research companies, qualify them, draft personalized emails, and send to Slack.",
+        "markdown_path": "pages_markdown/sales-outreach-ai-agent-use-case.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "meet-the-new-make-ai-agents-app",
+        "title": "Meet the new Make AI Agents app - Help Center",
+        "url": "https://help.make.com/meet-the-new-make-ai-agents-app",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/meet-the-new-make-ai-agents-app.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "manage-ai-agents",
+        "title": "Manage AI agents - Help Center",
+        "url": "https://help.make.com/manage-ai-agents",
+        "description": "Create, configure, and manage AI agents with instructions, knowledge, and tools",
+        "markdown_path": "pages_markdown/manage-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "make-ai-agents",
+        "title": "Make AI Agents - Help Center",
+        "url": "https://help.make.com/make-ai-agents",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/make-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "make-ai-agents-new",
+        "title": "Make AI Agents (New) - Help Center",
+        "url": "https://help.make.com/make-ai-agents-new",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/make-ai-agents-new.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "introduction-to-make-ai-agents-new",
+        "title": "Introduction to Make AI Agents (New) - Help Center",
+        "url": "https://help.make.com/introduction-to-make-ai-agents-new",
+        "description": "Discover Make AI Agents (New): learn when to use it, explore key concepts, and see practical examples of AI agents.",
+        "markdown_path": "pages_markdown/introduction-to-make-ai-agents-new.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 3,
+        "slug": "introduction-to-mcp",
+        "title": "Introduction to MCP - Help Center",
+        "url": "https://help.make.com/introduction-to-mcp",
+        "description": "Discover Model Context Protocol (MCP) with Make: how it works, benefits, key concepts, and MCP options.",
+        "markdown_path": "pages_markdown/introduction-to-mcp.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "webhook-triggered-ai-agent",
+        "title": "Webhook-triggered AI agent - Help Center",
+        "url": "https://help.make.com/webhook-triggered-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/webhook-triggered-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "telegram-triggered-ai-agent",
+        "title": "Telegram-triggered AI agent - Help Center",
+        "url": "https://help.make.com/telegram-triggered-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/telegram-triggered-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "step-2-create-the-ai-agents-tools",
+        "title": "Step 2. Create the AI agent's tools - Help Center",
+        "url": "https://help.make.com/step-2-create-the-ai-agents-tools",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-2-create-the-ai-agents-tools.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "slack-triggered-ai-agent",
+        "title": "Slack-triggered AI agent - Help Center",
+        "url": "https://help.make.com/slack-triggered-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/slack-triggered-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "scenarios-for-ai-agents",
+        "title": "Scenarios for AI agents | AI agent scenarios Make - Help Center",
+        "url": "https://help.make.com/scenarios-for-ai-agents",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/scenarios-for-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "new-gpt-image-model-and-anthropic-claude-module",
+        "title": "New GPT Image model and Anthropic Claude module - Help Center",
+        "url": "https://help.make.com/new-gpt-image-model-and-anthropic-claude-module",
+        "description": "Discover GPT Image 1.5 model for OpenAI image generation and editing, plus the new Anthropic Claude file download module",
+        "markdown_path": "pages_markdown/new-gpt-image-model-and-anthropic-claude-module.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "mailhook-triggered-ai-agent",
+        "title": "Mailhook-triggered AI agent - Help Center",
+        "url": "https://help.make.com/mailhook-triggered-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/mailhook-triggered-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "mcp-toolboxes",
+        "title": "MCP toolboxes - Help Center",
+        "url": "https://help.make.com/mcp-toolboxes",
+        "description": "Create and manage MCP toolboxes: select and configure tools, generate keys, and connect to MCP clients. ",
+        "markdown_path": "pages_markdown/mcp-toolboxes.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "introduction-to-ai-agents",
+        "title": "Introduction to AI agents - Help Center",
+        "url": "https://help.make.com/introduction-to-ai-agents",
+        "description": "Discover what AI agents are and how they work",
+        "markdown_path": "pages_markdown/introduction-to-ai-agents.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "introducing-mcp-toolboxes",
+        "title": "Introducing MCP toolboxes - Help Center",
+        "url": "https://help.make.com/introducing-mcp-toolboxes",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/introducing-mcp-toolboxes.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "introducing-credit-usage-history",
+        "title": "Introducing Credit usage history - Help Center",
+        "url": "https://help.make.com/introducing-credit-usage-history",
+        "description": "Track all credit usage in one place across scenarios and AI agents, with run-level details to monitor, analyze, and optimize efficiently.",
+        "markdown_path": "pages_markdown/introducing-credit-usage-history.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "form-triggered-ai-agent",
+        "title": "Form-triggered AI agent - Help Center",
+        "url": "https://help.make.com/form-triggered-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/form-triggered-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "email-triggered-ai-agent",
+        "title": "Email-triggered AI agent - Help Center",
+        "url": "https://help.make.com/email-triggered-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/email-triggered-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "digital-education-program",
+        "title": "Digital Education program - Help Center",
+        "url": "https://help.make.com/digital-education-program",
+        "description": "Empower your students to learn how to build intelligent systems, from automations to AI agents.",
+        "markdown_path": "pages_markdown/digital-education-program.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 2,
+        "slug": "ai-agents-configuration",
+        "title": "AI Agents configuration - Help Center",
+        "url": "https://help.make.com/ai-agents-configuration",
+        "description": "Understand the configuration settings needed to set up and customize AI agents",
+        "markdown_path": "pages_markdown/ai-agents-configuration.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "step-1-set-up-the-ai-agent",
+        "title": "Step 1. Set up the AI agent - Help Center",
+        "url": "https://help.make.com/step-1-set-up-the-ai-agent",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-1-set-up-the-ai-agent.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "resources",
+        "title": "Resources - Help Center",
+        "url": "https://help.make.com/resources",
+        "description": "Build your knowledge with glossary terms and keyboard shortcuts ",
+        "markdown_path": "pages_markdown/resources.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "openai-model-deprecations-on-march-26-2026",
+        "title": "OpenAI model deprecations on March 26, 2026 - Help Center",
+        "url": "https://help.make.com/openai-model-deprecations-on-march-26-2026",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/openai-model-deprecations-on-march-26-2026.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "openai-gpt-54-nano-and-mini-now-available-in-make",
+        "title": "OpenAI GPT-5.4 nano and mini now available in Make - Help Center",
+        "url": "https://help.make.com/openai-gpt-54-nano-and-mini-now-available-in-make",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/openai-gpt-54-nano-and-mini-now-available-in-make.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "openai-gpt-54-and-gpt-53-models-now-available-in-make",
+        "title": "OpenAI GPT-5.4 and GPT-5.3 models now available in Make - Help Center",
+        "url": "https://help.make.com/openai-gpt-54-and-gpt-53-models-now-available-in-make",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/openai-gpt-54-and-gpt-53-models-now-available-in-make.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "model-context-protocol",
+        "title": "Model Context Protocol - Help Center",
+        "url": "https://help.make.com/model-context-protocol",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/model-context-protocol.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "gemini-31-pro-preview-model-now-available-in-make",
+        "title": "Gemini 3.1 Pro Preview model now available in Make - Help Center",
+        "url": "https://help.make.com/gemini-31-pro-preview-model-now-available-in-make",
+        "description": "1 Pro Preview from Google, featuring advanced reasoning capabilities, cost-effective processing, and flexible usage for optimized AI workflows.",
+        "markdown_path": "pages_markdown/gemini-31-pro-preview-model-now-available-in-make.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "deprecated-openai-model-automatically-replaced",
+        "title": "Deprecated OpenAI model automatically replaced - Help Center",
+        "url": "https://help.make.com/deprecated-openai-model-automatically-replaced",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/deprecated-openai-model-automatically-replaced.md"
+      },
+      {
+        "domain": "06-ai-agents-mcp",
+        "score": 1,
+        "slug": "ai-agent-use-case",
+        "title": "AI agent use case - Help Center",
+        "url": "https://help.make.com/ai-agent-use-case",
+        "description": "Build your first AI agent step by step with this simple inventory management example",
+        "markdown_path": "pages_markdown/ai-agent-use-case.md"
+      }
+    ],
+    "07-templates-reuse-distribution": [
+      {
+        "domain": "07-templates-reuse-distribution",
+        "score": 4,
+        "slug": "create-and-manage-scenario-templates",
+        "title": "Create and manage scenario templates - Help Center",
+        "url": "https://help.make.com/create-and-manage-scenario-templates",
+        "description": "Learn how to use, create, and share scenario templates to streamline automation creation",
+        "markdown_path": "pages_markdown/create-and-manage-scenario-templates.md"
+      },
+      {
+        "domain": "07-templates-reuse-distribution",
+        "score": 3,
+        "slug": "scenario-templates",
+        "title": "Scenario templates - Help Center",
+        "url": "https://help.make.com/scenario-templates",
+        "description": "Find out how to create scenarios from public or team templates",
+        "markdown_path": "pages_markdown/scenario-templates.md"
+      },
+      {
+        "domain": "07-templates-reuse-distribution",
+        "score": 2,
+        "slug": "module-setup-badges-community-apps",
+        "title": "Module setup badges, community apps - Help Center",
+        "url": "https://help.make.com/module-setup-badges-community-apps",
+        "description": "Discover module setup status badges for templates, community apps with usage metrics, and verification badges for Make verified apps",
+        "markdown_path": "pages_markdown/module-setup-badges-community-apps.md"
+      }
+    ],
+    "08-billing-usage-analytics": [
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 4,
+        "slug": "monthly-and-annual-subscriptions",
+        "title": "Monthly and annual subscriptions - Help Center",
+        "url": "https://help.make.com/monthly-and-annual-subscriptions",
+        "description": "Choose between a monthly or annual subscription to match your credit usage and payment preferences.",
+        "markdown_path": "pages_markdown/monthly-and-annual-subscriptions.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "subscription",
+        "title": "Subscription - Help Center",
+        "url": "https://help.make.com/subscription",
+        "description": "Find details to manage your subscription, payments, and credits.",
+        "markdown_path": "pages_markdown/subscription.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "make-programs",
+        "title": "Make programs - Help Center",
+        "url": "https://help.make.com/make-programs",
+        "description": "Learn more about our special initiatives, including the affiliate program and our NGO program.",
+        "markdown_path": "pages_markdown/make-programs.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "introducing-credits-new-billing-unit-live-in-make",
+        "title": "Introducing credits: new billing unit live in Make - Help Center",
+        "url": "https://help.make.com/introducing-credits-new-billing-unit-live-in-make",
+        "description": "Discover Make's transition from operations to credit-based billing, ensuring current prices stay unchanged while tracking usage is easy through our dashboard and resources.",
+        "markdown_path": "pages_markdown/introducing-credits-new-billing-unit-live-in-make.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "credits-per-team-management",
+        "title": "Credits per team management - Help Center",
+        "url": "https://help.make.com/credits-per-team-management",
+        "description": "Set credit limits for teams to control consumption and pause scenarios when limits are reached.",
+        "markdown_path": "pages_markdown/credits-per-team-management.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "coupons",
+        "title": "Coupons - Help Center",
+        "url": "https://help.make.com/coupons",
+        "description": "Redeem coupon codes for subscription discounts, free trials, and extra credits.",
+        "markdown_path": "pages_markdown/coupons.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "coming-soon-credits-as-new-billing-unit-in-make",
+        "title": "Coming soon: credits as new billing unit in Make - Help Center",
+        "url": "https://help.make.com/coming-soon-credits-as-new-billing-unit-in-make",
+        "description": "Starting August 27, 2025, billing shifts to credits, converting operations 1:1, while maintaining plans and enabling dynamic usage tracking for advanced features.",
+        "markdown_path": "pages_markdown/coming-soon-credits-as-new-billing-unit-in-make.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "change-payment-details",
+        "title": "Change payment details - Help Center",
+        "url": "https://help.make.com/change-payment-details",
+        "description": "Update your payment method, billing address, and invoicing email to manage your subscription.",
+        "markdown_path": "pages_markdown/change-payment-details.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 3,
+        "slug": "affiliate-program",
+        "title": "Affiliate program - Help Center",
+        "url": "https://help.make.com/affiliate-program",
+        "description": "Learn how to register for the Make affiliate program and start earning commission on referrals.",
+        "markdown_path": "pages_markdown/affiliate-program.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 2,
+        "slug": "view-and-download-invoices",
+        "title": "View and download invoices - Help Center",
+        "url": "https://help.make.com/view-and-download-invoices",
+        "description": "Download past invoices from the Payments section in your organization. ",
+        "markdown_path": "pages_markdown/view-and-download-invoices.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 2,
+        "slug": "ngo-program",
+        "title": "NGO program - Help Center",
+        "url": "https://help.make.com/ngo-program",
+        "description": "Apply for our NGO program for help with process automation so you can focus on driving positive impact.",
+        "markdown_path": "pages_markdown/ngo-program.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 2,
+        "slug": "credit-dashboard-display-fix",
+        "title": "Credit dashboard display fix - Help Center",
+        "url": "https://help.make.com/credit-dashboard-display-fix",
+        "description": "A recent fix resolved UI bugs affecting credit consumption and balances on dashboards, ensuring accurate display of credits across multiple sections for a seamless user experience.",
+        "markdown_path": "pages_markdown/credit-dashboard-display-fix.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 2,
+        "slug": "change-your-subscription",
+        "title": "Change your subscription - Help Center",
+        "url": "https://help.make.com/change-your-subscription",
+        "description": "Upgrade or downgrade your subscription plan and learn how credits transfer.",
+        "markdown_path": "pages_markdown/change-your-subscription.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 1,
+        "slug": "what-to-do-if-your-payment-fails",
+        "title": "What to do if your payment fails - Help Center",
+        "url": "https://help.make.com/what-to-do-if-your-payment-fails",
+        "description": "Check the status of your payment and update your payment method to avoid cancelation.",
+        "markdown_path": "pages_markdown/what-to-do-if-your-payment-fails.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 1,
+        "slug": "request-sales-tax-exemption",
+        "title": "Request sales tax exemption - Help Center",
+        "url": "https://help.make.com/request-sales-tax-exemption",
+        "description": "Apply for sales tax exemption by submitting verified tax documentation to Make support.",
+        "markdown_path": "pages_markdown/request-sales-tax-exemption.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 1,
+        "slug": "new-payment-methods-for-greater-flexibility",
+        "title": "New payment methods for greater flexibility - Help Center",
+        "url": "https://help.make.com/new-payment-methods-for-greater-flexibility",
+        "description": "Learn more about the new payment options available in Make.",
+        "markdown_path": "pages_markdown/new-payment-methods-for-greater-flexibility.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 1,
+        "slug": "extra-credits",
+        "title": "Extra credits - Help Center",
+        "url": "https://help.make.com/extra-credits",
+        "description": "Buy extra credits manually or through auto purchasing when you exceed credits included in your plan.",
+        "markdown_path": "pages_markdown/extra-credits.md"
+      },
+      {
+        "domain": "08-billing-usage-analytics",
+        "score": 1,
+        "slug": "cancel-your-subscription",
+        "title": "Cancel your subscription - Help Center",
+        "url": "https://help.make.com/cancel-your-subscription",
+        "description": "Cancel your paid subscription and learn how your account transitions to the Free plan.",
+        "markdown_path": "pages_markdown/cancel-your-subscription.md"
+      }
+    ],
+    "09-make-grid-and-alt-views": [
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 4,
+        "slug": "make-grid-workspace-navigation-and-interaction-updates",
+        "title": "Make Grid workspace navigation and interaction updates - Help Center",
+        "url": "https://help.make.com/make-grid-workspace-navigation-and-interaction-updates",
+        "description": "Discover the latest Make Grid update, featuring customizable layouts, real-time collaboration with active cursor visibility, and enhanced navigation controls for improved user experience.",
+        "markdown_path": "pages_markdown/make-grid-workspace-navigation-and-interaction-updates.md"
+      },
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 3,
+        "slug": "explore-make-grid-gui",
+        "title": "Explore Make Grid GUI - Help Center",
+        "url": "https://help.make.com/explore-make-grid-gui",
+        "description": "Explore Make Grid’s UI to navigate, search, filter, pan and zoom, view errors and dependencies, and see usage",
+        "markdown_path": "pages_markdown/explore-make-grid-gui.md"
+      },
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 2,
+        "slug": "tutorial-how-to-replace-a-dependency",
+        "title": "Tutorial: How to replace a dependency - Help Center",
+        "url": "https://help.make.com/tutorial-how-to-replace-a-dependency",
+        "description": "Use Make Grid to analyze dependencies, visualize workflows, and effectively plan and manage migrations of your data sources",
+        "markdown_path": "pages_markdown/tutorial-how-to-replace-a-dependency.md"
+      },
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 2,
+        "slug": "make-grid",
+        "title": "Make Grid - Help Center",
+        "url": "https://help.make.com/make-grid",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/make-grid.md"
+      },
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 2,
+        "slug": "introduction-to-make-grid",
+        "title": "Introduction to Make Grid - Help Center",
+        "url": "https://help.make.com/introduction-to-make-grid",
+        "description": "Learn about Make Grid and its features such as smarter scaling, collaboration, resource tracking, faster troubleshooting, and auto-generated mapping",
+        "markdown_path": "pages_markdown/introduction-to-make-grid.md"
+      },
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 2,
+        "slug": "best-practices-to-use-make-grid",
+        "title": "Best practices to use Make Grid - Help Center",
+        "url": "https://help.make.com/best-practices-to-use-make-grid",
+        "description": "Implement best practices in Make Grid to effectively organize, manage, and optimize your workflows for maximum efficiency",
+        "markdown_path": "pages_markdown/best-practices-to-use-make-grid.md"
+      },
+      {
+        "domain": "09-make-grid-and-alt-views",
+        "score": 2,
+        "slug": "access-make-grid",
+        "title": "Access Make Grid - Help Center",
+        "url": "https://help.make.com/access-make-grid",
+        "description": "Learn how to access Make Grid from the Make platform, scenario list, or scenario editor to visualize, explore, and optimize your workflows",
+        "markdown_path": "pages_markdown/access-make-grid.md"
+      }
+    ],
+    "10-release-notes-product-evolution": [
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 4,
+        "slug": "make-typescript-sdk-and-app-updates",
+        "title": "Make TypeScript SDK & App updates - Help Center",
+        "url": "https://help.make.com/make-typescript-sdk-and-app-updates",
+        "description": "Make TypeScript SDK launched with full API support and error handling and automatic collection conversion. New apps like SAP SuccessFactors, XLSX, Amazon Bedrock, Clay, and updates to OpenAI, xAI, Monday.com, Crowdin, and Facebook Pages.",
+        "markdown_path": "pages_markdown/make-typescript-sdk-and-app-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 4,
+        "slug": "make-ai-content-extractor-new-shopify-version-app-updates",
+        "title": "Make AI Content Extractor, new Shopify version, app updates - Help Center",
+        "url": "https://help.make.com/make-ai-content-extractor-new-shopify-version-app-updates",
+        "description": "Introducing new apps - Make AI Content Extractor, Pictory, and Postiz. Find updates to OpenAI, Shopify, Webhooks, Make, Salesforce Pardot, Calendly, LiveChat, and Printful enhance automation, security, and workflows.",
+        "markdown_path": "pages_markdown/make-ai-content-extractor-new-shopify-version-app-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "user-management-improvements-new-google-app",
+        "title": "User management improvements, new Google app - Help Center",
+        "url": "https://help.make.com/user-management-improvements-new-google-app",
+        "description": "Check out user role filtering improvements, Google Search Console for SEO support, and the new Flodesk email marketing app",
+        "markdown_path": "pages_markdown/user-management-improvements-new-google-app.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "table-view-improvements",
+        "title": "Table view improvements - Help Center",
+        "url": "https://help.make.com/table-view-improvements",
+        "description": "Check out Table view search functionality for scenarios and updates to Salesforce Pardot and HighLevel LeadConnector",
+        "markdown_path": "pages_markdown/table-view-improvements.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "scenario-inputs-scheduling-openai-modules-support-gpt-5",
+        "title": "Scenario inputs scheduling, OpenAI modules support GPT-5 - Help Center",
+        "url": "https://help.make.com/scenario-inputs-scheduling-openai-modules-support-gpt-5",
+        "description": "Learn about key updates on scenario inputs, on-demand scheduling, and exciting new features in apps like Zoho WorkDrive, Zoho CRM, Zoho , OpenAI's GPT-5, and Runway's image generation.",
+        "markdown_path": "pages_markdown/scenario-inputs-scheduling-openai-modules-support-gpt-5.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "sso-settings-update-and-new-apps",
+        "title": "SSO settings update and new apps - Help Center",
+        "url": "https://help.make.com/sso-settings-update-and-new-apps",
+        "description": "Explore SSO improvements, new Crossbeam and watsonx.ai apps, Stripe's new connection type, and updates to Firebase Cloud Messaging and Google Chrome v2",
+        "markdown_path": "pages_markdown/sso-settings-update-and-new-apps.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "sso-improvements-and-scenario-execution-fixes",
+        "title": "SSO improvements and scenario execution fixes - Help Center",
+        "url": "https://help.make.com/sso-improvements-and-scenario-execution-fixes",
+        "description": "Learn about SSO domain verification and enforcement, coupon subscription updates, webhook queue improvements, and multiple scenario execution fixes",
+        "markdown_path": "pages_markdown/sso-improvements-and-scenario-execution-fixes.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "sso-certificate-updates-and-app-changes",
+        "title": "SSO certificate updates and app changes - Help Center",
+        "url": "https://help.make.com/sso-certificate-updates-and-app-changes",
+        "description": "Find out about SSO certificate management, OpenAI image editing, Anthropic Claude updates, and new ZoomInfo, Confluence, TikTok Lead Forms, and Cohere apps",
+        "markdown_path": "pages_markdown/sso-certificate-updates-and-app-changes.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "organization-management-updates-and-app-changes",
+        "title": "Organization management updates and app changes - Help Center",
+        "url": "https://help.make.com/organization-management-updates-and-app-changes",
+        "description": "See what's new with organization management, app search improvements, and updates to Bird, TikTok Campaign Management, BambooHR, OpenAI, Shortcut, and Ortto",
+        "markdown_path": "pages_markdown/organization-management-updates-and-app-changes.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "operation-tracking-fix-new-and-updated-apps",
+        "title": "Operation tracking fix, new and updated apps - Help Center",
+        "url": "https://help.make.com/operation-tracking-fix-new-and-updated-apps",
+        "description": "See what's new with operation tracking improvements, the new SuiteDash CRM app, and updates to YouTube, SugarCRM, OpenAI Batch Modules, Smartsheet, and BigQuery",
+        "markdown_path": "pages_markdown/operation-tracking-fix-new-and-updated-apps.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "oauth-20-integration-enhanced-analytics-new-apps",
+        "title": "OAuth 2.0 integration, enhanced analytics, new apps - Help Center",
+        "url": "https://help.make.com/oauth-20-integration-enhanced-analytics-new-apps",
+        "description": "Connect third-party apps via OAuth 2.0, export scenario history to CSV, use enhanced Analytics filters, rename keys easily, and access new apps like Bluesky and ClickFunnels 2.0.",
+        "markdown_path": "pages_markdown/oauth-20-integration-enhanced-analytics-new-apps.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "make-grid-public-beta-is-now-live",
+        "title": "Make Grid public beta is now live! - Help Center",
+        "url": "https://help.make.com/make-grid-public-beta-is-now-live",
+        "description": "Explore Make Grid's public beta for paid plans, featuring a unique auto-generated visual map for real-time management of your automation and AI environments.",
+        "markdown_path": "pages_markdown/make-grid-public-beta-is-now-live.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "make-api-and-dashboard-improvements-app-updates",
+        "title": "Make API and dashboard improvements, app updates - Help Center",
+        "url": "https://help.make.com/make-api-and-dashboard-improvements-app-updates",
+        "description": "Learn about new Make API endpoints, dashboard timezone updates, the Sage Intacct and Google Ads Reports apps, plus improvements to Celoxis and Custify",
+        "markdown_path": "pages_markdown/make-api-and-dashboard-improvements-app-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "filter-setup-status-badges-fixed-issues",
+        "title": "Filter setup status badges, fixed issues - Help Center",
+        "url": "https://help.make.com/filter-setup-status-badges-fixed-issues",
+        "description": "Explore filter setup improvements, Leonardo.AI image generation, Google Vertex AI Gemini, TickTick productivity app, and NetSuite and Workday updates",
+        "markdown_path": "pages_markdown/filter-setup-status-badges-fixed-issues.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "devtool-update-scenario-sorting-fixed-issues",
+        "title": "DevTool update, scenario sorting, fixed issues - Help Center",
+        "url": "https://help.make.com/devtool-update-scenario-sorting-fixed-issues",
+        "description": "Check out Make DevTool rebranding, new scenario sorting, higher API token limits, Microsoft Advertising Conversions app, and updates to LinkedIn and Pipedrive",
+        "markdown_path": "pages_markdown/devtool-update-scenario-sorting-fixed-issues.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "account-security-updates-billing-changes-app-updates",
+        "title": "Account security updates, billing changes, app updates - Help Center",
+        "url": "https://help.make.com/account-security-updates-billing-changes-app-updates",
+        "description": "Learn about enhanced account security, payment method improvements, and new Skai app",
+        "markdown_path": "pages_markdown/account-security-updates-billing-changes-app-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "2026",
+        "title": "2026 - Help Center",
+        "url": "https://help.make.com/2026",
+        "description": "Stay updated with new features, apps, modules, improvements, and bug fixes in Make",
+        "markdown_path": "pages_markdown/2026.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "2025",
+        "title": "2025 - Help Center",
+        "url": "https://help.make.com/2025",
+        "description": "Stay updated with new features, apps, modules, improvements, and bug fixes in Make",
+        "markdown_path": "pages_markdown/2025.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 3,
+        "slug": "2024",
+        "title": "2024 - Help Center",
+        "url": "https://help.make.com/2024",
+        "description": "Stay updated with new features, apps, modules, improvements, and bug fixes in Make",
+        "markdown_path": "pages_markdown/2024.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 2,
+        "slug": "scenario-history-fixes-new-microsoft-app",
+        "title": "Scenario history fixes, new Microsoft app - Help Center",
+        "url": "https://help.make.com/scenario-history-fixes-new-microsoft-app",
+        "description": "Explore multiple scenario history fixes, the new Microsoft Advertising Reports app, and updates to LinkedIn, Cflow, SectorFlow.AI, and DataForSEO",
+        "markdown_path": "pages_markdown/scenario-history-fixes-new-microsoft-app.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 2,
+        "slug": "scenario-id-fix-and-apps-updates",
+        "title": "Scenario ID fix and apps updates - Help Center",
+        "url": "https://help.make.com/scenario-id-fix-and-apps-updates",
+        "description": "Discover new image editing and lead tracking apps and updates to SAP ECC Agent and Anthropic Claude",
+        "markdown_path": "pages_markdown/scenario-id-fix-and-apps-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 2,
+        "slug": "make-ai-toolkit-simplified-mcp-token-creation-apps-updates",
+        "title": "Make AI Toolkit, simplified MCP token creation, apps updates - Help Center",
+        "url": "https://help.make.com/make-ai-toolkit-simplified-mcp-token-creation-apps-updates",
+        "description": "Find the latest updates to the Make platform, featuring streamlined token creation, the new Make AI Toolkit for various AI tasks, and enhanced integrations for Slack and WhatsApp.",
+        "markdown_path": "pages_markdown/make-ai-toolkit-simplified-mcp-token-creation-apps-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 2,
+        "slug": "latest-ai-models-for-openai-and-gemini-ui-updates-to-module-rename-panel",
+        "title": "Latest AI models for OpenAI and Gemini, UI updates to module rename panel - Help Center",
+        "url": "https://help.make.com/latest-ai-models-for-openai-and-gemini-ui-updates-to-module-rename-panel",
+        "description": "Discover the latest updates in the module renaming panel, featuring enhanced user interface options and updates to OpenAI, Google Vertex AI, and YouTube apps.",
+        "markdown_path": "pages_markdown/latest-ai-models-for-openai-and-gemini-ui-updates-to-module-rename-panel.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 2,
+        "slug": "apps-updates",
+        "title": "Apps updates - Help Center",
+        "url": "https://help.make.com/apps-updates",
+        "description": "Explore new apps like Braze and Snapchat Campaign Management, along with key updates to OpenAI and Instagram for Business features.",
+        "markdown_path": "pages_markdown/apps-updates.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 2,
+        "slug": "ai-assistant-beta-retirement-october-14-2025",
+        "title": "AI Assistant Beta retirement – October 14, 2025 - Help Center",
+        "url": "https://help.make.com/ai-assistant-beta-retirement-october-14-2025",
+        "description": "The current Make AI Assistant will be retired on October 14, 2025, paving the way for an upgraded experience.",
+        "markdown_path": "pages_markdown/ai-assistant-beta-retirement-october-14-2025.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 1,
+        "slug": "release-notes",
+        "title": "Release notes - Help Center",
+        "url": "https://help.make.com/release-notes",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/release-notes.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 1,
+        "slug": "introducing-credential-requests",
+        "title": "Introducing Credential requests - Help Center",
+        "url": "https://help.make.com/introducing-credential-requests",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/introducing-credential-requests.md"
+      },
+      {
+        "domain": "10-release-notes-product-evolution",
+        "score": 1,
+        "slug": "change-your-email-address",
+        "title": "Change your email address - Help Center",
+        "url": "https://help.make.com/change-your-email-address",
+        "description": "Update your account email address, verify the change through security links, and contact support if you lose account access.",
+        "markdown_path": "pages_markdown/change-your-email-address.md"
+      }
+    ],
+    "99-unclassified-reference-pages": [
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "whats-an-api",
+        "title": "What's an API? - Help Center",
+        "url": "https://help.make.com/whats-an-api",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/whats-an-api.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "what-is-make",
+        "title": "What is Make? - Help Center",
+        "url": "https://help.make.com/what-is-make",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/what-is-make.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "tools",
+        "title": "Tools - Help Center",
+        "url": "https://help.make.com/tools",
+        "description": "Get familiar with the essential tools for transforming data",
+        "markdown_path": "pages_markdown/tools.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "tokens-for-datetime-parsing",
+        "title": "Tokens for date/time parsing - Help Center",
+        "url": "https://help.make.com/tokens-for-datetime-parsing",
+        "description": "Use special parsing tokens to read and extract dates and times",
+        "markdown_path": "pages_markdown/tokens-for-datetime-parsing.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-8-map-data",
+        "title": "Step 8. Map data - Help Center",
+        "url": "https://help.make.com/step-8-map-data",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-8-map-data.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "P7l2-step-7-add-another-app",
+        "title": "Step 7. Add another module - Help Center",
+        "url": "https://help.make.com/P7l2-step-7-add-another-app",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/P7l2-step-7-add-another-app.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-6-test-the-module",
+        "title": "Step 6. Test the module - Help Center",
+        "url": "https://help.make.com/step-6-test-the-module",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-6-test-the-module.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-5-set-up-the-trigger",
+        "title": "Step 5. Set up the trigger - Help Center",
+        "url": "https://help.make.com/step-5-set-up-the-trigger",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-5-set-up-the-trigger.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-3-set-up-another-module",
+        "title": "Step 3. Set up another module - Help Center",
+        "url": "https://help.make.com/step-3-set-up-another-module",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-3-set-up-another-module.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-3-add-your-first-app",
+        "title": "Step 3. Add your first app - Help Center",
+        "url": "https://help.make.com/step-3-add-your-first-app",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-3-add-your-first-app.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-2-get-your-apps-ready",
+        "title": "Step 2. Get your apps ready - Help Center",
+        "url": "https://help.make.com/step-2-get-your-apps-ready",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-2-get-your-apps-ready.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "step-1-get-your-app-ready",
+        "title": "Step 1. Get your app ready - Help Center",
+        "url": "https://help.make.com/step-1-get-your-app-ready",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/step-1-get-your-app-ready.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "securing-data-with-make",
+        "title": "Securing data with Make - Help Center",
+        "url": "https://help.make.com/securing-data-with-make",
+        "description": "Discover a variety of methods to secure your data in Make.",
+        "markdown_path": "pages_markdown/securing-data-with-make.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "related-apis",
+        "title": "Related APIs - Help Center",
+        "url": "https://help.make.com/related-apis",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/related-apis.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "pgp-pretty-good-privacy",
+        "title": "PGP (Pretty Good Privacy) - Help Center",
+        "url": "https://help.make.com/pgp-pretty-good-privacy",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/pgp-pretty-good-privacy.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "new-http-app-is-now-available",
+        "title": "New HTTP app is now available - Help Center",
+        "url": "https://help.make.com/new-http-app-is-now-available",
+        "description": "Discover the new HTTP app that enables secure, scalable API integrations with easy setup, reusable data, and built-in pagination.",
+        "markdown_path": "pages_markdown/new-http-app-is-now-available.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "methods-of-securing-data",
+        "title": "Methods of securing data - Help Center",
+        "url": "https://help.make.com/methods-of-securing-data",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/methods-of-securing-data.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "learn-the-basics",
+        "title": "Learn the basics - Help Center",
+        "url": "https://help.make.com/learn-the-basics",
+        "description": "Get to know Make, how automation works, and the meaning of APIs",
+        "markdown_path": "pages_markdown/learn-the-basics.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "keys-and-certificates",
+        "title": "Keys and certificates - Help Center",
+        "url": "https://help.make.com/keys-and-certificates",
+        "description": "Add and manage keys and certificates for secure authentication and data protection",
+        "markdown_path": "pages_markdown/keys-and-certificates.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "key-concepts",
+        "title": "Key concepts - Help Center",
+        "url": "https://help.make.com/key-concepts",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/key-concepts.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "explore-more",
+        "title": "Explore more - Help Center",
+        "url": "https://help.make.com/explore-more",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/explore-more.md"
+      },
+      {
+        "domain": "99-unclassified-reference-pages",
+        "score": 0,
+        "slug": "digital-signature",
+        "title": "Digital signature - Help Center",
+        "url": "https://help.make.com/digital-signature",
+        "description": "Help Center",
+        "markdown_path": "pages_markdown/digital-signature.md"
+      }
+    ]
+  }
+}

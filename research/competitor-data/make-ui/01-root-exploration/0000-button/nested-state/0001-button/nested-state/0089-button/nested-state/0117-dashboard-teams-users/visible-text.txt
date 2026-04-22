@@ -1,0 +1,39 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+M
+My Organization
+My Team
+Organization settings
+Create scenario
+Help
+TJ
+Organization
+Dashboard
+Teams
+Users
+My Plan
+Subscription
+Free
+Credit usage
+Payments
+Utilities
+Installed apps
+Variables
+Scenario properties
+Notification options
+Teams
+Add team
+My Team
+ 0 credits used

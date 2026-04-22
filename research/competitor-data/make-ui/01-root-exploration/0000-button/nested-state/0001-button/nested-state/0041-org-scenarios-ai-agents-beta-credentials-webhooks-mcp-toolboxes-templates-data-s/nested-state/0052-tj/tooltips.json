@@ -1,0 +1,14 @@
+[
+  {
+    "text": "Profile",
+    "className": "dmo-flex tooltip-bottom dmo-flex-col-reverse dmo-items-center"
+  },
+  {
+    "text": "Profile",
+    "className": "dmo-max-w-320 dmo-break-words dmo-tooltip-shadow dmo-bg-sustfibl-secondary dmo-rounded-md dmo-px-10 dmo-py-8 dmo-text-sm dmo-text-testfiwh-primary"
+  },
+  {
+    "text": "",
+    "className": "tooltip-arrow tooltip-arrow-top dmo-relative dmo-w-0 dmo-h-0 dmo-border-transparent dmo-border-b-sustfibl-secondary dmo-border-x-[6px] dmo-border-b-[6px] ng-star-inserted"
+  }
+]

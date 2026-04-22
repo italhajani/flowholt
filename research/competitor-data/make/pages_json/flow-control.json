@@ -1,0 +1,363 @@
+{
+  "url": "https://help.make.com/flow-control",
+  "slug": "flow-control",
+  "title": "Flow control - Help Center",
+  "description": "Use repeaters, iterators, and array aggregators to control how your scenario processes multiple items and bundles",
+  "lastmod": "2026-01-15T17:57:09.514Z",
+  "markdown_path": "pages_markdown/flow-control.md",
+  "raw_html_path": "raw_html/flow-control.html",
+  "heading_count": 17,
+  "image_count": 25,
+  "iframe_count": 2,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 8662,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Flow control"
+    },
+    {
+      "level": "h2",
+      "text": "Repeater"
+    },
+    {
+      "level": "h2",
+      "text": "Iterator"
+    },
+    {
+      "level": "h3",
+      "text": "Setting up an iterator"
+    },
+    {
+      "level": "h3",
+      "text": "Specialized iterators"
+    },
+    {
+      "level": "h3",
+      "text": "When to use an iterator in your scenario"
+    },
+    {
+      "level": "h3",
+      "text": "Mappable items under the Iterator module"
+    },
+    {
+      "level": "h2",
+      "text": "Array aggregator"
+    },
+    {
+      "level": "h3",
+      "text": "Customize the output"
+    },
+    {
+      "level": "h3",
+      "text": "When to use an array aggregator in your scenarios"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/_hVv1pal-IC_fUjTNFEyR_uuid-a5521f9f-9bf9-bd43-1077-4456fa80dc47.png?format=webp&width=800",
+      "alt": "Repeater",
+      "width": 800,
+      "height": 422,
+      "local_path": "assets/images/_hVv1pal-IC_fUjTNFEyR_uuid-a5521f9f-9bf9-bd43-1077-4456fa80dc47__ccdd81cd40cd.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/PE7UYT9IWdwh1HTRGEw5S_uuid-8d9486a1-434b-9f5e-0fcd-8ff3954322fe.png?format=webp&width=800",
+      "alt": "Repeater configuration",
+      "width": 800,
+      "height": 441,
+      "local_path": "assets/images/PE7UYT9IWdwh1HTRGEw5S_uuid-8d9486a1-434b-9f5e-0fcd-8ff3954322fe__f03c0fe3788c.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/-xR0qbI0kyX0ZgTve7ZE5_uuid-8421211e-939e-9f84-ea39-427733f2ce16.png?format=webp&width=800",
+      "alt": "Email module con",
+      "width": 800,
+      "height": 1157,
+      "local_path": "assets/images/-xR0qbI0kyX0ZgTve7ZE5_uuid-8421211e-939e-9f84-ea39-427733f2ce16__40722563da90.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/6me7VXLBgnu4YVJzrjewX_uuid-afd56dcf-8ee1-119f-c8cf-9d1b8b93778a.png?format=webp&width=800",
+      "alt": "Save email attachments to Google Drive",
+      "width": 800,
+      "height": 300,
+      "local_path": "assets/images/6me7VXLBgnu4YVJzrjewX_uuid-afd56dcf-8ee1-119f-c8cf-9d1b8b93778a__428b1f6b1321.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/Z5TzLrnePyBiz8uz4CGc8_uuid-76ebf1a2-e19f-d998-5faa-366411cbe503.png?format=webp&width=800",
+      "alt": "Setting up an iterator",
+      "width": 800,
+      "height": 466,
+      "local_path": "assets/images/Z5TzLrnePyBiz8uz4CGc8_uuid-76ebf1a2-e19f-d998-5faa-366411cbe503__5436b70f7167.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/QhBwYdJiHid8iJz0thwvN_uuid-bd6d2f54-cd86-0526-3eaf-a1ff554dba42.png?format=webp&width=800",
+      "alt": "Specialized iterators",
+      "width": 800,
+      "height": 272,
+      "local_path": "assets/images/QhBwYdJiHid8iJz0thwvN_uuid-bd6d2f54-cd86-0526-3eaf-a1ff554dba42__5e856854d161.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-fpqfCEuH5JFCsmle51Cmg-20250227-143211.png?format=webp&width=800",
+      "alt": "Mappable items",
+      "width": 800,
+      "height": 296,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-fpqfCEuH5JFCsmle51Cmg-20250227-143211__cea3838cd9c6.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-U_3drUmjM4b52-7VDe82U-20250227-143733.png?format=webp",
+      "alt": "JSON without a data structure",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-U_3drUmjM4b52-7VDe82U-20250227-143733__014ecba3631c.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/lDcwWarEB3Bv0vz0TByn2_uuid-cdb106ba-05ba-4b5a-e0a2-b4999f852db6.png?format=webp",
+      "alt": "Iterator module",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/lDcwWarEB3Bv0vz0TByn2_uuid-cdb106ba-05ba-4b5a-e0a2-b4999f852db6__b5835752a9c5.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-I-Z-tLSekL4bnFkQ9gd9--20250227-144242.png?format=webp",
+      "alt": "Json module with mappable items",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-I-Z-tLSekL4bnFkQ9gd9--20250227-144242__1c5eadeb9768.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-OnOzCQPzw4sz8MytGLvgY-20250227-144601.png?format=webp",
+      "alt": "Mapping module in the iterator",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-OnOzCQPzw4sz8MytGLvgY-20250227-144601__0e7b4a533e49.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/MMf0_51nYh0Hzef7F0Mz9_uuid-d192c60c-6758-6c44-26f1-e43ddc0e6de1.png?format=webp",
+      "alt": "Array aggregator module",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/MMf0_51nYh0Hzef7F0Mz9_uuid-d192c60c-6758-6c44-26f1-e43ddc0e6de1__ef6c1c1a21f3.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/o1w18JfT3vjp-pcsDQSZn_uuid-655ca956-bc79-a68b-c635-b2032106da95.png?format=webp",
+      "alt": "Target structure type",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/o1w18JfT3vjp-pcsDQSZn_uuid-655ca956-bc79-a68b-c635-b2032106da95__ef9a4b862e16.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/mncTDDE1Qo65ffbju92HT_uuid-5db50e2b-f3de-8075-14f1-9f450e9f0556.png?format=webp",
+      "alt": "Target structure type",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/mncTDDE1Qo65ffbju92HT_uuid-5db50e2b-f3de-8075-14f1-9f450e9f0556__8aa4debd74e4.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-6s6dJ2HFcFHIYfgZ3X2D_-20250228-085421.png?format=webp",
+      "alt": "Bundle outputs",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-6s6dJ2HFcFHIYfgZ3X2D_-20250228-085421__11aed69458ca.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-uhDY_TJyJKghm2sQCqNkm-20250227-152522.png?format=webp",
+      "alt": "Array aggregator field",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-uhDY_TJyJKghm2sQCqNkm-20250227-152522__c530aebb9927.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/EqFvxDz8xf4612Oo61fYD_uuid-0c7130f4-4f7e-df55-f3f7-13a962be5437.png?format=webp",
+      "alt": "Bundle 1 output",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/EqFvxDz8xf4612Oo61fYD_uuid-0c7130f4-4f7e-df55-f3f7-13a962be5437__a8f63a566261.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-n93_P8U0JpDgFINB94lhX-20250227-153525.png?format=webp",
+      "alt": "JSON module after Array aggregator",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-n93_P8U0JpDgFINB94lhX-20250227-153525__676602f70485.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-goXGiys4ARVrA1Kyj6XCO-20250227-154714.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-goXGiys4ARVrA1Kyj6XCO-20250227-154714__1164ce76e66c.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-40sqocnYuKfC547Xav2tq-20250228-085823.png?format=webp",
+      "alt": "Target structure type",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-40sqocnYuKfC547Xav2tq-20250228-085823__ce6369d075b7.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-9iMIGpbwFR0w4YYfpAQXx-20250228-090138.png?format=webp",
+      "alt": "Map items into the fields",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-9iMIGpbwFR0w4YYfpAQXx-20250228-090138__662e6142a2d8.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-laTS0oPZmY9Wyuca-LEmb-20250228-090327.png?format=webp",
+      "alt": "Array aggregator output",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-laTS0oPZmY9Wyuca-LEmb-20250228-090327__d1719db3271d.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/EG0ryD7UiTE0PDn7AuK9h_uuid-cd379018-b353-81ea-ade9-c24e70ac4034.png?format=webp",
+      "alt": "Save JSON module on a disabled router",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/EG0ryD7UiTE0PDn7AuK9h_uuid-cd379018-b353-81ea-ade9-c24e70ac4034__0bacf35504f8.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/jcyA4VGX3U0ukw90OOHku_uuid-f81f07bb-6945-00c0-c0e0-b1a5e2bd5fe1.png?format=webp",
+      "alt": "Ignore keywords",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/jcyA4VGX3U0ukw90OOHku_uuid-f81f07bb-6945-00c0-c0e0-b1a5e2bd5fe1__ac3aa9ec2232.png"
+    }
+  ],
+  "iframes": [
+    {
+      "src": "https://www.youtube.com/embed/mWZBA2xSvB4",
+      "title": "Iterator & Array Aggregator | Part 1: Introduction and Iterator Demo",
+      "width": "100%",
+      "height": "100%",
+      "local_path": null
+    },
+    {
+      "src": "https://www.youtube.com/embed/u6pS7QDgKA8",
+      "title": "Iterator & Array Aggregator | Part 2: Array Aggregator Demo",
+      "width": "100%",
+      "height": "100%",
+      "local_path": null
+    }
+  ],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/converger",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/data-structures",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/flow-control",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/if-else-and-merge",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/module-settings",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/regexp",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/util",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:13:22.940Z",
+  "label": "Run once Every 15 minutes AI",
+  "depth": 3,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "de9cf7a6002b1cf0",
+  "fingerprint": "ef281100b2515c34",
+  "url": "https://eu1.make.com/1467385/vhosts",
+  "title": "Make",
+  "overlayCount": 0,
+  "elementCount": 41
+}

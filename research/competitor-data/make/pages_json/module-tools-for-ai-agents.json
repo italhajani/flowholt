@@ -1,0 +1,257 @@
+{
+  "url": "https://help.make.com/module-tools-for-ai-agents",
+  "slug": "module-tools-for-ai-agents",
+  "title": "Module tools for AI agents - Help Center",
+  "description": "Help Center",
+  "lastmod": "2026-03-06T10:15:21.978Z",
+  "markdown_path": "pages_markdown/module-tools-for-ai-agents.md",
+  "raw_html_path": "raw_html/module-tools-for-ai-agents.html",
+  "heading_count": 11,
+  "image_count": 16,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 5980,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Module tools for AI agents"
+    },
+    {
+      "level": "h3",
+      "text": "Scenarios for module tools"
+    },
+    {
+      "level": "h3",
+      "text": "Edit a module tool"
+    },
+    {
+      "level": "h3",
+      "text": "Delete a module tool"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/QEeUh8kbyW-QNJXElGCQh-20250923-074317.png",
+      "alt": "Document image",
+      "width": 1290,
+      "height": 1248,
+      "local_path": "assets/images/QEeUh8kbyW-QNJXElGCQh-20250923-074317__0efa7c5e52ed.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/PL8X94efBsjvhfQV3wyyj-iXE3hukRRKLEF4JNr23vQ-20250822-105319.png",
+      "alt": "Document image",
+      "width": 1082,
+      "height": 878,
+      "local_path": "assets/images/PL8X94efBsjvhfQV3wyyj-iXE3hukRRKLEF4JNr23vQ-20250822-105319__076493587360.png"
+    },
+    {
+      "src": "https://images.archbee.com/PL8X94efBsjvhfQV3wyyj-DhtD3sk4_bYRmZa7SF3EQ-20250822-105909.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 596,
+      "local_path": "assets/images/PL8X94efBsjvhfQV3wyyj-DhtD3sk4_bYRmZa7SF3EQ-20250822-105909__e4e76c3155dd.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/1NcKlrBy2Wf_OXam1jJ1K-20250926-161854.png",
+      "alt": "Document image",
+      "width": 798,
+      "height": 1050,
+      "local_path": "assets/images/1NcKlrBy2Wf_OXam1jJ1K-20250926-161854__0c638a04bc61.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/q4rs-GqdN2Fe4ygiEYz-Y-20250929-074804.png",
+      "alt": "Document image",
+      "width": 2610,
+      "height": 1298,
+      "local_path": "assets/images/q4rs-GqdN2Fe4ygiEYz-Y-20250929-074804__99f0f9e62718.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/j7oQpFXtLF0wrjdn1suO8-20250924-080442.png",
+      "alt": "Document image",
+      "width": 1224,
+      "height": 1332,
+      "local_path": "assets/images/j7oQpFXtLF0wrjdn1suO8-20250924-080442__564516ebe3e0.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/JPyNtvhhZDgVyXY6hhwbH-20250924-080741.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/JPyNtvhhZDgVyXY6hhwbH-20250924-080741__3b0288bdb559.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/jl4t8WVJ1-GAUdpkvWCm9-20250926-164755.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/jl4t8WVJ1-GAUdpkvWCm9-20250926-164755__57a760c2536f.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/PL8X94efBsjvhfQV3wyyj-UO6_svAryRxIoqls4mqPq-20250822-112452.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/PL8X94efBsjvhfQV3wyyj-UO6_svAryRxIoqls4mqPq-20250822-112452__ff2a509c0c6c.png"
+    },
+    {
+      "src": "https://images.archbee.com/PL8X94efBsjvhfQV3wyyj-6ZVM7qcath-jJ_XS-rG9T-20250822-113048.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/PL8X94efBsjvhfQV3wyyj-6ZVM7qcath-jJ_XS-rG9T-20250822-113048__b56196d9f39b.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/dY4glJFk4QoGw2AIJI63p-20250926-162642.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/dY4glJFk4QoGw2AIJI63p-20250926-162642__8a78c4b30ac3.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/_97HZnXm2-DpOM_zbqSjn-20250924-075931.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/_97HZnXm2-DpOM_zbqSjn-20250924-075931__2e31cee910cd.png"
+    },
+    {
+      "src": "https://images.archbee.com/PL8X94efBsjvhfQV3wyyj-GN8lCqaAT9RAAMkuvcDdN-20250822-113954.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/PL8X94efBsjvhfQV3wyyj-GN8lCqaAT9RAAMkuvcDdN-20250822-113954__58d973b3aa1e.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/a0CChd4iK_XJEPGQRa5Be-20250924-081021.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/a0CChd4iK_XJEPGQRa5Be-20250924-081021__df3fe7689426.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/PL8X94efBsjvhfQV3wyyj-bQrRXgiFjLZtRXkZbpRBW-20250822-114518.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/PL8X94efBsjvhfQV3wyyj-bQrRXgiFjLZtRXkZbpRBW-20250822-114518__20f489949775.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/mcp-tools-for-ai-agents",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/module-tools-for-ai-agents",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/scenarios-for-ai-agents",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

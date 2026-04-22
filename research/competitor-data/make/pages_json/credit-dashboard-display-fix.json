@@ -1,0 +1,211 @@
+{
+  "url": "https://help.make.com/credit-dashboard-display-fix",
+  "slug": "credit-dashboard-display-fix",
+  "title": "Credit dashboard display fix - Help Center",
+  "description": "A recent fix resolved UI bugs affecting credit consumption and balances on dashboards, ensuring accurate display of credits across multiple sections for a seamless user experience.",
+  "lastmod": "2026-01-19T13:50:26.184Z",
+  "markdown_path": "pages_markdown/credit-dashboard-display-fix.md",
+  "raw_html_path": "raw_html/credit-dashboard-display-fix.html",
+  "heading_count": 10,
+  "image_count": 5,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 1105,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Credit dashboard display fix"
+    },
+    {
+      "level": "h3",
+      "text": "Issues resolved"
+    },
+    {
+      "level": "h3",
+      "text": "Important notes"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/yjwhINLS3fc-NXg38fV_d-TBcTy3oi7I2DJQOdWO144-20250901-101940.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 100,
+      "local_path": "assets/images/yjwhINLS3fc-NXg38fV_d-TBcTy3oi7I2DJQOdWO144-20250901-101940__9408a9b214da.png"
+    },
+    {
+      "src": "https://images.archbee.com/yjwhINLS3fc-NXg38fV_d-o0oD4N1lce9j8Z5s5nIxj-20250901-103711.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 110,
+      "local_path": "assets/images/yjwhINLS3fc-NXg38fV_d-o0oD4N1lce9j8Z5s5nIxj-20250901-103711__084c2041f678.png"
+    },
+    {
+      "src": "https://images.archbee.com/yjwhINLS3fc-NXg38fV_d-pJhJa9OnvTjU6QfeRpuu_-20250901-103731.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 149,
+      "local_path": "assets/images/yjwhINLS3fc-NXg38fV_d-pJhJa9OnvTjU6QfeRpuu_-20250901-103731__4d65a516a7e9.png"
+    },
+    {
+      "src": "https://images.archbee.com/yjwhINLS3fc-NXg38fV_d-lhoxX7rsnFQr61N9ptsOR-20250901-104011.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 123,
+      "local_path": "assets/images/yjwhINLS3fc-NXg38fV_d-lhoxX7rsnFQr61N9ptsOR-20250901-104011__ed26932d5bea.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/adjustments-to-plans-and-pricing",
+    "https://help.make.com/administration",
+    "https://help.make.com/affiliate-payouts-incomplete-execution-retries-new-apps",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/ai-assistant-beta-retirement-october-14-2025",
+    "https://help.make.com/alert-an-outage-may-have-impacted-your-scenario-execution-on-4-september-2025",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/apps-updates",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/coming-soon-credits-as-new-billing-unit-in-make",
+    "https://help.make.com/connections",
+    "https://help.make.com/context-modules-added-to-make-ai-agents-app",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credit-dashboard-display-fix",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/enhanced-navigation-in-make",
+    "https://help.make.com/enhanced-notes-and-team-level-operations-management",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/google-sheets-add-on-new-openai-module",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/incomplete-executions-retry",
+    "https://help.make.com/introducing-credit-usage-history",
+    "https://help.make.com/introducing-credits-new-billing-unit-live-in-make",
+    "https://help.make.com/introducing-feature-controls",
+    "https://help.make.com/introducing-module-tools-for-ai-agents",
+    "https://help.make.com/introducing-scenario-sharing",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/latest-ai-models-for-openai-and-gemini-ui-updates-to-module-rename-panel",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-ai-agents-the-next-step-in-automation",
+    "https://help.make.com/make-ai-content-extractor-new-shopify-version-app-updates",
+    "https://help.make.com/make-ai-toolkit-simplified-mcp-token-creation-apps-updates",
+    "https://help.make.com/make-ai-tools-now-available-in-open-beta",
+    "https://help.make.com/make-ai-web-search-mcp-client-and-mcp-server-improvements",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-grid-public-beta-is-now-live",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/make-typescript-sdk-and-app-updates",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/new-gmail-app-is-now-available",
+    "https://help.make.com/new-http-app-is-now-available",
+    "https://help.make.com/new-make-ai-agents-reasoning-feature-openai-reasoning-model-users-must-verify-organization",
+    "https://help.make.com/new-mcp-server-connection-options-role-permission-fix-apps-updates",
+    "https://help.make.com/new-navigation-now-live-for-all-users",
+    "https://help.make.com/oauth-20-integration-enhanced-analytics-new-apps",
+    "https://help.make.com/organization-and-team-info-apps-updates",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenario-inputs-scheduling-openai-modules-support-gpt-5",
+    "https://help.make.com/scenario-rate-limits-for-instant-triggers",
+    "https://help.make.com/scenario-run-replay-and-naming-capabilities-now-available",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/the-make-code-app-is-available",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/upcoming-adjustments-to-plans-and-pricing",
+    "https://help.make.com/x-formerly-twitter-app-integration-discontinued",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

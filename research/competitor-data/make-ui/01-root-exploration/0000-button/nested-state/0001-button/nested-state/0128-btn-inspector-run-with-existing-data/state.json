@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:19:41.746Z",
+  "label": "btn-inspector-run-with-existing-data",
+  "depth": 2,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "68a709731fb00c4c",
+  "fingerprint": "68a709731fb00c4c",
+  "url": "https://eu1.make.com/organization/7282142/dashboard",
+  "title": "Make",
+  "overlayCount": 0,
+  "elementCount": 76
+}

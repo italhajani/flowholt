@@ -1,0 +1,37 @@
+{
+   "action": {
+      "default_icon": "css/icons/144x144.png",
+      "default_popup": "index.html",
+      "default_title": "Color Picker"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "commands": {
+      "pickColor": {
+         "description": "Pick a color on the page"
+      }
+   },
+   "description": "Build a personalized color palette, select colors from webpages with the eyedropper, create color scales, and blend colors",
+   "icons": {
+      "128": "css/icons/128x128.png",
+      "144": "css/icons/144x144.png",
+      "16": "css/icons/16x16.png",
+      "192": "css/icons/192x192.png",
+      "32": "css/icons/32x32.png",
+      "36": "css/icons/36x36.png",
+      "48": "css/icons/48x48.png",
+      "512": "css/icons/512x512.png",
+      "64": "css/icons/64x64.png",
+      "72": "css/icons/72x72.png",
+      "96": "css/icons/96x96.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAugMyWTiUsDtp/ioLI7AK6EmmThptAwMvhuj8BbiB6IboV+dpVb4/26lZgWeq3JD7sUqIU6GmEnLvTc1WgGcXlii8Lpe5ePmS0d/C+Ta699IzjHYYulpr/HDrOypcD6vGU2RHl8SIzyZmY4UJfuT48mqy/V1JMGNmpQZ2whskZm//0DCGmDQ+xzYayz54DKt8+SC7I8DSJrrrMuQdMThAIiG9qxIkvVS8GraBgzUdGIPnzBtiqTgXDfTpLTtJCOv0svwMRQgxRKsz6UZdFMPVqgTrbvloTZApIsfr/eh4yRCAeLAs3dgDqLaSgI6ZLPNVL8wJDHVoL7AHKU9qsWfEhwIDAQAB",
+   "manifest_version": 3,
+   "name": "Color Picker",
+   "offline_enabled": true,
+   "permissions": [ "activeTab", "contextMenus", "scripting", "storage" ],
+   "short_name": "Color Picker",
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "2.0.3"
+}

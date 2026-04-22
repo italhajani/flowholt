@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "obsidian": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-obsidian", "D:\\My work\\flowholt3 - Copy\\research\\Vault"],
+      "env": {}
+    }
+  }
+}

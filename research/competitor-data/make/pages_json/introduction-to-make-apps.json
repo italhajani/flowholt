@@ -1,0 +1,184 @@
+{
+  "url": "https://help.make.com/introduction-to-make-apps",
+  "slug": "introduction-to-make-apps",
+  "title": "Introduction to Make apps - Help Center",
+  "description": "Learn about verified, community, and custom apps, and see which are available on your plan",
+  "lastmod": "2026-01-15T17:13:53.388Z",
+  "markdown_path": "pages_markdown/introduction-to-make-apps.md",
+  "raw_html_path": "raw_html/introduction-to-make-apps.html",
+  "heading_count": 13,
+  "image_count": 4,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 3351,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Introduction to Make apps"
+    },
+    {
+      "level": "h2",
+      "text": "What are Make apps?"
+    },
+    {
+      "level": "h2",
+      "text": "Types of Make apps"
+    },
+    {
+      "level": "h2",
+      "text": "Verified apps"
+    },
+    {
+      "level": "h2",
+      "text": "Community apps"
+    },
+    {
+      "level": "h2",
+      "text": "Custom apps"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-1O7C-Cn1YuwL0UKgKQw4l-20250728-073645.png?format=webp&width=800",
+      "alt": "Paid plans app example",
+      "width": 800,
+      "height": 125,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-1O7C-Cn1YuwL0UKgKQw4l-20250728-073645__0e9f3aea64eb.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-RbRKRZL20dzphHJiwjc9Q-20250728-073809.png?format=webp&width=800",
+      "alt": "Enterprise plan app example",
+      "width": 800,
+      "height": 125,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-RbRKRZL20dzphHJiwjc9Q-20250728-073809__4aa6c9571fec.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/HWxzUOnu9-zSJyV2RhkIt_image.png",
+      "alt": "Community app example",
+      "width": 268,
+      "height": 57,
+      "local_path": "assets/images/HWxzUOnu9-zSJyV2RhkIt_image__c2d6ad2296a0.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-apps",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/module-settings",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/select-the-first-bundle-to-process",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-modules",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/update-legacy-modules-with-new-modules",
+    "https://help.make.com/webhooks",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

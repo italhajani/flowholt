@@ -1,0 +1,35 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "icons/icon128.png",
+         "16": "icons/icon16.png",
+         "300": "icons/icon300.png",
+         "48": "icons/icon48.png"
+      },
+      "default_title": "__MSG_extName__"
+   },
+   "background": {
+      "service_worker": "js/background.js"
+   },
+   "default_locale": "en",
+   "description": "__MSG_extShortDesc__",
+   "host_permissions": [ "\u003Call_urls>" ],
+   "icons": {
+      "128": "icons/icon128.png",
+      "16": "icons/icon16.png",
+      "300": "icons/icon300.png",
+      "48": "icons/icon48.png"
+   },
+   "incognito": "split",
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAucpQ5ZOfLTJqXsHFv1PW5AQOi1jdyZwHLb6ckA97NaPsYReyEgvi1j0i2AKsf3XcR+SXR4s0QdGcu+875JHBu9fY9dq4+XJf9V0ivH3/akklenu0ZjTSlf5P95IGnBTwYdNfGmQwmCi1sgu2OmCnfODoMHPrva85da9b6HhvUKpsHurFgVfoNaeU0a4DFP4nbYJ9XCYLG0Bg7TdnFOtON69bHXAb3mf2JYsOSiK4IyfB/0voynz6r8GZ+LwNKCNFfD5YKIGNVcmlxx9y1vDFgmdIbnEkTbAokHbHr5dYt0LfBjx7WP+Pn7lMmeSgpfi75EH2sILFxkJHOZe+8jRGAQIDAQAB",
+   "manifest_version": 3,
+   "minimum_chrome_version": "88.0",
+   "name": "__MSG_extName__",
+   "permissions": [ "alarms", "contextMenus", "declarativeNetRequest", "scripting", "storage" ],
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "1.1.1.1",
+   "web_accessible_resources": [ {
+      "matches": [ "\u003Call_urls>" ],
+      "resources": [ "css/*", "css/files/*" ]
+   } ]
+}

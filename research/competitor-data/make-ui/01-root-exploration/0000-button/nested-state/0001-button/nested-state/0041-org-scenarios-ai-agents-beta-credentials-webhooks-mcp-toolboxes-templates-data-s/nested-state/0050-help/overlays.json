@@ -1,0 +1,46 @@
+[
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-container",
+    "text": "",
+    "x": 0,
+    "y": 0,
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "selector": "[class*='popover']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-popover cdk-overlay-connected-position-bounding-box",
+    "text": "Support Help Center Community Hire an expert Contact Support Share Your Ideas Learn Make Academy Resource Hub What’s New",
+    "x": 8,
+    "y": 48,
+    "width": 1488,
+    "height": 945
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-popover cdk-overlay-connected-position-bounding-box",
+    "text": "Support Help Center Community Hire an expert Contact Support Share Your Ideas Learn Make Academy Resource Hub What’s New",
+    "x": 8,
+    "y": 48,
+    "width": 1488,
+    "height": 945
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-pane",
+    "text": "Support Help Center Community Hire an expert Contact Support Share Your Ideas Learn Make Academy Resource Hub What’s New",
+    "x": 1296,
+    "y": 50,
+    "width": 200,
+    "height": 373
+  }
+]

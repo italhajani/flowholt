@@ -1,0 +1,232 @@
+{
+  "url": "https://help.make.com/iterator",
+  "slug": "iterator",
+  "title": "Iterator - Help Center",
+  "description": "Split arrays into individual bundles using iterators to process each item separately",
+  "lastmod": "2026-01-15T17:27:36.997Z",
+  "markdown_path": "pages_markdown/iterator.md",
+  "raw_html_path": "raw_html/iterator.html",
+  "heading_count": 14,
+  "image_count": 9,
+  "iframe_count": 1,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 3782,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Iterator"
+    },
+    {
+      "level": "h2",
+      "text": "Setting up an iterator"
+    },
+    {
+      "level": "h3",
+      "text": "Examples:"
+    },
+    {
+      "level": "h3",
+      "text": "Save email attachments to Google Drive"
+    },
+    {
+      "level": "h3",
+      "text": "Specialized iterators"
+    },
+    {
+      "level": "h2",
+      "text": "Learn when to use an Iterator in your scenarios"
+    },
+    {
+      "level": "h3",
+      "text": "Troubleshooting: Mapping panel does not display mappable items under the Iterator module"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/Z5TzLrnePyBiz8uz4CGc8_uuid-76ebf1a2-e19f-d998-5faa-366411cbe503.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 466,
+      "local_path": "assets/images/Z5TzLrnePyBiz8uz4CGc8_uuid-76ebf1a2-e19f-d998-5faa-366411cbe503__5436b70f7167.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/6me7VXLBgnu4YVJzrjewX_uuid-afd56dcf-8ee1-119f-c8cf-9d1b8b93778a.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 300,
+      "local_path": "assets/images/6me7VXLBgnu4YVJzrjewX_uuid-afd56dcf-8ee1-119f-c8cf-9d1b8b93778a__428b1f6b1321.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/QhBwYdJiHid8iJz0thwvN_uuid-bd6d2f54-cd86-0526-3eaf-a1ff554dba42.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 272,
+      "local_path": "assets/images/QhBwYdJiHid8iJz0thwvN_uuid-bd6d2f54-cd86-0526-3eaf-a1ff554dba42__5e856854d161.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/_4I0SIQ4StH8PY7oH4FzL_uuid-9e8ce4d7-8de0-9a44-0f40-379c04149499.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 296,
+      "local_path": "assets/images/_4I0SIQ4StH8PY7oH4FzL_uuid-9e8ce4d7-8de0-9a44-0f40-379c04149499__161f32fa25cb.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/GBSv9I7uVXF8bQP5TMfxl_uuid-aebaafc2-8fef-c8f5-9c40-c7d125978bd1.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 642,
+      "local_path": "assets/images/GBSv9I7uVXF8bQP5TMfxl_uuid-aebaafc2-8fef-c8f5-9c40-c7d125978bd1__73a648face12.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/lDcwWarEB3Bv0vz0TByn2_uuid-cdb106ba-05ba-4b5a-e0a2-b4999f852db6.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 290,
+      "local_path": "assets/images/lDcwWarEB3Bv0vz0TByn2_uuid-cdb106ba-05ba-4b5a-e0a2-b4999f852db6__f4b2edfc7381.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/aDAcDFWeOwq8EBbtvosuL_uuid-52e88ac1-3593-608c-57f3-f93b0a792a7a.png?format=webp&width=800",
+      "alt": "Flow_Control_10.png",
+      "width": 800,
+      "height": 328,
+      "local_path": "assets/images/aDAcDFWeOwq8EBbtvosuL_uuid-52e88ac1-3593-608c-57f3-f93b0a792a7a__9b9dc72fadff.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/L7AD8qbPhPEC30mVyiMdV_uuid-39c30df4-4f5e-1bff-6c6c-f1449fc1a7da.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/L7AD8qbPhPEC30mVyiMdV_uuid-39c30df4-4f5e-1bff-6c6c-f1449fc1a7da__c1c6239197c2.png"
+    }
+  ],
+  "iframes": [
+    {
+      "src": "https://www.youtube.com/embed/mWZBA2xSvB4",
+      "title": "Iterator & Array Aggregator | Part 1: Introduction and Iterator Demo",
+      "width": "100%",
+      "height": "100%",
+      "local_path": null
+    }
+  ],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/1yhUnJ8jvZyxiP9Cf3Ps1",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/MInmGWOE1-I9v0yVMHkZm",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/aggregator",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/data-structures",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/iterator",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/module-settings",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/router",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

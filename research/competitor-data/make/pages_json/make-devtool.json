@@ -1,0 +1,293 @@
+{
+  "url": "https://help.make.com/make-devtool",
+  "slug": "make-devtool",
+  "title": "Make DevTool - Help Center",
+  "description": "Debug your scenarios by inspecting API calls, responses, and execution history with Make DevTool",
+  "lastmod": "2026-01-15T17:59:21.534Z",
+  "markdown_path": "pages_markdown/make-devtool.md",
+  "raw_html_path": "raw_html/make-devtool.html",
+  "heading_count": 31,
+  "image_count": 10,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 9436,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Make DevTool"
+    },
+    {
+      "level": "h2",
+      "text": "Install Make DevTool"
+    },
+    {
+      "level": "h2",
+      "text": "Use Live Stream"
+    },
+    {
+      "level": "h3",
+      "text": "Search in logs"
+    },
+    {
+      "level": "h3",
+      "text": "Clear the list of recorded requests"
+    },
+    {
+      "level": "h3",
+      "text": "Enable console logging"
+    },
+    {
+      "level": "h3",
+      "text": "Retrieve the request in the raw JSON format or cURL"
+    },
+    {
+      "level": "h2",
+      "text": "Scenario Debugger"
+    },
+    {
+      "level": "h3",
+      "text": "Search for modules"
+    },
+    {
+      "level": "h3",
+      "text": "Open module settings"
+    },
+    {
+      "level": "h3",
+      "text": "View request or response details"
+    },
+    {
+      "level": "h2",
+      "text": "Tools"
+    },
+    {
+      "level": "h3",
+      "text": "Focus a module"
+    },
+    {
+      "level": "h3",
+      "text": "Find module(s) by mapping"
+    },
+    {
+      "level": "h3",
+      "text": "Get app metadata"
+    },
+    {
+      "level": "h3",
+      "text": "Copy mapping"
+    },
+    {
+      "level": "h3",
+      "text": "Copy filter"
+    },
+    {
+      "level": "h3",
+      "text": "Swap connection"
+    },
+    {
+      "level": "h3",
+      "text": "Swap variable"
+    },
+    {
+      "level": "h3",
+      "text": "Swap app"
+    },
+    {
+      "level": "h3",
+      "text": "Base 64"
+    },
+    {
+      "level": "h3",
+      "text": "Copy module name"
+    },
+    {
+      "level": "h3",
+      "text": "Remap source"
+    },
+    {
+      "level": "h3",
+      "text": "Highlight app"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/Ky4N-YXuHL2WaQP5l-eaX_uuid-6251607f-29a2-e7c0-5df4-b86acc3ca628.png?format=webp&width=800",
+      "alt": "Make DevTool",
+      "width": 800,
+      "height": 432,
+      "local_path": "assets/images/Ky4N-YXuHL2WaQP5l-eaX_uuid-6251607f-29a2-e7c0-5df4-b86acc3ca628__195248443b20.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/fw2RT2SbzEVck-h_HKGdv_uuid-d3b7454e-91be-d37e-e3ed-f41d011abe8d.png?format=webp&width=800",
+      "alt": "DevTool live stream",
+      "width": 800,
+      "height": 432,
+      "local_path": "assets/images/fw2RT2SbzEVck-h_HKGdv_uuid-d3b7454e-91be-d37e-e3ed-f41d011abe8d__7887bfbf4dc7.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/k-2vRs99aqpnkKralwCnL_uuid-f1cc3d5e-55f7-ff33-ce10-03d80d209a97.png?format=webp&width=800",
+      "alt": "Search in logs",
+      "width": 800,
+      "height": 215,
+      "local_path": "assets/images/k-2vRs99aqpnkKralwCnL_uuid-f1cc3d5e-55f7-ff33-ce10-03d80d209a97__0bc724006337.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/_vgFn-JVWfsjTS0Nrg_ZX_uuid-cc8bcb60-a4f2-413b-089e-c0ee5c672e8d.png?format=webp&width=800",
+      "alt": "Enable console logging",
+      "width": 800,
+      "height": 215,
+      "local_path": "assets/images/_vgFn-JVWfsjTS0Nrg_ZX_uuid-cc8bcb60-a4f2-413b-089e-c0ee5c672e8d__4dccaaaa8aa6.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/owNEAyM7u4dEhFKFyXkGK_uuid-14e71fe7-460c-d243-6c36-bd0335c7c611.png?format=webp&width=800",
+      "alt": "Copy raw",
+      "width": 800,
+      "height": 215,
+      "local_path": "assets/images/owNEAyM7u4dEhFKFyXkGK_uuid-14e71fe7-460c-d243-6c36-bd0335c7c611__417d3ed2561f.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/B8slvl665JoyfiEaJBUeY_uuid-5a2556bc-0bee-14b7-9eb7-430645e41d4d.png?format=webp&width=800",
+      "alt": "Search for modules",
+      "width": 800,
+      "height": 433,
+      "local_path": "assets/images/B8slvl665JoyfiEaJBUeY_uuid-5a2556bc-0bee-14b7-9eb7-430645e41d4d__7275a13716f3.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/qBhvz6pBjiahaEtHFpZW2_uuid-ffb594ed-c58d-6cd5-2574-2eb4023d4293.png?format=webp",
+      "alt": "View request or response details",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/qBhvz6pBjiahaEtHFpZW2_uuid-ffb594ed-c58d-6cd5-2574-2eb4023d4293__71765e8f9a60.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/AUXCYBz7TuCBqiieH_CdP_uuid-835b9c06-ed8f-6dd7-6081-5e32bd44b1a8.png?format=webp",
+      "alt": "Copy filter",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/AUXCYBz7TuCBqiieH_CdP_uuid-835b9c06-ed8f-6dd7-6081-5e32bd44b1a8__645ca1710964.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/2vpTQZtC7A0K9vKppGSpD_uuid-515ac724-b86c-a23f-ee1a-125d6a447753.png?format=webp",
+      "alt": "Swap variable",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/2vpTQZtC7A0K9vKppGSpD_uuid-515ac724-b86c-a23f-ee1a-125d6a447753__85c31cec6c24.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-devtool",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

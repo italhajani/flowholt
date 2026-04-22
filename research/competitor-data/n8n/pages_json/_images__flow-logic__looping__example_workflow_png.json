@@ -1,0 +1,29 @@
+{
+  "url": "https://docs.n8n.io/_images/flow-logic/looping/example_workflow.png",
+  "slug": "_images__flow-logic__looping__example_workflow_png",
+  "title": "example_workflow.png (722×344)",
+  "description": "",
+  "lastmod": null,
+  "markdown_path": "pages_markdown/_images__flow-logic__looping__example_workflow_png.md",
+  "raw_html_path": "raw_html/_images__flow-logic__looping__example_workflow_png.html",
+  "heading_count": 0,
+  "image_count": 1,
+  "iframe_count": 0,
+  "file_link_count": 0,
+  "content_selector": "body",
+  "content_text_length": 0,
+  "headings": [],
+  "images": [
+    {
+      "src": "https://docs.n8n.io/_images/flow-logic/looping/example_workflow.png",
+      "alt": "",
+      "width": 722,
+      "height": 344,
+      "local_path": "assets/images/example_workflow__706e5a6d3b4e.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [],
+  "videos": [],
+  "discovered_internal_links": []
+}

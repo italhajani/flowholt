@@ -1,0 +1,26 @@
+[
+  {
+    "selector": "button:not([disabled])",
+    "kind": "button",
+    "tag": "button",
+    "role": "",
+    "id": "",
+    "testId": "",
+    "ariaLabel": "",
+    "title": "",
+    "href": "",
+    "text": "",
+    "className": " _dmo-btn_tr71a_9 _dmo-btn-ghost_tr71a_60 ",
+    "domPath": "imt-sidebar-animate._parent_pfsi9_19._slideIn_pfsi9_1 > div._sidebar_k5hpa_10 > div._header_k5hpa_34._headerSolid_k5hpa_41 > div._actionBar_k5hpa_45 > imt-icon-button._closeButton_k5hpa_49 > button.._dmo-btn_tr71a_9",
+    "disabled": false,
+    "x": 1540,
+    "y": 105,
+    "width": 24,
+    "height": 24,
+    "centerX": 1552,
+    "centerY": 117,
+    "label": "button",
+    "region": "panel",
+    "insideOverlay": false
+  }
+]

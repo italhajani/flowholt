@@ -1,0 +1,76 @@
+[
+  {
+    "url": "wss://eu1.make.com/streamer/live/?EIO=4&transport=websocket",
+    "openedAt": "2026-04-14T08:12:18.116Z",
+    "events": [
+      {
+        "type": "received",
+        "payload": "0{\"sid\":\"-E1Ej1fyZ-v5wb7uBgZP\",\"upgrades\":[],\"pingInterval\":25000,\"pingTimeout\":20000,\"maxPayload\":2149580}",
+        "timestamp": "2026-04-14T08:12:18.399Z"
+      },
+      {
+        "type": "sent",
+        "payload": "40",
+        "timestamp": "2026-04-14T08:12:18.400Z"
+      },
+      {
+        "type": "received",
+        "payload": "40{\"sid\":\"dYQfeJqM0aLu1Sv0BgZQ\"}",
+        "timestamp": "2026-04-14T08:12:18.593Z"
+      },
+      {
+        "type": "received",
+        "payload": "2",
+        "timestamp": "2026-04-14T08:12:43.390Z"
+      },
+      {
+        "type": "sent",
+        "payload": "3",
+        "timestamp": "2026-04-14T08:12:43.390Z"
+      },
+      {
+        "type": "received",
+        "payload": "2",
+        "timestamp": "2026-04-14T08:13:08.565Z"
+      },
+      {
+        "type": "sent",
+        "payload": "3",
+        "timestamp": "2026-04-14T08:13:08.565Z"
+      },
+      {
+        "type": "sent",
+        "payload": "41",
+        "timestamp": "2026-04-14T08:13:20.315Z"
+      }
+    ],
+    "closedAt": "2026-04-14T08:13:20.554Z"
+  },
+  {
+    "url": "wss://eu1.make.com/streamer/live/?EIO=4&transport=websocket",
+    "openedAt": "2026-04-14T08:14:20.069Z",
+    "events": [
+      {
+        "type": "received",
+        "payload": "0{\"sid\":\"r-JxReBJpblFvPQGBgcD\",\"upgrades\":[],\"pingInterval\":25000,\"pingTimeout\":20000,\"maxPayload\":2149580}",
+        "timestamp": "2026-04-14T08:14:20.415Z"
+      },
+      {
+        "type": "sent",
+        "payload": "40",
+        "timestamp": "2026-04-14T08:14:20.415Z"
+      },
+      {
+        "type": "received",
+        "payload": "40{\"sid\":\"3sq83CIwlKImbmujBgcE\"}",
+        "timestamp": "2026-04-14T08:14:20.602Z"
+      },
+      {
+        "type": "sent",
+        "payload": "41",
+        "timestamp": "2026-04-14T08:14:30.334Z"
+      }
+    ],
+    "closedAt": "2026-04-14T08:14:30.579Z"
+  }
+]

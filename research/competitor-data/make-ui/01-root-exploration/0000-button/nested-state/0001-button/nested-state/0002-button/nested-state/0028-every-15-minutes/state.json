@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:14:26.246Z",
+  "label": "Every 15 minutes",
+  "depth": 3,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "1709b6ff5857f33d",
+  "fingerprint": "8d15e326a654faa9",
+  "url": "https://eu1.make.com/1467385/scenarios/add",
+  "title": "New scenario | Make",
+  "overlayCount": 5,
+  "elementCount": 92
+}

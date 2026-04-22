@@ -1,0 +1,38 @@
+{
+   "action": {
+      "default_icon": {
+         "19": "assets/images/icons/disabled-19.png",
+         "38": "assets/images/icons/disabled-38.png"
+      },
+      "default_popup": "popup.html",
+      "default_title": "__MSG_name__"
+   },
+   "author": "Adguard Software Ltd",
+   "background": {
+      "service_worker": "background.js"
+   },
+   "content_scripts": [ {
+      "js": [ "custom-dns-links.js" ],
+      "matches": [ "\u003Call_urls>" ],
+      "run_at": "document_start"
+   } ],
+   "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+   },
+   "default_locale": "en",
+   "description": "__MSG_description__",
+   "host_permissions": [ "\u003Call_urls>" ],
+   "icons": {
+      "128": "assets/images/icons/enabled-128.png",
+      "16": "assets/images/icons/enabled-16.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4io7qGyP+eXQhiQdd6eZ627mz+AJFZO5Mheb8OaFZ6eLnlf5SLFqaVxJrIMpUoLBrZqBW3VkktRnURknsz89XJMgGi0jC/X1dzUempeiO25dJ/cDYffkASpDpGHxpKJpveqqrZcq6aQRWscZkMFwcmkCCtYhfDxzF4QFI/8a2idShiYIzWYuPU9Dm+syvGQstUq46JJ2eAU886HbcpdfRECKoW8tqjHSR2PLXESXq8sOdLgPYPeEIatj409seXgiIeVT0rJr0+cKZXqy4+VfwX3VYKfAq06rn3Pucq96twkCSEBhZv5nC5Sfw1bdprYcyKdgb9adVWBcn32Me/Uy2QIDAQAB",
+   "manifest_version": 3,
+   "minimum_chrome_version": "109.0",
+   "name": "__MSG_name__",
+   "options_page": "options.html",
+   "permissions": [ "browsingData", "contextMenus", "management", "notifications", "offscreen", "privacy", "proxy", "storage", "unlimitedStorage", "webRequest", "webRequestAuthProvider" ],
+   "short_name": "__MSG_short_name__",
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "2.9.8"
+}

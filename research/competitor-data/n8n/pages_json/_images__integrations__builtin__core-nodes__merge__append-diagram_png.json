@@ -1,0 +1,29 @@
+{
+  "url": "https://docs.n8n.io/_images/integrations/builtin/core-nodes/merge/append-diagram.png",
+  "slug": "_images__integrations__builtin__core-nodes__merge__append-diagram_png",
+  "title": "append-diagram.png (367×238)",
+  "description": "",
+  "lastmod": null,
+  "markdown_path": "pages_markdown/_images__integrations__builtin__core-nodes__merge__append-diagram_png.md",
+  "raw_html_path": "raw_html/_images__integrations__builtin__core-nodes__merge__append-diagram_png.html",
+  "heading_count": 0,
+  "image_count": 1,
+  "iframe_count": 0,
+  "file_link_count": 0,
+  "content_selector": "body",
+  "content_text_length": 0,
+  "headings": [],
+  "images": [
+    {
+      "src": "https://docs.n8n.io/_images/integrations/builtin/core-nodes/merge/append-diagram.png",
+      "alt": "",
+      "width": 367,
+      "height": 238,
+      "local_path": "assets/images/append-diagram__6fd7cd639000.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [],
+  "videos": [],
+  "discovered_internal_links": []
+}

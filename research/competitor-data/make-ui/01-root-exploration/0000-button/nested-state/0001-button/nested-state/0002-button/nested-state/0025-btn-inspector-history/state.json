@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:14:16.595Z",
+  "label": "btn-inspector-history",
+  "depth": 3,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "81e34c7f68a03f37",
+  "fingerprint": "47ee605e019a518a",
+  "url": "https://eu1.make.com/1467385/scenarios/add",
+  "title": "New scenario | Make",
+  "overlayCount": 0,
+  "elementCount": 5
+}

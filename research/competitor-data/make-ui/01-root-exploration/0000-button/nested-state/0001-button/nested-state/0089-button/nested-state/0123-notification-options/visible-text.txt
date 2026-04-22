@@ -1,0 +1,42 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+M
+My Organization
+My Team
+Organization settings
+Create scenario
+Help
+TJ
+Organization
+Dashboard
+Teams
+Users
+My Plan
+Subscription
+Free
+Credit usage
+Payments
+Utilities
+Installed apps
+Variables
+Scenario properties
+Notification options
+Notification options
+Warning in scenario run
+Notifications for warnings that need your attention, such as a data store in your scenario reaching capacity.
+Errors in scenario run
+Notifications for errors that stop your scenarios from running smoothly, such as an app receiving a connection error.
+Scenario deactivation
+Notifications for scenarios that are deactivated due to critical issues, such as multiple consecutive errors. If turned off, admins will still be notified for scenarios deactivated due to running out of credits.

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:19:05.799Z",
+  "label": "Subscription Free Credit usage Payments",
+  "depth": 3,
+  "mode": "nested",
+  "action": "click",
+  "parentFingerprint": "4fc3df3247c2534f",
+  "fingerprint": "e898ec309f5bdf87",
+  "url": "https://eu1.make.com/organization/7282142/credit-usage",
+  "title": "Make",
+  "overlayCount": 0,
+  "elementCount": 87
+}

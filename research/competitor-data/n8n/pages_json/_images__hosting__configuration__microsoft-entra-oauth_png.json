@@ -1,0 +1,29 @@
+{
+  "url": "https://docs.n8n.io/_images/hosting/configuration/microsoft-entra-oauth.png",
+  "slug": "_images__hosting__configuration__microsoft-entra-oauth_png",
+  "title": "microsoft-entra-oauth.png (865×811)",
+  "description": "",
+  "lastmod": null,
+  "markdown_path": "pages_markdown/_images__hosting__configuration__microsoft-entra-oauth_png.md",
+  "raw_html_path": "raw_html/_images__hosting__configuration__microsoft-entra-oauth_png.html",
+  "heading_count": 0,
+  "image_count": 1,
+  "iframe_count": 0,
+  "file_link_count": 0,
+  "content_selector": "body",
+  "content_text_length": 0,
+  "headings": [],
+  "images": [
+    {
+      "src": "https://docs.n8n.io/_images/hosting/configuration/microsoft-entra-oauth.png",
+      "alt": "",
+      "width": 865,
+      "height": 811,
+      "local_path": "assets/images/microsoft-entra-oauth__5c7682e47fa3.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [],
+  "videos": [],
+  "discovered_internal_links": []
+}

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:18:03.187Z",
+  "label": "Create scenario",
+  "depth": 3,
+  "mode": "nested",
+  "action": "click",
+  "parentFingerprint": "bcd4fdcd7e29f2c3",
+  "fingerprint": "bcd4fdcd7e29f2c3",
+  "url": "https://eu1.make.com/1467385/vhosts",
+  "title": "Make",
+  "overlayCount": 0,
+  "elementCount": 41
+}

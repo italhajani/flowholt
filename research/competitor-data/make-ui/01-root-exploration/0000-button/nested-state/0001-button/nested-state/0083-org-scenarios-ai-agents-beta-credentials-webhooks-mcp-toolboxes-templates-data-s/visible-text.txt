@@ -1,0 +1,22 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+M
+My Organization
+My Team
+Help
+TJ
+Devices
+Add device
+You haven't added any devices yet

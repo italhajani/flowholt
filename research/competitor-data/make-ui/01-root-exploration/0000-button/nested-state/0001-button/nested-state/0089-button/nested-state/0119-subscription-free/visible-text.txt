@@ -1,0 +1,270 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+M
+My Organization
+My Team
+Organization settings
+Create scenario
+Help
+TJ
+Organization
+Dashboard
+Teams
+Users
+My Plan
+Subscription
+Free
+Credit usage
+Payments
+Utilities
+Installed apps
+Variables
+Scenario properties
+Notification options
+Subscription
+My plan
+Free
+1,000 credits/month
+Redeem coupon
+Billing
+$0.00
+billed monthly
+Add payment method
+Credits
+How do credits work?
+0 / 1,000 credits used (0%)
+Usage resets on 14 مئی، 2026
+Buy extras
+Compare Plans
+Billed monthly
+Billed yearly (Save 15% or more)
+Your plan
+Free
+$0
+/mo
+Free forever
+FREE plan features
+No-code workflow builder
+3000+ standard apps
+Unlimited users
+2 active scenarios
+5min scenario execution time
+5 MB file size
+15min interval between scheduled scenario executions
+Real-time execution monitoring
+Custom apps
+Core
+$9.00
+/mo
+Billed yearly
+10,000 credits/mo
+Buy yearly plan
+Additionally to FREE
+Unlimited number of active scenarios
+40min scenario execution time
+100 MB file size
+1min interval between scheduled scenario executions
+Access to 300+ Make API endpoints
+Pro
+$16.00
+/mo
+Billed yearly
+Annual package of credits
+120,000 credits/y
+Buy yearly plan
+Additionally to CORE
+Full-text execution log search
+Credits usage flexibility with yearly billing
+250 MB file size
+Priority scenario execution
+Teams
+$29.00
+/mo
+Billed yearly
+Annual package of credits
+120,000 credits/y
+Buy yearly plan
+Additionally to PRO
+Teams and team Roles
+Create & share scenario templates
+500 MB file size
+High priority scenario execution
+Enterprise
+Talk to sales
+Additionally to TEAMS
+Access to enterprise apps
+Information security compliance support (ISO 27001)
+1000 MB file size
+Company single sign-on (SSO) access control
+Credit overage protection
+Custom functions
+Access to Technical Account Manager
+Highest priority customer support
+Execution Log Storage for 60 days
+Comparison table
+Your plan
+Free
+Core
+Pro
+Teams
+Enterprise
+No-code workflow builder
+3000+ standard apps
+Custom Apps
+Unlimited users
+Two-factor authentication
+Parallel scenario execution
+Real-time execution monitoring
+System variables
+Scenario Inputs
+Scenario Outputs
+Subscenarios
+Create & share scenario templates
+Make AI Tools
+-
+Make AI Agents
+-
+Maximum file size [MB]
+5
+100
+250
+500
+1,000
+Data Transfer
+0.5GB
+5GB
+5GB
+5GB
+5GB
+Maximum number of active scenarios
+2
+Unlimited
+Unlimited
+Unlimited
+Unlimited
+Minimum interval between scheduled scenario executions [min]
+15
+1
+1
+1
+1
+Access to 300+ Make API endpoints [rate call limit/min]
+-
+60
+120
+240
+1,000
+Full-text execution log search
+-
+-
+Credits usage flexibility with yearly billing
+-
+-
+Custom variables
+-
+-
+Priority scenario execution
+-
+-
+High
+Priority
+Priority
+Teams and team Roles
+-
+-
+-
+Credits per team management
+-
+-
+-
+-
+Access to enterprise apps
+-
+-
+-
+-
+Information security compliance support
+-
+-
+-
+-
+Company single sign-on (SSO) access control
+-
+-
+-
+-
+Credit overage protection
+-
+-
+-
+-
+Custom scenario properties
+-
+-
+-
+-
+Custom functions
+-
+-
+-
+-
+Access to Technical Account Manager
+-
+-
+-
+-
+Exclusive access to list of premium partners for support
+-
+-
+-
+-
+Domain claim
+-
+-
+-
+-
+Customer support
+Support available for 90
+days after signup
+Medium priority
+customer support
+Medium priority
+customer support
+High priority support
+for teams
+Highest priority
+enterprise support
+Hosting
+AWS
+(EU/North America)
+AWS
+(EU/North America)
+AWS
+(EU/North America)
+AWS
+(EU/North America)
+AWS
+(EU/North America)
+Execution Log Storage [days]
+7
+30
+30
+30
+60
+Analytics dashboard
+-
+-
+-
+-

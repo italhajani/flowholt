@@ -1,0 +1,19 @@
+{
+  "roles": [],
+  "dataAttrs": [
+    "data-theme-var"
+  ],
+  "testIds": [],
+  "classTokens": [
+    "animated-background",
+    "gradient",
+    "gradient-sm-vertical",
+    "lines",
+    "loading-aside",
+    "loading-navbar",
+    "loading-navbar-header",
+    "logo",
+    "navbar-brand"
+  ],
+  "overlayKinds": []
+}

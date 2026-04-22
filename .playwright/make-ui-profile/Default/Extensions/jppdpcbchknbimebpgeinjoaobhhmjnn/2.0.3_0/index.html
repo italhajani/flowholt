@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+  <meta name="description"
+    content="A color picker tool to build a personalized palette and convert color values to various formats" />
+  <meta name="author" content="LinangData" />
+  <link rel="stylesheet" href="libs/bootstrap-5.0.1/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="libs/bootstrap-icons-1.5.0/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/dark-mode.css" />
+ 
+  <script src="libs/jquery-3.5.1.min.js"></script>
+  <title>Color Picker</title>
+</head>
+
+<body>
+  <nav class="navbar navbar-dark bg-dark navbar-static-top navbar-expand pb-0" role="navigation">
+    <div class="container-fluid">
+      <!-- <a class="navbar-brand" href="#">Navbar</a> -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="home icon nav-link navopentab" href="https://linangdata.com/"><i class="bi bi-house-door"></i> Home</a></li>
+          <li class="nav-item dropdown moretools">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarScrollingDropdown"  title="More tools for you!" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi-asterisk"></i> More tools
+            </a>
+            <ul id="links" class="dropdown-menu" aria-labelledby="navbarScrollingDropdown">
+            </ul>
+          </li>
+
+          <li class="nav-item">
+            <a class="navopenfullpage icon nav-link" href="https://linangdata.com/color-picker/"><i class="bi bi-info-circle"></i> Help/Full Page</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <div class="linangdata">
+    <span id="linangdata" data-placement="auto" data-toggle="tooltip" title="Visit Linangdata.com"><img
+        src="css/favicon/24x24.png" class="flipHoriz" /></span>
+  </div>
+
+  <div id="banner-top" class="hidden"></div>
+
+  <div class="container-fluid">
+    <div id="formatter" class="example large">
+      <div class="form-check form-switch darkswitch">
+        <input class="form-check-input" type="checkbox" id="darkSwitch" checked>
+        <label class="form-check-label darkswitchlabel" for="darkSwitch">Dark Mode</label>
+      </div>
+
+      <main id="main" class="">
+        <nav>
+          <div class="nav nav-tabs" id="nav-tab" role="tablist">
+            <button class="nav-link active" id="nav-palette-tab" data-bs-toggle="tab" data-bs-target="#nav-palette"
+              type="button" role="tab" aria-controls="nav-palette" aria-selected="true"><i class="bi  bi-palette"></i> Color Picker</button>
+            <button class="nav-link" id="nav-eyedropper-tab" data-bs-toggle="tab" data-bs-target="#nav-eyedropper"
+              type="button" role="tab" aria-controls="nav-eyedropper"><i class="bi bi-eyedropper"></i> Eyedropper</button> 
+            <button class="nav-link" id="nav-scale-tab" data-bs-toggle="tab" data-bs-target="#nav-scale"
+              type="button" role="tab" aria-controls="nav-scale"><i class="bi bi bi-music-note-list"></i> Color Scale</button>
+            <button class="nav-link" id="nav-blender-tab" data-bs-toggle="tab" data-bs-target="#nav-blender"
+              type="button" role="tab" aria-controls="nav-blender"><i class="bi bi-droplet-half"></i> Color Blender</button>
+            
+          </div>
+        </nav>
+        <div class="tab-content" id="nav-tabContent">
+          <div class="tab-pane fade show active" id="nav-palette" role="tabpanel" aria-labelledby="nav-palette-tab">
+            <div class="container-fluid ps-0">
+              <div class="pickerRow ps-0">
+                <div class="mt-2 mb-1 btn-group bg-white tool-group" role="group">
+                  <i class="bi bi-clipboard-plus btn bg-white" title="Copy hex values to clipboard" id="copy"></i>
+                  <i class="bi bi-save2 btn bg-white" title="Export to text file" id="download"></i>
+                  <i class="bi bi-x-circle-fill btn bg-white" title="Reset to defaults" id="defaults"></i>
+                </div>
+                <div class="d-flex canvas-container mt-5">
+                  <canvas class="color-palette mt-2" width="700" height="255"></canvas>
+                  <canvas id="canvas-overlay" class="canvas-overlay mt-2" width="700" height="255"></canvas>
+                </div>
+              </div>
+              <div class="d-flex w-100 ps-0">
+                <div>
+                  <div class="label label1 mx-auto text-center">1</div>
+                  <div class="pallette" id="pallette0"></div>
+                </div>
+                <div>
+                  <div class="label label2 mx-auto text-center">2</div>
+                  <div class="pallette" id="pallette1"></div>
+                </div>
+                <div>
+                  <div class="label label3 mx-auto text-center">3</div>
+                  <div class="pallette" id="pallette2"></div>
+                </div>
+                <div>
+                  <div class="label label4 mx-auto text-center">4</div>
+                  <div class="pallette" id="pallette3"></div>
+                </div>
+              </div>
+
+              <div id="formats" class="formats d-flex w-100 mb-5">
+                <div class="additional ps-1" id="pallette0-formats"></div>
+                <div class="additional ps-1" id="pallette1-formats"></div>
+                <div class="additional ps-1" id="pallette2-formats"></div>
+                <div class="additional ps-1" id="pallette3-formats"></div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade show overflow-auto" id="nav-scale" role="tabpanel" aria-labelledby="nav-scale-tab">
+            <div class="container-fluid py-2">
+              <div class="d-flex flex-wrap py-3">
+                <div class="me-3 d-flex">
+                  <label class="py-1 me-1">Colors:</label>
+                    <input id="range" type="range" value="5" min="3" max="25" title="Number of colors in range">
+                  <output class="ms-1 my-1">5</output>
+                </div>
+                <div class="me-2 d-flex">
+                  <label class="py-1 me-1">Mode:</label>
+                  <select id="color-mode" class="form-select form-select-sm" aria-label="Color Mode">
+                    <option title="red, green, blue" value='rgb' selected>RGB</option>
+                    <option title="hue, saturation, lightness" value="hsl">HSL</option>
+                    <option title="Lightness, a, b" value="lab">LAB</option>
+                    <option title="linear RGB" value="lrgb">LRGB</option>
+                    <option title="hue, chroma, lightness" value="hcl">HCL</option>
+                    <option title="hue, saturation, intensity" value="hsi">HSI</option>
+                    <option title="hue, saturation, value" value="hsv">HSV</option>
+                  </select>
+                </div>
+                <div class="d-flex">
+                  <label class="py-1 me-1">Median color:</label>
+                  <input class="form-check-input me-1 my-2" type="checkbox" title="Median color" value="" id="medianCheckbox"> 
+                  <input id="medianColor" data-jscolor="{}" value="#ffffff" />
+                </div>
+                <div class="mt-2 mb-1 btn-group bg-white tool-group" role="group">
+                  <i class="bi bi-clipboard-plus btn bg-white" title="Copy to clipboard" id="copyRange"></i>
+                  <i class="bi bi-save2 btn bg-white" title="Export to text file" id="downloadRange"></i>
+                  <i class="bi bi-x-circle-fill btn bg-white" title="Reset to defaults" id="defaults-scale"></i>
+                </div>
+              </div>
+  
+              <div class="palette-colorcards colorcards mb-3">
+                <div id="cardColors" class="d-flex flex-wrap"></div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="nav-blender" role="tabpanel" aria-labelledby="nav-blender-tab">
+            <div class="container py-2">
+              <div class="d-flex flex-wrap py-3">
+                <div class="me-5 d-flex">
+                    <label class="pt-2 me-2 form-label" style="width:160px">Color mode</label>
+                    <select id="blender-mode" class="form-select form-select-sm" aria-label="Blender Mode">
+                      <option title="multiply" value='multiply' selected>Multiply</option>
+                      <option title="screen" value="screen">Screen</option>
+                      <option title="darken" value="darken">Darken</option>
+                      <option title="lighten" value="lighten">Lighten</option>
+                      <option title="overlay" value="overlay">Overlay</option>
+                      <option title="burn" value="burn" >Burn</option>
+                      <option title="dodge" value="dodge">Dodge</option>
+                    </select>
+                </div>
+  
+                <!-- <div class="pt-4 me-5"> -->
+                  <div class="mt-2 mb-1 btn-group bg-white tool-group" role="group">
+                    <i class="bi bi-clipboard-plus btn bg-white" title="Copy to clipboard" id="copyBlender"></i>
+                    <i class="bi bi-save2 btn bg-white" title="Export to text file" id="downloadBlender"></i>
+                    <i class="bi bi-x-circle-fill btn bg-white" title="Reset to defaults" id="defaults-blender"></i>
+                  </div>
+                <!-- </div> -->
+              </div>
+              <div class="palette-colorcards colorcards mb-5">
+                <div id="blenderCardColors" class="d-flex flex-grow-1"></div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="nav-eyedropper" role="tabpanel" aria-labelledby="nav-eyedropper-tab">
+            <div class="container py-2">
+              <div class="d-flex flex-wrap py-3">
+                <p class="display-6">Use the eyedropper to pick colors from the current browser page</p>
+                <div class="pt-4 me-5">
+                  <div class="d-flex">
+                    
+                    <!-- <button class="btn btn-primary" id="downloadeyedropper"><i class="bi bi-save2"></i> Export to file</button> -->
+                    <!-- <button id="defaults-eyedropper" class="btn btn-primary" title="Reset to defaults"><i class="bi bi-x-circle-fill" ></i> Clear</button> -->
+                    <button class="btn btn-danger" id="eyedropper"><i class="bi bi-eyedropper"></i> Eyedropper</button>
+                    <p class="text-success m-3">Hint: You can also use the page's right-click context menu, and select "Pick a color on the page".</p>
+                    <!-- Also, note that the color picker won't work on chrome urls (i.e., chrome://) -->
+                  </div>
+                </div>
+              </div>
+              <h4>History of color picks:</h4>
+              <div class="mb-5 d-flex">
+                <div id="eyedropperCardColors" class="d-flex flex-wrap">
+                </div>
+                <div id="eyedropper-info" class="highlight lead d-flex flex-column ms-3 p-2">
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <div id="growl-notice"></div>
+    </div>
+  </div>
+  <div id="banner-bottom"></div>
+
+  <script type="text/javascript" src="libs/bootstrap-5.0.1/js/bootstrap.bundle.min.js"></script>
+  <script type="text/javascript" src="libs/dark-mode-switch.js" charset="utf-8"></script>
+  <script type="text/javascript" src="libs/chroma.min.js" charset="utf-8"></script>
+  <script type="text/javascript" src="libs/jscolor-2.4.5/jscolor.min.js" charset="utf-8"></script>
+  <script type="text/javascript" src="app.js" charset="utf-8"></script>
+  <script type="text/javascript" src="picker.js" charset="utf-8"></script>
+
+</body>
+
+</html>

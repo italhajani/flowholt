@@ -1,0 +1,272 @@
+{
+  "url": "https://help.make.com/on-premise-agent",
+  "slug": "on-premise-agent",
+  "title": "On-premise agent - Help Center",
+  "description": "Install and use on-premise agents to securely access local applications and databases",
+  "lastmod": "2026-04-08T14:40:12.246Z",
+  "markdown_path": "pages_markdown/on-premise-agent.md",
+  "raw_html_path": "raw_html/on-premise-agent.html",
+  "heading_count": 25,
+  "image_count": 9,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 6226,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "On-premise agent"
+    },
+    {
+      "level": "h2",
+      "text": "Add an On-prem agent"
+    },
+    {
+      "level": "h3",
+      "text": "Create an On-prem agent"
+    },
+    {
+      "level": "h3",
+      "text": "Download the On-prem agent"
+    },
+    {
+      "level": "h3",
+      "text": "Install the On-prem agent"
+    },
+    {
+      "level": "h3",
+      "text": "Installation for Windows"
+    },
+    {
+      "level": "h3",
+      "text": "Installation for macOS"
+    },
+    {
+      "level": "h3",
+      "text": "Installation for Linux"
+    },
+    {
+      "level": "h2",
+      "text": "Connect a system"
+    },
+    {
+      "level": "h3",
+      "text": "Connect the HTTP system"
+    },
+    {
+      "level": "h2",
+      "text": "Create a connection in the scenario"
+    },
+    {
+      "level": "h2",
+      "text": "On-prem agent status"
+    },
+    {
+      "level": "h2",
+      "text": "Troubleshooting"
+    },
+    {
+      "level": "h3",
+      "text": "Windows installer broke in the middle of the installation"
+    },
+    {
+      "level": "h3",
+      "text": "Error regarding wrong Java version when installing the On-prem agent for Windows"
+    },
+    {
+      "level": "h3",
+      "text": "No permissions to run the Windows installer"
+    },
+    {
+      "level": "h3",
+      "text": "On-prem agent in Not responding status in Make"
+    },
+    {
+      "level": "h3",
+      "text": "On-prem agent not running on a Windows machine"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/w41YoDn4iUd-XjVJfge1y_uuid-12fede23-a807-af2c-3968-41ba3ea97882.png?format=webp&width=800",
+      "alt": "On-prem agent schema",
+      "width": 800,
+      "height": 303,
+      "local_path": "assets/images/w41YoDn4iUd-XjVJfge1y_uuid-12fede23-a807-af2c-3968-41ba3ea97882__511e4832b796.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/21uggu3neaOf_DHKyAD5K_uuid-017d61ea-47e4-8a99-44c6-25c9ec267dde.png?format=webp&width=800",
+      "alt": "Using an HTTP agent",
+      "width": 800,
+      "height": 389,
+      "local_path": "assets/images/21uggu3neaOf_DHKyAD5K_uuid-017d61ea-47e4-8a99-44c6-25c9ec267dde__e64f8ef282fd.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/PiAIDjTYpQ2pb7-PUvvqq_uuid-6df3d17f-d7fd-c6c0-4314-08b788e6b1a4.png?format=webp&width=800",
+      "alt": "More detailed on-prem schema",
+      "width": 800,
+      "height": 438,
+      "local_path": "assets/images/PiAIDjTYpQ2pb7-PUvvqq_uuid-6df3d17f-d7fd-c6c0-4314-08b788e6b1a4__d1020967d8bd.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/Fp2m4gjORuiQVisEBI9N6-20251015-094353.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 394,
+      "local_path": "assets/images/Fp2m4gjORuiQVisEBI9N6-20251015-094353__f7b73eca5793.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/NEZg6CtaynUDJtnus2aWb-20251015-094542.png",
+      "alt": "Document image",
+      "width": 884,
+      "height": 454,
+      "local_path": "assets/images/NEZg6CtaynUDJtnus2aWb-20251015-094542__8f4e40378aa9.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/2cUxTR6OysA07nhupXJHU-20251015-094959.png",
+      "alt": "Document image",
+      "width": 890,
+      "height": 1078,
+      "local_path": "assets/images/2cUxTR6OysA07nhupXJHU-20251015-094959__99823226819b.png"
+    },
+    {
+      "src": "https://app.archbee.com/api/optimize/oAyFj2GHlBeBVWF5OAir2/-k6_9qgRdrgAx_jWOmb2v-20251015-095319.png",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/-k6_9qgRdrgAx_jWOmb2v-20251015-095319__236c3f3f79a2.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/GCq_Pq73GOybKwqG1PPGS-20260128-141145.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/GCq_Pq73GOybKwqG1PPGS-20260128-141145__36e67a5bf2b4.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/allow-connections-to-and-from-make-ip-addresses",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/call-google-apis-with-oauth-20-http-request",
+    "https://help.make.com/connect-an-application",
+    "https://help.make.com/connect-to-any-web-service-using-oauth-20",
+    "https://help.make.com/connect-to-google-services-using-a-custom-oauth-client",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credential-requests",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/devices",
+    "https://help.make.com/dynamic-connections",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/keys-and-certificates",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/on-premise-agent",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/replace-connections-across-multiple-modules",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

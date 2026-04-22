@@ -1,0 +1,53 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+Share
+Run once
+Every 15 minutes
+AI
+All apps
+Featured
+Built-in tools
+Productivity
+AI by Make
+Share feedback
+All apps
+Flow Control
+Google Sheets
+Tools
+Webhooks
+HTTP
+Gmail
+Airtable
+OpenAI (ChatGPT, Sora, DALL-E, Whisper)
+Telegram Bot
+JSON
+Google Drive
+monday.com
+Data store
+Notion
+Facebook Lead Ads
+Google Gemini AI
+Slack
+Text parser
+Email
+Google Docs
+Pipedrive CRM
+Instagram for Business (Facebook login)
+Scenarios
+HubSpot CRM
+Google Calendar
+RSS
+Can't schedule empty scenario
+Your scenario needs at least one module before you can schedule it. To add a module, click the giant plus.

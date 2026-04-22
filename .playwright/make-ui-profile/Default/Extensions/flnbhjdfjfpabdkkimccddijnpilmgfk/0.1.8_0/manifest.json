@@ -1,0 +1,43 @@
+{
+   "action": {
+      "default_icon": {
+         "16": "data/icons/16.png",
+         "32": "data/icons/32.png",
+         "48": "data/icons/48.png",
+         "64": "data/icons/64.png"
+      },
+      "default_title": "Page Screenshot"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "commands": {
+      "capture": {
+         "description": "Take screenshot",
+         "suggested_key": {
+            "default": "Alt+Shift+D"
+         }
+      }
+   },
+   "description": "Take a screenshot from the entire website with just one click!",
+   "homepage_url": "https://mybrowseraddon.com/page-screenshot.html",
+   "icons": {
+      "128": "data/icons/128.png",
+      "16": "data/icons/16.png",
+      "32": "data/icons/32.png",
+      "48": "data/icons/48.png",
+      "64": "data/icons/64.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr06a8qAVDghcp/KI2pnskIHeVdweHoaC79EANz8D70C3kE2CEISrkFAauHCbnJxQRpfWCsRnm7ouSLIo9+2H+Njv7+oMQagjXZcgD2+x1dgQnxCLU+3N1XM40DZCUQrhWEwwOCQmB0tPZz/EpMTncFPjXvSt/mZR/N7ITPSVciZjP/nnbuxH2N6xgCipmM7tMsoNUnDmJQXZ5vc/za4m0eAGt60E/O/62sG5iwwX9zITeumHqWJZHwx4izl9659DwJK2txNswb3jg1w16m9/6vnn7y6zwRaq+zzLIrmPa+lNcOXzODLDjmIborAPPjbRjkMCIRRXYthNH+G7RNBl9wIDAQAB",
+   "manifest_version": 3,
+   "name": "Page Screenshot",
+   "offline_enabled": true,
+   "optional_host_permissions": [ "\u003Call_urls>" ],
+   "options_ui": {
+      "open_in_tab": true,
+      "page": "data/options/options.html"
+   },
+   "permissions": [ "storage", "activeTab", "scripting" ],
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "0.1.8"
+}

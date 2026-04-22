@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:19:14.951Z",
+  "label": "Subscription Free",
+  "depth": 3,
+  "mode": "nested",
+  "action": "click",
+  "parentFingerprint": "2991323d2f4c0161",
+  "fingerprint": "b2ea0bd74ddcbb8e",
+  "url": "https://eu1.make.com/organization/7282142/subscription",
+  "title": "Make",
+  "overlayCount": 0,
+  "elementCount": 98
+}

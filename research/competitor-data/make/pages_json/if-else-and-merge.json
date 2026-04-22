@@ -1,0 +1,343 @@
+{
+  "url": "https://help.make.com/if-else-and-merge",
+  "slug": "if-else-and-merge",
+  "title": "If-else and Merge - Help Center",
+  "description": "Discover the new If-else and Merge feature, designed for efficient, logical routing in workflows.",
+  "lastmod": "2026-04-08T14:40:12.658Z",
+  "markdown_path": "pages_markdown/if-else-and-merge.md",
+  "raw_html_path": "raw_html/if-else-and-merge.html",
+  "heading_count": 14,
+  "image_count": 26,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 9326,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "If-else and Merge"
+    },
+    {
+      "level": "h2",
+      "text": "If-else module"
+    },
+    {
+      "level": "h2",
+      "text": "Merge module"
+    },
+    {
+      "level": "h2",
+      "text": "Add an If-else module"
+    },
+    {
+      "level": "h2",
+      "text": "Add a Merge module"
+    },
+    {
+      "level": "h2",
+      "text": "Delete modules from the If-else and Merge flow"
+    },
+    {
+      "level": "h2",
+      "text": "Tutorial: Expense report approval system"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/57lsRGrunx-7NMybOIHgq-20260224-120214.png?format=webp&width=800",
+      "alt": "If-else module: Splits the scenario flow into multiple routes with conditions, then lets you merge them back together.",
+      "width": 800,
+      "height": 638,
+      "local_path": "assets/images/57lsRGrunx-7NMybOIHgq-20260224-120214__588bd5d7338a.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/gdKO1SHGqXyQkAiaJbVCD-20260224-121846.png?format=webp&width=800",
+      "alt": "Set up condition",
+      "width": 800,
+      "height": 831,
+      "local_path": "assets/images/gdKO1SHGqXyQkAiaJbVCD-20260224-121846__36cf8ab4b888.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/3wdLNQ4KVTmtEUJU1PAkj-20260224-124203.png?format=webp&width=800",
+      "alt": "Add another condition.",
+      "width": 800,
+      "height": 836,
+      "local_path": "assets/images/3wdLNQ4KVTmtEUJU1PAkj-20260224-124203__4f1b41cb0fd9.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/zJW12PUXi04OT16vWe9VO-20260224-124753.png?format=webp&width=800",
+      "alt": "Label the Else route.",
+      "width": 800,
+      "height": 501,
+      "local_path": "assets/images/zJW12PUXi04OT16vWe9VO-20260224-124753__1cc16d34fa9b.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/TCuZjU6AsbWxHdW5m8q5s-20260302-113131.png?format=webp",
+      "alt": "The Router and If-else modules are not available for use between an If-else and Merge flow.",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/TCuZjU6AsbWxHdW5m8q5s-20260302-113131__a67b83639249.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/CnJ3MD0JFClwpLYetLhFa-20260224-130912.png?format=webp",
+      "alt": "Merge module: Merges if-else routes together and continues the flow with data from a single route.",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/CnJ3MD0JFClwpLYetLhFa-20260224-130912__ee6feec0b8ef.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/vGif-L-vG3-IxHFGQA2XQ-20260224-131744.png?format=webp",
+      "alt": "Join the merge module to all routes.",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/vGif-L-vG3-IxHFGQA2XQ-20260224-131744__5a91e80c4424.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/8_WG4Osc53EVJ1eymbapj-20260309-131645.png?format=webp",
+      "alt": "Merge routes",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/8_WG4Osc53EVJ1eymbapj-20260309-131645__48abf5dc9b35.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/TCBkMYpgbYLju0C5RWWr1-20260305-120329.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/TCBkMYpgbYLju0C5RWWr1-20260305-120329__9c75c480e1a1.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/T8zHWQqfiSK99Ooq5jyOO-20260302-114245.png?format=webp",
+      "alt": "If you do not select a module for one of the routes after If-else and then connect it to the Merge, the module name becomes Do Nothing.",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/T8zHWQqfiSK99Ooq5jyOO-20260302-114245__c5b5179116f4.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/f2T0rFOKFDKlRkBw_PSDx-20260302-130938.png?format=webp",
+      "alt": "Search for an app to replace the Do Nothing module.",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/f2T0rFOKFDKlRkBw_PSDx-20260302-130938__2341a97056bc.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/UR4jGLavQbVmKJMgBL9L9-20260302-141335.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/UR4jGLavQbVmKJMgBL9L9-20260302-141335__b49c4d841564.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/dF0KsPPqFT4ZVBRzsXdPn-20260302-141627.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/dF0KsPPqFT4ZVBRzsXdPn-20260302-141627__5651505f785d.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/NPhm08tPl6__S5uZ-g8hX-20260302-141900.png?format=webp",
+      "alt": "Merge module without connection error",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/NPhm08tPl6__S5uZ-g8hX-20260302-141900__c3693d672c9f.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/Il2qYx3SP8AIptDuo6pMD-20260305-093214.png?format=webp",
+      "alt": "Expense report approval system scenario",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/Il2qYx3SP8AIptDuo6pMD-20260305-093214__215e3704c9ce.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/QDuyd04ZguNrIYshp0pca-20260305-100303.png?format=webp",
+      "alt": "First condition - expense amount above the limit",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/QDuyd04ZguNrIYshp0pca-20260305-100303__50ffa46664a9.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/621c9cbJsf85qPfgA2jgd-20260305-101332.png?format=webp",
+      "alt": "Configure the Slack module to send a message",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/621c9cbJsf85qPfgA2jgd-20260305-101332__ff0160922f43.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/J_iOCescOxrEfbVGSwRPl-20260305-111545.png?format=webp",
+      "alt": "Slack message example",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/J_iOCescOxrEfbVGSwRPl-20260305-111545__9274a232778c.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/FlpYg3ZnK_7u3sgPaTKSR-20260305-100828.png?format=webp",
+      "alt": "Set the Else route Label name",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/FlpYg3ZnK_7u3sgPaTKSR-20260305-100828__ba7834bea53f.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/_cUfZvQmeswaVe0J-f3qc-20260305-102844.png?format=webp",
+      "alt": "Set a variable to indicate that the expense report is approved.",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/_cUfZvQmeswaVe0J-f3qc-20260305-102844__ea285a99ba70.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/ckiyiqOgDRhhInq4QkGw0-20260305-104219.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/ckiyiqOgDRhhInq4QkGw0-20260305-104219__e3659dc709ab.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/mqnak1qhplHYrCOJIUo0f-20260305-104800.png?format=webp",
+      "alt": "Google Sheets > Add a row module configuration",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/mqnak1qhplHYrCOJIUo0f-20260305-104800__f2ee39944d72.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/V9KOvv-tbCCZYxu0YriPB-20260305-105150.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/V9KOvv-tbCCZYxu0YriPB-20260305-105150__4b2dc8ccb2a6.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/dmS5tfvnPYuEBaS51uSgW-20260305-110343.png?format=webp",
+      "alt": "Schedule the scenario to run",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/dmS5tfvnPYuEBaS51uSgW-20260305-110343__a56879a44a71.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/igy7YCI3Miqcfh-mNMbyK-20260305-110500.png?format=webp",
+      "alt": "Google Sheets submissions",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/igy7YCI3Miqcfh-mNMbyK-20260305-110500__0a71035680aa.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/converger",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/flow-control",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/if-else-and-merge",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/regexp",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/router",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/schedule-a-scenario",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/util",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

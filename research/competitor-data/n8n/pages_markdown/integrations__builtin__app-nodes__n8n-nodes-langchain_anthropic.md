@@ -1,0 +1,82 @@
+# Anthropic node documentation | n8n Docs
+
+Source: https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-langchain.anthropic
+Lastmod: 2026-04-14
+Description: Learn how to use the Anthropic node in n8n. Follow technical documentation to integrate Anthropic node into your workflows.
+# Anthropic node[#](#anthropic-node "Permanent link")
+
+Use the Anthropic node to automate work in Anthropic and integrate Anthropic with other applications. n8n has built-in support for a wide range of Anthropic features, including analyzing, uploading, getting, and deleting documents, files, and images, and generating, improving, or templatizing prompts.
+
+On this page, you'll find a list of operations the Anthropic node supports, and links to more resources.
+
+Credentials
+
+You can find authentication information for this node [here](../../credentials/anthropic/).
+
+## Operations[#](#operations "Permanent link")
+
+* Document:
+  + Analyze Document: Take in documents and answer questions about them.
+* File:
+  + Upload File: Upload a file to the Anthropic API for later user.
+  + Get File Metadata: Get metadata for a file from the Anthropic API.
+  + List Files: List files from the Anthropic API.
+  + Delete File: Delete a file from the Anthropic API.
+* Image:
+  + Analyze Image: Take in images and answer questions about them.
+* Prompt:
+  + Generate Prompt: Generate a prompt for a model.
+  + Improve Prompt: Improve a prompt for a model.
+  + Templatize Prompt: Templatize a prompt for a model.
+* Text:
+  + Message a Model: Create a completion with an Anthropic model.
+
+## Templates and examples[#](#templates-and-examples "Permanent link")
+
+**Notion AI Assistant Generator**
+
+by Max Tkacz
+
+[View template details](https://n8n.io/workflows/2415-notion-ai-assistant-generator/)
+
+**Gmail AI Email Manager**
+
+by Max Mitcham
+
+[View template details](https://n8n.io/workflows/4722-gmail-ai-email-manager/)
+
+**🤖 AI content generation for Auto Service 🚘 Automate your social media📲!**
+
+by N8ner
+
+[View template details](https://n8n.io/workflows/4600-ai-content-generation-for-auto-service-automate-your-social-media/)
+
+[Browse Anthropic integration templates](https://n8n.io/integrations/anthropic/), or [search all templates](https://n8n.io/workflows/)
+
+## Related resources[#](#related-resources "Permanent link")
+
+Refer to [Anthropic's documentation](https://docs.anthropic.com/en/api/overview) for more information about the service.
+
+## What to do if your operation isn't supported[#](#what-to-do-if-your-operation-isnt-supported "Permanent link")
+
+If this node doesn't support the operation you want to do, you can use the [HTTP Request node](../../core-nodes/n8n-nodes-base.httprequest/) to call the service's API.
+
+You can use the credential you created for this service in the HTTP Request node:
+
+1. In the HTTP Request node, select **Authentication** > **Predefined Credential Type**.
+2. Select the service you want to connect to.
+3. Select your credential.
+
+Refer to [Custom API operations](../../../custom-operations/) for more information.
+
+Chat with the docs
+
+This page was
+
+![Thumbs up](/_images/assets/thumb_up.png)Helpful
+
+![Thumbs down](/_images/assets/thumb_down.png)Not helpful
+
+Thanks for your feedback!
+
+Submit

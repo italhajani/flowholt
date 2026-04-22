@@ -1,0 +1,2 @@
+import{j as e}from"./vendor-query-PR9aJ31q.js";function l({title:i,description:s,actions:t,children:x}){return e.jsxs("div",{className:"flex items-start justify-between",children:[e.jsxs("div",{className:"min-w-0",children:[e.jsx("h2",{className:"text-[18px] font-semibold leading-tight text-zinc-900",children:i}),s&&e.jsx("p",{className:"mt-0.5 text-[13px] text-zinc-500",children:s}),x]}),t&&e.jsx("div",{className:"flex items-center gap-2 flex-shrink-0 ml-4",children:t})]})}export{l as P};
+//# sourceMappingURL=PageHeader-CT_xGCIj.js.map

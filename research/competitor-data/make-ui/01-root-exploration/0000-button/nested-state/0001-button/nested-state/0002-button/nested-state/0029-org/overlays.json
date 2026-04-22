@@ -1,0 +1,24 @@
+[
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "cdk-overlay-container",
+    "text": "",
+    "x": 0,
+    "y": 0,
+    "width": 1600,
+    "height": 1000
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "ai-button-container ng-tns-c648184870-1 no-overlay ng-star-inserted",
+    "text": "",
+    "x": 1532,
+    "y": 936,
+    "width": 48,
+    "height": 40
+  }
+]

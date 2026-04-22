@@ -1,0 +1,24 @@
+{
+  "url": "https://eu1.make.com/",
+  "title": "",
+  "domNodes": 78,
+  "headings": [],
+  "buttons": [],
+  "inputs": [],
+  "tabs": [],
+  "menus": [],
+  "dialogs": [],
+  "links": [
+    {
+      "tag": "a",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 8,
+      "y": 8,
+      "width": 1584,
+      "height": 36
+    }
+  ]
+}

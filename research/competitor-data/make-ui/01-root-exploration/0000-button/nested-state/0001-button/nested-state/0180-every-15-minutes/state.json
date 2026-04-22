@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:22:21.400Z",
+  "label": "Every 15 minutes",
+  "depth": 2,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "ab1d194b2a49a8a5",
+  "fingerprint": "ab1d194b2a49a8a5",
+  "url": "https://eu1.make.com/apps?tab=examples",
+  "title": "Custom Apps | Make",
+  "overlayCount": 0,
+  "elementCount": 88
+}

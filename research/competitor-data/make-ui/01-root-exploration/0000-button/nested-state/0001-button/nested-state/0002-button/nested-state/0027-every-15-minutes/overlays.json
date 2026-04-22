@@ -1,0 +1,35 @@
+[
+  {
+    "selector": "[class*='overlay']",
+    "tag": "imt-overlay",
+    "role": "",
+    "className": "imt app-search-floating-overlay",
+    "text": "&nbsp; Can't find what you're looking for? Use the HTTP app Connect to the majority of services through the universal HTTP app. Read more in our Help center. Request an app Let us know what apps are important to you. Hire a developer Match with a Make partner who can create apps for you. Create an app Use our apps builder to create apps yourself.",
+    "x": 939,
+    "y": 185,
+    "width": 604,
+    "height": 526
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "overlay-arrow dmo-shadow-lg dmo-absolute",
+    "text": "",
+    "x": 927,
+    "y": 437,
+    "width": 23,
+    "height": 23
+  },
+  {
+    "selector": "[class*='overlay']",
+    "tag": "div",
+    "role": "",
+    "className": "ai-button-container ng-tns-c648184870-1 no-overlay ng-star-inserted",
+    "text": "",
+    "x": 1532,
+    "y": 936,
+    "width": 48,
+    "height": 40
+  }
+]

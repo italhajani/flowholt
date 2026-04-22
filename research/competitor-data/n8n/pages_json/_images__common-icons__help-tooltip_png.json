@@ -1,0 +1,29 @@
+{
+  "url": "https://docs.n8n.io/_images/common-icons/help-tooltip.png",
+  "slug": "_images__common-icons__help-tooltip_png",
+  "title": "help-tooltip.png (16×15)",
+  "description": "",
+  "lastmod": null,
+  "markdown_path": "pages_markdown/_images__common-icons__help-tooltip_png.md",
+  "raw_html_path": "raw_html/_images__common-icons__help-tooltip_png.html",
+  "heading_count": 0,
+  "image_count": 1,
+  "iframe_count": 0,
+  "file_link_count": 0,
+  "content_selector": "body",
+  "content_text_length": 0,
+  "headings": [],
+  "images": [
+    {
+      "src": "https://docs.n8n.io/_images/common-icons/help-tooltip.png",
+      "alt": "",
+      "width": 16,
+      "height": 15,
+      "local_path": "assets/images/help-tooltip__206a50daad17.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [],
+  "videos": [],
+  "discovered_internal_links": []
+}

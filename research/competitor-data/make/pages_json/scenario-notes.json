@@ -1,0 +1,205 @@
+{
+  "url": "https://help.make.com/scenario-notes",
+  "slug": "scenario-notes",
+  "title": "Scenario notes - Help Center",
+  "description": "Add notes to modules and routes to document your logic and keep track of important details",
+  "lastmod": "2026-03-19T10:46:50.553Z",
+  "markdown_path": "pages_markdown/scenario-notes.md",
+  "raw_html_path": "raw_html/scenario-notes.html",
+  "heading_count": 13,
+  "image_count": 6,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 2802,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Scenario notes"
+    },
+    {
+      "level": "h3",
+      "text": "Create notes"
+    },
+    {
+      "level": "h3",
+      "text": "View notes"
+    },
+    {
+      "level": "h3",
+      "text": "Edit notes"
+    },
+    {
+      "level": "h3",
+      "text": "Delete notes"
+    },
+    {
+      "level": "h3",
+      "text": "Best practices"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/sirXheD7xX_Fm9AYGFQJn-20260317-125903.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 938,
+      "local_path": "assets/images/sirXheD7xX_Fm9AYGFQJn-20260317-125903__eef2e7c4c073.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/AU7EIlxcVJaLmO4s-MLP6-20260317-130302.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 621,
+      "local_path": "assets/images/AU7EIlxcVJaLmO4s-MLP6-20260317-130302__3e3be23b1d04.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/isFHVAF4U3FRYAhHcQI-X-20260317-130417.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 572,
+      "local_path": "assets/images/isFHVAF4U3FRYAhHcQI-X-20260317-130417__bd8be4a2e037.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/gVyqsVwCJJRom0s3uLs0B-20260317-134444.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 295,
+      "local_path": "assets/images/gVyqsVwCJJRom0s3uLs0B-20260317-134444__a958beb1e9ff.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/3L9zk3BUI351ilFu3Z0L0-20260317-133207.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 309,
+      "local_path": "assets/images/3L9zk3BUI351ilFu3Z0L0-20260317-133207__57cb850f4e37.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/clone-a-scenario",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-and-manage-scenario-templates",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/custom-scenario-properties",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/incomplete-executions",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/restore-and-recover-scenario",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenario-execution-cycles-and-phases",
+    "https://help.make.com/scenario-inputs-and-outputs",
+    "https://help.make.com/scenario-notes",
+    "https://help.make.com/scenario-run-replay",
+    "https://help.make.com/scenario-settings",
+    "https://help.make.com/scenario-sharing",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscenarios",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/variables",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

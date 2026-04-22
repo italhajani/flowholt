@@ -1,0 +1,41 @@
+2026-04-21 17:40:52,156 [INFO] Starting scrape: https://developers.make.com/
+2026-04-21 17:40:52,158 [INFO] Output: D:\My work\make com docs scraper\make_docs
+2026-04-21 17:40:52,158 [INFO] Workers: 4  Delay: 0.5s
+2026-04-21 17:41:05,505 [INFO] [Progress] done=25/206 skip=0 err=0 rate=1.9/s ETA=96s
+2026-04-21 17:41:15,133 [INFO] [Progress] done=50/240 skip=0 err=0 rate=2.2/s ETA=87s
+2026-04-21 17:41:15,138 [INFO] [Progress] done=50/240 skip=0 err=0 rate=2.2/s ETA=87s
+2026-04-21 17:41:15,142 [INFO] [Progress] done=50/240 skip=0 err=0 rate=2.2/s ETA=87s
+2026-04-21 17:41:29,837 [INFO] [Progress] done=75/272 skip=0 err=0 rate=2.0/s ETA=98s
+2026-04-21 17:41:42,112 [INFO] [Progress] done=100/307 skip=0 err=0 rate=2.0/s ETA=103s
+2026-04-21 17:41:53,796 [INFO] [Progress] done=125/362 skip=0 err=0 rate=2.0/s ETA=116s
+2026-04-21 17:42:05,267 [INFO] [Progress] done=150/422 skip=0 err=0 rate=2.1/s ETA=132s
+2026-04-21 17:42:28,137 [INFO] [Progress] done=175/439 skip=0 err=0 rate=1.8/s ETA=144s
+2026-04-21 17:42:47,025 [INFO] [Progress] done=200/443 skip=0 err=0 rate=1.7/s ETA=139s
+2026-04-21 17:43:05,461 [INFO] [Progress] done=225/449 skip=0 err=0 rate=1.7/s ETA=132s
+2026-04-21 17:43:14,778 [WARNING] Attempt 1/3 failed for https://developers.make.com/cdn-cgi/l/email-protection: 404 Client Error: Not Found for url: https://developers.make.com/cdn-cgi/l/email-protection
+2026-04-21 17:43:16,840 [WARNING] Attempt 2/3 failed for https://developers.make.com/cdn-cgi/l/email-protection: 404 Client Error: Not Found for url: https://developers.make.com/cdn-cgi/l/email-protection
+2026-04-21 17:43:20,898 [WARNING] Attempt 3/3 failed for https://developers.make.com/cdn-cgi/l/email-protection: 404 Client Error: Not Found for url: https://developers.make.com/cdn-cgi/l/email-protection
+2026-04-21 17:43:20,899 [ERROR] Failed: https://developers.make.com/cdn-cgi/l/email-protection
+2026-04-21 17:43:25,253 [WARNING] Attempt 1/3 failed for https://developers.make.com/scenarios-get: 404 Client Error: Not Found for url: https://developers.make.com/scenarios-get
+2026-04-21 17:43:27,939 [WARNING] Attempt 2/3 failed for https://developers.make.com/scenarios-get: 404 Client Error: Not Found for url: https://developers.make.com/scenarios-get
+2026-04-21 17:43:32,222 [WARNING] Attempt 3/3 failed for https://developers.make.com/scenarios-get: 404 Client Error: Not Found for url: https://developers.make.com/scenarios-get
+2026-04-21 17:43:32,224 [ERROR] Failed: https://developers.make.com/scenarios-get
+2026-04-21 17:43:43,108 [INFO] [Progress] done=275/453 skip=11 err=2 rate=1.6/s ETA=110s
+2026-04-21 17:43:43,112 [INFO] [Progress] done=275/453 skip=11 err=2 rate=1.6/s ETA=110s
+2026-04-21 17:44:04,158 [INFO] [Progress] done=300/462 skip=12 err=2 rate=1.6/s ETA=103s
+2026-04-21 17:44:25,776 [INFO] [Progress] done=325/467 skip=12 err=2 rate=1.5/s ETA=93s
+2026-04-21 17:45:03,879 [INFO] [Progress] done=375/473 skip=12 err=2 rate=1.5/s ETA=65s
+2026-04-21 17:45:24,897 [INFO] [Progress] done=400/473 skip=12 err=2 rate=1.5/s ETA=49s
+2026-04-21 17:45:24,900 [INFO] [Progress] done=400/473 skip=12 err=2 rate=1.5/s ETA=49s
+2026-04-21 17:45:24,910 [INFO] [Progress] done=400/473 skip=12 err=2 rate=1.5/s ETA=49s
+2026-04-21 17:45:44,174 [INFO] [Progress] done=425/473 skip=12 err=2 rate=1.5/s ETA=32s
+2026-04-21 17:45:44,177 [INFO] [Progress] done=425/473 skip=12 err=2 rate=1.5/s ETA=32s
+2026-04-21 17:45:59,657 [WARNING] Attempt 1/3 failed for https://developers.make.com/api-documentation/api-reference/keys-1: 404 Client Error: Not Found for url: https://developers.make.com/api-documentation/api-reference/keys-1
+2026-04-21 17:46:02,750 [WARNING] Attempt 2/3 failed for https://developers.make.com/api-documentation/api-reference/keys-1: 404 Client Error: Not Found for url: https://developers.make.com/api-documentation/api-reference/keys-1
+2026-04-21 17:46:07,292 [WARNING] Attempt 3/3 failed for https://developers.make.com/api-documentation/api-reference/keys-1: 404 Client Error: Not Found for url: https://developers.make.com/api-documentation/api-reference/keys-1
+2026-04-21 17:46:07,293 [ERROR] Failed: https://developers.make.com/api-documentation/api-reference/keys-1
+2026-04-21 17:46:26,164 [INFO] Search index saved: make_docs\_meta\search_index.json (454 entries)
+2026-04-21 17:46:26,167 [INFO] Sitemap saved: make_docs\_meta\sitemap.txt
+2026-04-21 17:46:26,167 [INFO] ============================================================
+2026-04-21 17:46:26,168 [INFO] [Progress] done=473/473 skip=16 err=3 rate=1.4/s ETA=0s
+2026-04-21 17:46:26,171 [INFO] Done! Files saved to: D:\My work\make com docs scraper\make_docs

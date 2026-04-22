@@ -1,0 +1,7 @@
+2026/04/13-20:09:06.181 2c74 Reusing MANIFEST C:\Users\Gouhar Ali\AppData\Local\Microsoft\Edge\User Data\Default\IndexedDB\https_tamashaweb.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/13-20:09:06.182 2c74 Recovering log #3
+2026/04/13-20:09:06.185 2c74 Reusing old log C:\Users\Gouhar Ali\AppData\Local\Microsoft\Edge\User Data\Default\IndexedDB\https_tamashaweb.com_0.indexeddb.leveldb/000003.log 
+2026/04/13-20:09:38.196 2c74 Level-0 table #5: started
+2026/04/13-20:09:38.211 2c74 Level-0 table #5: 37176 bytes OK
+2026/04/13-20:09:38.226 2c74 Delete type=0 #3
+2026/04/13-20:09:38.227 2c74 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

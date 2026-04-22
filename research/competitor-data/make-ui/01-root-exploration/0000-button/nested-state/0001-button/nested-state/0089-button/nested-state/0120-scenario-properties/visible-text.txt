@@ -1,0 +1,47 @@
+Org
+Scenarios
+AI Agents
+Beta
+Credentials
+Webhooks
+MCP Toolboxes
+Templates
+Data
+stores
+Devices
+Data structures
+Custom
+Apps
+M
+My Organization
+My Team
+Organization settings
+Create scenario
+Help
+TJ
+Organization
+Dashboard
+Teams
+Users
+My Plan
+Subscription
+Free
+Credit usage
+Payments
+Utilities
+Installed apps
+Variables
+Scenario properties
+Notification options
+Custom scenario properties
+
+Keep your long list of scenarios organized. Learn more about custom scenario properties available on the Enterprise plan.
+
+Talk to sales
+Scenario filtering
+
+Use custom scenario properties to narrow down that long list so you can focus on automating.
+
+Enhanced scenario information
+
+Create custom scenario properties to include the information you need in your scenario list.

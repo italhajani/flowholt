@@ -1,0 +1,352 @@
+{
+  "url": "https://help.make.com/subscenarios",
+  "slug": "subscenarios",
+  "title": "Subscenarios - Help Center",
+  "description": "Build scenario chains to run complex workflows in sequence and transfer data",
+  "lastmod": "2026-03-20T08:26:01.370Z",
+  "markdown_path": "pages_markdown/subscenarios.md",
+  "raw_html_path": "raw_html/subscenarios.html",
+  "heading_count": 20,
+  "image_count": 23,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 19046,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Subscenarios"
+    },
+    {
+      "level": "h2",
+      "text": "Benefits of subscenarios"
+    },
+    {
+      "level": "h2",
+      "text": "Limitations of subscenarios"
+    },
+    {
+      "level": "h2",
+      "text": "Calling modes for subscenarios"
+    },
+    {
+      "level": "h3",
+      "text": "Synchronous execution"
+    },
+    {
+      "level": "h3",
+      "text": "Asynchronous execution"
+    },
+    {
+      "level": "h2",
+      "text": "Create a parent scenario with subscenarios"
+    },
+    {
+      "level": "h3",
+      "text": "Create a parent scenario"
+    },
+    {
+      "level": "h3",
+      "text": "Create a subscenario with synchronous execution"
+    },
+    {
+      "level": "h3",
+      "text": "Create a subscenario with asynchronous execution"
+    },
+    {
+      "level": "h2",
+      "text": "When to use subscenarios"
+    },
+    {
+      "level": "h3",
+      "text": "Reduce the complexity and simplify the maintenance of scenarios"
+    },
+    {
+      "level": "h3",
+      "text": "Reuse instead of duplicating"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/E0Rg9YoUtfKIKWMF7lHXm-20260225-102438.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 462,
+      "local_path": "assets/images/E0Rg9YoUtfKIKWMF7lHXm-20260225-102438__281b81baf35e.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/WA3LfkRSBjs1qFnxrdMQF-20260225-102507.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 407,
+      "local_path": "assets/images/WA3LfkRSBjs1qFnxrdMQF-20260225-102507__a9da3b532a18.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/GU9xcFHGs3NjFP6tiEDts-20260305-110530.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 418,
+      "local_path": "assets/images/GU9xcFHGs3NjFP6tiEDts-20260305-110530__2eaedb12a720.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/DVyl0g4YEKYP_ohDvETXn-20260219-105913.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/DVyl0g4YEKYP_ohDvETXn-20260219-105913__8229da856421.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/leLwUOvtTJ9sMEnJSJlAf-20260206-152304.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/leLwUOvtTJ9sMEnJSJlAf-20260206-152304__67a65b0ca4a8.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/ejf0xxT9HNoNX90YD53vG-20260206-152332.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/ejf0xxT9HNoNX90YD53vG-20260206-152332__4e7ec46a6f81.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/KDhUGaIYIPjOCbX72rjkT-20260305-141055.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/KDhUGaIYIPjOCbX72rjkT-20260305-141055__8a05c36acbe5.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/aY8RsLv5f8L2ikYj1f4Yg-20260305-130333.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/aY8RsLv5f8L2ikYj1f4Yg-20260305-130333__3a26b7957b11.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/qQ_rgXGLuy-zaOCaYP06K-20260219-114544.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/qQ_rgXGLuy-zaOCaYP06K-20260219-114544__7530ac003696.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/8kmsml9OhcvEFmkBxfkcV-20260223-103542.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/8kmsml9OhcvEFmkBxfkcV-20260223-103542__07818f4af2e1.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/qQEYAPR0Nq_JlYkGHbcjw-20260219-125954.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/qQEYAPR0Nq_JlYkGHbcjw-20260219-125954__e207fe26bb38.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/g3HTq5htfclZG8KFU9e1P-20260223-093555.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/g3HTq5htfclZG8KFU9e1P-20260223-093555__3c2c6a94b3b4.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/H1eL5iXrs-dfJkaByFeEr-20260223-102239.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/H1eL5iXrs-dfJkaByFeEr-20260223-102239__dc3f4ffe780c.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/yQOt3lBC-dS71RydPe1Zv-20260223-110917.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yQOt3lBC-dS71RydPe1Zv-20260223-110917__7c7220266774.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/xoo-2aTEmKEcaZt2jpqLc-20260223-112414.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/xoo-2aTEmKEcaZt2jpqLc-20260223-112414__70c8e69bb1f4.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/OvspdJawZNlzG6qydsJQD-20260224-130950.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/OvspdJawZNlzG6qydsJQD-20260224-130950__f6d6895ffd84.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/JbKdAaue5D83PkZCkOfBx-20260224-150614.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/JbKdAaue5D83PkZCkOfBx-20260224-150614__f400a1d466db.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/xSpopoGgSncg0Or6H8tee-20260223-172334.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/xSpopoGgSncg0Or6H8tee-20260223-172334__689fca01e8af.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/84hVWWZI3wyGm8F7ArT1Q-20260223-174312.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/84hVWWZI3wyGm8F7ArT1Q-20260223-174312__2c09a2e4e246.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/AjB07AK736C5BCIRvW4Ty-20260305-142648.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/AjB07AK736C5BCIRvW4Ty-20260305-142648__9eb2355502e8.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/2DBj82pK7r43FeMM7zpQ7-20260224-135914.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/2DBj82pK7r43FeMM7zpQ7-20260224-135914__e06c0047f5ba.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/w6S1RefF0P6ClcfWoTNI8-20260225-090939.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/w6S1RefF0P6ClcfWoTNI8-20260225-090939__01759f0e23bc.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-and-manage-scenario-templates",
+    "https://help.make.com/create-the-structure-of-scenario-inputs-or-outputs",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/custom-scenario-properties",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/incomplete-executions",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/related-apis",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/restore-and-recover-scenario",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenario-execution-cycles-and-phases",
+    "https://help.make.com/scenario-inputs-and-outputs",
+    "https://help.make.com/scenario-notes",
+    "https://help.make.com/scenario-run-replay",
+    "https://help.make.com/scenario-settings",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/subscenarios",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/variables",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

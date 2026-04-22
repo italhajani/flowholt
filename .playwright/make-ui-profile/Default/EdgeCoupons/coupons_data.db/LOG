@@ -1,0 +1,10 @@
+2026/04/14-13:11:33.520 20 Reusing MANIFEST D:\My work\flowholt3 - Copy\.playwright\make-ui-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/04/14-13:11:33.665 20 Recovering log #1131
+2026/04/14-13:11:33.666 20 Reusing old log D:\My work\flowholt3 - Copy\.playwright\make-ui-profile\Default\EdgeCoupons/coupons_data.db/001131.log 
+2026/04/14-13:11:41.235 e38 Level-0 table #1135: started
+2026/04/14-13:11:41.269 e38 Level-0 table #1135: 682299 bytes OK
+2026/04/14-13:11:41.278 e38 Delete type=0 #1131
+2026/04/14-13:11:41.279 e38 Compacting 4@0 + 1@1 files
+2026/04/14-13:11:41.297 e38 Generated table #1136@0: 1 keys, 682056 bytes
+2026/04/14-13:11:41.297 e38 Compacted 4@0 + 1@1 files => 682056 bytes
+2026/04/14-13:11:41.301 e38 compacted to: files[ 0 1 0 0 0 0 0 ]

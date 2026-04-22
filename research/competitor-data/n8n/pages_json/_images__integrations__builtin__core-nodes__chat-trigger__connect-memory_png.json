@@ -1,0 +1,29 @@
+{
+  "url": "https://docs.n8n.io/_images/integrations/builtin/core-nodes/chat-trigger/connect-memory.png",
+  "slug": "_images__integrations__builtin__core-nodes__chat-trigger__connect-memory_png",
+  "title": "connect-memory.png (676×456)",
+  "description": "",
+  "lastmod": null,
+  "markdown_path": "pages_markdown/_images__integrations__builtin__core-nodes__chat-trigger__connect-memory_png.md",
+  "raw_html_path": "raw_html/_images__integrations__builtin__core-nodes__chat-trigger__connect-memory_png.html",
+  "heading_count": 0,
+  "image_count": 1,
+  "iframe_count": 0,
+  "file_link_count": 0,
+  "content_selector": "body",
+  "content_text_length": 0,
+  "headings": [],
+  "images": [
+    {
+      "src": "https://docs.n8n.io/_images/integrations/builtin/core-nodes/chat-trigger/connect-memory.png",
+      "alt": "",
+      "width": 676,
+      "height": 456,
+      "local_path": "assets/images/connect-memory__b5d472f23a71.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [],
+  "videos": [],
+  "discovered_internal_links": []
+}

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:15:20.681Z",
+  "label": "notifications-link",
+  "depth": 3,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "a253136c5721e0cc",
+  "fingerprint": "ca1dc60937b461d0",
+  "url": "https://eu1.make.com/notifications",
+  "title": "Notifications | Make",
+  "overlayCount": 3,
+  "elementCount": 47
+}

@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:22:05.290Z",
+  "label": "btn-inspector-explain-flow",
+  "depth": 2,
+  "mode": "overlay",
+  "action": "click",
+  "parentFingerprint": "79158c775cf84b51",
+  "fingerprint": "79158c775cf84b51",
+  "url": "https://eu1.make.com/apps?tab=myapps",
+  "title": "Custom Apps | Make",
+  "overlayCount": 0,
+  "elementCount": 40
+}

@@ -1,0 +1,23 @@
+2026/04/14-13:11:28.886 3c80 Reusing MANIFEST D:\My work\flowholt3 - Copy\.playwright\make-ui-profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/04/14-13:11:28.899 3c80 Recovering log #683
+2026/04/14-13:11:28.902 3c80 Reusing old log D:\My work\flowholt3 - Copy\.playwright\make-ui-profile\Default\Local Storage\leveldb/000683.log 
+2026/04/14-13:12:28.928 3c80 Level-0 table #687: started
+2026/04/14-13:12:28.941 3c80 Level-0 table #687: 33637 bytes OK
+2026/04/14-13:12:28.946 3c80 Delete type=0 #683
+2026/04/14-13:12:28.947 3d34 Compacting 4@0 + 2@1 files
+2026/04/14-13:12:29.028 3d34 Generated table #688@0: 2066 keys, 2531380 bytes
+2026/04/14-13:12:29.044 3d34 Generated table #689@0: 696 keys, 253342 bytes
+2026/04/14-13:12:29.044 3d34 Compacted 4@0 + 2@1 files => 2784722 bytes
+2026/04/14-13:12:29.050 3d34 compacted to: files[ 0 2 1 0 0 0 0 ]
+2026/04/14-13:12:29.051 3d34 Delete type=2 #675
+2026/04/14-13:12:29.052 3d34 Delete type=2 #676
+2026/04/14-13:12:29.052 3d34 Delete type=2 #678
+2026/04/14-13:12:29.052 3d34 Delete type=2 #681
+2026/04/14-13:12:29.052 3d34 Delete type=2 #684
+2026/04/14-13:12:29.052 3d34 Delete type=2 #687
+2026/04/14-13:16:40.422 3c80 Level-0 table #691: started
+2026/04/14-13:16:40.437 3c80 Level-0 table #691: 18443 bytes OK
+2026/04/14-13:16:40.447 3c80 Delete type=0 #686
+2026/04/14-13:21:40.424 3c80 Level-0 table #693: started
+2026/04/14-13:21:40.437 3c80 Level-0 table #693: 14426 bytes OK
+2026/04/14-13:21:40.445 3c80 Delete type=0 #690

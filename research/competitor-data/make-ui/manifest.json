@@ -1,0 +1,25 @@
+{
+  "exploredAt": "2026-04-14T08:23:28.524Z",
+  "url": "https://eu1.make.com/1467385/scenarios/add",
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "settings": {
+    "settleMs": 1500,
+    "maxDepth": 3,
+    "maxInteractions": 200,
+    "maxElementsPerState": 40
+  },
+  "counts": {
+    "baselineElements": 84,
+    "totalInteractions": 200,
+    "catalogEntries": 200,
+    "transitions": 200,
+    "visitedStates": 9,
+    "replayPaths": 137,
+    "networkEntries": 1302,
+    "networkSummaryEntries": 99,
+    "websockets": 2
+  }
+}

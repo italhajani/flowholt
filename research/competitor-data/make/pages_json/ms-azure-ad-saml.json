@@ -1,0 +1,232 @@
+{
+  "url": "https://help.make.com/ms-azure-ad-saml",
+  "slug": "ms-azure-ad-saml",
+  "title": "MS Azure AD SAML - Help Center",
+  "description": "Configure SAML single sign-on with Microsoft Azure AD to authenticate organization users.",
+  "lastmod": "2026-04-08T14:40:14.779Z",
+  "markdown_path": "pages_markdown/ms-azure-ad-saml.md",
+  "raw_html_path": "raw_html/ms-azure-ad-saml.html",
+  "heading_count": 16,
+  "image_count": 9,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 4361,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "MS Azure AD SAML"
+    },
+    {
+      "level": "h2",
+      "text": "Prerequisites"
+    },
+    {
+      "level": "h2",
+      "text": "Supported features"
+    },
+    {
+      "level": "h2",
+      "text": "Configuration steps"
+    },
+    {
+      "level": "h3",
+      "text": "Create your namespace in Make"
+    },
+    {
+      "level": "h3",
+      "text": "Create an SAML application in the MS Azure portal"
+    },
+    {
+      "level": "h3",
+      "text": "Download the SAML certificate"
+    },
+    {
+      "level": "h3",
+      "text": "Update the SSO in Make"
+    },
+    {
+      "level": "h2",
+      "text": "Service Provider initiated SSO"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-tD6CsOpNFHk6XV8ajr8R5-20250212-104942.png?format=webp&width=800",
+      "alt": "MS Azure portal",
+      "width": 800,
+      "height": 139,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-tD6CsOpNFHk6XV8ajr8R5-20250212-104942__402bb95d832f.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-plGd2Ny-t1DL-eWQw36Ui-20250212-105215.png?format=webp&width=800",
+      "alt": "MS Azure Enterprise applications",
+      "width": 800,
+      "height": 1512,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-plGd2Ny-t1DL-eWQw36Ui-20250212-105215__5e84507550d2.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-z-mCMqhk94EWS1ILQMWDt-20250212-112508.png?format=webp&width=800",
+      "alt": "Create your own application",
+      "width": 800,
+      "height": 416,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-z-mCMqhk94EWS1ILQMWDt-20250212-112508__137687a33ab2.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-E67JElULE2PkIdKkr6OH5-20250212-112942.png?format=webp&width=800",
+      "alt": "Single sign-on",
+      "width": 800,
+      "height": 401,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-E67JElULE2PkIdKkr6OH5-20250212-112942__a7b9fd52c67f.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-g_AKMUUHfRcYX4h00TJ_q-20250212-113753.png?format=webp&width=800",
+      "alt": "Basic SAML configuration",
+      "width": 800,
+      "height": 194,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-g_AKMUUHfRcYX4h00TJ_q-20250212-113753__9f1a1bf8fb04.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-4rtj_xdWWkHSkmGVus4zP-20250212-114014.png?format=webp&width=800",
+      "alt": "Attributes and claims",
+      "width": 800,
+      "height": 173,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-4rtj_xdWWkHSkmGVus4zP-20250212-114014__8f34757b34d9.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-ASoASMJC8M9JVykO29Ihk-20250212-114639.png?format=webp",
+      "alt": "Login and logout URL",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-ASoASMJC8M9JVykO29Ihk-20250212-114639__2d96d22a65ec.png"
+    },
+    {
+      "src": "https://images.archbee.com/yAufeXqD1oGWOPBNi5MAm-3yxio08te9esClNkt-wjX-20250212-120230.png?format=webp",
+      "alt": "SSO Settings",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/yAufeXqD1oGWOPBNi5MAm-3yxio08te9esClNkt-wjX-20250212-120230__341bbef09a1e.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/developers",
+    "https://help.make.com/domain-claim",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/google-saml",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/ms-azure-ad-oidc",
+    "https://help.make.com/ms-azure-ad-saml",
+    "https://help.make.com/okta-saml",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/saml-certificate-management",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/single-sign-on",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

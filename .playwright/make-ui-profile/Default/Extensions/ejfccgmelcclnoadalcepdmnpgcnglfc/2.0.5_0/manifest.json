@@ -1,0 +1,39 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "img/icon.png"
+      },
+      "default_popup": "popup.html",
+      "default_title": "AHA Music - Song Finder for Browser"
+   },
+   "author": "qiuxuewen@gmail.com",
+   "background": {
+      "service_worker": "background.js"
+   },
+   "content_scripts": [ {
+      "js": [ "content.js" ],
+      "matches": [ "*://*/*" ]
+   } ],
+   "content_security_policy": {
+      "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-eval'; child-src 'self'"
+   },
+   "default_locale": "en",
+   "description": "__MSG_appDesc__",
+   "icons": {
+      "128": "img/icon.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsYE5AW4tMqLUKEHobDdCsW2ee26LjiAesISvApC82ZctAKBbD/Rb2lZqkPwH6smHMuuNYjlxs5DSHBSaRRq7BF7NQ1NjjeYmvXZIQJZixI6MpjJbPYBDqujiwcTL1YfvvsW2OD4dxmj5YvcH4h+qUdJb/65IRLDKwOz1xyhZAHkU8/Q2lkUf/SUKFaEOam5/fNgZPxoTjWOMPstQbc23K7Pkit/agaEGAsWQ0KwxTv+NuuHxfhELpXOex4zTi4G+f9EXpAKeNSHRUM6QUsMjV4ezViOh7xy69xDUVm136EkjfAzjEbpgvnYrmXRwa+wzkCBMZdJE95QP4OKfJ90M4QIDAQAB",
+   "manifest_version": 3,
+   "name": "__MSG_appName__",
+   "oauth2": {
+      "client_id": "213893408880-fm827tqel9nkitkjbi40spklscf2jn7g.apps.googleusercontent.com",
+      "scopes": [ "https://www.googleapis.com/auth/userinfo.profile" ]
+   },
+   "permissions": [ "identity", "identity.email", "storage", "unlimitedStorage", "activeTab", "tabCapture" ],
+   "sandbox": {
+      "pages": [ "sandbox.html" ]
+   },
+   "short_name": "AHA Music",
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "2.0.5"
+}

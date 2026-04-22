@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-14T08:19:12.140Z",
+  "label": "Subscription Free",
+  "depth": 3,
+  "mode": "nested",
+  "action": "click",
+  "parentFingerprint": "a6b4a1d12bf55a80",
+  "fingerprint": "c31f3361d320c511",
+  "url": "https://eu1.make.com/organization/7282142/teams",
+  "title": "Make",
+  "overlayCount": 0,
+  "elementCount": 79
+}

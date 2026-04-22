@@ -1,0 +1,253 @@
+{
+  "url": "https://help.make.com/two-factor-authentication-enforcement",
+  "slug": "two-factor-authentication-enforcement",
+  "title": "Two-factor authentication enforcement - Help Center",
+  "description": "Help Center",
+  "lastmod": "2026-02-13T10:37:47.786Z",
+  "markdown_path": "pages_markdown/two-factor-authentication-enforcement.md",
+  "raw_html_path": "raw_html/two-factor-authentication-enforcement.html",
+  "heading_count": 16,
+  "image_count": 12,
+  "iframe_count": 0,
+  "file_link_count": 1,
+  "content_selector": "div",
+  "content_text_length": 4834,
+  "headings": [
+    {
+      "level": "h1",
+      "text": "Two-factor authentication enforcement"
+    },
+    {
+      "level": "h2",
+      "text": "Key benefits"
+    },
+    {
+      "level": "h2",
+      "text": "Limitations"
+    },
+    {
+      "level": "h2",
+      "text": "Enable 2FA enforcement in the Organization"
+    },
+    {
+      "level": "h2",
+      "text": "Set up 2FA"
+    },
+    {
+      "level": "h2",
+      "text": "Check 2FA status"
+    },
+    {
+      "level": "h3",
+      "text": "Check 2FA status at the organization level"
+    },
+    {
+      "level": "h3",
+      "text": "Check 2FA status at the team level"
+    },
+    {
+      "level": "h2",
+      "text": "Disable 2FA enforcement in the Organization"
+    },
+    {
+      "level": "h2",
+      "text": "Privacy Preference Center"
+    },
+    {
+      "level": "h3",
+      "text": "Manage Consent Preferences"
+    },
+    {
+      "level": "h4",
+      "text": "Necessary Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Functional Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Marketing Cookies"
+    },
+    {
+      "level": "h4",
+      "text": "Performance Cookies"
+    },
+    {
+      "level": "h3",
+      "text": "Cookie List"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://archbee-image-uploads.s3.amazonaws.com/oAyFj2GHlBeBVWF5OAir2/fusG_siDOOc8FuhsGgjDU_logo-light-mode.svg",
+      "alt": "Website logo",
+      "width": 831,
+      "height": 182,
+      "local_path": "assets/images/fusG_siDOOc8FuhsGgjDU_logo-light-mode__ac00cba0b781.svg"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/tRQqZxY2mAUXBC-0SlDq_-20260209-160408.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 405,
+      "local_path": "assets/images/tRQqZxY2mAUXBC-0SlDq_-20260209-160408__fd576611a27c.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/0BezXgEE1eBGUK4ThdZbM-20260211-125943.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 747,
+      "local_path": "assets/images/0BezXgEE1eBGUK4ThdZbM-20260211-125943__417215373e2c.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/uJw-RpKRbmA_xrjyO-Igq-20260210-093522.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 1041,
+      "local_path": "assets/images/uJw-RpKRbmA_xrjyO-Igq-20260210-093522__d8c8dccdd542.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/jndeQZITGEcXuTxmxuxNK-20260210-093947.png?format=webp&width=800",
+      "alt": "Document image",
+      "width": 800,
+      "height": 511,
+      "local_path": "assets/images/jndeQZITGEcXuTxmxuxNK-20260210-093947__c7e5c6bf5b14.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/vWxw6vUOflOHn23UsUudv-20260210-094946.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/vWxw6vUOflOHn23UsUudv-20260210-094946__89214f14837d.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/S7OgF_O11IbULSGzjypb4-20260212-113148.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/S7OgF_O11IbULSGzjypb4-20260212-113148__68d55e9d03c1.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/OU71h2Lg68bvxJ6_Ce07l-20260212-093030.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/OU71h2Lg68bvxJ6_Ce07l-20260212-093030__758d812160c4.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/H9fHIJ5hV-ClyXbQSHfaZ-20260212-092215.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/H9fHIJ5hV-ClyXbQSHfaZ-20260212-092215__4caf657a6528.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/NiGiGDqL6kchxDzY70KZj-20260212-092847.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/NiGiGDqL6kchxDzY70KZj-20260212-092847__bb26f43d9a63.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/2W7Tbp8AZNiUzHRS4Iw8i-20260209-171157.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/2W7Tbp8AZNiUzHRS4Iw8i-20260209-171157__57985c4785c5.png"
+    },
+    {
+      "src": "https://images.archbee.com/oAyFj2GHlBeBVWF5OAir2/_pNuxSuB4P6i7tfs7jtDk-20260209-171406.png?format=webp",
+      "alt": "Document image",
+      "width": null,
+      "height": null,
+      "local_path": "assets/images/_pNuxSuB4P6i7tfs7jtDk-20260209-171406__f02f0dfc7677.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [
+    {
+      "href": "https://archbee-doc-uploads.s3.amazonaws.com/export/pdf-space/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440.pdf",
+      "text": "",
+      "local_path": "assets/files/PUBLISHED-TDD_JYughqVhdcQ3sZF9_-20260408-1440__fd47c12e6a18.pdf"
+    }
+  ],
+  "videos": [],
+  "discovered_internal_links": [
+    "https://help.make.com/",
+    "https://help.make.com/2024",
+    "https://help.make.com/2025",
+    "https://help.make.com/2026",
+    "https://help.make.com/F-qx-data-stores",
+    "https://help.make.com/access-make-grid",
+    "https://help.make.com/access-management",
+    "https://help.make.com/administration",
+    "https://help.make.com/ai-agent-best-practices",
+    "https://help.make.com/ai-agent-use-case",
+    "https://help.make.com/ai-agents-configuration",
+    "https://help.make.com/analytics-dashboard",
+    "https://help.make.com/apps-and-modules",
+    "https://help.make.com/audit-logs",
+    "https://help.make.com/best-practices-to-use-make-grid",
+    "https://help.make.com/connections",
+    "https://help.make.com/create-ai-agents-for-different-triggers",
+    "https://help.make.com/create-your-first-ai-agent",
+    "https://help.make.com/create-your-first-scenario",
+    "https://help.make.com/credits-and-operations",
+    "https://help.make.com/credits-per-team-management",
+    "https://help.make.com/data-and-mapping",
+    "https://help.make.com/delete-user-data",
+    "https://help.make.com/developers",
+    "https://help.make.com/error-handlers",
+    "https://help.make.com/error-handling",
+    "https://help.make.com/expand-your-scenario",
+    "https://help.make.com/explore-make-grid-gui",
+    "https://help.make.com/explore-more",
+    "https://help.make.com/exponential-backoff",
+    "https://help.make.com/feature-controls",
+    "https://help.make.com/functions",
+    "https://help.make.com/get-started",
+    "https://help.make.com/how-to-handle-errors",
+    "https://help.make.com/how-to-use-make-grid",
+    "https://help.make.com/introduction-to-ai-agents",
+    "https://help.make.com/introduction-to-errors-and-warnings",
+    "https://help.make.com/introduction-to-make-ai-agents-new",
+    "https://help.make.com/introduction-to-make-grid",
+    "https://help.make.com/introduction-to-mcp",
+    "https://help.make.com/key-concepts",
+    "https://help.make.com/knowledge",
+    "https://help.make.com/learn-the-basics",
+    "https://help.make.com/make-ai-agents",
+    "https://help.make.com/make-ai-agents-app",
+    "https://help.make.com/make-ai-agents-new",
+    "https://help.make.com/make-ai-agents-new-app",
+    "https://help.make.com/make-ai-agents-new-best-practices",
+    "https://help.make.com/make-grid",
+    "https://help.make.com/make-managed-services-mms",
+    "https://help.make.com/make-mcp-server",
+    "https://help.make.com/make-programs",
+    "https://help.make.com/manage-ai-agents",
+    "https://help.make.com/mcp-toolboxes",
+    "https://help.make.com/model-context-protocol",
+    "https://help.make.com/organizations-and-teams",
+    "https://help.make.com/profile-settings",
+    "https://help.make.com/release-notes",
+    "https://help.make.com/resources",
+    "https://help.make.com/sales-outreach-ai-agent-use-case",
+    "https://help.make.com/scenarios",
+    "https://help.make.com/scenarios-and-connections",
+    "https://help.make.com/securing-data-with-make",
+    "https://help.make.com/set-the-length-of-your-session-timeout",
+    "https://help.make.com/subscription",
+    "https://help.make.com/throw",
+    "https://help.make.com/tools",
+    "https://help.make.com/tools-for-ai-agents",
+    "https://help.make.com/tutorial-how-to-replace-a-dependency",
+    "https://help.make.com/two-factor-authentication-enforcement",
+    "https://help.make.com/types-of-errors",
+    "https://help.make.com/types-of-warnings",
+    "https://help.make.com/xcvW-tools",
+    "https://help.make.com/your-organization",
+    "https://help.make.com/your-profile"
+  ]
+}

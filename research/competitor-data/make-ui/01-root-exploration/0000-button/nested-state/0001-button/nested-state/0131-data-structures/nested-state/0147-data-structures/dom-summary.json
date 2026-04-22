@@ -1,0 +1,391 @@
+{
+  "url": "https://eu1.make.com/",
+  "title": "",
+  "domNodes": 307,
+  "headings": [
+    {
+      "tag": "h2",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Privacy Preference Center",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "h3",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Manage Consent Preferences",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "h4",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Necessary Cookies",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "h4",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Functional Cookies",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "h4",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Marketing Cookies",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "h4",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Performance Cookies",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "h3",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Cookie List",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": "Close preference center",
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Allow All",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": "Back",
+      "testId": null,
+      "text": "Back Button",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": "Filter",
+      "testId": null,
+      "text": "Filter Icon",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Clear",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Apply",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Cancel",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Reject All",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "Confirm My Choices",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": "Select Cookies Settings",
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "button",
+      "role": null,
+      "ariaLabel": "Close Preferences",
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "inputs": [
+    {
+      "tag": "input",
+      "role": "switch",
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": "switch",
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": "switch",
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": null,
+      "ariaLabel": "Cookie list search",
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "input",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "tabs": [],
+  "menus": [],
+  "dialogs": [
+    {
+      "tag": "div",
+      "role": "dialog",
+      "ariaLabel": "Privacy Preference Center",
+      "testId": null,
+      "text": "Privacy Preference CenterWhen you visit any website, it may store or retrieve information on your browser, mostly in the form of cookies. This information might",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  ],
+  "links": [
+    {
+      "tag": "a",
+      "role": null,
+      "ariaLabel": null,
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "a",
+      "role": null,
+      "ariaLabel": "More information about your privacy, opens in a new tab",
+      "testId": null,
+      "text": "More information",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    {
+      "tag": "a",
+      "role": null,
+      "ariaLabel": "Powered by OneTrust Opens in a new Tab",
+      "testId": null,
+      "text": "",
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    }
+  ]
+}

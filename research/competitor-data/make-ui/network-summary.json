@@ -1,0 +1,1092 @@
+[
+  {
+    "method": "POST",
+    "url": "https://api.candu.ai/api/batchEvent",
+    "count": 140,
+    "statuses": [
+      204
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/unread-notifications",
+    "count": 78,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/scenarios?query",
+    "count": 72,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/roles?query",
+    "count": 70,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations?query",
+    "count": 54,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://eu1.make.com/api/v2/trace",
+    "count": 48,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch",
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/scenarios-folders?query",
+    "count": 42,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/server/features?query",
+    "count": 32,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/scenarios/consumptions?query",
+    "count": 32,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/zone-config",
+    "count": 32,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/teams?query",
+    "count": 30,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/enums/countries",
+    "count": 28,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations/:id",
+    "count": 28,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations/:id/usage",
+    "count": 28,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations/:id/subscription",
+    "count": 24,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations/:id/user-organization-roles?query",
+    "count": 24,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/mcp/v1/vhosts?query",
+    "count": 20,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://cdn.cookielaw.org/scripttemplates/:id.:id.:id/assets/v2/otPcCenter.json",
+    "count": 19,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://csp-report.browser-intake-datadoghq.com/api/v2/logs?query",
+    "count": 18,
+    "statuses": [],
+    "resourceTypes": [
+      "other"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/server/server-config",
+    "count": 18,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/enums/locales",
+    "count": 18,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/enums/timezones",
+    "count": 18,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/sdk/apps?query",
+    "count": 16,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/me?query",
+    "count": 15,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://api.candu.ai/api/smc/eyJjIjoiVkc4bDdvc0JxNCIsInUiOiI3NTYwNDEwIiwidCI6eyJvcmdfdHlwZV9hY3RpdmUiOiJzcyJ9fQ%3D%3D",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/enums/imt-zones",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/active-organization-team?query",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/hq/sanity-check",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/themes.css?query",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "stylesheet"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/teams/:id",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/streamer/live/socket.io.js?query",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "script"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://fast.chameleon.io/observe/v2/profiles/:token",
+    "count": 14,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://api.candu.ai/api/smc/VG8l7osBq4/:token",
+    "count": 12,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/ai-agents/v1/agents?query",
+    "count": 12,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/connections?query",
+    "count": 12,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch",
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/data-structures?query",
+    "count": 12,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/scenarios/ai-agents?query",
+    "count": 12,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/redirect-action?query",
+    "count": 12,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/data-stores?query",
+    "count": 10,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/devices?query",
+    "count": 10,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/hooks?query",
+    "count": 10,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/apps-meta?query",
+    "count": 10,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/notifications?query",
+    "count": 8,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://api.candu.ai/api/contentStates/flow/:token?query",
+    "count": 6,
+    "statuses": [
+      404
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://api.candu.ai/api/smc/eyJjIjoiVkc4bDdvc0JxNCIsInUiOiI3NTYwNDEwIn0%3D",
+    "count": 6,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://browser-intake-datadoghq.com/api/v2/logs?query",
+    "count": 5,
+    "statuses": [
+      202
+    ],
+    "resourceTypes": [
+      "fetch",
+      "ping"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://api.candu.ai/api/checklistItems?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/enums/variable-types",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-local-agent/RunLocalAIAgent?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/Ask?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/builtin/BasicAggregator?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/builtin/BasicFeeder?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/builtin/BasicIfElse?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/builtin/BasicRouter?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/gateway/CustomWebHook?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/util/SetVariables?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/util/TextAggregator?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/apps?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/apps/builtin/latest?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/apps/regexp/:id?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/apps/util/latest?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations/:id/variables?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/scenarios/:id/recovery?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/teams/:id/variables?query",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/:id/user-organization-roles",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/:id/user-team-roles",
+    "count": 4,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://fast.chameleon.io/observe/v2/tours",
+    "count": 4,
+    "statuses": [
+      201
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/cashier/products?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/consumptions/reports/:id?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/enums/user-email-notifications",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-local-agent/RunLocalAIAgent",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/AnalyzeSentiment?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/Categorize?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/CountAndChunkText?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/DetectLanguage?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/Extract?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/Standardize?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/Summarize?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/ai-tools/Translate?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/captionAnImage?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/captionAnImageAdvanced?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/describeAnImage?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/extractADocument?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/extractAnInvoice?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/extractAReceipt?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-extractors/extractTextFromAnImage?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/img/packages/make-ai-web-search/generateAResponse?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "image"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/imt/apps/ai-local-agent/:id?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/organizations/:id/subscription/customer",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "PUT",
+    "url": "https://eu1.make.com/api/v2/scenarios/:id/recovery?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "DELETE",
+    "url": "https://eu1.make.com/api/v2/scenarios/:id/recovery?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/sdk/apps/themes?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/sso/authorize?query",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://eu1.make.com/api/v2/sso/login",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "GET",
+    "url": "https://eu1.make.com/api/v2/users/user-team-notifications/:id",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://fast.chameleon.io/observe/v2/profiles",
+    "count": 2,
+    "statuses": [
+      201
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://fast.chameleon.io/observe/v2/tours/:token",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "xhr"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://www.make.com/api/affiliate/visit",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  },
+  {
+    "method": "POST",
+    "url": "https://www.make.com/api/login",
+    "count": 2,
+    "statuses": [
+      200
+    ],
+    "resourceTypes": [
+      "fetch"
+    ]
+  }
+]

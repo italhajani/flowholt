@@ -1,0 +1,17 @@
+{
+  "roles": [],
+  "dataAttrs": [
+    "data-public-path",
+    "data-theme",
+    "data-theme-var",
+    "data-version"
+  ],
+  "testIds": [],
+  "classTokens": [
+    "dmo-pl-0",
+    "imt",
+    "violet",
+    "with-aside"
+  ],
+  "overlayKinds": []
+}

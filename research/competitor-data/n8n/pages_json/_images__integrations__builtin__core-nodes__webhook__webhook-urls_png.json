@@ -1,0 +1,29 @@
+{
+  "url": "https://docs.n8n.io/_images/integrations/builtin/core-nodes/webhook/webhook-urls.png",
+  "slug": "_images__integrations__builtin__core-nodes__webhook__webhook-urls_png",
+  "title": "webhook-urls.png (477×227)",
+  "description": "",
+  "lastmod": null,
+  "markdown_path": "pages_markdown/_images__integrations__builtin__core-nodes__webhook__webhook-urls_png.md",
+  "raw_html_path": "raw_html/_images__integrations__builtin__core-nodes__webhook__webhook-urls_png.html",
+  "heading_count": 0,
+  "image_count": 1,
+  "iframe_count": 0,
+  "file_link_count": 0,
+  "content_selector": "body",
+  "content_text_length": 0,
+  "headings": [],
+  "images": [
+    {
+      "src": "https://docs.n8n.io/_images/integrations/builtin/core-nodes/webhook/webhook-urls.png",
+      "alt": "",
+      "width": 477,
+      "height": 227,
+      "local_path": "assets/images/webhook-urls__af3c31a09d71.png"
+    }
+  ],
+  "iframes": [],
+  "file_assets": [],
+  "videos": [],
+  "discovered_internal_links": []
+}
